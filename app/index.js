@@ -1,41 +1,30 @@
-import { useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
-import { useAuth } from "@clerk/expo";
 
-export default function HomeScreen() {
+export default function WelcomeScreen() {
   const router = useRouter();
-  const { isSignedIn } = useAuth();
-
-  useEffect(() => {
-    fetch("https://api.clerk.com")
-      .then((res) => console.log("Clerk reachable, status:", res.status))
-      .catch((err) => console.log("Clerk fetch failed:", err.message));
-  }, []);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Between Us</Text>
+      <Text style={styles.logo}>Between Us</Text>
 
-      {isSignedIn ? (
-        <Text style={styles.subtitle}>You're signed in 🎉</Text>
-      ) : (
-        <>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => router.push("/sign-up")}
-          >
-            <Text style={styles.buttonText}>Sign Up</Text>
-          </TouchableOpacity>
+      <Text style={styles.tagline}>
+        Stay connected to the people who matter most.
+      </Text>
 
-          <TouchableOpacity
-            style={styles.buttonOutline}
-            onPress={() => router.push("/sign-in")}
-          >
-            <Text style={styles.buttonOutlineText}>Sign In</Text>
-          </TouchableOpacity>
-        </>
-      )}
+      <TouchableOpacity
+        style={styles.primaryButton}
+        onPress={() => router.push("/sign-up")}
+      >
+        <Text style={styles.primaryText}>Get Started</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.secondaryButton}
+        onPress={() => router.push("/sign-in")}
+      >
+        <Text style={styles.secondaryText}>I Already Have An Account</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -44,29 +33,39 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
-    alignItems: "center",
     padding: 24,
   },
-  title: { fontSize: 32, fontWeight: "700", marginBottom: 24 },
-  subtitle: { fontSize: 16, color: "#444" },
-  button: {
-    backgroundColor: "#111",
-    borderRadius: 8,
-    paddingVertical: 14,
-    paddingHorizontal: 32,
+  logo: {
+    fontSize: 42,
+    fontWeight: "700",
+    textAlign: "center",
     marginBottom: 12,
-    width: "100%",
-    alignItems: "center",
   },
-  buttonText: { color: "#fff", fontWeight: "600" },
-  buttonOutline: {
+  tagline: {
+    fontSize: 18,
+    textAlign: "center",
+    marginBottom: 40,
+    color: "#666",
+  },
+  primaryButton: {
+    backgroundColor: "#111",
+    padding: 16,
+    borderRadius: 14,
+    marginBottom: 12,
+  },
+  primaryText: {
+    color: "#fff",
+    textAlign: "center",
+    fontWeight: "600",
+  },
+  secondaryButton: {
+    padding: 16,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: "#111",
-    borderRadius: 8,
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    width: "100%",
-    alignItems: "center",
   },
-  buttonOutlineText: { color: "#111", fontWeight: "600" },
+  secondaryText: {
+    textAlign: "center",
+    fontWeight: "600",
+  },
 });
