@@ -12,13 +12,14 @@ import {
   ScrollView,
 } from "react-native";
 
-import { useSignIn } from "@clerk/expo";
+import { useSignIn, useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 
 export default function SignInScreen() {
   const router = useRouter();
 
-  const { signIn, isLoaded, errors } = useSignIn();
+  const { signIn, errors } = useSignIn();
+  const { isLoaded } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
