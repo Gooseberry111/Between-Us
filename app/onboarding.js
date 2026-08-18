@@ -2,195 +2,267 @@ import { useState } from "react";
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
+  SafeAreaView,
+  ActivityIndicator,
 } from "react-native";
-import { useUser } from "@clerk/expo";
 import { useRouter } from "expo-router";
+import { useClerk, useAuth } from "@clerk/expo";
 
-const genders = ["Female", "Male", "Non-binary", "Prefer not to say"];
+import { questions } from "../components/onboarding/questions";
+import ProgressBar from "../components/onboarding/ProgressBar";
+import QuestionCard from "../components/onboarding/QuestionCard";
 
-const relationshipStatuses = [
-  "Single",
-  "Dating",
-  "Engaged",
-  "Married",
-  "In a committed relationship",
-  "It's complicated",
-];
+const API_URL = "https://between-us-api.between-us.workers.dev";
 
 export default function OnboardingScreen() {
-  const { user } = useUser();
   const router = useRouter();
 
-  const [firstName, setFirstName] = useState("");
-  const [birthday, setBirthday] = useState("");
-  const [gender, setGender] = useState("");
-  const [country, setCountry] = useState("");
-  const [relationshipStatus, setRelationshipStatus] = useState("");
+  const { signOut } = useClerk();
+  const { userId, isLoaded } = useAuth();
 
-  const [step, setStep] = useState(1);
+  const [currentQuestion, setCurrentQuestion] = useState(0);
 
-  const handleContinue = () => {
-    if (step < 5) {
-      setStep(step + 1);
+  const [answers, setAnswers] = useState({
+    firstName: "",
+    birthday: "",
+    gender: "",
+    country: "",
+    relationshipStatus: "",
+    personalityType: "",
+    communicationStyle: "",
+    conflictStyle: "",
+    affectionStyle: "",
+    loveLanguages: [],
+    favoriteFood: "",
+    favoriteSnack: "",
+    favoriteDrink: "",
+    favoriteColor: "",
+    musicGenre: "",
+    movieGenre: "",
+    goals: [],
+  });
+
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const question = questions[currentQuestion];
+
+  const updateAnswer = (value) => {
+    setAnswers((prev) => ({
+      ...prev,
+      [question.id]: value,
+    }));
+
+    setError("");
+  };
+
+  const canContinue = () => {
+    const value = answers[question.id];
+
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+
+    return String(value || "").trim().length > 0;
+  };
+
+  const saveProfile = async () => {
+    if (!isLoaded || !userId) {
+      throw new Error("Your account is not ready yet. Please try again.");
+    }
+
+    console.log("SAVING ONBOARDING PROFILE FOR:", userId);
+
+    const response = await fetch(`${API_URL}/users/${userId}/profile`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        firstName: answers.firstName,
+        birthday: answers.birthday,
+        gender: answers.gender,
+        country: answers.country,
+        relationshipStatus: answers.relationshipStatus,
+      }),
+    });
+
+    const data = await response.json();
+
+    console.log("PROFILE SAVE RESPONSE:", data);
+
+    if (!response.ok) {
+      throw new Error(data?.error || "Unable to save your profile.");
+    }
+
+    return data;
+  };
+
+  const handleNext = async () => {
+    if (saving) return;
+
+    if (!canContinue()) return;
+
+    if (currentQuestion < questions.length - 1) {
+      setCurrentQuestion((prev) => prev + 1);
       return;
     }
 
-    router.replace("/(tabs)/home");
+    try {
+      setSaving(true);
+      setError("");
+
+      console.log("ONBOARDING FINISHED");
+      console.log("ONBOARDING ANSWERS:", answers);
+
+      await saveProfile();
+
+      console.log("ONBOARDING PROFILE SAVED");
+
+      /*
+       * The database now knows that this user
+       * has completed onboarding.
+       *
+       * Only navigate after the save succeeds.
+       */
+
+      router.replace("/(tabs)/home");
+    } catch (error) {
+      console.log("ONBOARDING SAVE ERROR:", error);
+
+      setError(
+        error?.message || "Something went wrong while saving your profile.",
+      );
+
+      setSaving(false);
+    }
   };
 
-  return (
-    <View style={styles.screen}>
-      <ScrollView
-        contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.brand}>Between Us</Text>
+  const handleBack = () => {
+    if (saving) return;
 
-          <Text style={styles.progressText}>{step} of 5</Text>
+    if (currentQuestion === 0) return;
+
+    setCurrentQuestion((prev) => prev - 1);
+  };
+
+  const handleSignOut = async () => {
+    if (saving) return;
+
+    try {
+      console.log("SIGNING OUT FROM ONBOARDING...");
+
+      await signOut();
+
+      console.log("SIGNED OUT");
+
+      router.replace("/");
+    } catch (error) {
+      console.log("SIGN OUT ERROR:", error);
+    }
+  };
+
+  if (!isLoaded) {
+    return (
+      <SafeAreaView style={styles.screen}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color="#6B4E45" />
+
+          <Text style={styles.loadingText}>Preparing your profile...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.screen}>
+      <View style={styles.container}>
+        {/* HEADER */}
+
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.brand}>Between Us</Text>
+
+            <Text style={styles.subtitle}>Let's get to know you</Text>
+          </View>
+
+          <TouchableOpacity
+            onPress={handleSignOut}
+            style={styles.signOutButton}
+            disabled={saving}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.signOutText}>Sign out</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Progress */}
-        <View style={styles.progressBackground}>
-          <View
-            style={[styles.progressFill, { width: `${(step / 5) * 100}%` }]}
+        {/* PROGRESS */}
+
+        <Text style={styles.counter}>
+          {currentQuestion + 1} of {questions.length}
+        </Text>
+
+        <ProgressBar current={currentQuestion} total={questions.length} />
+
+        {/* QUESTION */}
+
+        <View style={styles.questionContainer}>
+          <QuestionCard
+            question={question}
+            value={answers[question.id]}
+            onChange={updateAnswer}
           />
         </View>
 
-        {/* Intro */}
-        <Text style={styles.eyebrow}>LET'S GET TO KNOW YOU</Text>
+        {/* ERROR */}
 
-        <Text style={styles.title}>About you</Text>
+        {error ? (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
 
-        <Text style={styles.subtitle}>
-          These details help us make Between Us more personal to you.
-        </Text>
+        {/* FOOTER */}
 
-        {/* First Name */}
-        <Text style={styles.label}>What's your first name?</Text>
-
-        <TextInput
-          style={styles.input}
-          placeholder="Your first name"
-          placeholderTextColor="#9A938C"
-          value={firstName}
-          onChangeText={setFirstName}
-        />
-
-        {/* Birthday */}
-        <Text style={styles.label}>When's your birthday?</Text>
-
-        <TextInput
-          style={styles.input}
-          placeholder="DD / MM / YYYY"
-          placeholderTextColor="#9A938C"
-          value={birthday}
-          onChangeText={setBirthday}
-          keyboardType="numbers-and-punctuation"
-        />
-
-        {/* Gender */}
-        <Text style={styles.label}>How do you identify?</Text>
-
-        <View style={styles.options}>
-          {genders.map((option) => (
+        <View style={styles.footer}>
+          {currentQuestion > 0 && !saving ? (
             <TouchableOpacity
-              key={option}
-              style={[
-                styles.option,
-                gender === option && styles.selectedOption,
-              ]}
-              onPress={() => setGender(option)}
+              style={styles.backButton}
+              onPress={handleBack}
+              activeOpacity={0.7}
             >
-              <View
-                style={[
-                  styles.radio,
-                  gender === option && styles.selectedRadio,
-                ]}
-              />
-
-              <Text
-                style={[
-                  styles.optionText,
-                  gender === option && styles.selectedOptionText,
-                ]}
-              >
-                {option}
-              </Text>
+              <Text style={styles.backText}>Back</Text>
             </TouchableOpacity>
-          ))}
-        </View>
+          ) : null}
 
-        {/* Country */}
-        <Text style={styles.label}>Where are you from?</Text>
-
-        <TextInput
-          style={styles.input}
-          placeholder="Country"
-          placeholderTextColor="#9A938C"
-          value={country}
-          onChangeText={setCountry}
-        />
-
-        {/* Relationship */}
-        <Text style={styles.label}>What's your relationship status?</Text>
-
-        <View style={styles.options}>
-          {relationshipStatuses.map((option) => (
-            <TouchableOpacity
-              key={option}
-              style={[
-                styles.option,
-                relationshipStatus === option && styles.selectedOption,
-              ]}
-              onPress={() => setRelationshipStatus(option)}
-            >
-              <View
-                style={[
-                  styles.radio,
-                  relationshipStatus === option && styles.selectedRadio,
-                ]}
-              />
-
-              <Text
-                style={[
-                  styles.optionText,
-                  relationshipStatus === option && styles.selectedOptionText,
-                ]}
-              >
-                {option}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Continue */}
-        <TouchableOpacity
-          style={styles.button}
-          onPress={handleContinue}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.buttonText}>
-            {step === 5 ? "Finish" : "Continue"}
-          </Text>
-        </TouchableOpacity>
-
-        {/* Back */}
-        {step > 1 && (
           <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => setStep(step - 1)}
+            style={[
+              styles.nextButton,
+              (!canContinue() || saving) && styles.disabledButton,
+            ]}
+            disabled={!canContinue() || saving}
+            onPress={handleNext}
+            activeOpacity={0.85}
           >
-            <Text style={styles.backText}>Back</Text>
+            {saving ? (
+              <View style={styles.savingContent}>
+                <ActivityIndicator size="small" color="#FFFFFF" />
+
+                <Text style={styles.nextText}>Saving...</Text>
+              </View>
+            ) : (
+              <Text style={styles.nextText}>
+                {currentQuestion === questions.length - 1
+                  ? "Finish"
+                  : "Continue"}
+              </Text>
+            )}
           </TouchableOpacity>
-        )}
-      </ScrollView>
-    </View>
+        </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
@@ -201,155 +273,117 @@ const styles = StyleSheet.create({
   },
 
   container: {
-    padding: 28,
-    paddingTop: 60,
-    paddingBottom: 50,
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 24,
   },
 
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 18,
+    alignItems: "flex-start",
   },
 
   brand: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "700",
     color: "#332B28",
   },
 
-  progressText: {
-    fontSize: 13,
-    color: "#9A938C",
-    fontWeight: "600",
-  },
-
-  progressBackground: {
-    height: 6,
-    backgroundColor: "#E8E1DA",
-    borderRadius: 10,
-    overflow: "hidden",
-    marginBottom: 38,
-  },
-
-  progressFill: {
-    height: "100%",
-    backgroundColor: "#6B4E45",
-    borderRadius: 10,
-  },
-
-  eyebrow: {
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 2,
-    color: "#A47767",
-    marginBottom: 10,
-  },
-
-  title: {
-    fontSize: 34,
-    fontWeight: "700",
-    color: "#2E2724",
-    marginBottom: 10,
-  },
-
   subtitle: {
-    fontSize: 15,
-    lineHeight: 23,
-    color: "#766D67",
-    marginBottom: 30,
+    fontSize: 13,
+    color: "#9A918A",
+    marginTop: 4,
   },
 
-  label: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#453B37",
-    marginBottom: 10,
-    marginTop: 8,
-  },
-
-  input: {
-    height: 54,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E4DDD6",
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    color: "#2E2724",
-    marginBottom: 16,
-  },
-
-  options: {
-    marginBottom: 14,
-  },
-
-  option: {
-    minHeight: 54,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E4DDD6",
-    borderRadius: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    marginBottom: 10,
-  },
-
-  selectedOption: {
-    borderColor: "#6B4E45",
-    backgroundColor: "#F1EAE5",
-  },
-
-  radio: {
-    width: 20,
-    height: 20,
+  signOutButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 10,
-    borderWidth: 2,
-    borderColor: "#C8BFB7",
-    marginRight: 12,
+    backgroundColor: "#E9DED8",
   },
 
-  selectedRadio: {
-    borderColor: "#6B4E45",
-    backgroundColor: "#6B4E45",
-  },
-
-  optionText: {
-    flex: 1,
-    fontSize: 15,
-    color: "#453B37",
-  },
-
-  selectedOptionText: {
-    fontWeight: "600",
+  signOutText: {
     color: "#6B4E45",
+    fontSize: 13,
+    fontWeight: "600",
   },
 
-  button: {
-    height: 56,
-    backgroundColor: "#6B4E45",
-    borderRadius: 14,
+  counter: {
+    color: "#8D837C",
+    marginTop: 22,
+    marginBottom: 12,
+    fontSize: 14,
+  },
+
+  questionContainer: {
+    flex: 1,
     justifyContent: "center",
-    alignItems: "center",
-    marginTop: 20,
   },
 
-  buttonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
+  errorBox: {
+    backgroundColor: "#F3E3DF",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+
+  errorText: {
+    color: "#8A4A3D",
+    fontSize: 13,
+    lineHeight: 18,
+  },
+
+  footer: {
+    marginTop: 24,
   },
 
   backButton: {
+    marginBottom: 12,
     alignItems: "center",
-    padding: 16,
   },
 
   backText: {
     color: "#6B4E45",
-    fontSize: 15,
     fontWeight: "600",
+    fontSize: 15,
+  },
+
+  nextButton: {
+    height: 56,
+    borderRadius: 14,
+    backgroundColor: "#6B4E45",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  disabledButton: {
+    opacity: 0.4,
+  },
+
+  nextText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 16,
+  },
+
+  savingContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#817771",
   },
 });

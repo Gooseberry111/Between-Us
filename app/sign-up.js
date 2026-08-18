@@ -59,10 +59,15 @@ export default function SignUpScreen() {
 
       if (result.status === "complete") {
         await signUp.finalize();
-        router.replace("/onboarding");
+        console.log("SIGN UP COMPLETE - AUTH GUARD WILL HANDLE ROUTING");
+
+        // AuthGuard in _layout.js will detect the new
+        // authenticated user and route them correctly.
+        return;
       }
     } catch (error) {
       console.log("VERIFY ERROR:", error);
+
       setError(error?.message || "Verification failed.");
     }
   };
