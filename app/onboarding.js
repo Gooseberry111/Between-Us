@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useClerk, useAuth } from "@clerk/expo";
+import { useClerk, useAuth, useUser } from "@clerk/expo";
 
 import { questions } from "../components/onboarding/questions";
 import ProgressBar from "../components/onboarding/ProgressBar";
@@ -21,6 +21,7 @@ export default function OnboardingScreen() {
 
   const { signOut } = useClerk();
   const { userId, isLoaded } = useAuth();
+  const { user } = useUser();
 
   const [currentQuestion, setCurrentQuestion] = useState(0);
 
@@ -73,28 +74,49 @@ export default function OnboardingScreen() {
       throw new Error("Your account is not ready yet. Please try again.");
     }
 
-    console.log("SAVING ONBOARDING PROFILE FOR:", userId);
+    console.log("SAVING COMPLETE ONBOARDING FOR:", userId);
 
-    const response = await fetch(`${API_URL}/users/${userId}/profile`, {
+    const response = await fetch(`${API_URL}/onboarding`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        clerk_id: userId,
+        email: user?.primaryEmailAddress?.emailAddress || "",
+
         firstName: answers.firstName,
         birthday: answers.birthday,
         gender: answers.gender,
         country: answers.country,
         relationshipStatus: answers.relationshipStatus,
+
+        communicationStyle: answers.communicationStyle,
+        affectionStyle: answers.affectionStyle,
+        loveLanguages: answers.loveLanguages,
+
+        favoriteFood: answers.favoriteFood,
+        favoriteSnack: answers.favoriteSnack,
+        favoriteDrink: answers.favoriteDrink,
+        favoriteColor: answers.favoriteColor,
+
+        musicGenre: answers.musicGenre,
+        movieGenre: answers.movieGenre,
+
+        personalityType: answers.personalityType,
+        conflictStyle: answers.conflictStyle,
+        goals: answers.goals,
       }),
     });
 
     const data = await response.json();
 
-    console.log("PROFILE SAVE RESPONSE:", data);
+    console.log("ONBOARDING SAVE RESPONSE:", data);
 
     if (!response.ok) {
-      throw new Error(data?.error || "Unable to save your profile.");
+      throw new Error(
+        data?.error || "Unable to save your onboarding information.",
+      );
     }
 
     return data;

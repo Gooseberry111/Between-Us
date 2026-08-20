@@ -118,7 +118,48 @@ export default {
 					{ status: 201 },
 				);
 			}
+			/*
+			 * ==========================================
+			 * DELETE USER ACCOUNT
+			 * ==========================================
+			 *
+			 * DELETE /users/:clerkId
+			 */
 
+			const deleteUserMatch = url.pathname.match(/^\/users\/([^/]+)$/);
+
+			if (deleteUserMatch && request.method === 'DELETE') {
+				const clerkId = deleteUserMatch[1];
+
+				const userResult = await sql`
+          SELECT
+            id,
+            clerk_id
+          FROM users
+          WHERE clerk_id = ${clerkId}
+          LIMIT 1
+        `;
+
+				if (userResult.length === 0) {
+					return Response.json(
+						{
+							error: 'User not found',
+						},
+						{ status: 404 },
+					);
+				}
+
+				const userId = userResult[0].id;
+
+				await sql`
+          DELETE FROM users
+          WHERE id = ${userId}
+        `;
+
+				return Response.json({
+					message: 'User account deleted successfully',
+				});
+			}
 			/*
 			 * ==========================================
 			 * SAVE ONBOARDING
@@ -145,6 +186,9 @@ export default {
 					favoriteColor,
 					musicGenre,
 					movieGenre,
+					personalityType,
+					conflictStyle,
+					goals,
 				} = body;
 
 				if (!clerk_id || !email || !firstName || !birthday) {
@@ -269,6 +313,28 @@ export default {
             affection_style = EXCLUDED.affection_style
         `;
 
+				const insightGoals = Array.isArray(goals) ? goals.filter(Boolean) : [];
+
+				await sql`
+  DELETE FROM relationship_insights
+  WHERE user_id = ${userId}
+`;
+
+				await sql`
+  INSERT INTO relationship_insights (
+    user_id,
+    personality_type,
+    conflict_style,
+    goals
+  )
+  VALUES (
+    ${userId},
+    ${personalityType || null},
+    ${conflictStyle || null},
+    ${insightGoals}
+  )
+`;
+
 				return Response.json(
 					{
 						message: 'Onboarding saved successfully',
@@ -277,7 +343,67 @@ export default {
 					{ status: 201 },
 				);
 			}
+			/*
+			 * ==========================================
+			 * GET USER PREFERENCES
+			 * ==========================================
+			 *
+			 * GET /users/:clerkId/preferences
+			 */
 
+			const preferencesMatch = url.pathname.match(/^\/users\/([^/]+)\/preferences$/);
+
+			if (preferencesMatch && request.method === 'GET') {
+				const clerkId = preferencesMatch[1];
+
+				const userResult = await sql`
+    SELECT id
+    FROM users
+    WHERE clerk_id = ${clerkId}
+    LIMIT 1
+  `;
+
+				if (userResult.length === 0) {
+					return Response.json(
+						{
+							error: 'User not found',
+						},
+						{ status: 404 },
+					);
+				}
+
+				const userId = userResult[0].id;
+
+				const result = await sql`
+    SELECT
+      id,
+      user_id,
+      love_languages,
+      favorite_food,
+      favorite_snack,
+      favorite_drink,
+      favorite_color,
+      movie_genre,
+      music_genre,
+      communication_frequency,
+      affection_style
+    FROM preferences
+    WHERE user_id = ${userId}
+    LIMIT 1
+  `;
+
+				if (result.length === 0) {
+					return Response.json({
+						exists: false,
+						preferences: null,
+					});
+				}
+
+				return Response.json({
+					exists: true,
+					preferences: result[0],
+				});
+			}
 			/*
 			 * ==========================================
 			 * GET USER PROFILE
@@ -285,20 +411,59 @@ export default {
 			 */
 
 			const profileMatch = url.pathname.match(/^\/users\/([^/]+)\/profile$/);
+			/*
+			 * ==========================================
+			 * GET USER INSIGHTS
+			 * ==========================================
+			 */
+
+			const insightsMatch = url.pathname.match(/^\/users\/([^/]+)\/insights$/);
+
+			if (insightsMatch && request.method === 'GET') {
+				const clerkId = insightsMatch[1];
+
+				const result = await sql`
+    SELECT
+      ri.id,
+      ri.user_id,
+      ri.personality_type,
+      ri.conflict_style,
+      ri.goals,
+      ri.created_at
+    FROM relationship_insights ri
+    INNER JOIN users u
+      ON ri.user_id = u.id
+    WHERE u.clerk_id = ${clerkId}
+    LIMIT 1
+  `;
+
+				if (result.length === 0) {
+					return Response.json({
+						exists: false,
+						insights: null,
+					});
+				}
+
+				return Response.json({
+					exists: true,
+					insights: result[0],
+				});
+			}
 
 			if (profileMatch && request.method === 'GET') {
 				const clerkId = profileMatch[1];
 
 				const result = await sql`
           SELECT
-            p.id,
-            p.user_id,
-            p.first_name,
-            p.birthday,
-            p.gender,
-            p.country,
-            p.relationship_status
-          FROM profiles p
+  p.id,
+  p.user_id,
+  p.first_name,
+  p.last_name,
+  p.birthday,
+  p.gender,
+  p.country,
+  p.relationship_status
+FROM profiles p
           INNER JOIN users u
             ON p.user_id = u.id
           WHERE u.clerk_id = ${clerkId}
@@ -372,9 +537,10 @@ export default {
 				if (existingProfile.length > 0) {
 					const result = await sql`
             UPDATE profiles
-            SET
-              first_name = ${firstName},
-              birthday = ${birthday},
+SET
+  first_name = ${firstName},
+  last_name = ${lastName},
+  birthday = ${birthday},
               gender = ${gender},
               country = ${country},
               relationship_status = ${relationshipStatus}
@@ -1114,7 +1280,95 @@ VALUES (
 					message: 'Connection request cancelled',
 				});
 			}
+			/*
+			 * ==========================================
+			 * UNLINK PARTNER
+			 * ==========================================
+			 *
+			 * DELETE /users/:clerkId/connection
+			 */
 
+			const unlinkMatch = url.pathname.match(/^\/users\/([^/]+)\/connection$/);
+
+			if (unlinkMatch && request.method === 'DELETE') {
+				const clerkId = unlinkMatch[1];
+
+				const userResult = await sql`
+          SELECT id
+          FROM users
+          WHERE clerk_id = ${clerkId}
+          LIMIT 1
+        `;
+
+				if (userResult.length === 0) {
+					return Response.json(
+						{
+							error: 'User not found',
+						},
+						{ status: 404 },
+					);
+				}
+
+				const userId = userResult[0].id;
+
+				const connectionResult = await sql`
+          SELECT
+            id,
+            user_one,
+            user_two
+          FROM connections
+          WHERE
+            (user_one = ${userId} OR user_two = ${userId})
+            AND status = 'accepted'
+          LIMIT 1
+        `;
+
+				if (connectionResult.length === 0) {
+					return Response.json(
+						{
+							error: 'No active connection found',
+						},
+						{ status: 404 },
+					);
+				}
+
+				const connection = connectionResult[0];
+
+				const partnerId = connection.user_one === userId ? connection.user_two : connection.user_one;
+
+				const userProfile = await sql`
+          SELECT first_name
+          FROM profiles
+          WHERE user_id = ${userId}
+          LIMIT 1
+        `;
+
+				const userName = userProfile[0]?.first_name || 'Your partner';
+
+				await sql`
+          INSERT INTO notifications (
+            user_id,
+            type,
+            title,
+            message
+          )
+          VALUES (
+            ${partnerId},
+            'connection_unlinked',
+            'Connection ended',
+            ${`${userName} has ended your connection on Between Us.`}
+          )
+        `;
+
+				await sql`
+          DELETE FROM connections
+          WHERE id = ${connection.id}
+        `;
+
+				return Response.json({
+					message: 'Connection ended successfully',
+				});
+			}
 			/*
 			 * ==========================================
 			 * DISCONNECT
@@ -1252,6 +1506,715 @@ VALUES (
 				return Response.json(requests);
 			}
 
+			/*
+			 * ==========================================
+			 * CREATE MEMORY
+			 * ==========================================
+			 *
+			 * POST /users/:clerkId/memories
+			 */
+
+			const createMemoryMatch = url.pathname.match(/^\/users\/([^/]+)\/memories$/);
+
+			if (createMemoryMatch && request.method === 'POST') {
+				const clerkId = createMemoryMatch[1];
+
+				const body = await request.json();
+
+				const { title, description, memory_date } = body;
+
+				if (!title || !String(title).trim()) {
+					return Response.json(
+						{
+							error: 'Memory title is required',
+						},
+						{ status: 400 },
+					);
+				}
+
+				const userResult = await sql`
+    SELECT id
+    FROM users
+    WHERE clerk_id = ${clerkId}
+    LIMIT 1
+  `;
+
+				if (userResult.length === 0) {
+					return Response.json(
+						{
+							error: 'User not found',
+						},
+						{ status: 404 },
+					);
+				}
+
+				const userId = userResult[0].id;
+
+				const connectionResult = await sql`
+    SELECT
+      user_one,
+      user_two
+    FROM connections
+    WHERE
+      (
+        user_one = ${userId}
+        OR user_two = ${userId}
+      )
+      AND status = 'accepted'
+    LIMIT 1
+  `;
+
+				if (connectionResult.length === 0) {
+					return Response.json(
+						{
+							error: 'You must be connected before creating a memory',
+						},
+						{ status: 403 },
+					);
+				}
+
+				const connection = connectionResult[0];
+
+				const partnerId = connection.user_one === userId ? connection.user_two : connection.user_one;
+
+				const result = await sql`
+    INSERT INTO memories (
+      user_one,
+      user_two,
+      created_by,
+      title,
+      description,
+      memory_date
+    )
+    VALUES (
+      ${userId},
+      ${partnerId},
+      ${userId},
+      ${String(title).trim()},
+      ${description ? String(description).trim() : null},
+      ${memory_date || new Date().toISOString().slice(0, 10)}
+    )
+    RETURNING
+      id,
+      user_one,
+      user_two,
+      created_by,
+      title,
+      description,
+      memory_date,
+      created_at,
+      updated_at
+  `;
+
+				return Response.json(
+					{
+						message: 'Memory created successfully',
+						memory: result[0],
+					},
+					{ status: 201 },
+				);
+			}
+			/*
+			 * ==========================================
+			 * CREATE MEMORY
+			 * ==========================================
+			 *
+			 * POST /memories
+			 *
+			 * Body:
+			 * {
+			 *   clerk_id: "current-user-clerk-id",
+			 *   title: "Our first date",
+			 *   description: "We went to the beach",
+			 *   memory_date: "2026-08-20"
+			 * }
+			 */
+
+			if (url.pathname === '/memories' && request.method === 'POST') {
+				const body = await request.json();
+
+				const { clerk_id, title, description, memory_date } = body;
+
+				if (!clerk_id || !title) {
+					return Response.json(
+						{
+							error: 'clerk_id and title are required',
+						},
+						{ status: 400 },
+					);
+				}
+				/*
+				 * ==========================================
+				 * DELETE MEMORY
+				 * ==========================================
+				 *
+				 * DELETE /memories/:id?clerk_id=...
+				 *
+				 * Only the person who created the memory
+				 * can delete it.
+				 */
+
+				const deleteMemoryMatch = url.pathname.match(/^\/memories\/([^/]+)$/);
+
+				if (deleteMemoryMatch && request.method === 'DELETE') {
+					const memoryId = deleteMemoryMatch[1];
+					const clerkId = url.searchParams.get('clerk_id');
+
+					if (!clerkId) {
+						return Response.json(
+							{
+								error: 'clerk_id is required',
+							},
+							{ status: 400 },
+						);
+					}
+
+					const userResult = await sql`
+    SELECT id
+    FROM users
+    WHERE clerk_id = ${clerkId}
+    LIMIT 1
+  `;
+
+					if (userResult.length === 0) {
+						return Response.json(
+							{
+								error: 'User not found',
+							},
+							{ status: 404 },
+						);
+					}
+
+					const userId = userResult[0].id;
+
+					const result = await sql`
+    DELETE FROM memories
+    WHERE
+      id = ${memoryId}
+      AND created_by = ${userId}
+    RETURNING id
+  `;
+
+					if (result.length === 0) {
+						return Response.json(
+							{
+								error: 'Memory not found or you are not allowed to delete it',
+							},
+							{ status: 404 },
+						);
+					}
+
+					return Response.json({
+						message: 'Memory deleted successfully',
+					});
+				}
+				/*
+				 * Find the logged-in user
+				 */
+
+				const userResult = await sql`
+                    SELECT id
+                    FROM users
+                    WHERE clerk_id = ${clerk_id}
+                    LIMIT 1
+                `;
+
+				if (userResult.length === 0) {
+					return Response.json(
+						{
+							error: 'User not found',
+						},
+						{ status: 404 },
+					);
+				}
+
+				const userId = userResult[0].id;
+
+				/*
+				 * Find the user's accepted connection
+				 */
+
+				const connectionResult = await sql`
+                    SELECT
+                        user_one,
+                        user_two
+                    FROM connections
+                    WHERE
+                        (
+                            user_one = ${userId}
+                            OR user_two = ${userId}
+                        )
+                        AND status = 'accepted'
+                    LIMIT 1
+                `;
+
+				if (connectionResult.length === 0) {
+					return Response.json(
+						{
+							error: 'You must be connected to someone before creating a memory',
+						},
+						{ status: 409 },
+					);
+				}
+
+				const connection = connectionResult[0];
+
+				const partnerId = connection.user_one === userId ? connection.user_two : connection.user_one;
+
+				/*
+				 * Create the memory
+				 */
+
+				const result = await sql`
+                    INSERT INTO memories (
+                        user_one,
+                        user_two,
+                        created_by,
+                        title,
+                        description,
+                        memory_date
+                    )
+                    VALUES (
+                        ${userId},
+                        ${partnerId},
+                        ${userId},
+                        ${title.trim()},
+                        ${description?.trim() || null},
+                        ${memory_date || new Date().toISOString().split('T')[0]}
+                    )
+                    RETURNING
+                        id,
+                        user_one,
+                        user_two,
+                        created_by,
+                        title,
+                        description,
+                        memory_date,
+                        created_at,
+                        updated_at
+                `;
+
+				return Response.json(
+					{
+						message: 'Memory created successfully',
+						memory: result[0],
+					},
+					{ status: 201 },
+				);
+			}
+			/*
+			 * ==========================================
+			 * MEMORIES
+			 * ==========================================
+			 *
+			 * GET /users/:clerkId/memories
+			 * POST /users/:clerkId/memories
+			 *
+			 * Memories belong to both people in an
+			 * accepted connection.
+			 */
+
+			// GET MEMORIES
+			const memoriesMatch = url.pathname.match(/^\/users\/([^/]+)\/memories$/);
+			/*
+			 * ==========================================
+			 * UPDATE MEMORY
+			 * ==========================================
+			 *
+			 * PUT /users/:clerkId/memories/:memoryId
+			 *
+			 * Only the person who created the memory
+			 * can edit it.
+			 */
+
+			const updateMemoryMatch = url.pathname.match(/^\/users\/([^/]+)\/memories\/([^/]+)$/);
+
+			if (updateMemoryMatch && request.method === 'PUT') {
+				const clerkId = updateMemoryMatch[1];
+				const memoryId = updateMemoryMatch[2];
+
+				const body = await request.json();
+
+				const userResult = await sql`
+    SELECT id
+    FROM users
+    WHERE clerk_id = ${clerkId}
+    LIMIT 1
+  `;
+
+				if (userResult.length === 0) {
+					return Response.json(
+						{
+							error: 'User not found',
+						},
+						{ status: 404 },
+					);
+				}
+
+				const userId = userResult[0].id;
+
+				const memoryResult = await sql`
+    SELECT id, created_by
+    FROM memories
+    WHERE id = ${memoryId}
+    LIMIT 1
+  `;
+
+				if (memoryResult.length === 0) {
+					return Response.json(
+						{
+							error: 'Memory not found',
+						},
+						{ status: 404 },
+					);
+				}
+
+				const memory = memoryResult[0];
+
+				if (memory.created_by !== userId) {
+					return Response.json(
+						{
+							error: 'You can only edit memories you created.',
+						},
+						{ status: 403 },
+					);
+				}
+
+				const updatedMemory = await sql`
+    UPDATE memories
+    SET
+      title = ${body.title?.trim() || ''},
+      description = ${body.description?.trim() || ''},
+      updated_at = NOW()
+    WHERE id = ${memoryId}
+      AND created_by = ${userId}
+    RETURNING
+      id,
+      title,
+      description,
+      memory_date,
+      created_at,
+      updated_at,
+      created_by,
+      user_one,
+      user_two
+  `;
+
+				return Response.json({
+					message: 'Memory updated successfully',
+					memory: updatedMemory[0],
+				});
+			}
+			/*
+			 * ==========================================
+			 * DELETE MEMORY
+			 * ==========================================
+			 *
+			 * DELETE /users/:clerkId/memories/:memoryId
+			 *
+			 * Only the person who created the memory
+			 * can delete it.
+			 */
+
+			const deleteMemoryMatch = url.pathname.match(/^\/users\/([^/]+)\/memories\/([^/]+)$/);
+
+			if (deleteMemoryMatch && request.method === 'DELETE') {
+				const clerkId = deleteMemoryMatch[1];
+				const memoryId = deleteMemoryMatch[2];
+
+				const userResult = await sql`
+    SELECT id
+    FROM users
+    WHERE clerk_id = ${clerkId}
+    LIMIT 1
+  `;
+
+				if (userResult.length === 0) {
+					return Response.json(
+						{
+							error: 'User not found',
+						},
+						{ status: 404 },
+					);
+				}
+
+				const userId = userResult[0].id;
+
+				const memoryResult = await sql`
+    SELECT id, created_by
+    FROM memories
+    WHERE id = ${memoryId}
+    LIMIT 1
+  `;
+
+				if (memoryResult.length === 0) {
+					return Response.json(
+						{
+							error: 'Memory not found',
+						},
+						{ status: 404 },
+					);
+				}
+
+				const memory = memoryResult[0];
+
+				if (memory.created_by !== userId) {
+					return Response.json(
+						{
+							error: 'You can only delete memories you created.',
+						},
+						{ status: 403 },
+					);
+				}
+
+				await sql`
+    DELETE FROM memories
+    WHERE id = ${memoryId}
+      AND created_by = ${userId}
+  `;
+
+				return Response.json({
+					message: 'Memory deleted successfully',
+				});
+			}
+			if (memoriesMatch && request.method === 'GET') {
+				const clerkId = memoriesMatch[1];
+
+				// Find current user
+				const userResult = await sql`
+    SELECT id
+    FROM users
+    WHERE clerk_id = ${clerkId}
+    LIMIT 1
+  `;
+
+				if (userResult.length === 0) {
+					return Response.json(
+						{
+							error: 'User not found',
+						},
+						{ status: 404 },
+					);
+				}
+
+				const userId = userResult[0].id;
+
+				// Find the user's accepted connection
+				const connectionResult = await sql`
+    SELECT
+      user_one,
+      user_two
+    FROM connections
+    WHERE
+      (
+        user_one = ${userId}
+        OR user_two = ${userId}
+      )
+      AND status = 'accepted'
+    LIMIT 1
+  `;
+
+				if (connectionResult.length === 0) {
+					return Response.json([]);
+				}
+
+				const connection = connectionResult[0];
+
+				// Get memories shared between the two users
+				const memories = await sql`
+    SELECT
+      id,
+      user_one,
+      user_two,
+      created_by,
+      title,
+      description,
+      memory_date,
+      created_at,
+      updated_at
+    FROM memories
+    WHERE
+      user_one = ${connection.user_one}
+      AND user_two = ${connection.user_two}
+
+      OR
+
+      user_one = ${connection.user_two}
+      AND user_two = ${connection.user_one}
+
+    ORDER BY memory_date DESC, created_at DESC
+  `;
+
+				return Response.json(memories);
+			}
+
+			// CREATE MEMORY
+			if (memoriesMatch && request.method === 'POST') {
+				const clerkId = memoriesMatch[1];
+
+				const body = await request.json();
+
+				const { title, description, memory_date } = body;
+
+				if (!title) {
+					return Response.json(
+						{
+							error: 'title is required',
+						},
+						{ status: 400 },
+					);
+				}
+
+				// Find current user
+				const userResult = await sql`
+    SELECT id
+    FROM users
+    WHERE clerk_id = ${clerkId}
+    LIMIT 1
+  `;
+
+				if (userResult.length === 0) {
+					return Response.json(
+						{
+							error: 'User not found',
+						},
+						{ status: 404 },
+					);
+				}
+
+				const userId = userResult[0].id;
+
+				// Find accepted connection
+				const connectionResult = await sql`
+    SELECT
+      user_one,
+      user_two
+    FROM connections
+    WHERE
+      (
+        user_one = ${userId}
+        OR user_two = ${userId}
+      )
+      AND status = 'accepted'
+    LIMIT 1
+  `;
+
+				if (connectionResult.length === 0) {
+					return Response.json(
+						{
+							error: 'You are not connected to anyone',
+						},
+						{ status: 400 },
+					);
+				}
+
+				const connection = connectionResult[0];
+
+				// Create the memory
+				const result = await sql`
+    INSERT INTO memories (
+      user_one,
+      user_two,
+      created_by,
+      title,
+      description,
+      memory_date
+    )
+    VALUES (
+      ${connection.user_one},
+      ${connection.user_two},
+      ${userId},
+      ${title.trim()},
+      ${description?.trim() || null},
+      ${memory_date || null}
+    )
+    RETURNING
+      id,
+      user_one,
+      user_two,
+      created_by,
+      title,
+      description,
+      memory_date,
+      created_at,
+      updated_at
+  `;
+
+				return Response.json(
+					{
+						message: 'Memory created successfully',
+						memory: result[0],
+					},
+					{ status: 201 },
+				);
+			}
+			/*
+			 * ==========================================
+			 * UPDATE PROFILE
+			 * ==========================================
+			 *
+			 * PUT /users/:clerkId/profile
+			 */
+
+			const updateProfileMatch = url.pathname.match(/^\/users\/([^/]+)\/profile$/);
+
+			if (updateProfileMatch && request.method === 'PUT') {
+				const clerkId = updateProfileMatch[1];
+
+				const body = await request.json();
+
+				const firstName = body?.first_name?.trim() || null;
+				const lastName = body?.last_name?.trim() || null;
+				const birthday = body?.birthday || null;
+				const gender = body?.gender?.trim() || null;
+				const country = body?.country?.trim() || null;
+				const relationshipStatus = body?.relationship_status?.trim() || null;
+
+				const userResult = await sql`
+    SELECT id
+    FROM users
+    WHERE clerk_id = ${clerkId}
+    LIMIT 1
+  `;
+
+				if (userResult.length === 0) {
+					return Response.json(
+						{
+							error: 'User not found',
+						},
+						{ status: 404 },
+					);
+				}
+
+				const userId = userResult[0].id;
+
+				const profileResult = await sql`
+    UPDATE profiles
+SET
+  first_name = ${firstName},
+  last_name = ${lastName},
+  birthday = ${birthday},
+      gender = ${gender},
+      country = ${country},
+      relationship_status = ${relationshipStatus}
+    WHERE user_id = ${userId}
+    RETURNING *
+  `;
+
+				if (profileResult.length === 0) {
+					return Response.json(
+						{
+							error: 'Profile not found',
+						},
+						{ status: 404 },
+					);
+				}
+
+				return Response.json({
+					message: 'Profile updated successfully',
+					profile: profileResult[0],
+				});
+			}
 			/*
 			 * ==========================================
 			 * NOT FOUND

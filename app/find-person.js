@@ -23,6 +23,10 @@ export default function FindPersonScreen() {
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
+  const [requests, setRequests] = useState([]);
+  const [loadingRequests, setLoadingRequests] = useState(true);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [processingRequest, setProcessingRequest] = useState(false);
 
   const [searching, setSearching] = useState(false);
   const [sendingId, setSendingId] = useState(null);
@@ -32,6 +36,48 @@ export default function FindPersonScreen() {
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  /*
+   * ==========================================
+   * LOAD CONNECTION REQUESTS
+   * ==========================================
+   */
+
+  const loadRequests = async () => {
+    if (!isLoaded || !isSignedIn || !userId) {
+      setLoadingRequests(false);
+      return;
+    }
+
+    try {
+      setLoadingRequests(true);
+
+      const response = await fetch(
+        `${API_URL}/users/${userId}/connection-requests`,
+      );
+
+      const data = await response.json();
+
+      console.log("CONNECTION REQUESTS:", data);
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Unable to load connection requests.");
+      }
+
+      setRequests(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.log("REQUESTS ERROR:", err);
+
+      setRequests([]);
+      setError(err?.message || "Unable to load connection requests.");
+    } finally {
+      setLoadingRequests(false);
+    }
+  };
+
+  useEffect(() => {
+    loadRequests();
+  }, [isLoaded, isSignedIn, userId]);
 
   /*
    * ==========================================
@@ -99,6 +145,95 @@ export default function FindPersonScreen() {
     setSuccess("");
   };
 
+  const viewRequest = (request) => {
+    console.log("VIEW REQUEST CLICKED:", request);
+
+    setSelectedRequest(request);
+    setError("");
+    setSuccess("");
+  };
+  const acceptRequest = async () => {
+    if (!selectedRequest || !userId) return;
+
+    try {
+      setProcessingRequest(true);
+      setError("");
+
+      const response = await fetch(
+        `${API_URL}/connections/${selectedRequest.id}/accept`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            clerk_id: userId,
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      console.log("ACCEPT REQUEST RESPONSE:", data);
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Unable to accept request.");
+      }
+
+      setSuccess("Connection accepted.");
+
+      setSelectedRequest(null);
+
+      await loadRequests();
+    } catch (err) {
+      console.log("ACCEPT REQUEST ERROR:", err);
+
+      setError(err?.message || "Unable to accept connection request.");
+    } finally {
+      setProcessingRequest(false);
+    }
+  };
+  const rejectRequest = async () => {
+    if (!selectedRequest || !userId) return;
+
+    try {
+      setProcessingRequest(true);
+      setError("");
+
+      const response = await fetch(
+        `${API_URL}/connections/${selectedRequest.id}/reject`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            clerk_id: userId,
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      console.log("REJECT REQUEST RESPONSE:", data);
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Unable to reject request.");
+      }
+
+      setSuccess("Connection request rejected.");
+
+      setSelectedRequest(null);
+
+      await loadRequests();
+    } catch (err) {
+      console.log("REJECT REQUEST ERROR:", err);
+
+      setError(err?.message || "Unable to reject connection request.");
+    } finally {
+      setProcessingRequest(false);
+    }
+  };
   /*
    * ==========================================
    * SEND REQUEST
@@ -131,7 +266,7 @@ export default function FindPersonScreen() {
         body: JSON.stringify({
           from_clerk_id: userId,
           to_clerk_id: selectedPerson.clerk_id,
-          relationship_type: relationshipType.toLocaleLowerCase(),
+          relationship_type: relationshipType.toLowerCase(),
         }),
       });
 
@@ -143,10 +278,6 @@ export default function FindPersonScreen() {
         throw new Error(data?.error || "Unable to send connection request.");
       }
 
-      /*
-       * Remove the person from search results.
-       */
-
       setResults((prev) =>
         prev.filter((person) => person.clerk_id !== selectedPerson.clerk_id),
       );
@@ -155,6 +286,8 @@ export default function FindPersonScreen() {
 
       setSelectedPerson(null);
       setRelationshipType("");
+
+      await loadRequests();
     } catch (err) {
       console.log("SEND CONNECTION ERROR:", err);
 
@@ -196,6 +329,47 @@ export default function FindPersonScreen() {
       </SafeAreaView>
     );
   }
+
+  /*
+   * ==========================================
+   * REQUEST CARD
+   * ==========================================
+   */
+
+  const renderRequest = ({ item }) => {
+    return (
+      <View style={styles.requestCard}>
+        <View style={styles.requestAvatar}>
+          <Text style={styles.requestAvatarText}>
+            {item.requester_first_name?.charAt(0)?.toUpperCase() || "?"}
+          </Text>
+        </View>
+
+        <View style={styles.requestInfo}>
+          <Text style={styles.requestName}>
+            {item.requester_first_name || "Someone"}
+          </Text>
+
+          <Text style={styles.requestText}>Wants to connect with you</Text>
+
+          {item.relationship_type ? (
+            <Text style={styles.requestRelationship}>
+              {item.relationship_type.charAt(0).toUpperCase() +
+                item.relationship_type.slice(1)}
+            </Text>
+          ) : null}
+        </View>
+
+        <TouchableOpacity
+          style={styles.requestViewButton}
+          activeOpacity={0.8}
+          onPress={() => viewRequest(item)}
+        >
+          <Text style={styles.requestViewButtonText}>View</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   /*
    * ==========================================
@@ -264,6 +438,33 @@ export default function FindPersonScreen() {
             </Text>
           </View>
         </View>
+
+        {/* CONNECTION REQUESTS */}
+
+        {!loadingRequests && requests.length > 0 ? (
+          <View style={styles.requestsSection}>
+            <Text style={styles.requestsTitle}>CONNECTION REQUESTS</Text>
+
+            <FlatList
+              data={requests}
+              keyExtractor={(item) => item.id}
+              renderItem={renderRequest}
+              scrollEnabled={false}
+            />
+          </View>
+        ) : null}
+
+        {/* REQUEST LOADING */}
+
+        {loadingRequests ? (
+          <View style={styles.requestLoading}>
+            <ActivityIndicator size="small" color="#6B4E45" />
+
+            <Text style={styles.requestLoadingText}>
+              Checking for connection requests...
+            </Text>
+          </View>
+        ) : null}
 
         {/* SEARCH */}
 
@@ -360,7 +561,105 @@ export default function FindPersonScreen() {
       </View>
 
       {/* RELATIONSHIP MODAL */}
+      {/* CONNECTION REQUEST DETAILS */}
 
+      {selectedRequest ? (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modal}>
+            <View style={styles.modalHandle} />
+
+            <TouchableOpacity
+              style={styles.modalClose}
+              onPress={() => setSelectedRequest(null)}
+            >
+              <Text style={styles.modalCloseText}>×</Text>
+            </TouchableOpacity>
+
+            <View style={styles.modalAvatar}>
+              <Text style={styles.modalAvatarText}>
+                {selectedRequest.requester_first_name
+                  ?.trim()
+                  ?.charAt(0)
+                  ?.toUpperCase() || "?"}
+              </Text>
+            </View>
+
+            <Text style={styles.modalTitle}>
+              {selectedRequest.requester_first_name?.trim() || "Someone"}
+            </Text>
+
+            <Text style={styles.modalSubtitle}>Wants to connect with you</Text>
+
+            <View style={styles.requestDetails}>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Relationship</Text>
+                <Text style={styles.detailValue}>
+                  {selectedRequest.relationship_type
+                    ? selectedRequest.relationship_type
+                        .charAt(0)
+                        .toUpperCase() +
+                      selectedRequest.relationship_type.slice(1)
+                    : "Not specified"}
+                </Text>
+              </View>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Country</Text>
+                <Text style={styles.detailValue}>
+                  {selectedRequest.requester_country?.trim() || "Not specified"}
+                </Text>
+              </View>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Gender</Text>
+                <Text style={styles.detailValue}>
+                  {selectedRequest.requester_gender || "Not specified"}
+                </Text>
+              </View>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Relationship status</Text>
+                <Text style={styles.detailValue}>
+                  {selectedRequest.requester_relationship_status ||
+                    "Not specified"}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.requestActions}>
+              <TouchableOpacity
+                style={[
+                  styles.rejectButton,
+                  processingRequest && styles.disabledButton,
+                ]}
+                onPress={rejectRequest}
+                disabled={processingRequest}
+              >
+                {processingRequest ? (
+                  <ActivityIndicator size="small" color="#6B4E45" />
+                ) : (
+                  <Text style={styles.rejectButtonText}>Reject</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.acceptButton,
+                  processingRequest && styles.disabledButton,
+                ]}
+                onPress={acceptRequest}
+                disabled={processingRequest}
+              >
+                {processingRequest ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.acceptButtonText}>Accept</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      ) : null}
       {selectedPerson ? (
         <View style={styles.modalOverlay}>
           <View style={styles.modal}>
@@ -526,6 +825,95 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     color: "#817771",
     maxWidth: 310,
+  },
+
+  /*
+   * REQUESTS
+   */
+
+  requestsSection: {
+    marginTop: 22,
+  },
+
+  requestsTitle: {
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1.7,
+    color: "#9A918A",
+    marginBottom: 10,
+  },
+
+  requestCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#EDE7E2",
+  },
+
+  requestAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#E9DED8",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  requestAvatarText: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#6B4E45",
+  },
+
+  requestInfo: {
+    flex: 1,
+    marginLeft: 13,
+  },
+
+  requestName: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#302825",
+  },
+
+  requestText: {
+    marginTop: 3,
+    fontSize: 12,
+    color: "#817771",
+  },
+
+  requestRelationship: {
+    marginTop: 3,
+    fontSize: 11,
+    color: "#AAA09A",
+  },
+
+  requestViewButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 10,
+    backgroundColor: "#F1E9E5",
+  },
+
+  requestViewButtonText: {
+    color: "#6B4E45",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+
+  requestLoading: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 18,
+  },
+
+  requestLoadingText: {
+    marginLeft: 8,
+    fontSize: 12,
+    color: "#817771",
   },
 
   /*
@@ -730,7 +1118,75 @@ const styles = StyleSheet.create({
     color: "#817771",
     textAlign: "center",
   },
+  requestDetails: {
+    marginTop: 24,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: "#EDE7E2",
+  },
 
+  detailRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0EBE7",
+  },
+
+  detailLabel: {
+    fontSize: 13,
+    color: "#817771",
+  },
+
+  detailValue: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#302825",
+    maxWidth: 180,
+    textAlign: "right",
+  },
+
+  requestActions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 20,
+  },
+
+  rejectButton: {
+    flex: 1,
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#D8C8C1",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  rejectButtonText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#6B4E45",
+  },
+
+  acceptButton: {
+    flex: 1,
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: "#6B4E45",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  acceptButtonText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
   /*
    * MODAL
    */
