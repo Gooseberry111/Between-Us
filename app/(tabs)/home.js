@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 const API_URL = "https://between-us-api.between-us.workers.dev";
 
@@ -23,7 +24,9 @@ export default function HomeScreen() {
   const [partnerInsights, setPartnerInsights] = useState(null);
   const [partnerPreferences, setPartnerPreferences] = useState(null);
   const [pendingRequests, setPendingRequests] = useState([]);
-
+  const [trivia, setTrivia] = useState(null);
+  const [reminders, setReminders] = useState([]);
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -37,16 +40,27 @@ export default function HomeScreen() {
     try {
       setError("");
 
-      const [profileResponse, connectionResponse] = await Promise.all([
+      const [
+        profileResponse,
+        connectionResponse,
+        remindersResponse,
+        notificationsResponse,
+      ] = await Promise.all([
         fetch(`${API_URL}/users/${userId}/profile`),
         fetch(`${API_URL}/users/${userId}/connections`),
+        fetch(`${API_URL}/users/${userId}/reminders`),
+        fetch(`${API_URL}/users/${userId}/notifications`),
       ]);
 
       const profileData = await profileResponse.json();
       const connectionData = await connectionResponse.json();
+      const remindersData = await remindersResponse.json();
+      const notificationsData = await notificationsResponse.json();
 
       console.log("HOME PROFILE:", profileData);
       console.log("HOME CONNECTIONS:", connectionData);
+      console.log("HOME REMINDERS:", remindersData);
+      console.log("HOME NOTIFICATIONS:", notificationsData);
 
       if (!profileResponse.ok) {
         throw new Error(profileData?.error || "Unable to load your profile.");
@@ -58,7 +72,33 @@ export default function HomeScreen() {
         );
       }
 
+      if (!remindersResponse.ok) {
+        throw new Error(
+          remindersData?.error || "Unable to load your reminders.",
+        );
+      }
+
+      if (!notificationsResponse.ok) {
+        throw new Error(
+          notificationsData?.error || "Unable to load your notifications.",
+        );
+      }
+
       setProfile(profileData?.profile || null);
+
+      setReminders(
+        Array.isArray(remindersData?.reminders) ? remindersData.reminders : [],
+      );
+
+      const notifications = Array.isArray(notificationsData?.notifications)
+        ? notificationsData.notifications
+        : [];
+
+      // Show only a small dot on the bell when at least
+      // one notification has not been read.
+      setHasUnreadNotifications(
+        notifications.some((notification) => notification.is_read === false),
+      );
 
       const connections = Array.isArray(connectionData) ? connectionData : [];
 
@@ -81,34 +121,42 @@ export default function HomeScreen() {
        * ==========================================
        * LOAD PARTNER INFORMATION
        * ==========================================
-       *
-       * The connections endpoint gives us the
-       * partner's Clerk ID through other_clerk_id.
        */
 
       if (accepted?.other_clerk_id) {
         const partnerClerkId = accepted.other_clerk_id;
 
-        const [partnerInsightsResponse, partnerPreferencesResponse] =
-          await Promise.all([
-            fetch(`${API_URL}/users/${partnerClerkId}/insights`),
-            fetch(`${API_URL}/users/${partnerClerkId}/preferences`),
-          ]);
+        const [
+          partnerInsightsResponse,
+          partnerPreferencesResponse,
+          triviaResponse,
+        ] = await Promise.all([
+          fetch(`${API_URL}/users/${partnerClerkId}/insights`),
+          fetch(`${API_URL}/users/${partnerClerkId}/preferences`),
+          fetch(`${API_URL}/users/${userId}/trivia`),
+        ]);
 
         const partnerInsightsData = await partnerInsightsResponse.json();
 
         const partnerPreferencesData = await partnerPreferencesResponse.json();
 
+        const triviaData = await triviaResponse.json();
+
         console.log("HOME PARTNER INSIGHTS:", partnerInsightsData);
 
         console.log("HOME PARTNER PREFERENCES:", partnerPreferencesData);
 
+        console.log("HOME TRIVIA:", triviaData);
+
         setPartnerInsights(partnerInsightsData?.insights || null);
 
         setPartnerPreferences(partnerPreferencesData?.preferences || null);
+
+        setTrivia(triviaData);
       } else {
         setPartnerInsights(null);
         setPartnerPreferences(null);
+        setTrivia(null);
       }
     } catch (err) {
       console.log("HOME LOAD ERROR:", err);
@@ -163,7 +211,10 @@ export default function HomeScreen() {
           contentContainerStyle={styles.scrollContent}
         >
           <View style={styles.container}>
-            <Header firstName={firstName} />
+            <Header
+              firstName={firstName}
+              hasUnreadNotifications={hasUnreadNotifications}
+            />
 
             {error ? <ErrorMessage message={error} /> : null}
 
@@ -264,7 +315,7 @@ export default function HomeScreen() {
 
   /*
    * ==========================================
-   * CREATE A PERSONALIZED TODAY PROMPT
+   * TODAY PROMPT
    * ==========================================
    */
 
@@ -302,7 +353,10 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.container}>
-          <Header firstName={firstName} />
+          <Header
+            firstName={firstName}
+            hasUnreadNotifications={hasUnreadNotifications}
+          />
 
           {error ? <ErrorMessage message={error} /> : null}
 
@@ -389,6 +443,47 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
           </View>
+
+          {/* COUPLE TRIVIA */}
+
+          {trivia?.questions?.length > 0 ? (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <View>
+                  <Text style={styles.sectionLabel}>COUPLE TRIVIA</Text>
+
+                  <Text style={styles.sectionTitle}>
+                    How well do you know {partnerName}?
+                  </Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={styles.triviaCard}
+                activeOpacity={0.9}
+                onPress={() => router.push("/trivia")}
+              >
+                <View style={styles.triviaIcon}>
+                  <Text style={styles.triviaIconText}>?</Text>
+                </View>
+
+                <View style={styles.triviaContent}>
+                  <Text style={styles.triviaTitle}>
+                    Test what you know about them
+                  </Text>
+
+                  <Text style={styles.triviaDescription}>
+                    Answer {trivia.total_questions} quick questions about{" "}
+                    {partnerName}.
+                  </Text>
+
+                  <View style={styles.triviaButton}>
+                    <Text style={styles.triviaButtonText}>Play trivia →</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            </View>
+          ) : null}
 
           {/* PARTNER SNAPSHOT */}
 
@@ -512,7 +607,6 @@ function getTodayPrompt({
   loveLanguages,
   goals,
   conflictStyle,
-  affectionStyle,
   communicationFrequency,
   food,
   drink,
@@ -520,11 +614,6 @@ function getTodayPrompt({
   musicGenre,
   favoriteColor,
 }) {
-  /*
-   * Date ideas get priority because it is an
-   * explicit relationship goal.
-   */
-
   if (goals.includes("Date Ideas")) {
     if (movieGenre) {
       return {
@@ -543,10 +632,6 @@ function getTodayPrompt({
       route: "/memories",
     };
   }
-
-  /*
-   * Receiving Gifts is another strong signal.
-   */
 
   if (
     loveLanguages.some(
@@ -569,10 +654,6 @@ function getTodayPrompt({
     };
   }
 
-  /*
-   * Acts of Service.
-   */
-
   if (
     loveLanguages.some(
       (language) => language.toLowerCase() === "acts of service",
@@ -586,10 +667,6 @@ function getTodayPrompt({
     };
   }
 
-  /*
-   * Quality Time.
-   */
-
   if (
     loveLanguages.some((language) => language.toLowerCase() === "quality time")
   ) {
@@ -600,10 +677,6 @@ function getTodayPrompt({
       buttonText: "Make time",
     };
   }
-
-  /*
-   * Words of Affirmation.
-   */
 
   if (
     loveLanguages.some(
@@ -618,10 +691,6 @@ function getTodayPrompt({
     };
   }
 
-  /*
-   * Conflict style.
-   */
-
   if (conflictStyle.toLowerCase() === "need reassurance") {
     return {
       title: `Remind ${partnerName} that you are on their side.`,
@@ -630,10 +699,6 @@ function getTodayPrompt({
       buttonText: "Send reassurance",
     };
   }
-
-  /*
-   * Communication preference.
-   */
 
   if (communicationFrequency.toLowerCase() === "text") {
     return {
@@ -644,10 +709,6 @@ function getTodayPrompt({
     };
   }
 
-  /*
-   * Food.
-   */
-
   if (food) {
     return {
       title: `Do something with ${food.toLowerCase()} today.`,
@@ -655,10 +716,6 @@ function getTodayPrompt({
       buttonText: "Make it happen",
     };
   }
-
-  /*
-   * Drink.
-   */
 
   if (drink) {
     return {
@@ -668,10 +725,6 @@ function getTodayPrompt({
     };
   }
 
-  /*
-   * Music.
-   */
-
   if (musicGenre) {
     return {
       title: `Share some ${musicGenre.toLowerCase()} music together.`,
@@ -679,10 +732,6 @@ function getTodayPrompt({
       buttonText: "Make a moment",
     };
   }
-
-  /*
-   * Fallback.
-   */
 
   return {
     title: `Tell ${partnerName} one thing you appreciate about them.`,
@@ -698,18 +747,28 @@ function getTodayPrompt({
  * ==========================================
  */
 
-function Header({ firstName }) {
+function Header({ firstName, hasUnreadNotifications }) {
+  const router = useRouter();
+
   return (
     <View style={styles.header}>
-      <View>
+      <View style={styles.headerText}>
         <Text style={styles.brand}>BETWEEN US</Text>
 
         <Text style={styles.greeting}>Good to see you, {firstName}.</Text>
       </View>
 
-      <View style={styles.logoCircle}>
-        <Text style={styles.logo}>♡</Text>
-      </View>
+      <TouchableOpacity
+        style={styles.notificationButton}
+        activeOpacity={0.8}
+        onPress={() => router.push("/notifications")}
+      >
+        <Ionicons name="notifications-outline" size={21} color="#6B4E45" />
+
+        {hasUnreadNotifications ? (
+          <View style={styles.notificationUnreadDot} />
+        ) : null}
+      </TouchableOpacity>
     </View>
   );
 }
@@ -863,6 +922,10 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
 
+  headerText: {
+    flex: 1,
+  },
+
   brand: {
     fontSize: 11,
     fontWeight: "800",
@@ -878,18 +941,27 @@ const styles = StyleSheet.create({
     color: "#302825",
   },
 
-  logoCircle: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+  notificationButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: "#E9DED8",
-    justifyContent: "center",
     alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 12,
+    position: "relative",
   },
 
-  logo: {
-    fontSize: 26,
-    color: "#6B4E45",
+  notificationUnreadDot: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: "#B34A3C",
+    borderWidth: 1.5,
+    borderColor: "#E9DED8",
   },
 
   /*
@@ -1209,12 +1281,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  goalRow: {
-    minHeight: 58,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
   goalIcon: {
     width: 34,
     height: 34,
@@ -1234,6 +1300,67 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "#302825",
+  },
+
+  /*
+   * COUPLE TRIVIA
+   */
+
+  triviaCard: {
+    marginTop: 14,
+    backgroundColor: "#6B4E45",
+    borderRadius: 20,
+    padding: 18,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  triviaIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: "#E9DED8",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  triviaIconText: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#6B4E45",
+  },
+
+  triviaContent: {
+    flex: 1,
+    marginLeft: 14,
+  },
+
+  triviaTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+
+  triviaDescription: {
+    marginTop: 5,
+    fontSize: 12,
+    lineHeight: 17,
+    color: "#DCCBC4",
+  },
+
+  triviaButton: {
+    alignSelf: "flex-start",
+    marginTop: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 9,
+    backgroundColor: "#E9DED8",
+  },
+
+  triviaButtonText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#6B4E45",
   },
 
   /*
@@ -1277,44 +1404,6 @@ const styles = StyleSheet.create({
 
   quickText: {
     marginTop: 4,
-    fontSize: 11,
-    lineHeight: 16,
-    color: "#817771",
-  },
-
-  /*
-   * FEATURE CARDS
-   */
-
-  featureGrid: {
-    flexDirection: "row",
-    gap: 12,
-  },
-
-  featureCard: {
-    flex: 1,
-    minHeight: 145,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#EAE3DE",
-  },
-
-  featureIcon: {
-    fontSize: 21,
-    color: "#6B4E45",
-    marginBottom: 17,
-  },
-
-  featureTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#302825",
-  },
-
-  featureDescription: {
-    marginTop: 5,
     fontSize: 11,
     lineHeight: 16,
     color: "#817771",

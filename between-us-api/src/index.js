@@ -1,6 +1,56 @@
 import { neon } from '@neondatabase/serverless';
 
+async function sendPushNotification({ pushToken, title, body, data = {} }) {
+	if (!pushToken) {
+		return {
+			success: false,
+			error: 'No push token',
+		};
+	}
+
+	try {
+		const response = await fetch('https://exp.host/--/api/v2/push/send', {
+			method: 'POST',
+			headers: {
+				Accept: 'application/json',
+				'Accept-encoding': 'gzip, deflate',
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({
+				to: pushToken,
+				sound: 'default',
+				title,
+				body,
+				data,
+			}),
+		});
+
+		const result = await response.json();
+
+		console.log('PUSH NOTIFICATION RESULT:', result);
+
+		return {
+			success: response.ok,
+			result,
+		};
+	} catch (error) {
+		console.error('PUSH NOTIFICATION ERROR:', error);
+
+		return {
+			success: false,
+			error: error?.message || 'Push notification failed',
+		};
+	}
+}
 export default {
+	async scheduled(event, env, ctx) {
+		console.log('BETWEEN US: Scheduled notification job started');
+
+		const sql = neon(env.DATABASE_URL);
+
+		// Scheduled notification logic will go here.
+	},
+
 	async fetch(request, env) {
 		try {
 			const sql = neon(env.DATABASE_URL);
@@ -117,6 +167,56 @@ export default {
 					},
 					{ status: 201 },
 				);
+			}
+			/*
+			 * ==========================================
+			 * SAVE PUSH TOKEN
+			 * ==========================================
+			 *
+			 * POST /users/:clerkId/push-token
+			 */
+
+			const pushTokenMatch = url.pathname.match(/^\/users\/([^/]+)\/push-token$/);
+
+			if (pushTokenMatch && request.method === 'POST') {
+				const clerkId = pushTokenMatch[1];
+				const body = await request.json();
+
+				const { push_token, platform } = body;
+
+				if (!push_token) {
+					return Response.json(
+						{
+							error: 'push_token is required',
+						},
+						{ status: 400 },
+					);
+				}
+
+				const result = await sql`
+          UPDATE users
+          SET push_token = ${push_token}
+          WHERE clerk_id = ${clerkId}
+          RETURNING
+            id,
+            clerk_id,
+            push_token
+        `;
+
+				if (result.length === 0) {
+					return Response.json(
+						{
+							error: 'User not found',
+						},
+						{ status: 404 },
+					);
+				}
+
+				return Response.json({
+					message: 'Push token saved',
+					user: result[0],
+					platform: platform || null,
+				});
 			}
 			/*
 			 * ==========================================
@@ -895,8 +995,41 @@ VALUES (
             relationship_type,
             status,
             created_at
+                  `;
+
+				await sql`
+          INSERT INTO notifications (
+            user_id,
+            type,
+            title,
+            message
+          )
+          VALUES (
+            ${receiver.id},
+            'connection_request',
+            'New connection request',
+            'You have received a new connection request on Between Us.'
+          )
         `;
 
+				const receiverPush = await sql`
+  SELECT push_token
+  FROM users
+  WHERE id = ${receiver.id}
+  LIMIT 1
+`;
+
+				if (receiverPush[0]?.push_token) {
+					await sendPushNotification({
+						pushToken: receiverPush[0].push_token,
+						title: 'New connection request',
+						body: 'You have received a new connection request on Between Us.',
+						data: {
+							type: 'connection_request',
+							connectionId: result[0].id,
+						},
+					});
+				}
 				return Response.json(
 					{
 						message: 'Connection request sent',
@@ -2150,6 +2283,402 @@ VALUES (
 			}
 			/*
 			 * ==========================================
+			 * DREAM BOARD
+			 * ==========================================
+			 *
+			 * GET /users/:clerkId/dreams
+			 *
+			 * Returns all dreams belonging to the
+			 * current user's accepted relationship.
+			 */
+
+			const dreamsMatch = url.pathname.match(/^\/users\/([^/]+)\/dreams$/);
+
+			if (dreamsMatch && request.method === 'GET') {
+				const clerkId = dreamsMatch[1];
+
+				// Find current user
+				const userResult = await sql`
+    SELECT id
+    FROM users
+    WHERE clerk_id = ${clerkId}
+    LIMIT 1
+  `;
+
+				if (userResult.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const userId = userResult[0].id;
+
+				// Find accepted connection
+				const connectionResult = await sql`
+    SELECT
+      id,
+      user_one,
+      user_two
+    FROM connections
+    WHERE
+      (user_one = ${userId} OR user_two = ${userId})
+      AND status = 'accepted'
+    LIMIT 1
+  `;
+
+				if (connectionResult.length === 0) {
+					return Response.json({ error: 'You are not connected to anyone yet.' }, { status: 404 });
+				}
+
+				const connection = connectionResult[0];
+
+				// Get dreams for this couple
+				const dreams = await sql`
+    SELECT
+      id,
+      connection_id,
+      created_by,
+      title,
+      category,
+      description,
+      target_date,
+      is_completed,
+      completed_at,
+      created_at,
+      updated_at
+    FROM dreams
+    WHERE connection_id = ${connection.id}
+    ORDER BY
+      is_completed ASC,
+      target_date ASC NULLS LAST,
+      created_at DESC
+  `;
+
+				return Response.json({
+					dreams,
+				});
+			}
+
+			/*
+			 * CREATE DREAM
+			 *
+			 * POST /users/:clerkId/dreams
+			 */
+
+			if (dreamsMatch && request.method === 'POST') {
+				const clerkId = dreamsMatch[1];
+
+				const body = await request.json();
+
+				const title = body?.title?.trim();
+				const category = body?.category?.trim() || 'Other';
+				const description = body?.description?.trim() || null;
+				const targetDate = body?.target_date || null;
+
+				if (!title) {
+					return Response.json({ error: 'title is required' }, { status: 400 });
+				}
+
+				// Find current user
+				const userResult = await sql`
+    SELECT id
+    FROM users
+    WHERE clerk_id = ${clerkId}
+    LIMIT 1
+  `;
+
+				if (userResult.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const userId = userResult[0].id;
+
+				// Find accepted connection
+				const connectionResult = await sql`
+    SELECT
+      id,
+      user_one,
+      user_two
+    FROM connections
+    WHERE
+      (user_one = ${userId} OR user_two = ${userId})
+      AND status = 'accepted'
+    LIMIT 1
+  `;
+
+				if (connectionResult.length === 0) {
+					return Response.json({ error: 'You are not connected to anyone yet.' }, { status: 404 });
+				}
+
+				const connection = connectionResult[0];
+
+				const result = await sql`
+    INSERT INTO dreams (
+      connection_id,
+      created_by,
+      title,
+      category,
+      description,
+      target_date
+    )
+    VALUES (
+      ${connection.id},
+      ${userId},
+      ${title},
+      ${category},
+      ${description},
+      ${targetDate}
+    )
+    RETURNING
+      id,
+      connection_id,
+      created_by,
+      title,
+      category,
+      description,
+      target_date,
+      is_completed,
+      completed_at,
+      created_at,
+      updated_at
+  `;
+
+				return Response.json(
+					{
+						dream: result[0],
+					},
+					{ status: 201 },
+				);
+			}
+			/*
+			 * ==========================================
+			 * UPDATE DREAM
+			 * ==========================================
+			 *
+			 * PUT /users/:clerkId/dreams/:dreamId
+			 *
+			 * Used for:
+			 * - Editing a dream
+			 * - Marking a dream complete
+			 * - Marking a dream incomplete
+			 */
+
+			const updateDreamMatch = url.pathname.match(/^\/users\/([^/]+)\/dreams\/([^/]+)$/);
+
+			if (updateDreamMatch && request.method === 'PUT') {
+				const clerkId = updateDreamMatch[1];
+				const dreamId = updateDreamMatch[2];
+
+				const body = await request.json();
+
+				const title = body?.title !== undefined ? String(body.title).trim() : null;
+
+				const category = body?.category !== undefined ? String(body.category).trim() : null;
+
+				const description = body?.description !== undefined ? String(body.description).trim() : null;
+
+				const targetDate = body?.target_date !== undefined ? body.target_date : null;
+
+				const isCompleted = body?.is_completed !== undefined ? Boolean(body.is_completed) : null;
+
+				/*
+				 * Find current user
+				 */
+				const userResult = await sql`
+    SELECT id
+    FROM users
+    WHERE clerk_id = ${clerkId}
+    LIMIT 1
+  `;
+
+				if (userResult.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const userId = userResult[0].id;
+
+				/*
+				 * Make sure the dream exists
+				 */
+				const dreamResult = await sql`
+    SELECT
+      id,
+      connection_id,
+      created_by,
+      title,
+      category,
+      description,
+      target_date,
+      is_completed,
+      completed_at
+    FROM dreams
+    WHERE id = ${dreamId}
+    LIMIT 1
+  `;
+
+				if (dreamResult.length === 0) {
+					return Response.json({ error: 'Dream not found' }, { status: 404 });
+				}
+
+				const dream = dreamResult[0];
+
+				/*
+				 * Make sure the current user belongs
+				 * to the relationship that owns the dream.
+				 */
+				const connectionResult = await sql`
+    SELECT id
+    FROM connections
+    WHERE
+      id = ${dream.connection_id}
+      AND (user_one = ${userId} OR user_two = ${userId})
+      AND status = 'accepted'
+    LIMIT 1
+  `;
+
+				if (connectionResult.length === 0) {
+					return Response.json(
+						{
+							error: 'You are not allowed to modify this dream.',
+						},
+						{ status: 403 },
+					);
+				}
+
+				/*
+				 * Only change fields that were supplied.
+				 */
+				const newTitle = title !== null ? title : dream.title;
+
+				const newCategory = category !== null ? category : dream.category;
+
+				const newDescription = description !== null ? description || null : dream.description;
+
+				const newTargetDate = targetDate !== null ? targetDate || null : dream.target_date;
+
+				const newIsCompleted = isCompleted !== null ? isCompleted : dream.is_completed;
+
+				/*
+				 * Set completed_at automatically.
+				 */
+				let newCompletedAt = dream.completed_at;
+
+				if (newIsCompleted && !dream.is_completed) {
+					newCompletedAt = new Date().toISOString();
+				}
+
+				if (!newIsCompleted) {
+					newCompletedAt = null;
+				}
+
+				const result = await sql`
+    UPDATE dreams
+    SET
+      title = ${newTitle},
+      category = ${newCategory},
+      description = ${newDescription},
+      target_date = ${newTargetDate},
+      is_completed = ${newIsCompleted},
+      completed_at = ${newCompletedAt},
+      updated_at = NOW()
+    WHERE id = ${dreamId}
+    RETURNING
+      id,
+      connection_id,
+      created_by,
+      title,
+      category,
+      description,
+      target_date,
+      is_completed,
+      completed_at,
+      created_at,
+      updated_at
+  `;
+
+				return Response.json({
+					message: 'Dream updated successfully',
+					dream: result[0],
+				});
+			}
+
+			/*
+			 * ==========================================
+			 * DELETE DREAM
+			 * ==========================================
+			 *
+			 * DELETE /users/:clerkId/dreams/:dreamId
+			 */
+
+			const deleteDreamMatch = url.pathname.match(/^\/users\/([^/]+)\/dreams\/([^/]+)$/);
+
+			if (deleteDreamMatch && request.method === 'DELETE') {
+				const clerkId = deleteDreamMatch[1];
+				const dreamId = deleteDreamMatch[2];
+
+				/*
+				 * Find current user
+				 */
+				const userResult = await sql`
+    SELECT id
+    FROM users
+    WHERE clerk_id = ${clerkId}
+    LIMIT 1
+  `;
+
+				if (userResult.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const userId = userResult[0].id;
+
+				/*
+				 * Find the dream and make sure the user
+				 * belongs to its accepted connection.
+				 */
+				const dreamResult = await sql`
+    SELECT
+      id,
+      connection_id
+    FROM dreams
+    WHERE id = ${dreamId}
+    LIMIT 1
+  `;
+
+				if (dreamResult.length === 0) {
+					return Response.json({ error: 'Dream not found' }, { status: 404 });
+				}
+
+				const dream = dreamResult[0];
+
+				const connectionResult = await sql`
+    SELECT id
+    FROM connections
+    WHERE
+      id = ${dream.connection_id}
+      AND (user_one = ${userId} OR user_two = ${userId})
+      AND status = 'accepted'
+    LIMIT 1
+  `;
+
+				if (connectionResult.length === 0) {
+					return Response.json(
+						{
+							error: 'You are not allowed to delete this dream.',
+						},
+						{ status: 403 },
+					);
+				}
+
+				await sql`
+    DELETE FROM dreams
+    WHERE id = ${dreamId}
+  `;
+
+				return Response.json({
+					message: 'Dream deleted successfully',
+				});
+			}
+			/*
+			 * ==========================================
 			 * UPDATE PROFILE
 			 * ==========================================
 			 *
@@ -2215,6 +2744,905 @@ SET
 					profile: profileResult[0],
 				});
 			}
+			/*
+			 * ==========================================
+			 * COUPLE TRIVIA
+			 * ==========================================
+			 *
+			 * GET  /users/:clerkId/trivia
+			 * POST /users/:clerkId/trivia/answer
+			 */
+
+			/*
+			 * Build exactly 4 unique answer options.
+			 *
+			 * The correct answer is always included.
+			 * Duplicate answers are removed.
+			 * Options are shuffled before being sent to the app.
+			 */
+			const buildTriviaOptions = (correctAnswer, distractors = []) => {
+				const correct = String(correctAnswer).trim();
+
+				const uniqueOptions = [];
+
+				const addOption = (value) => {
+					if (!value) return;
+
+					const cleaned = String(value).trim();
+
+					if (!cleaned) return;
+
+					const alreadyExists = uniqueOptions.some((option) => option.toLowerCase() === cleaned.toLowerCase());
+
+					if (!alreadyExists) {
+						uniqueOptions.push(cleaned);
+					}
+				};
+
+				addOption(correct);
+
+				for (const distractor of distractors) {
+					addOption(distractor);
+
+					if (uniqueOptions.length === 4) {
+						break;
+					}
+				}
+
+				return uniqueOptions.sort(() => Math.random() - 0.5).slice(0, 4);
+			};
+
+			/*
+			 * GET TRIVIA QUESTIONS
+			 */
+
+			const triviaMatch = url.pathname.match(/^\/users\/([^/]+)\/trivia$/);
+
+			if (triviaMatch && request.method === 'GET') {
+				const clerkId = triviaMatch[1];
+
+				const userResult = await sql`
+        SELECT id
+        FROM users
+        WHERE clerk_id = ${clerkId}
+        LIMIT 1
+    `;
+
+				if (userResult.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const userId = userResult[0].id;
+
+				const connectionResult = await sql`
+        SELECT
+            id,
+            user_one,
+            user_two
+        FROM connections
+        WHERE
+            (user_one = ${userId} OR user_two = ${userId})
+            AND status = 'accepted'
+        LIMIT 1
+    `;
+
+				if (connectionResult.length === 0) {
+					return Response.json(
+						{
+							error: 'You are not connected to anyone yet.',
+						},
+						{ status: 404 },
+					);
+				}
+
+				const connection = connectionResult[0];
+
+				const partnerId = connection.user_one === userId ? connection.user_two : connection.user_one;
+
+				const partnerResult = await sql`
+        SELECT
+            p.first_name,
+            p.birthday,
+            pr.favorite_food,
+            pr.favorite_snack,
+            pr.favorite_drink,
+            pr.favorite_color,
+            pr.movie_genre,
+            pr.music_genre,
+            pr.communication_frequency,
+            pr.affection_style,
+            pr.love_languages,
+            ri.personality_type,
+            ri.conflict_style,
+            ri.goals
+        FROM users u
+        LEFT JOIN profiles p
+            ON p.user_id = u.id
+        LEFT JOIN preferences pr
+            ON pr.user_id = u.id
+        LEFT JOIN relationship_insights ri
+            ON ri.user_id = u.id
+        WHERE u.id = ${partnerId}
+        LIMIT 1
+    `;
+
+				if (partnerResult.length === 0) {
+					return Response.json(
+						{
+							error: 'Partner information not found.',
+						},
+						{ status: 404 },
+					);
+				}
+
+				const partner = partnerResult[0];
+
+				const partnerName = partner.first_name?.trim() || 'your partner';
+
+				const questionPool = [];
+
+				/*
+				 * FAVORITE FOOD
+				 */
+				if (partner.favorite_food) {
+					questionPool.push({
+						id: 'favorite_food',
+						question: `What is ${partnerName}'s favorite food?`,
+						answer: partner.favorite_food,
+						options: buildTriviaOptions(partner.favorite_food, ['Rice', 'Pizza', 'Pasta', 'Chicken', 'Fries', 'Burger']),
+					});
+				}
+
+				/*
+				 * FAVORITE SNACK
+				 */
+				if (partner.favorite_snack) {
+					questionPool.push({
+						id: 'favorite_snack',
+						question: `What is ${partnerName}'s favorite snack?`,
+						answer: partner.favorite_snack,
+						options: buildTriviaOptions(partner.favorite_snack, ['Chips', 'Biscuits', 'Chocolate', 'Popcorn', 'Cookies', 'Cake']),
+					});
+				}
+
+				/*
+				 * FAVORITE DRINK
+				 */
+				if (partner.favorite_drink) {
+					questionPool.push({
+						id: 'favorite_drink',
+						question: `What is ${partnerName}'s favorite drink?`,
+						answer: partner.favorite_drink,
+						options: buildTriviaOptions(partner.favorite_drink, ['Coca-Cola', 'Water', 'Juice', 'Tea', 'Coffee', 'Lemonade']),
+					});
+				}
+
+				/*
+				 * FAVORITE COLOR
+				 */
+				if (partner.favorite_color) {
+					questionPool.push({
+						id: 'favorite_color',
+						question: `What is ${partnerName}'s favorite color?`,
+						answer: partner.favorite_color,
+						options: buildTriviaOptions(partner.favorite_color, ['Blue', 'White', 'Red', 'Green', 'Purple', 'Pink', 'Yellow']),
+					});
+				}
+
+				/*
+				 * MOVIE GENRE
+				 */
+				if (partner.movie_genre) {
+					questionPool.push({
+						id: 'movie_genre',
+						question: `What type of movies does ${partnerName} enjoy most?`,
+						answer: partner.movie_genre,
+						options: buildTriviaOptions(partner.movie_genre, ['Action', 'Comedy', 'Drama', 'Romance', 'Thriller', 'Horror', 'Documentary']),
+					});
+				}
+
+				/*
+				 * MUSIC GENRE
+				 */
+				if (partner.music_genre) {
+					questionPool.push({
+						id: 'music_genre',
+						question: `What type of music does ${partnerName} enjoy most?`,
+						answer: partner.music_genre,
+						options: buildTriviaOptions(partner.music_genre, ['Afrobeats', 'Gospel', 'R&B', 'Pop', 'Hip-Hop', 'Jazz', 'Rock']),
+					});
+				}
+
+				/*
+				 * COMMUNICATION
+				 */
+				if (partner.communication_frequency) {
+					questionPool.push({
+						id: 'communication_frequency',
+						question: `How does ${partnerName} prefer to communicate?`,
+						answer: partner.communication_frequency,
+						options: buildTriviaOptions(partner.communication_frequency, [
+							'Text',
+							'Phone calls',
+							'In person',
+							'Video calls',
+							'Voice notes',
+							'Social media',
+						]),
+					});
+				}
+
+				/*
+				 * AFFECTION STYLE
+				 */
+				if (partner.affection_style) {
+					questionPool.push({
+						id: 'affection_style',
+						question: `How does ${partnerName} prefer to receive affection?`,
+						answer: partner.affection_style,
+						options: buildTriviaOptions(partner.affection_style, [
+							'Words',
+							'Actions',
+							'Physical affection',
+							'Quality time',
+							'Thoughtful gifts',
+							'Acts of service',
+						]),
+					});
+				}
+
+				/*
+				 * LOVE LANGUAGE
+				 *
+				 * IMPORTANT:
+				 * Always use the FIRST saved love language as the
+				 * correct answer. This keeps GET and POST consistent.
+				 */
+				if (Array.isArray(partner.love_languages) && partner.love_languages.length > 0) {
+					const correctLoveLanguage = partner.love_languages[0];
+
+					questionPool.push({
+						id: 'love_language',
+						question: `Which of these is one of ${partnerName}'s love languages?`,
+						answer: correctLoveLanguage,
+						options: buildTriviaOptions(correctLoveLanguage, [
+							'Quality Time',
+							'Receiving Gifts',
+							'Acts of Service',
+							'Words of Affirmation',
+							'Physical Touch',
+						]),
+					});
+				}
+
+				/*
+				 * PERSONALITY
+				 */
+				if (partner.personality_type) {
+					questionPool.push({
+						id: 'personality_type',
+						question: `What best describes ${partnerName}'s personality?`,
+						answer: partner.personality_type,
+						options: buildTriviaOptions(partner.personality_type, ['Extrovert', 'Ambivert', 'Introvert', 'Reserved', 'Outgoing']),
+					});
+				}
+
+				/*
+				 * CONFLICT STYLE
+				 */
+				if (partner.conflict_style) {
+					questionPool.push({
+						id: 'conflict_style',
+						question: `When there is conflict, what does ${partnerName} prefer?`,
+						answer: partner.conflict_style,
+						options: buildTriviaOptions(partner.conflict_style, [
+							'Need time to think',
+							'Need reassurance',
+							'Talk immediately',
+							'Take some space',
+							'Talk it through calmly',
+						]),
+					});
+				}
+
+				/*
+				 * RELATIONSHIP GOAL
+				 *
+				 * IMPORTANT:
+				 * Always use the FIRST saved goal as the correct answer.
+				 */
+				if (Array.isArray(partner.goals) && partner.goals.length > 0) {
+					const correctGoal = partner.goals[0];
+
+					questionPool.push({
+						id: 'goal',
+						question: `Which of these is one of ${partnerName}'s relationship goals?`,
+						answer: correctGoal,
+						options: buildTriviaOptions(correctGoal, [
+							'Date Ideas',
+							'Gift Ideas',
+							'Better Communication',
+							'More Quality Time',
+							'Try New Things Together',
+							'Create Memories',
+						]),
+					});
+				}
+
+				/*
+				 * Make sure we have enough questions.
+				 */
+				if (questionPool.length < 2) {
+					return Response.json(
+						{
+							error: 'Not enough partner information to create trivia questions.',
+						},
+						{ status: 400 },
+					);
+				}
+
+				/*
+				 * Pick 2 random questions.
+				 */
+				const shuffledQuestions = [...questionPool].sort(() => Math.random() - 0.5);
+
+				const selectedQuestions = shuffledQuestions.slice(0, 2).map((item, index) => ({
+					question_number: index + 1,
+					id: item.id,
+					question: item.question,
+					options: item.options,
+				}));
+
+				return Response.json({
+					partner: {
+						first_name: partnerName,
+					},
+					total_questions: selectedQuestions.length,
+					questions: selectedQuestions,
+				});
+			}
+
+			/*
+			 * POST TRIVIA ANSWER
+			 */
+
+			const triviaAnswerMatch = url.pathname.match(/^\/users\/([^/]+)\/trivia\/answer$/);
+
+			if (triviaAnswerMatch && request.method === 'POST') {
+				const clerkId = triviaAnswerMatch[1];
+
+				const body = await request.json();
+
+				const questionId = body?.question_id;
+				const selectedAnswer = body?.answer;
+
+				if (!questionId || !selectedAnswer) {
+					return Response.json(
+						{
+							error: 'question_id and answer are required.',
+						},
+						{ status: 400 },
+					);
+				}
+
+				const userResult = await sql`
+        SELECT id
+        FROM users
+        WHERE clerk_id = ${clerkId}
+        LIMIT 1
+    `;
+
+				if (userResult.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const userId = userResult[0].id;
+
+				const connectionResult = await sql`
+        SELECT
+            user_one,
+            user_two
+        FROM connections
+        WHERE
+            (user_one = ${userId} OR user_two = ${userId})
+            AND status = 'accepted'
+        LIMIT 1
+    `;
+
+				if (connectionResult.length === 0) {
+					return Response.json(
+						{
+							error: 'You are not connected to anyone yet.',
+						},
+						{ status: 404 },
+					);
+				}
+
+				const connection = connectionResult[0];
+
+				const partnerId = connection.user_one === userId ? connection.user_two : connection.user_one;
+
+				/*
+				 * Get partner information again.
+				 * Answers are always checked on the server.
+				 */
+				const partnerResult = await sql`
+        SELECT
+            p.first_name,
+            pr.favorite_food,
+            pr.favorite_snack,
+            pr.favorite_drink,
+            pr.favorite_color,
+            pr.movie_genre,
+            pr.music_genre,
+            pr.communication_frequency,
+            pr.affection_style,
+            pr.love_languages,
+            ri.personality_type,
+            ri.conflict_style,
+            ri.goals
+        FROM users u
+        LEFT JOIN profiles p
+            ON p.user_id = u.id
+        LEFT JOIN preferences pr
+            ON pr.user_id = u.id
+        LEFT JOIN relationship_insights ri
+            ON ri.user_id = u.id
+        WHERE u.id = ${partnerId}
+        LIMIT 1
+    `;
+
+				if (partnerResult.length === 0) {
+					return Response.json(
+						{
+							error: 'Partner information not found.',
+						},
+						{ status: 404 },
+					);
+				}
+
+				const partner = partnerResult[0];
+
+				let correctAnswer = null;
+
+				switch (questionId) {
+					case 'favorite_food':
+						correctAnswer = partner.favorite_food;
+						break;
+
+					case 'favorite_snack':
+						correctAnswer = partner.favorite_snack;
+						break;
+
+					case 'favorite_drink':
+						correctAnswer = partner.favorite_drink;
+						break;
+
+					case 'favorite_color':
+						correctAnswer = partner.favorite_color;
+						break;
+
+					case 'movie_genre':
+						correctAnswer = partner.movie_genre;
+						break;
+
+					case 'music_genre':
+						correctAnswer = partner.music_genre;
+						break;
+
+					case 'communication_frequency':
+						correctAnswer = partner.communication_frequency;
+						break;
+
+					case 'affection_style':
+						correctAnswer = partner.affection_style;
+						break;
+
+					case 'personality_type':
+						correctAnswer = partner.personality_type;
+						break;
+
+					case 'conflict_style':
+						correctAnswer = partner.conflict_style;
+						break;
+
+					case 'love_language':
+						if (Array.isArray(partner.love_languages) && partner.love_languages.length > 0) {
+							/*
+							 * Must match the GET endpoint.
+							 */
+							correctAnswer = partner.love_languages[0];
+						}
+						break;
+
+					case 'goal':
+						if (Array.isArray(partner.goals) && partner.goals.length > 0) {
+							/*
+							 * Must match the GET endpoint.
+							 */
+							correctAnswer = partner.goals[0];
+						}
+						break;
+
+					default:
+						return Response.json(
+							{
+								error: 'Invalid question.',
+							},
+							{ status: 400 },
+						);
+				}
+
+				if (!correctAnswer) {
+					return Response.json(
+						{
+							error: 'The answer for this question is unavailable.',
+						},
+						{ status: 400 },
+					);
+				}
+
+				const isCorrect = String(selectedAnswer).trim().toLowerCase() === String(correctAnswer).trim().toLowerCase();
+
+				return Response.json({
+					correct: isCorrect,
+					correct_answer: correctAnswer,
+				});
+			}
+			/*
+			 * ==========================================
+			 * REMINDER INTELLIGENCE
+			 * ==========================================
+			 *
+			 * GET /users/:clerkId/reminders
+			 *
+			 * Generates personalized relationship reminders
+			 * from birthdays, dreams, memories and connection data.
+			 */
+
+			const remindersMatch = url.pathname.match(/^\/users\/([^/]+)\/reminders$/);
+
+			if (remindersMatch && request.method === 'GET') {
+				const clerkId = remindersMatch[1];
+
+				/*
+				 * Find current user
+				 */
+				const userResult = await sql`
+		SELECT id
+		FROM users
+		WHERE clerk_id = ${clerkId}
+		LIMIT 1
+	`;
+
+				if (userResult.length === 0) {
+					return Response.json(
+						{
+							error: 'User not found',
+						},
+						{ status: 404 },
+					);
+				}
+
+				const userId = userResult[0].id;
+
+				/*
+				 * Find accepted connection
+				 */
+				const connectionResult = await sql`
+		SELECT
+			id,
+			user_one,
+			user_two,
+			connected_at
+		FROM connections
+		WHERE
+			(user_one = ${userId} OR user_two = ${userId})
+			AND status = 'accepted'
+		LIMIT 1
+	`;
+
+				if (connectionResult.length === 0) {
+					return Response.json({
+						reminders: [],
+					});
+				}
+
+				const connection = connectionResult[0];
+
+				const partnerId = connection.user_one === userId ? connection.user_two : connection.user_one;
+
+				/*
+				 * Get partner profile
+				 */
+				const partnerResult = await sql`
+		SELECT
+			first_name,
+			birthday
+		FROM profiles
+		WHERE user_id = ${partnerId}
+		LIMIT 1
+	`;
+
+				const partner = partnerResult[0] || {};
+
+				const partnerName = partner.first_name?.trim() || 'your partner';
+
+				const reminders = [];
+
+				const today = new Date();
+
+				/*
+				 * ==========================================
+				 * 1. BIRTHDAY REMINDER
+				 * ==========================================
+				 */
+
+				if (partner.birthday) {
+					const birthday = new Date(partner.birthday);
+
+					let nextBirthday = new Date(today.getFullYear(), birthday.getMonth(), birthday.getDate());
+
+					if (nextBirthday < today) {
+						nextBirthday = new Date(today.getFullYear() + 1, birthday.getMonth(), birthday.getDate());
+					}
+
+					const millisecondsPerDay = 1000 * 60 * 60 * 24;
+
+					const daysUntilBirthday = Math.ceil((nextBirthday - today) / millisecondsPerDay);
+
+					if (daysUntilBirthday <= 30) {
+						reminders.push({
+							type: 'birthday',
+							priority: daysUntilBirthday <= 7 ? 'high' : 'medium',
+							title: `${partnerName}'s birthday is coming up`,
+							message:
+								daysUntilBirthday === 0
+									? `Today is ${partnerName}'s birthday.`
+									: `${partnerName}'s birthday is in ${daysUntilBirthday} day${
+											daysUntilBirthday === 1 ? '' : 's'
+										}. Start planning something special.`,
+						});
+					}
+				}
+
+				/*
+				 * ==========================================
+				 * 2. UPCOMING DREAM
+				 * ==========================================
+				 */
+
+				const upcomingDreams = await sql`
+		SELECT
+			id,
+			title,
+			target_date
+		FROM dreams
+		WHERE
+			connection_id = ${connection.id}
+			AND is_completed = false
+			AND target_date IS NOT NULL
+			AND target_date >= CURRENT_DATE
+		ORDER BY target_date ASC
+		LIMIT 3
+	`;
+
+				for (const dream of upcomingDreams) {
+					const dreamDate = new Date(dream.target_date);
+
+					const millisecondsPerDay = 1000 * 60 * 60 * 24;
+
+					const daysUntilDream = Math.ceil((dreamDate - today) / millisecondsPerDay);
+
+					if (daysUntilDream <= 14) {
+						reminders.push({
+							type: 'dream',
+							priority: daysUntilDream <= 3 ? 'high' : 'medium',
+							title: `Your dream is coming up`,
+							message:
+								daysUntilDream === 0
+									? `"${dream.title}" is scheduled for today.`
+									: `"${dream.title}" is coming up in ${daysUntilDream} day${daysUntilDream === 1 ? '' : 's'}.`,
+						});
+					}
+				}
+
+				/*
+				 * ==========================================
+				 * 3. OVERDUE DREAM
+				 * ==========================================
+				 */
+
+				const overdueDreams = await sql`
+		SELECT
+			id,
+			title,
+			target_date
+		FROM dreams
+		WHERE
+			connection_id = ${connection.id}
+			AND is_completed = false
+			AND target_date IS NOT NULL
+			AND target_date < CURRENT_DATE
+		ORDER BY target_date ASC
+		LIMIT 3
+	`;
+
+				for (const dream of overdueDreams) {
+					reminders.push({
+						type: 'dream_overdue',
+						priority: 'high',
+						title: `A shared dream needs attention`,
+						message: `"${dream.title}" has passed its target date. Maybe check in with ${partnerName} about it.`,
+					});
+				}
+
+				/*
+				 * ==========================================
+				 * 5. RELATIONSHIP ANNIVERSARY
+				 * ==========================================
+				 */
+
+				if (connection.connected_at) {
+					const connectedDate = new Date(connection.connected_at);
+
+					const anniversary = new Date(today.getFullYear(), connectedDate.getMonth(), connectedDate.getDate());
+
+					/*
+					 * If this year's anniversary has already passed,
+					 * use next year's anniversary.
+					 */
+					if (anniversary < today) {
+						anniversary.setFullYear(today.getFullYear() + 1);
+					}
+
+					/*
+					 * Do not remind someone about an anniversary
+					 * before the first full year together.
+					 */
+					const firstAnniversary = new Date(connectedDate);
+					firstAnniversary.setFullYear(firstAnniversary.getFullYear() + 1);
+
+					if (anniversary < firstAnniversary) {
+						anniversary.setTime(firstAnniversary.getTime());
+					}
+
+					const millisecondsPerDay = 1000 * 60 * 60 * 24;
+
+					const daysUntilAnniversary = Math.ceil((anniversary - today) / millisecondsPerDay);
+
+					if (daysUntilAnniversary <= 30) {
+						reminders.push({
+							type: 'anniversary',
+							priority: daysUntilAnniversary <= 7 ? 'high' : 'medium',
+							title: 'Your relationship anniversary is coming up',
+							message:
+								daysUntilAnniversary === 0
+									? `Today marks another year since you and ${partnerName} connected.`
+									: `Your relationship anniversary is in ${daysUntilAnniversary} day${daysUntilAnniversary === 1 ? '' : 's'}.`,
+						});
+					}
+				}
+
+				/*
+				 * ==========================================
+				 * SORT REMINDERS
+				 * ==========================================
+				 */
+
+				const priorityOrder = {
+					high: 1,
+					medium: 2,
+					low: 3,
+				};
+
+				reminders.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+
+				return Response.json({
+					reminders,
+					total: reminders.length,
+				});
+			}
+
+			/*
+			 * ==========================================
+			 * NOTIFICATIONS
+			 * ==========================================
+			 *
+			 * GET /users/:clerkId/notifications
+			 */
+
+			const notificationsMatch = url.pathname.match(/^\/users\/([^/]+)\/notifications$/);
+
+			if (notificationsMatch && request.method === 'GET') {
+				const clerkId = notificationsMatch[1];
+
+				const userResult = await sql`
+    SELECT id
+    FROM users
+    WHERE clerk_id = ${clerkId}
+    LIMIT 1
+  `;
+
+				if (userResult.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const userId = userResult[0].id;
+
+				const notifications = await sql`
+    SELECT
+      id,
+      type,
+      title,
+      message,
+      is_read,
+      created_at
+    FROM notifications
+    WHERE user_id = ${userId}
+    ORDER BY created_at DESC
+  `;
+
+				return Response.json({
+					notifications,
+				});
+			}
+
+			/*
+			 * ==========================================
+			 * MARK NOTIFICATION AS READ
+			 * ==========================================
+			 *
+			 * PATCH /users/:clerkId/notifications/:notificationId
+			 */
+
+			const notificationReadMatch = url.pathname.match(/^\/users\/([^/]+)\/notifications\/([^/]+)$/);
+
+			if (notificationReadMatch && request.method === 'PATCH') {
+				const clerkId = notificationReadMatch[1];
+				const notificationId = notificationReadMatch[2];
+
+				const userResult = await sql`
+          SELECT id
+          FROM users
+          WHERE clerk_id = ${clerkId}
+          LIMIT 1
+        `;
+
+				if (userResult.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const userId = userResult[0].id;
+
+				const result = await sql`
+          UPDATE notifications
+          SET is_read = true
+          WHERE id = ${notificationId}
+            AND user_id = ${userId}
+          RETURNING
+            id,
+            type,
+            title,
+            message,
+            is_read,
+            created_at
+        `;
+
+				if (result.length === 0) {
+					return Response.json(
+						{
+							error: 'Notification not found',
+						},
+						{ status: 404 },
+					);
+				}
+
+				return Response.json({
+					notification: result[0],
+				});
+			}
+
 			/*
 			 * ==========================================
 			 * NOT FOUND

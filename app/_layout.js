@@ -2,21 +2,175 @@ import { ClerkProvider, useAuth } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import { Slot, useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
+import * as Notifications from "expo-notifications";
+import * as Device from "expo-device";
+import Constants from "expo-constants";
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 const API_URL = "https://between-us-api.between-us.workers.dev";
 
+/*
+ * ==========================================
+ * NOTIFICATION BEHAVIOUR
+ * ==========================================
+ *
+ * This controls how notifications behave while
+ * the app is open.
+ */
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
+
+/*
+ * ==========================================
+ * REGISTER FOR PUSH NOTIFICATIONS
+ * ==========================================
+ */
+
+async function registerForPushNotificationsAsync(userId) {
+  if (!userId) {
+    return null;
+  }
+
+  /*
+   * Push notifications require a physical device.
+   */
+  if (!Device.isDevice) {
+    console.log("NOTIFICATIONS: Push notifications require a physical device.");
+
+    return null;
+  }
+
+  try {
+    /*
+     * Check existing permission.
+     */
+    const { status: existingStatus } =
+      await Notifications.getPermissionsAsync();
+
+    let finalStatus = existingStatus;
+
+    /*
+     * Ask the user if permission has not already
+     * been granted.
+     */
+    if (existingStatus !== "granted") {
+      const { status } = await Notifications.requestPermissionsAsync();
+
+      finalStatus = status;
+    }
+
+    if (finalStatus !== "granted") {
+      console.log("NOTIFICATIONS: Permission not granted.");
+
+      return null;
+    }
+
+    /*
+     * Android notification channel.
+     */
+    if (Device.osName === "Android") {
+      await Notifications.setNotificationChannelAsync("default", {
+        name: "default",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#6B4E45",
+      });
+    }
+
+    /*
+     * Expo project ID.
+     *
+     * This is required when generating an Expo push token.
+     */
+    const projectId =
+      Constants?.expoConfig?.extra?.eas?.projectId ||
+      Constants?.easConfig?.projectId;
+
+    if (!projectId) {
+      console.log(
+        "NOTIFICATIONS: No Expo projectId found. Push token cannot be generated.",
+      );
+
+      return null;
+    }
+
+    /*
+     * Get the Expo push token.
+     */
+    const tokenResponse = await Notifications.getExpoPushTokenAsync({
+      projectId,
+    });
+
+    const pushToken = tokenResponse?.data;
+
+    console.log("NOTIFICATIONS PUSH TOKEN:", pushToken);
+
+    if (!pushToken) {
+      return null;
+    }
+
+    /*
+     * Send the token to our backend.
+     */
+    const response = await fetch(`${API_URL}/users/${userId}/push-token`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        push_token: pushToken,
+        platform: Device.osName,
+      }),
+    });
+
+    const data = await response.json();
+
+    console.log("NOTIFICATIONS TOKEN SAVE RESPONSE:", data);
+
+    if (!response.ok) {
+      console.log("NOTIFICATIONS: Backend rejected push token:", data?.error);
+
+      return null;
+    }
+
+    console.log("NOTIFICATIONS: Push token saved successfully.");
+
+    return pushToken;
+  } catch (error) {
+    console.log("NOTIFICATIONS REGISTRATION ERROR:", error);
+
+    return null;
+  }
+}
+
+/*
+ * ==========================================
+ * AUTH GUARD
+ * ==========================================
+ */
+
 function AuthGuard() {
   const { isLoaded, isSignedIn, userId } = useAuth();
+
   const router = useRouter();
+
   const segments = useSegments();
 
   const [profileStatus, setProfileStatus] = useState("unknown");
 
   /*
-   * Check profile only when the user is signed in.
+   * ==========================================
+   * CHECK PROFILE
+   * ==========================================
    */
+
   useEffect(() => {
     let cancelled = false;
 
@@ -26,6 +180,7 @@ function AuthGuard() {
 
     if (!isSignedIn || !userId) {
       setProfileStatus("signed-out");
+
       return;
     }
 
@@ -41,7 +196,9 @@ function AuthGuard() {
 
         console.log("AUTH PROFILE:", data);
 
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
 
         setProfileStatus(data?.exists === true ? "exists" : "missing");
       } catch (error) {
@@ -61,8 +218,27 @@ function AuthGuard() {
   }, [isLoaded, isSignedIn, userId]);
 
   /*
-   * Routing
+   * ==========================================
+   * REGISTER PUSH NOTIFICATIONS
+   * ==========================================
+   *
+   * Only register once the user is signed in.
    */
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn || !userId) {
+      return;
+    }
+
+    registerForPushNotificationsAsync(userId);
+  }, [isLoaded, isSignedIn, userId]);
+
+  /*
+   * ==========================================
+   * ROUTING
+   * ==========================================
+   */
+
   useEffect(() => {
     if (!isLoaded) {
       return;
@@ -83,22 +259,13 @@ function AuthGuard() {
 
     /*
      * SIGNED OUT
-     *
-     * IMPORTANT:
-     * Never redirect signed-out users.
-     *
-     * This allows:
-     * /
-     * /sign-in
-     * /sign-up
-     * to work normally.
      */
     if (!isSignedIn) {
       return;
     }
 
     /*
-     * Still checking profile.
+     * STILL CHECKING PROFILE
      */
     if (profileStatus === "checking") {
       return;
@@ -139,8 +306,15 @@ function AuthGuard() {
   /*
    * DO NOT SHOW A CUSTOM LOADING SCREEN.
    */
+
   return <Slot />;
 }
+
+/*
+ * ==========================================
+ * ROOT LAYOUT
+ * ==========================================
+ */
 
 export default function RootLayout() {
   return (
