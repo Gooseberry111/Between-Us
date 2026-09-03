@@ -12,23 +12,27 @@ import {
 } from "react-native";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
-import { getCachedData, setCachedData } from "../lib/dataCache";
+import {
+  getCachedData,
+  setCachedData,
+  clearCachedData,
+} from "../lib/dataCache";
 
 const API_URL = "https://between-us-api.between-us.workers.dev";
 
-export default function CompletedDreamsScreen() {
+export default function CompletedGoalsScreen() {
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
 
-  const cacheKey = userId ? `completed-dreams:${userId}` : null;
-  const cachedDreams = cacheKey ? getCachedData(cacheKey) : undefined;
+  const cacheKey = userId ? `completed-goals:${userId}` : null;
+  const cachedGoals = cacheKey ? getCachedData(cacheKey) : undefined;
 
-  const [dreams, setDreams] = useState(cachedDreams || []);
-  const [loading, setLoading] = useState(!cachedDreams);
+  const [goals, setGoals] = useState(cachedGoals || []);
+  const [loading, setLoading] = useState(!cachedGoals);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
-  const loadDreams = useCallback(async () => {
+  const loadGoals = useCallback(async () => {
     if (!isLoaded || !isSignedIn || !userId) {
       setLoading(false);
       return;
@@ -37,34 +41,36 @@ export default function CompletedDreamsScreen() {
     const cached = cacheKey ? getCachedData(cacheKey) : undefined;
 
     if (cached) {
-      setDreams(cached);
+      setGoals(cached);
       setLoading(false);
     }
 
     try {
       setError("");
 
-      const response = await fetch(`${API_URL}/users/${userId}/dreams`);
+      const response = await fetch(
+        `${API_URL}/users/${userId}/relationship-goals`,
+      );
       const data = await response.json();
 
-      console.log("COMPLETED DREAMS RESPONSE:", data);
+      console.log("COMPLETED GOALS RESPONSE:", data);
 
       if (!response.ok) {
-        throw new Error(data?.error || "Unable to load completed dreams.");
+        throw new Error(data?.error || "Unable to load completed goals.");
       }
 
-      const completedDreams = Array.isArray(data?.dreams)
-        ? data.dreams.filter((dream) => dream.is_completed)
+      const completedGoals = Array.isArray(data?.goals)
+        ? data.goals.filter((goal) => goal.status === "completed")
         : [];
 
-      setDreams(completedDreams);
+      setGoals(completedGoals);
 
-      if (cacheKey) setCachedData(cacheKey, completedDreams);
+      if (cacheKey) setCachedData(cacheKey, completedGoals);
     } catch (err) {
-      console.log("COMPLETED DREAMS LOAD ERROR:", err);
+      console.log("COMPLETED GOALS LOAD ERROR:", err);
 
       if (!cached) {
-        setError(err?.message || "Unable to load completed dreams.");
+        setError(err?.message || "Unable to load completed goals.");
       }
     } finally {
       setLoading(false);
@@ -73,50 +79,54 @@ export default function CompletedDreamsScreen() {
   }, [isLoaded, isSignedIn, userId, cacheKey]);
 
   useEffect(() => {
-    loadDreams();
-  }, [loadDreams]);
+    loadGoals();
+  }, [loadGoals]);
 
   const handleRefresh = () => {
     setRefreshing(true);
-    loadDreams();
+    loadGoals();
   };
 
-  const markIncomplete = async (dream) => {
+  const markActive = async (goal) => {
     if (!userId) return;
 
     try {
       const response = await fetch(
-        `${API_URL}/users/${userId}/dreams/${dream.id}`,
+        `${API_URL}/users/${userId}/relationship-goals/${goal.id}`,
         {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            is_completed: false,
+            status: "active",
           }),
         },
       );
 
       const data = await response.json();
 
-      console.log("MARK INCOMPLETE RESPONSE:", data);
+      console.log("MARK GOAL ACTIVE RESPONSE:", data);
 
       if (!response.ok) {
-        throw new Error(data?.error || "Unable to move dream back.");
+        throw new Error(data?.error || "Unable to move goal back.");
       }
 
-      setDreams((current) => {
-        const next = current.filter((item) => item.id !== dream.id);
+      setGoals((current) => {
+        const next = current.filter((item) => item.id !== goal.id);
         if (cacheKey) setCachedData(cacheKey, next);
         return next;
       });
+
+      // The active Goals screen may have a stale cached
+      // list that's missing this goal.
+      if (userId) clearCachedData(`goals:${userId}`);
     } catch (err) {
-      console.log("MARK INCOMPLETE ERROR:", err);
+      console.log("MARK GOAL ACTIVE ERROR:", err);
 
       Alert.alert(
         "Something went wrong",
-        err?.message || "Unable to move dream back.",
+        err?.message || "Unable to move goal back.",
       );
     }
   };
@@ -126,7 +136,7 @@ export default function CompletedDreamsScreen() {
       <SafeAreaView style={styles.screen}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color="#6B4E45" />
-          <Text style={styles.loadingText}>Loading completed dreams...</Text>
+          <Text style={styles.loadingText}>Loading completed goals...</Text>
         </View>
       </SafeAreaView>
     );
@@ -151,7 +161,7 @@ export default function CompletedDreamsScreen() {
           <View style={styles.header}>
             <TouchableOpacity
               style={styles.backButton}
-              onPress={() => router.push("/(tabs)/dreams")}
+              onPress={() => router.push("/goals")}
             >
               <Text style={styles.backButtonText}>←</Text>
             </TouchableOpacity>
@@ -159,10 +169,10 @@ export default function CompletedDreamsScreen() {
             <View style={styles.headerText}>
               <Text style={styles.brand}>BETWEEN US</Text>
 
-              <Text style={styles.pageTitle}>Completed Dreams</Text>
+              <Text style={styles.pageTitle}>Completed Goals</Text>
 
               <Text style={styles.pageSubtitle}>
-                Everything you have already achieved together.
+                Everything you have already worked through together.
               </Text>
             </View>
 
@@ -180,73 +190,73 @@ export default function CompletedDreamsScreen() {
           {/* SUMMARY */}
 
           <View style={styles.summaryCard}>
-            <Text style={styles.summaryNumber}>{dreams.length}</Text>
+            <Text style={styles.summaryNumber}>{goals.length}</Text>
 
             <View style={styles.summaryText}>
               <Text style={styles.summaryTitle}>
-                {dreams.length === 1 ? "Dream completed" : "Dreams completed"}
+                {goals.length === 1 ? "Goal completed" : "Goals completed"}
               </Text>
 
               <Text style={styles.summarySubtitle}>
-                Keep building your story together.
+                Keep growing together, one goal at a time.
               </Text>
             </View>
           </View>
 
-          {/* DREAMS */}
+          {/* GOALS */}
 
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>YOUR ACHIEVEMENTS</Text>
+            <Text style={styles.sectionLabel}>YOUR PROGRESS</Text>
 
             <Text style={styles.sectionTitle}>
-              {dreams.length === 0
+              {goals.length === 0
                 ? "Nothing completed yet."
-                : `${dreams.length} ${
-                    dreams.length === 1 ? "dream" : "dreams"
+                : `${goals.length} ${
+                    goals.length === 1 ? "goal" : "goals"
                   } achieved together.`}
             </Text>
 
-            {dreams.length === 0 ? (
+            {goals.length === 0 ? (
               <View style={styles.emptyCard}>
                 <View style={styles.emptyIcon}>
                   <Text style={styles.emptyIconText}>✓</Text>
                 </View>
 
                 <Text style={styles.emptyTitle}>
-                  Your completed dreams will appear here.
+                  Your completed goals will appear here.
                 </Text>
 
                 <Text style={styles.emptyText}>
-                  When you mark a dream as completed, it will move here
+                  When you mark a goal as complete, it will move here
                   automatically.
                 </Text>
 
                 <TouchableOpacity
-                  style={styles.backToDreamsButton}
+                  style={styles.backToGoalsButton}
                   onPress={() => router.back()}
                   activeOpacity={0.85}
                 >
-                  <Text style={styles.backToDreamsText}>Back to dreams</Text>
+                  <Text style={styles.backToGoalsText}>Back to goals</Text>
                 </TouchableOpacity>
               </View>
             ) : (
-              dreams.map((dream, index) => (
-                <CompletedDreamCard
-                  key={dream.id}
-                  dream={dream}
+              goals.map((goal, index) => (
+                <CompletedGoalCard
+                  key={goal.id}
+                  goal={goal}
                   index={index}
-                  onMarkIncomplete={() => markIncomplete(dream)}
+                  onMarkActive={() => markActive(goal)}
                 />
               ))
             )}
           </View>
 
-          {dreams.length > 0 ? (
+          {goals.length > 0 ? (
             <View style={styles.footerCard}>
-              <Text style={styles.footerQuote}>"One dream at a time."</Text>
+              <Text style={styles.footerQuote}>"Progress, not perfection."</Text>
 
               <Text style={styles.footerText}>
-                Look back at what you have already built together.
+                Look back at what you have already worked through together.
               </Text>
             </View>
           ) : null}
@@ -256,17 +266,17 @@ export default function CompletedDreamsScreen() {
   );
 }
 
-function CompletedDreamCard({ dream, index, onMarkIncomplete }) {
-  const targetDate = dream.target_date
-    ? new Date(dream.target_date).toLocaleDateString("en-US", {
+function CompletedGoalCard({ goal, index, onMarkActive }) {
+  const targetDate = goal.target_date
+    ? new Date(goal.target_date).toLocaleDateString("en-US", {
         month: "long",
         day: "numeric",
         year: "numeric",
       })
     : null;
 
-  const completedDate = dream.completed_at
-    ? new Date(dream.completed_at).toLocaleDateString("en-US", {
+  const completedDate = goal.completed_at
+    ? new Date(goal.completed_at).toLocaleDateString("en-US", {
         month: "long",
         day: "numeric",
         year: "numeric",
@@ -274,10 +284,10 @@ function CompletedDreamCard({ dream, index, onMarkIncomplete }) {
     : null;
 
   return (
-    <View style={styles.dreamCard}>
-      <View style={styles.dreamTop}>
-        <View style={styles.dreamNumber}>
-          <Text style={styles.dreamNumberText}>
+    <View style={styles.goalCard}>
+      <View style={styles.goalTop}>
+        <View style={styles.goalNumber}>
+          <Text style={styles.goalNumberText}>
             {String(index + 1).padStart(2, "0")}
           </Text>
         </View>
@@ -287,10 +297,10 @@ function CompletedDreamCard({ dream, index, onMarkIncomplete }) {
         </View>
       </View>
 
-      <Text style={styles.dreamTitle}>{dream.title}</Text>
+      <Text style={styles.goalTitle}>{goal.title}</Text>
 
-      {dream.description ? (
-        <Text style={styles.dreamDescription}>{dream.description}</Text>
+      {goal.description ? (
+        <Text style={styles.goalDescription}>{goal.description}</Text>
       ) : null}
 
       {targetDate ? (
@@ -307,18 +317,18 @@ function CompletedDreamCard({ dream, index, onMarkIncomplete }) {
         </View>
       ) : null}
 
-      <View style={styles.dreamDivider} />
+      <View style={styles.goalDivider} />
 
       <TouchableOpacity
-        style={styles.incompleteButton}
-        onPress={onMarkIncomplete}
+        style={styles.reactivateButton}
+        onPress={onMarkActive}
         activeOpacity={0.8}
       >
         <View style={styles.checkCircle}>
-          <Text style={styles.checkText}>✓</Text>
+          <Text style={styles.checkText}>↺</Text>
         </View>
 
-        <Text style={styles.incompleteText}>Move back to dreams</Text>
+        <Text style={styles.reactivateText}>Move back to active goals</Text>
       </TouchableOpacity>
     </View>
   );
@@ -455,7 +465,7 @@ const styles = StyleSheet.create({
     marginBottom: 13,
   },
 
-  dreamCard: {
+  goalCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 20,
     padding: 18,
@@ -464,13 +474,13 @@ const styles = StyleSheet.create({
     marginBottom: 13,
   },
 
-  dreamTop: {
+  goalTop: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
 
-  dreamNumber: {
+  goalNumber: {
     width: 34,
     height: 34,
     borderRadius: 17,
@@ -479,7 +489,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  dreamNumberText: {
+  goalNumberText: {
     fontSize: 10,
     fontWeight: "800",
     color: "#6B4E45",
@@ -499,7 +509,7 @@ const styles = StyleSheet.create({
     color: "#6B4E45",
   },
 
-  dreamTitle: {
+  goalTitle: {
     marginTop: 16,
     fontSize: 20,
     lineHeight: 25,
@@ -507,7 +517,7 @@ const styles = StyleSheet.create({
     color: "#302825",
   },
 
-  dreamDescription: {
+  goalDescription: {
     marginTop: 8,
     fontSize: 13,
     lineHeight: 20,
@@ -556,13 +566,13 @@ const styles = StyleSheet.create({
     color: "#6B4E45",
   },
 
-  dreamDivider: {
+  goalDivider: {
     height: 1,
     backgroundColor: "#EAE3DE",
     marginVertical: 16,
   },
 
-  incompleteButton: {
+  reactivateButton: {
     flexDirection: "row",
     alignItems: "center",
   },
@@ -582,7 +592,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
-  incompleteText: {
+  reactivateText: {
     marginLeft: 8,
     fontSize: 11,
     fontWeight: "600",
@@ -629,7 +639,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  backToDreamsButton: {
+  backToGoalsButton: {
     marginTop: 17,
     paddingHorizontal: 16,
     paddingVertical: 11,
@@ -637,7 +647,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F1E9E5",
   },
 
-  backToDreamsText: {
+  backToGoalsText: {
     fontSize: 12,
     fontWeight: "700",
     color: "#6B4E45",

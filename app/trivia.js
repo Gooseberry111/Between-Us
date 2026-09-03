@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   SafeAreaView,
@@ -27,6 +27,8 @@ export default function TriviaScreen() {
   const [finished, setFinished] = useState(false);
   const [error, setError] = useState("");
 
+  const hasRecordedSession = useRef(false);
+
   const loadTrivia = useCallback(async () => {
     if (!isLoaded || !isSignedIn || !userId) {
       return;
@@ -41,6 +43,7 @@ export default function TriviaScreen() {
       setAnswerResult(null);
       setScore(0);
       setFinished(false);
+      hasRecordedSession.current = false;
 
       const response = await fetch(`${API_URL}/users/${userId}/trivia`);
 
@@ -67,6 +70,37 @@ export default function TriviaScreen() {
   useEffect(() => {
     loadTrivia();
   }, [loadTrivia]);
+
+  /*
+   * ==========================================
+   * RECORD THE COMPLETED ROUND
+   * ==========================================
+   *
+   * Fires once per round so the backend knows this
+   * couple actually played (used by the inactivity/
+   * nudge cron, and to notify the partner right away).
+   */
+  useEffect(() => {
+    if (!finished || hasRecordedSession.current || !userId) {
+      return;
+    }
+
+    hasRecordedSession.current = true;
+
+    fetch(`${API_URL}/users/${userId}/trivia/complete`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        score,
+        total_questions: questions.length,
+      }),
+    })
+      .then((response) => response.json())
+      .then((data) => console.log("TRIVIA COMPLETE RESPONSE:", data))
+      .catch((err) => console.log("TRIVIA COMPLETE ERROR:", err));
+  }, [finished, score, questions.length, userId]);
 
   const currentQuestion = questions[currentIndex];
 

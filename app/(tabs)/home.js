@@ -794,9 +794,9 @@ function QuickActions({ router }) {
             <Text style={styles.quickIconText}>♡</Text>
           </View>
 
-          <Text style={styles.quickTitle}>Memories</Text>
+          <Text style={styles.quickTitle}>Timeline</Text>
 
-          <Text style={styles.quickText}>Remember moments</Text>
+          <Text style={styles.quickText}>Your story together</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -811,6 +811,36 @@ function QuickActions({ router }) {
           <Text style={styles.quickTitle}>Insights</Text>
 
           <Text style={styles.quickText}>Learn about each other</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={[styles.quickActions, styles.quickActionsSecondRow]}>
+        <TouchableOpacity
+          style={styles.quickAction}
+          activeOpacity={0.8}
+          onPress={() => router.push("/goals")}
+        >
+          <View style={styles.quickIcon}>
+            <Text style={styles.quickIconText}>◆</Text>
+          </View>
+
+          <Text style={styles.quickTitle}>Goals</Text>
+
+          <Text style={styles.quickText}>Track what you're working on</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.quickAction}
+          activeOpacity={0.8}
+          onPress={() => router.push("/special-dates")}
+        >
+          <View style={styles.quickIcon}>
+            <Text style={styles.quickIconText}>◷</Text>
+          </View>
+
+          <Text style={styles.quickTitle}>Special Dates</Text>
+
+          <Text style={styles.quickText}>Never miss a date that matters</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -1370,6 +1400,10 @@ const styles = StyleSheet.create({
   quickActions: {
     flexDirection: "row",
     gap: 12,
+  },
+
+  quickActionsSecondRow: {
+    marginTop: 12,
   },
 
   quickAction: {

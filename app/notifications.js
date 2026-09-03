@@ -12,6 +12,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
+import { getCachedData, setCachedData } from "../lib/dataCache";
 
 const API_URL = "https://between-us-api.between-us.workers.dev";
 
@@ -19,8 +20,11 @@ export default function NotificationsScreen() {
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
 
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = userId ? `notifications:${userId}` : null;
+  const cachedNotifications = cacheKey ? getCachedData(cacheKey) : undefined;
+
+  const [notifications, setNotifications] = useState(cachedNotifications || []);
+  const [loading, setLoading] = useState(!cachedNotifications);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
@@ -28,6 +32,13 @@ export default function NotificationsScreen() {
     if (!isLoaded || !isSignedIn || !userId) {
       setLoading(false);
       return;
+    }
+
+    const cached = cacheKey ? getCachedData(cacheKey) : undefined;
+
+    if (cached) {
+      setNotifications(cached);
+      setLoading(false);
     }
 
     try {
@@ -43,18 +54,24 @@ export default function NotificationsScreen() {
         throw new Error(data?.error || "Unable to load your notifications.");
       }
 
-      setNotifications(
-        Array.isArray(data?.notifications) ? data.notifications : [],
-      );
+      const nextNotifications = Array.isArray(data?.notifications)
+        ? data.notifications
+        : [];
+
+      setNotifications(nextNotifications);
+
+      if (cacheKey) setCachedData(cacheKey, nextNotifications);
     } catch (err) {
       console.log("NOTIFICATIONS LOAD ERROR:", err);
 
-      setError(err?.message || "Unable to load your notifications.");
+      if (!cached) {
+        setError(err?.message || "Unable to load your notifications.");
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [isLoaded, isSignedIn, userId]);
+  }, [isLoaded, isSignedIn, userId, cacheKey]);
 
   useEffect(() => {
     loadNotifications();
@@ -145,11 +162,13 @@ export default function NotificationsScreen() {
                   notification={notification}
                   userId={userId}
                   onRead={(id) => {
-                    setNotifications((current) =>
-                      current.map((item) =>
+                    setNotifications((current) => {
+                      const next = current.map((item) =>
                         item.id === id ? { ...item, is_read: true } : item,
-                      ),
-                    );
+                      );
+                      if (cacheKey) setCachedData(cacheKey, next);
+                      return next;
+                    });
                   }}
                 />
               ))
@@ -184,7 +203,31 @@ function NotificationCard({ notification, userId, onRead }) {
       case "connection":
       case "connection_request":
       case "connection_accepted":
+      case "connection_unlinked":
         return "people-outline";
+
+      case "special_date":
+        return "calendar-outline";
+
+      case "dream_upcoming":
+      case "dream_overdue":
+        return "sparkles-outline";
+
+      case "goal_upcoming":
+      case "goal_overdue":
+        return "flag-outline";
+
+      case "trivia_nudge":
+        return "help-circle-outline";
+
+      case "inactivity":
+        return "hand-left-outline";
+
+      case "quote_of_day":
+        return "chatbubble-ellipses-outline";
+
+      case "date_idea":
+        return "restaurant-outline";
 
       default:
         return "notifications-outline";

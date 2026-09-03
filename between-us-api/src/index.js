@@ -42,13 +42,551 @@ async function sendPushNotification({ pushToken, title, body, data = {} }) {
 		};
 	}
 }
+/*
+ * ==========================================
+ * SCHEDULED NOTIFICATION HELPERS
+ * ==========================================
+ */
+
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+/*
+ * Quote of the Day content.
+ *
+ * Original, unattributed lines so nothing is
+ * misattributed to a real author.
+ */
+const QUOTES_OF_THE_DAY = [
+	'Love grows in the small moments you almost forget to notice.',
+	"A relationship is built one ordinary day at a time.",
+	'Say the kind thing today. There will never be a better time.',
+	'The best partners are the ones who make the boring days feel good.',
+	'Checking in matters more than grand gestures.',
+	'Choose each other again today, on purpose.',
+	'Every relationship needs maintenance, not just memories.',
+	'Curiosity about your partner never expires.',
+	'Small kindnesses, repeated daily, are what love is made of.',
+	'Today is a good day to ask how they are really doing.',
+	'The strongest couples are the best at repairing, not the ones who never argue.',
+	'Gratitude out loud lands differently than gratitude kept quiet.',
+	'You do not need a reason to make someone feel loved today.',
+	'Presence is the gift most partners actually want.',
+	'A relationship is a living thing. Keep watering it.',
+];
+
+/*
+ * Date Idea content.
+ */
+const DATE_IDEAS = [
+	'Cook a new recipe together tonight, no matter how it turns out.',
+	'Take a walk with no destination and no phones.',
+	'Recreate your first date, wherever it was.',
+	'Write each other a short list of favorite memories together, then swap.',
+	'Try the restaurant you keep saying "we should go there" about.',
+	'Have a no-agenda conversation about your dreams for next year.',
+	'Do a puzzle or board game night, loser makes breakfast.',
+	'Watch the sunset somewhere you have never watched it from.',
+	'Plan a mini day trip somewhere neither of you has been.',
+	'Have a picnic, even if it is just in the living room.',
+	'Take turns picking a song that reminds you of the other person.',
+	'Go stargazing and talk about nothing important.',
+	'Try a class together, cooking, dance, or something silly.',
+	'Write a letter to each other for a hard week, to open when needed.',
+	'Revisit an old photo album and tell the stories behind them.',
+];
+
+/*
+ * Days remaining until the next annual occurrence
+ * of a month/day (birthday, anniversary, special date).
+ *
+ * requireFirstAnniversary skips this year's date if it
+ * falls before the first full year has passed.
+ */
+function nextAnnualOccurrence(dateStr, today, { requireFirstAnniversary = false } = {}) {
+	if (!dateStr) return null;
+
+	const base = new Date(dateStr);
+
+	if (Number.isNaN(base.getTime())) return null;
+
+	let next = new Date(today.getFullYear(), base.getMonth(), base.getDate());
+
+	if (next < today) {
+		next = new Date(today.getFullYear() + 1, base.getMonth(), base.getDate());
+	}
+
+	if (requireFirstAnniversary) {
+		const firstAnniversary = new Date(base);
+
+		firstAnniversary.setFullYear(firstAnniversary.getFullYear() + 1);
+
+		if (next < firstAnniversary) {
+			next = new Date(firstAnniversary);
+		}
+	}
+
+	const daysUntil = Math.ceil((next - today) / MS_PER_DAY);
+
+	return { date: next, daysUntil };
+}
+
+/*
+ * ISO week key (e.g. "2026-W36").
+ *
+ * Used to dedupe notifications that should re-fire at
+ * most once per week (inactivity, trivia nudges, date ideas)
+ * rather than once ever.
+ */
+function isoWeekKey(date) {
+	const target = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+
+	const dayNumber = target.getUTCDay() || 7;
+
+	target.setUTCDate(target.getUTCDate() + 4 - dayNumber);
+
+	const yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 1));
+
+	const weekNumber = Math.ceil(((target - yearStart) / MS_PER_DAY + 1) / 7);
+
+	return `${target.getUTCFullYear()}-W${String(weekNumber).padStart(2, '0')}`;
+}
+
+/*
+ * Create an in-app notification and, if it was actually
+ * inserted (i.e. not a duplicate for this dedupe_key), send
+ * the matching push notification.
+ *
+ * Returns true if a new notification was created.
+ */
+async function notifyUser(sql, { userId, pushToken, type, title, message, dedupeKey, data = {} }) {
+	const inserted = await sql`
+		INSERT INTO notifications (
+			user_id,
+			type,
+			title,
+			message,
+			dedupe_key
+		)
+		VALUES (
+			${userId},
+			${type},
+			${title},
+			${message},
+			${dedupeKey}
+		)
+		ON CONFLICT (user_id, dedupe_key)
+		DO NOTHING
+		RETURNING id
+	`;
+
+	if (inserted.length === 0) {
+		return false;
+	}
+
+	if (pushToken) {
+		await sendPushNotification({
+			pushToken,
+			title,
+			body: message,
+			data: { type, ...data },
+		});
+	}
+
+	return true;
+}
+
 export default {
 	async scheduled(event, env, ctx) {
 		console.log('BETWEEN US: Scheduled notification job started');
 
 		const sql = neon(env.DATABASE_URL);
 
-		// Scheduled notification logic will go here.
+		const today = new Date();
+		const todayIso = today.toISOString().slice(0, 10);
+		const weekKey = isoWeekKey(today);
+
+		try {
+			/*
+			 * ==========================================
+			 * ACCEPTED CONNECTIONS
+			 * ==========================================
+			 *
+			 * Shared base for birthday, anniversary,
+			 * trivia and date idea checks.
+			 */
+			const connections = await sql`
+				SELECT
+					c.id,
+					c.user_one,
+					c.user_two,
+					c.connected_at,
+					u1.push_token AS user_one_push_token,
+					u2.push_token AS user_two_push_token,
+					p1.first_name AS user_one_first_name,
+					p2.first_name AS user_two_first_name,
+					p1.birthday AS user_one_birthday,
+					p2.birthday AS user_two_birthday
+				FROM connections c
+				INNER JOIN users u1 ON u1.id = c.user_one
+				INNER JOIN users u2 ON u2.id = c.user_two
+				LEFT JOIN profiles p1 ON p1.user_id = u1.id
+				LEFT JOIN profiles p2 ON p2.user_id = u2.id
+				WHERE c.status = 'accepted'
+			`;
+
+			for (const connection of connections) {
+				const members = [
+					{
+						userId: connection.user_one,
+						pushToken: connection.user_one_push_token,
+						birthday: connection.user_one_birthday,
+						firstName: connection.user_one_first_name,
+						partnerId: connection.user_two,
+						partnerPushToken: connection.user_two_push_token,
+						partnerFirstName: connection.user_two_first_name,
+					},
+					{
+						userId: connection.user_two,
+						pushToken: connection.user_two_push_token,
+						birthday: connection.user_two_birthday,
+						firstName: connection.user_two_first_name,
+						partnerId: connection.user_one,
+						partnerPushToken: connection.user_one_push_token,
+						partnerFirstName: connection.user_one_first_name,
+					},
+				];
+
+				/*
+				 * ==========================================
+				 * 1. BIRTHDAY — notify the partner
+				 * ==========================================
+				 */
+				for (const member of members) {
+					const occurrence = nextAnnualOccurrence(member.birthday, today);
+
+					if (!occurrence || occurrence.daysUntil > 30) continue;
+
+					const ownerName = member.firstName?.trim() || 'Your partner';
+
+					await notifyUser(sql, {
+						userId: member.partnerId,
+						pushToken: member.partnerPushToken,
+						type: 'birthday',
+						title: `${ownerName}'s birthday is coming up`,
+						message:
+							occurrence.daysUntil === 0
+								? `Today is ${ownerName}'s birthday.`
+								: `${ownerName}'s birthday is in ${occurrence.daysUntil} day${occurrence.daysUntil === 1 ? '' : 's'}. Start planning something special.`,
+						dedupeKey: `birthday:${member.userId}:${occurrence.date.getFullYear()}`,
+					});
+				}
+
+				/*
+				 * ==========================================
+				 * 2. RELATIONSHIP ANNIVERSARY — notify both
+				 * ==========================================
+				 */
+				if (connection.connected_at) {
+					const occurrence = nextAnnualOccurrence(connection.connected_at, today, {
+						requireFirstAnniversary: true,
+					});
+
+					if (occurrence && occurrence.daysUntil <= 30) {
+						for (const member of members) {
+							await notifyUser(sql, {
+								userId: member.userId,
+								pushToken: member.pushToken,
+								type: 'anniversary',
+								title: 'Your relationship anniversary is coming up',
+								message:
+									occurrence.daysUntil === 0
+										? `Today marks another year since you and ${member.partnerFirstName?.trim() || 'your partner'} connected.`
+										: `Your relationship anniversary is in ${occurrence.daysUntil} day${occurrence.daysUntil === 1 ? '' : 's'}.`,
+								dedupeKey: `anniversary:${connection.id}:${occurrence.date.getFullYear()}`,
+							});
+						}
+					}
+				}
+
+				/*
+				 * ==========================================
+				 * 8. TRIVIA NUDGE — notify both, weekly
+				 * ==========================================
+				 */
+				const lastTrivia = await sql`
+					SELECT MAX(completed_at) AS last_played_at
+					FROM trivia_sessions
+					WHERE connection_id = ${connection.id}
+				`;
+
+				const lastPlayedAt = lastTrivia[0]?.last_played_at;
+
+				const daysSincePlayed = lastPlayedAt ? Math.floor((today - new Date(lastPlayedAt)) / MS_PER_DAY) : Infinity;
+
+				if (daysSincePlayed >= 7) {
+					for (const member of members) {
+						await notifyUser(sql, {
+							userId: member.userId,
+							pushToken: member.pushToken,
+							type: 'trivia_nudge',
+							title: 'Play a round of couple trivia',
+							message: `See how well you know ${member.partnerFirstName?.trim() || 'your partner'}. A new round is waiting.`,
+							dedupeKey: `trivia_nudge:${connection.id}:${weekKey}`,
+						});
+					}
+				}
+
+				/*
+				 * ==========================================
+				 * 11. DATE IDEA — notify both, weekly
+				 * ==========================================
+				 */
+				const dateIdea = DATE_IDEAS[Math.floor(Math.random() * DATE_IDEAS.length)];
+
+				for (const member of members) {
+					await notifyUser(sql, {
+						userId: member.userId,
+						pushToken: member.pushToken,
+						type: 'date_idea',
+						title: 'A date idea for you two',
+						message: dateIdea,
+						dedupeKey: `date_idea:${connection.id}:${weekKey}`,
+					});
+				}
+			}
+
+			/*
+			 * ==========================================
+			 * 3 & 4. SHARED DREAMS — upcoming / overdue
+			 * ==========================================
+			 */
+			const dreams = await sql`
+				SELECT
+					d.id,
+					d.title,
+					d.target_date,
+					c.id AS connection_id,
+					c.user_one,
+					c.user_two,
+					u1.push_token AS user_one_push_token,
+					u2.push_token AS user_two_push_token
+				FROM dreams d
+				INNER JOIN connections c ON c.id = d.connection_id AND c.status = 'accepted'
+				INNER JOIN users u1 ON u1.id = c.user_one
+				INNER JOIN users u2 ON u2.id = c.user_two
+				WHERE d.is_completed = false
+					AND d.target_date IS NOT NULL
+			`;
+
+			for (const dream of dreams) {
+				const daysUntil = Math.ceil((new Date(dream.target_date) - today) / MS_PER_DAY);
+
+				const recipients = [
+					{ userId: dream.user_one, pushToken: dream.user_one_push_token },
+					{ userId: dream.user_two, pushToken: dream.user_two_push_token },
+				];
+
+				if (daysUntil >= 0 && daysUntil <= 14) {
+					for (const recipient of recipients) {
+						await notifyUser(sql, {
+							userId: recipient.userId,
+							pushToken: recipient.pushToken,
+							type: 'dream_upcoming',
+							title: 'Your dream is coming up',
+							message:
+								daysUntil === 0
+									? `"${dream.title}" is scheduled for today.`
+									: `"${dream.title}" is coming up in ${daysUntil} day${daysUntil === 1 ? '' : 's'}.`,
+							dedupeKey: `dream_upcoming:${dream.id}`,
+							data: { dreamId: dream.id },
+						});
+					}
+				} else if (daysUntil < 0) {
+					for (const recipient of recipients) {
+						await notifyUser(sql, {
+							userId: recipient.userId,
+							pushToken: recipient.pushToken,
+							type: 'dream_overdue',
+							title: 'A shared dream needs attention',
+							message: `"${dream.title}" has passed its target date. Maybe check in about it.`,
+							dedupeKey: `dream_overdue:${dream.id}:${weekKey}`,
+							data: { dreamId: dream.id },
+						});
+					}
+				}
+			}
+
+			/*
+			 * ==========================================
+			 * 5 & 6. RELATIONSHIP GOALS — upcoming / overdue
+			 * ==========================================
+			 */
+			const goals = await sql`
+				SELECT
+					g.id,
+					g.title,
+					g.target_date,
+					c.id AS connection_id,
+					c.user_one,
+					c.user_two,
+					u1.push_token AS user_one_push_token,
+					u2.push_token AS user_two_push_token
+				FROM relationship_goals g
+				INNER JOIN connections c ON c.id = g.connection_id AND c.status = 'accepted'
+				INNER JOIN users u1 ON u1.id = c.user_one
+				INNER JOIN users u2 ON u2.id = c.user_two
+				WHERE g.status = 'active'
+					AND g.target_date IS NOT NULL
+			`;
+
+			for (const goal of goals) {
+				const daysUntil = Math.ceil((new Date(goal.target_date) - today) / MS_PER_DAY);
+
+				const recipients = [
+					{ userId: goal.user_one, pushToken: goal.user_one_push_token },
+					{ userId: goal.user_two, pushToken: goal.user_two_push_token },
+				];
+
+				if (daysUntil >= 0 && daysUntil <= 14) {
+					for (const recipient of recipients) {
+						await notifyUser(sql, {
+							userId: recipient.userId,
+							pushToken: recipient.pushToken,
+							type: 'goal_upcoming',
+							title: 'A relationship goal is approaching',
+							message:
+								daysUntil === 0
+									? `"${goal.title}" is due today.`
+									: `"${goal.title}" is due in ${daysUntil} day${daysUntil === 1 ? '' : 's'}.`,
+							dedupeKey: `goal_upcoming:${goal.id}`,
+							data: { goalId: goal.id },
+						});
+					}
+				} else if (daysUntil < 0) {
+					for (const recipient of recipients) {
+						await notifyUser(sql, {
+							userId: recipient.userId,
+							pushToken: recipient.pushToken,
+							type: 'goal_overdue',
+							title: 'A relationship goal needs attention',
+							message: `"${goal.title}" has passed its target date. Take a look together.`,
+							dedupeKey: `goal_overdue:${goal.id}:${weekKey}`,
+							data: { goalId: goal.id },
+						});
+					}
+				}
+			}
+
+			/*
+			 * ==========================================
+			 * 7. SPECIAL DATES — notify owner + partner
+			 * ==========================================
+			 */
+			const specialDates = await sql`
+				SELECT
+					sd.id,
+					sd.user_id,
+					sd.title,
+					sd.event_date,
+					owner.push_token AS owner_push_token,
+					c.user_one,
+					c.user_two,
+					u1.push_token AS user_one_push_token,
+					u2.push_token AS user_two_push_token
+				FROM special_dates sd
+				INNER JOIN users owner ON owner.id = sd.user_id
+				LEFT JOIN connections c ON (c.user_one = sd.user_id OR c.user_two = sd.user_id) AND c.status = 'accepted'
+				LEFT JOIN users u1 ON u1.id = c.user_one
+				LEFT JOIN users u2 ON u2.id = c.user_two
+			`;
+
+			for (const specialDate of specialDates) {
+				const occurrence = nextAnnualOccurrence(specialDate.event_date, today);
+
+				if (!occurrence || occurrence.daysUntil > 30) continue;
+
+				const message =
+					occurrence.daysUntil === 0
+						? `Today is "${specialDate.title}".`
+						: `"${specialDate.title}" is in ${occurrence.daysUntil} day${occurrence.daysUntil === 1 ? '' : 's'}.`;
+
+				const recipients = [{ userId: specialDate.user_id, pushToken: specialDate.owner_push_token }];
+
+				if (specialDate.user_one) {
+					const partnerId = specialDate.user_one === specialDate.user_id ? specialDate.user_two : specialDate.user_one;
+
+					const partnerPushToken =
+						specialDate.user_one === specialDate.user_id ? specialDate.user_two_push_token : specialDate.user_one_push_token;
+
+					recipients.push({ userId: partnerId, pushToken: partnerPushToken });
+				}
+
+				for (const recipient of recipients) {
+					await notifyUser(sql, {
+						userId: recipient.userId,
+						pushToken: recipient.pushToken,
+						type: 'special_date',
+						title: 'A special date is coming up',
+						message,
+						dedupeKey: `special_date:${specialDate.id}:${occurrence.date.getFullYear()}`,
+						data: { specialDateId: specialDate.id },
+					});
+				}
+			}
+
+			/*
+			 * ==========================================
+			 * 9. INACTIVITY — weekly nudge
+			 * ==========================================
+			 */
+			const inactiveUsers = await sql`
+				SELECT id, push_token, last_active_at
+				FROM users
+				WHERE push_token IS NOT NULL
+					AND (last_active_at IS NULL OR last_active_at < NOW() - INTERVAL '3 days')
+			`;
+
+			for (const user of inactiveUsers) {
+				await notifyUser(sql, {
+					userId: user.id,
+					pushToken: user.push_token,
+					type: 'inactivity',
+					title: 'We miss you on Between Us',
+					message: "It's been a few days. Come see what's new with your relationship.",
+					dedupeKey: `inactivity:${user.id}:${weekKey}`,
+				});
+			}
+
+			/*
+			 * ==========================================
+			 * 10. QUOTE OF THE DAY — everyone, daily
+			 * ==========================================
+			 */
+			const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / MS_PER_DAY);
+
+			const quote = QUOTES_OF_THE_DAY[dayOfYear % QUOTES_OF_THE_DAY.length];
+
+			const usersWithPush = await sql`
+				SELECT id, push_token
+				FROM users
+				WHERE push_token IS NOT NULL
+			`;
+
+			for (const user of usersWithPush) {
+				await notifyUser(sql, {
+					userId: user.id,
+					pushToken: user.push_token,
+					type: 'quote_of_day',
+					title: 'Quote of the Day',
+					message: quote,
+					dedupeKey: `quote_of_day:${todayIso}`,
+				});
+			}
+
+			console.log('BETWEEN US: Scheduled notification job finished');
+		} catch (error) {
+			console.error('SCHEDULED JOB ERROR:', error);
+		}
 	},
 
 	async fetch(request, env) {
@@ -1987,7 +2525,7 @@ VALUES (
 				const userId = userResult[0].id;
 
 				const memoryResult = await sql`
-    SELECT id, created_by
+    SELECT id, created_by, memory_date
     FROM memories
     WHERE id = ${memoryId}
     LIMIT 1
@@ -2013,11 +2551,14 @@ VALUES (
 					);
 				}
 
+				const newMemoryDate = body.memory_date !== undefined ? body.memory_date || null : memory.memory_date;
+
 				const updatedMemory = await sql`
     UPDATE memories
     SET
       title = ${body.title?.trim() || ''},
       description = ${body.description?.trim() || ''},
+      memory_date = ${newMemoryDate},
       updated_at = NOW()
     WHERE id = ${memoryId}
       AND created_by = ${userId}
@@ -3289,6 +3830,127 @@ SET
 					correct_answer: correctAnswer,
 				});
 			}
+
+			/*
+			 * ==========================================
+			 * COMPLETE TRIVIA ROUND
+			 * ==========================================
+			 *
+			 * POST /users/:clerkId/trivia/complete
+			 *
+			 * Records the finished round so the scheduled
+			 * job knows this couple actually played, and
+			 * lets the partner know right away.
+			 */
+
+			const triviaCompleteMatch = url.pathname.match(/^\/users\/([^/]+)\/trivia\/complete$/);
+
+			if (triviaCompleteMatch && request.method === 'POST') {
+				const clerkId = triviaCompleteMatch[1];
+
+				const body = await request.json();
+
+				const score = Number.isInteger(body?.score) ? body.score : null;
+				const totalQuestions = Number.isInteger(body?.total_questions) ? body.total_questions : null;
+
+				if (score === null || totalQuestions === null) {
+					return Response.json({ error: 'score and total_questions are required.' }, { status: 400 });
+				}
+
+				const userResult = await sql`
+        SELECT id
+        FROM users
+        WHERE clerk_id = ${clerkId}
+        LIMIT 1
+    `;
+
+				if (userResult.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const userId = userResult[0].id;
+
+				const connectionResult = await sql`
+        SELECT
+            id,
+            user_one,
+            user_two
+        FROM connections
+        WHERE
+            (user_one = ${userId} OR user_two = ${userId})
+            AND status = 'accepted'
+        LIMIT 1
+    `;
+
+				if (connectionResult.length === 0) {
+					return Response.json({ error: 'You are not connected to anyone yet.' }, { status: 404 });
+				}
+
+				const connection = connectionResult[0];
+
+				const partnerId = connection.user_one === userId ? connection.user_two : connection.user_one;
+
+				const result = await sql`
+        INSERT INTO trivia_sessions (
+            connection_id,
+            user_id,
+            score,
+            total_questions
+        )
+        VALUES (
+            ${connection.id},
+            ${userId},
+            ${score},
+            ${totalQuestions}
+        )
+        RETURNING
+            id,
+            connection_id,
+            user_id,
+            score,
+            total_questions,
+            completed_at
+    `;
+
+				const session = result[0];
+
+				const playerResult = await sql`
+        SELECT p.first_name, u.push_token
+        FROM users u
+        LEFT JOIN profiles p ON p.user_id = u.id
+        WHERE u.id = ${userId}
+        LIMIT 1
+    `;
+
+				const partnerPushResult = await sql`
+        SELECT push_token
+        FROM users
+        WHERE id = ${partnerId}
+        LIMIT 1
+    `;
+
+				const playerName = playerResult[0]?.first_name?.trim() || 'Your partner';
+				const partnerPushToken = partnerPushResult[0]?.push_token;
+
+				await notifyUser(sql, {
+					userId: partnerId,
+					pushToken: partnerPushToken,
+					type: 'trivia_played',
+					title: 'Trivia round completed',
+					message: `${playerName} just played couple trivia and scored ${score}/${totalQuestions}. Your turn!`,
+					dedupeKey: `trivia_played:${session.id}`,
+					data: { sessionId: session.id },
+				});
+
+				return Response.json(
+					{
+						message: 'Trivia round recorded',
+						session,
+					},
+					{ status: 201 },
+				);
+			}
+
 			/*
 			 * ==========================================
 			 * REMINDER INTELLIGENCE
@@ -3641,6 +4303,448 @@ SET
 				return Response.json({
 					notification: result[0],
 				});
+			}
+
+			/*
+			 * ==========================================
+			 * HEARTBEAT
+			 * ==========================================
+			 *
+			 * POST /users/:clerkId/heartbeat
+			 *
+			 * Called by the app on launch/foreground so the
+			 * scheduled job can tell who has gone inactive.
+			 */
+
+			const heartbeatMatch = url.pathname.match(/^\/users\/([^/]+)\/heartbeat$/);
+
+			if (heartbeatMatch && request.method === 'POST') {
+				const clerkId = heartbeatMatch[1];
+
+				const result = await sql`
+          UPDATE users
+          SET last_active_at = NOW()
+          WHERE clerk_id = ${clerkId}
+          RETURNING
+            id,
+            clerk_id,
+            last_active_at
+        `;
+
+				if (result.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				return Response.json({
+					message: 'Heartbeat recorded',
+					user: result[0],
+				});
+			}
+
+			/*
+			 * ==========================================
+			 * SPECIAL DATES
+			 * ==========================================
+			 *
+			 * GET    /users/:clerkId/special-dates
+			 * POST   /users/:clerkId/special-dates
+			 * DELETE /users/:clerkId/special-dates/:id
+			 *
+			 * Owned by one user, but the scheduled job
+			 * notifies that user's partner as well.
+			 */
+
+			const specialDatesMatch = url.pathname.match(/^\/users\/([^/]+)\/special-dates$/);
+
+			if (specialDatesMatch && request.method === 'GET') {
+				const clerkId = specialDatesMatch[1];
+
+				const userResult = await sql`
+          SELECT id
+          FROM users
+          WHERE clerk_id = ${clerkId}
+          LIMIT 1
+        `;
+
+				if (userResult.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const userId = userResult[0].id;
+
+				const specialDates = await sql`
+          SELECT
+            id,
+            user_id,
+            title,
+            event_date
+          FROM special_dates
+          WHERE user_id = ${userId}
+          ORDER BY event_date ASC
+        `;
+
+				return Response.json({ special_dates: specialDates });
+			}
+
+			if (specialDatesMatch && request.method === 'POST') {
+				const clerkId = specialDatesMatch[1];
+
+				const body = await request.json();
+
+				const title = body?.title?.trim();
+				const eventDate = body?.event_date;
+
+				if (!title || !eventDate) {
+					return Response.json({ error: 'title and event_date are required' }, { status: 400 });
+				}
+
+				const userResult = await sql`
+          SELECT id
+          FROM users
+          WHERE clerk_id = ${clerkId}
+          LIMIT 1
+        `;
+
+				if (userResult.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const userId = userResult[0].id;
+
+				const result = await sql`
+          INSERT INTO special_dates (
+            user_id,
+            title,
+            event_date
+          )
+          VALUES (
+            ${userId},
+            ${title},
+            ${eventDate}
+          )
+          RETURNING
+            id,
+            user_id,
+            title,
+            event_date
+        `;
+
+				return Response.json(
+					{
+						message: 'Special date created',
+						special_date: result[0],
+					},
+					{ status: 201 },
+				);
+			}
+
+			const deleteSpecialDateMatch = url.pathname.match(/^\/users\/([^/]+)\/special-dates\/([^/]+)$/);
+
+			if (deleteSpecialDateMatch && request.method === 'DELETE') {
+				const clerkId = deleteSpecialDateMatch[1];
+				const specialDateId = deleteSpecialDateMatch[2];
+
+				const userResult = await sql`
+          SELECT id
+          FROM users
+          WHERE clerk_id = ${clerkId}
+          LIMIT 1
+        `;
+
+				if (userResult.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const userId = userResult[0].id;
+
+				const result = await sql`
+          DELETE FROM special_dates
+          WHERE id = ${specialDateId}
+            AND user_id = ${userId}
+          RETURNING id
+        `;
+
+				if (result.length === 0) {
+					return Response.json({ error: 'Special date not found' }, { status: 404 });
+				}
+
+				return Response.json({ message: 'Special date deleted' });
+			}
+
+			/*
+			 * ==========================================
+			 * RELATIONSHIP GOALS
+			 * ==========================================
+			 *
+			 * GET    /users/:clerkId/relationship-goals
+			 * POST   /users/:clerkId/relationship-goals
+			 * PUT    /users/:clerkId/relationship-goals/:goalId
+			 * DELETE /users/:clerkId/relationship-goals/:goalId
+			 *
+			 * Shared by both people in an accepted connection,
+			 * same ownership model as dreams.
+			 */
+
+			const goalsMatch = url.pathname.match(/^\/users\/([^/]+)\/relationship-goals$/);
+
+			if (goalsMatch && request.method === 'GET') {
+				const clerkId = goalsMatch[1];
+
+				const userResult = await sql`
+          SELECT id
+          FROM users
+          WHERE clerk_id = ${clerkId}
+          LIMIT 1
+        `;
+
+				if (userResult.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const userId = userResult[0].id;
+
+				const connectionResult = await sql`
+          SELECT id
+          FROM connections
+          WHERE (user_one = ${userId} OR user_two = ${userId})
+            AND status = 'accepted'
+          LIMIT 1
+        `;
+
+				if (connectionResult.length === 0) {
+					return Response.json({ goals: [] });
+				}
+
+				const goals = await sql`
+          SELECT
+            id,
+            connection_id,
+            created_by,
+            title,
+            description,
+            target_date,
+            status,
+            completed_at,
+            created_at,
+            updated_at
+          FROM relationship_goals
+          WHERE connection_id = ${connectionResult[0].id}
+          ORDER BY
+            status ASC,
+            target_date ASC NULLS LAST,
+            created_at DESC
+        `;
+
+				return Response.json({ goals });
+			}
+
+			if (goalsMatch && request.method === 'POST') {
+				const clerkId = goalsMatch[1];
+
+				const body = await request.json();
+
+				const title = body?.title?.trim();
+				const description = body?.description?.trim() || null;
+				const targetDate = body?.target_date || null;
+
+				if (!title) {
+					return Response.json({ error: 'title is required' }, { status: 400 });
+				}
+
+				const userResult = await sql`
+          SELECT id
+          FROM users
+          WHERE clerk_id = ${clerkId}
+          LIMIT 1
+        `;
+
+				if (userResult.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const userId = userResult[0].id;
+
+				const connectionResult = await sql`
+          SELECT id
+          FROM connections
+          WHERE (user_one = ${userId} OR user_two = ${userId})
+            AND status = 'accepted'
+          LIMIT 1
+        `;
+
+				if (connectionResult.length === 0) {
+					return Response.json({ error: 'You are not connected to anyone yet.' }, { status: 404 });
+				}
+
+				const result = await sql`
+          INSERT INTO relationship_goals (
+            connection_id,
+            created_by,
+            title,
+            description,
+            target_date
+          )
+          VALUES (
+            ${connectionResult[0].id},
+            ${userId},
+            ${title},
+            ${description},
+            ${targetDate}
+          )
+          RETURNING
+            id,
+            connection_id,
+            created_by,
+            title,
+            description,
+            target_date,
+            status,
+            completed_at,
+            created_at,
+            updated_at
+        `;
+
+				return Response.json({ goal: result[0] }, { status: 201 });
+			}
+
+			const updateGoalMatch = url.pathname.match(/^\/users\/([^/]+)\/relationship-goals\/([^/]+)$/);
+
+			if (updateGoalMatch && request.method === 'PUT') {
+				const clerkId = updateGoalMatch[1];
+				const goalId = updateGoalMatch[2];
+
+				const body = await request.json();
+
+				const userResult = await sql`
+          SELECT id
+          FROM users
+          WHERE clerk_id = ${clerkId}
+          LIMIT 1
+        `;
+
+				if (userResult.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const userId = userResult[0].id;
+
+				const goalResult = await sql`
+          SELECT id, connection_id, title, description, target_date, status, completed_at
+          FROM relationship_goals
+          WHERE id = ${goalId}
+          LIMIT 1
+        `;
+
+				if (goalResult.length === 0) {
+					return Response.json({ error: 'Goal not found' }, { status: 404 });
+				}
+
+				const goal = goalResult[0];
+
+				const connectionResult = await sql`
+          SELECT id
+          FROM connections
+          WHERE id = ${goal.connection_id}
+            AND (user_one = ${userId} OR user_two = ${userId})
+            AND status = 'accepted'
+          LIMIT 1
+        `;
+
+				if (connectionResult.length === 0) {
+					return Response.json({ error: 'You are not allowed to modify this goal.' }, { status: 403 });
+				}
+
+				const newTitle = body?.title !== undefined ? String(body.title).trim() : goal.title;
+				const newDescription = body?.description !== undefined ? String(body.description).trim() || null : goal.description;
+				const newTargetDate = body?.target_date !== undefined ? body.target_date || null : goal.target_date;
+				const newStatus = body?.status !== undefined ? body.status : goal.status;
+
+				let newCompletedAt = goal.completed_at;
+
+				if (newStatus === 'completed' && goal.status !== 'completed') {
+					newCompletedAt = new Date().toISOString();
+				}
+
+				if (newStatus !== 'completed') {
+					newCompletedAt = null;
+				}
+
+				const result = await sql`
+          UPDATE relationship_goals
+          SET
+            title = ${newTitle},
+            description = ${newDescription},
+            target_date = ${newTargetDate},
+            status = ${newStatus},
+            completed_at = ${newCompletedAt},
+            updated_at = NOW()
+          WHERE id = ${goalId}
+          RETURNING
+            id,
+            connection_id,
+            created_by,
+            title,
+            description,
+            target_date,
+            status,
+            completed_at,
+            created_at,
+            updated_at
+        `;
+
+				return Response.json({
+					message: 'Goal updated successfully',
+					goal: result[0],
+				});
+			}
+
+			if (updateGoalMatch && request.method === 'DELETE') {
+				const clerkId = updateGoalMatch[1];
+				const goalId = updateGoalMatch[2];
+
+				const userResult = await sql`
+          SELECT id
+          FROM users
+          WHERE clerk_id = ${clerkId}
+          LIMIT 1
+        `;
+
+				if (userResult.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const userId = userResult[0].id;
+
+				const goalResult = await sql`
+          SELECT connection_id
+          FROM relationship_goals
+          WHERE id = ${goalId}
+          LIMIT 1
+        `;
+
+				if (goalResult.length === 0) {
+					return Response.json({ error: 'Goal not found' }, { status: 404 });
+				}
+
+				const connectionResult = await sql`
+          SELECT id
+          FROM connections
+          WHERE id = ${goalResult[0].connection_id}
+            AND (user_one = ${userId} OR user_two = ${userId})
+            AND status = 'accepted'
+          LIMIT 1
+        `;
+
+				if (connectionResult.length === 0) {
+					return Response.json({ error: 'You are not allowed to delete this goal.' }, { status: 403 });
+				}
+
+				await sql`
+          DELETE FROM relationship_goals
+          WHERE id = ${goalId}
+        `;
+
+				return Response.json({ message: 'Goal deleted successfully' });
 			}
 
 			/*

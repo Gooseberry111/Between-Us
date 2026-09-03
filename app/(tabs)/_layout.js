@@ -34,7 +34,7 @@ export default function TabsLayout() {
           if (route.name === "home") {
             iconName = focused ? "home" : "home-outline";
           } else if (route.name === "memories") {
-            iconName = focused ? "images" : "images-outline";
+            iconName = focused ? "time" : "time-outline";
           } else if (route.name === "dreams") {
             iconName = focused ? "sparkles" : "sparkles-outline";
           } else if (route.name === "insights") {
@@ -57,7 +57,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="memories"
         options={{
-          title: "Memories",
+          title: "Timeline",
         }}
       />
 

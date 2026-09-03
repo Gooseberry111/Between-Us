@@ -16,136 +16,74 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
-import DateInput from "../../components/DateInput";
-import { getCachedData, setCachedData } from "../../lib/dataCache";
+import DateInput from "../components/DateInput";
+import { getCachedData, setCachedData, clearCachedData } from "../lib/dataCache";
 
 const API_URL = "https://between-us-api.between-us.workers.dev";
 
-/*
- * ==========================================
- * TIMELINE
- * ==========================================
- *
- * A single chronological story of the
- * relationship, combining:
- *
- * - Memories you write yourself
- * - Dreams you've completed together
- * - Special dates you've saved
- *
- * Only memories are created/edited/deleted here.
- * Dreams and special dates are read-only entries
- * that link back to their own screens.
- */
-
-function todayIsoDate() {
-  return new Date().toISOString().split("T")[0];
-}
-
-export default function TimelineScreen() {
+export default function GoalsScreen() {
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
 
-  const cacheKey = userId ? `timeline:${userId}` : null;
-  const cachedEntries = cacheKey ? getCachedData(cacheKey) : undefined;
+  const cacheKey = userId ? `goals:${userId}` : null;
+  const cachedGoals = cacheKey ? getCachedData(cacheKey) : undefined;
 
-  const [entries, setEntries] = useState(cachedEntries || []);
-  const [loading, setLoading] = useState(!cachedEntries);
+  const [goals, setGoals] = useState(cachedGoals || []);
+  const [loading, setLoading] = useState(!cachedGoals);
   const [refreshing, setRefreshing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   const [showForm, setShowForm] = useState(false);
-  const [editingMemory, setEditingMemory] = useState(null);
+  const [editingGoal, setEditingGoal] = useState(null);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [memoryDate, setMemoryDate] = useState(todayIsoDate());
-  const [saving, setSaving] = useState(false);
+  const [targetDate, setTargetDate] = useState("");
 
-  const loadTimeline = useCallback(async () => {
+  const loadGoals = useCallback(async () => {
     if (!isLoaded || !isSignedIn || !userId) {
       setLoading(false);
       return;
     }
 
+    // Show what we fetched last time immediately, then
+    // quietly refresh in the background.
     const cached = cacheKey ? getCachedData(cacheKey) : undefined;
 
     if (cached) {
-      setEntries(cached);
+      setGoals(cached);
       setLoading(false);
     }
 
     try {
       setError("");
 
-      const [memoriesResponse, dreamsResponse, specialDatesResponse] =
-        await Promise.all([
-          fetch(`${API_URL}/users/${userId}/memories`),
-          fetch(`${API_URL}/users/${userId}/dreams`),
-          fetch(`${API_URL}/users/${userId}/special-dates`),
-        ]);
+      const response = await fetch(
+        `${API_URL}/users/${userId}/relationship-goals`,
+      );
+      const data = await response.json();
 
-      const [memoriesData, dreamsData, specialDatesData] = await Promise.all([
-        memoriesResponse.json(),
-        dreamsResponse.json(),
-        specialDatesResponse.json(),
-      ]);
+      console.log("GOALS RESPONSE:", data);
 
-      console.log("TIMELINE MEMORIES:", memoriesData);
-      console.log("TIMELINE DREAMS:", dreamsData);
-      console.log("TIMELINE SPECIAL DATES:", specialDatesData);
-
-      if (!memoriesResponse.ok) {
-        throw new Error(memoriesData?.error || "Unable to load your timeline.");
+      if (!response.ok) {
+        throw new Error(data?.error || "Unable to load goals.");
       }
 
-      const memoryEntries = (Array.isArray(memoriesData) ? memoriesData : []).map(
-        (memory) => ({
-          id: `memory-${memory.id}`,
-          kind: "memory",
-          date: memory.memory_date,
-          title: memory.title,
-          description: memory.description,
-          raw: memory,
-        }),
-      );
+      const allGoals = Array.isArray(data?.goals) ? data.goals : [];
 
-      const dreamEntries = (Array.isArray(dreamsData?.dreams) ? dreamsData.dreams : [])
-        .filter((dream) => dream.is_completed)
-        .map((dream) => ({
-          id: `dream-${dream.id}`,
-          kind: "dream",
-          date: dream.completed_at || dream.target_date,
-          title: dream.title,
-          description: dream.description,
-          raw: dream,
-        }));
+      // Only show active goals here.
+      const activeGoals = allGoals.filter((goal) => goal.status !== "completed");
 
-      const specialDateEntries = (
-        Array.isArray(specialDatesData?.special_dates)
-          ? specialDatesData.special_dates
-          : []
-      ).map((specialDate) => ({
-        id: `special-date-${specialDate.id}`,
-        kind: "special_date",
-        date: specialDate.event_date,
-        title: specialDate.title,
-        description: null,
-        raw: specialDate,
-      }));
+      setGoals(activeGoals);
 
-      const merged = [...memoryEntries, ...dreamEntries, ...specialDateEntries]
-        .filter((entry) => entry.date)
-        .sort((a, b) => new Date(b.date) - new Date(a.date));
-
-      setEntries(merged);
-
-      if (cacheKey) setCachedData(cacheKey, merged);
+      if (cacheKey) setCachedData(cacheKey, activeGoals);
     } catch (err) {
-      console.log("TIMELINE LOAD ERROR:", err);
+      console.log("GOALS LOAD ERROR:", err);
 
+      // Only surface the error if we have nothing cached to show.
       if (!cached) {
-        setError(err?.message || "Unable to load your timeline.");
+        setError(err?.message || "Unable to load your goals.");
       }
     } finally {
       setLoading(false);
@@ -154,55 +92,48 @@ export default function TimelineScreen() {
   }, [isLoaded, isSignedIn, userId, cacheKey]);
 
   useEffect(() => {
-    loadTimeline();
-  }, [loadTimeline]);
+    loadGoals();
+  }, [loadGoals]);
 
   const handleRefresh = () => {
     setRefreshing(true);
-    loadTimeline();
+    loadGoals();
   };
 
   const resetForm = () => {
     setTitle("");
     setDescription("");
-    setMemoryDate(todayIsoDate());
-    setEditingMemory(null);
+    setTargetDate("");
+    setEditingGoal(null);
     setShowForm(false);
   };
 
   const openCreateForm = () => {
-    setEditingMemory(null);
+    setEditingGoal(null);
     setTitle("");
     setDescription("");
-    setMemoryDate(todayIsoDate());
+    setTargetDate("");
     setShowForm(true);
   };
 
-  const openEditForm = (memory) => {
-    setEditingMemory(memory);
-    setTitle(memory.title || "");
-    setDescription(memory.description || "");
-    setMemoryDate(
-      memory.memory_date
-        ? new Date(memory.memory_date).toISOString().split("T")[0]
-        : todayIsoDate(),
-    );
+  const openEditForm = (goal) => {
+    setEditingGoal(goal);
+
+    setTitle(goal.title || "");
+    setDescription(goal.description || "");
+
+    if (goal.target_date) {
+      setTargetDate(new Date(goal.target_date).toISOString().split("T")[0]);
+    } else {
+      setTargetDate("");
+    }
+
     setShowForm(true);
   };
 
-  const saveMemory = async () => {
+  const saveGoal = async () => {
     if (!title.trim()) {
-      Alert.alert("Missing title", "Please give this memory a title.");
-      return;
-    }
-
-    if (!description.trim()) {
-      Alert.alert("Missing description", "Tell us a little about this memory.");
-      return;
-    }
-
-    if (!memoryDate.trim()) {
-      Alert.alert("Missing date", "When did this happen?");
+      Alert.alert("Missing title", "Please give this goal a title.");
       return;
     }
 
@@ -213,9 +144,9 @@ export default function TimelineScreen() {
 
       let response;
 
-      if (editingMemory) {
+      if (editingGoal) {
         response = await fetch(
-          `${API_URL}/users/${userId}/memories/${editingMemory.id}`,
+          `${API_URL}/users/${userId}/relationship-goals/${editingGoal.id}`,
           {
             method: "PUT",
             headers: {
@@ -224,52 +155,100 @@ export default function TimelineScreen() {
             body: JSON.stringify({
               title: title.trim(),
               description: description.trim(),
-              memory_date: memoryDate.trim(),
+              target_date: targetDate.trim() || null,
             }),
           },
         );
       } else {
-        response = await fetch(`${API_URL}/users/${userId}/memories`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
+        response = await fetch(
+          `${API_URL}/users/${userId}/relationship-goals`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              title: title.trim(),
+              description: description.trim(),
+              target_date: targetDate.trim() || null,
+            }),
           },
-          body: JSON.stringify({
-            title: title.trim(),
-            description: description.trim(),
-            memory_date: memoryDate.trim(),
-          }),
-        });
+        );
       }
 
       const data = await response.json();
 
       console.log(
-        editingMemory ? "UPDATE MEMORY RESPONSE:" : "CREATE MEMORY RESPONSE:",
+        editingGoal ? "UPDATE GOAL RESPONSE:" : "CREATE GOAL RESPONSE:",
         data,
       );
 
       if (!response.ok) {
-        throw new Error(data?.error || "Unable to save memory.");
+        throw new Error(data?.error || "Unable to save goal.");
       }
 
       resetForm();
-      await loadTimeline();
+      await loadGoals();
     } catch (err) {
-      console.log("SAVE MEMORY ERROR:", err);
+      console.log("SAVE GOAL ERROR:", err);
+
       Alert.alert(
         "Something went wrong",
-        err?.message || "Unable to save memory.",
+        err?.message || "Unable to save goal.",
       );
     } finally {
       setSaving(false);
     }
   };
 
-  const deleteMemory = (entry) => {
+  const markComplete = async (goal) => {
+    if (!userId) return;
+
+    try {
+      const response = await fetch(
+        `${API_URL}/users/${userId}/relationship-goals/${goal.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            status: "completed",
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      console.log("COMPLETE GOAL RESPONSE:", data);
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Unable to complete goal.");
+      }
+
+      setGoals((current) => {
+        const next = current.filter((item) => item.id !== goal.id);
+        if (cacheKey) setCachedData(cacheKey, next);
+        return next;
+      });
+
+      // The Completed Goals screen may have a stale cached
+      // list that doesn't include this goal yet.
+      if (userId) clearCachedData(`completed-goals:${userId}`);
+    } catch (err) {
+      console.log("COMPLETE GOAL ERROR:", err);
+
+      Alert.alert(
+        "Something went wrong",
+        err?.message || "Unable to complete goal.",
+      );
+    }
+  };
+
+  const deleteGoal = (goal) => {
     Alert.alert(
-      "Delete memory?",
-      `"${entry.title}" will be permanently removed.`,
+      "Delete goal?",
+      `"${goal.title}" will be permanently removed.`,
       [
         {
           text: "Cancel",
@@ -281,7 +260,7 @@ export default function TimelineScreen() {
           onPress: async () => {
             try {
               const response = await fetch(
-                `${API_URL}/users/${userId}/memories/${entry.raw.id}`,
+                `${API_URL}/users/${userId}/relationship-goals/${goal.id}`,
                 {
                   method: "DELETE",
                 },
@@ -289,23 +268,23 @@ export default function TimelineScreen() {
 
               const data = await response.json();
 
-              console.log("DELETE MEMORY RESPONSE:", data);
+              console.log("DELETE GOAL RESPONSE:", data);
 
               if (!response.ok) {
-                throw new Error(data?.error || "Unable to delete memory.");
+                throw new Error(data?.error || "Unable to delete goal.");
               }
 
-              setEntries((current) => {
-                const next = current.filter((item) => item.id !== entry.id);
+              setGoals((current) => {
+                const next = current.filter((item) => item.id !== goal.id);
                 if (cacheKey) setCachedData(cacheKey, next);
                 return next;
               });
             } catch (err) {
-              console.log("DELETE MEMORY ERROR:", err);
+              console.log("DELETE GOAL ERROR:", err);
 
               Alert.alert(
                 "Something went wrong",
-                err?.message || "Unable to delete memory.",
+                err?.message || "Unable to delete goal.",
               );
             }
           },
@@ -319,8 +298,7 @@ export default function TimelineScreen() {
       <SafeAreaView style={styles.screen}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color="#6B4E45" />
-
-          <Text style={styles.loadingText}>Loading your timeline...</Text>
+          <Text style={styles.loadingText}>Loading your goals...</Text>
         </View>
       </SafeAreaView>
     );
@@ -348,18 +326,22 @@ export default function TimelineScreen() {
             {/* HEADER */}
 
             <View style={styles.header}>
+              <TouchableOpacity
+                style={styles.backButton}
+                activeOpacity={0.8}
+                onPress={() => router.back()}
+              >
+                <Ionicons name="chevron-back" size={20} color="#6B4E45" />
+              </TouchableOpacity>
+
               <View style={styles.headerText}>
                 <Text style={styles.brand}>BETWEEN US</Text>
 
-                <Text style={styles.pageTitle}>Timeline</Text>
+                <Text style={styles.pageTitle}>Relationship Goals</Text>
 
                 <Text style={styles.pageSubtitle}>
-                  Your story together, one moment at a time.
+                  What are you both working towards right now?
                 </Text>
-              </View>
-
-              <View style={styles.headerIcon}>
-                <Ionicons name="time-outline" size={22} color="#6B4E45" />
               </View>
             </View>
 
@@ -369,7 +351,29 @@ export default function TimelineScreen() {
               </View>
             ) : null}
 
-            {/* ADD BUTTON */}
+            {/* COMPLETED GOALS LINK */}
+
+            <TouchableOpacity
+              style={styles.completedLink}
+              activeOpacity={0.8}
+              onPress={() => router.push("/completed-goals")}
+            >
+              <View style={styles.completedLinkIcon}>
+                <Text style={styles.completedLinkIconText}>✓</Text>
+              </View>
+
+              <View style={styles.completedLinkContent}>
+                <Text style={styles.completedLinkTitle}>Completed goals</Text>
+
+                <Text style={styles.completedLinkSubtitle}>
+                  Look back at what you've already achieved together.
+                </Text>
+              </View>
+
+              <Text style={styles.completedLinkArrow}>→</Text>
+            </TouchableOpacity>
+
+            {/* ADD */}
 
             {!showForm ? (
               <TouchableOpacity
@@ -382,10 +386,10 @@ export default function TimelineScreen() {
                 </View>
 
                 <View style={styles.addContent}>
-                  <Text style={styles.addTitle}>Add a memory</Text>
+                  <Text style={styles.addTitle}>Add a goal</Text>
 
                   <Text style={styles.addSubtitle}>
-                    Save a moment that matters to both of you.
+                    Something you both want to work on.
                   </Text>
                 </View>
 
@@ -400,13 +404,13 @@ export default function TimelineScreen() {
                 <View style={styles.formHeader}>
                   <View>
                     <Text style={styles.formLabel}>
-                      {editingMemory ? "EDIT MEMORY" : "NEW MEMORY"}
+                      {editingGoal ? "EDIT GOAL" : "NEW GOAL"}
                     </Text>
 
                     <Text style={styles.formTitle}>
-                      {editingMemory
-                        ? "Update this moment."
-                        : "Capture this moment."}
+                      {editingGoal
+                        ? "Update your goal."
+                        : "What do you want to work on together?"}
                     </Text>
                   </View>
 
@@ -423,17 +427,8 @@ export default function TimelineScreen() {
                 <TextInput
                   value={title}
                   onChangeText={setTitle}
-                  placeholder="e.g. Our first date"
+                  placeholder="e.g. Communicate better during arguments"
                   placeholderTextColor="#A59A93"
-                  style={styles.input}
-                  returnKeyType="next"
-                />
-
-                <Text style={styles.inputLabel}>WHEN DID THIS HAPPEN?</Text>
-
-                <DateInput
-                  value={memoryDate}
-                  onChangeText={setMemoryDate}
                   style={styles.input}
                 />
 
@@ -442,11 +437,19 @@ export default function TimelineScreen() {
                 <TextInput
                   value={description}
                   onChangeText={setDescription}
-                  placeholder="What happened?"
+                  placeholder="Tell us more about this goal..."
                   placeholderTextColor="#A59A93"
                   style={[styles.input, styles.descriptionInput]}
                   multiline
                   textAlignVertical="top"
+                />
+
+                <Text style={styles.inputLabel}>TARGET DATE (OPTIONAL)</Text>
+
+                <DateInput
+                  value={targetDate}
+                  onChangeText={setTargetDate}
+                  style={styles.input}
                 />
 
                 <TouchableOpacity
@@ -455,86 +458,77 @@ export default function TimelineScreen() {
                     saving && styles.saveButtonDisabled,
                   ]}
                   activeOpacity={0.85}
-                  onPress={saveMemory}
+                  onPress={saveGoal}
                   disabled={saving}
                 >
                   {saving ? (
                     <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
                     <Text style={styles.saveButtonText}>
-                      {editingMemory ? "Save changes" : "Save memory"}
+                      {editingGoal ? "Save changes" : "Add goal"}
                     </Text>
                   )}
                 </TouchableOpacity>
               </View>
             ) : null}
 
-            {/* TIMELINE */}
+            {/* GOALS */}
 
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>YOUR STORY</Text>
+              <Text style={styles.sectionLabel}>WORKING ON TOGETHER</Text>
 
               <Text style={styles.sectionTitle}>
-                {entries.length === 0
-                  ? "Nothing here yet."
-                  : `${entries.length} ${
-                      entries.length === 1 ? "moment" : "moments"
-                    } together.`}
+                {goals.length === 0
+                  ? "No active goals yet."
+                  : `${goals.length} ${
+                      goals.length === 1 ? "goal" : "goals"
+                    } in progress.`}
               </Text>
 
-              {entries.length === 0 ? (
+              {goals.length === 0 ? (
                 <View style={styles.emptyCard}>
                   <View style={styles.emptyIcon}>
-                    <Ionicons name="time-outline" size={24} color="#6B4E45" />
+                    <Text style={styles.emptyIconText}>◆</Text>
                   </View>
 
                   <Text style={styles.emptyTitle}>Nothing here yet.</Text>
 
                   <Text style={styles.emptyText}>
-                    Your timeline fills in on its own as you add memories,
-                    complete dreams together, and save special dates. Start
-                    with a memory below.
+                    Add a goal you're working on as a couple, with an
+                    optional due date so you both get reminded.
                   </Text>
 
                   <TouchableOpacity
                     style={styles.emptyButton}
                     onPress={openCreateForm}
-                    activeOpacity={0.85}
                   >
                     <Text style={styles.emptyButtonText}>
-                      Add your first memory
+                      Add your first goal
                     </Text>
                   </TouchableOpacity>
                 </View>
               ) : (
-                entries.map((entry) => (
-                  <TimelineCard
-                    key={entry.id}
-                    entry={entry}
-                    onEdit={() => openEditForm(entry.raw)}
-                    onDelete={() => deleteMemory(entry)}
-                    onPress={() => {
-                      if (entry.kind === "dream") {
-                        router.push("/(tabs)/dreams");
-                      } else if (entry.kind === "special_date") {
-                        router.push("/special-dates");
-                      }
-                    }}
+                goals.map((goal, index) => (
+                  <GoalCard
+                    key={goal.id}
+                    goal={goal}
+                    index={index}
+                    onEdit={() => openEditForm(goal)}
+                    onDelete={() => deleteGoal(goal)}
+                    onComplete={() => markComplete(goal)}
                   />
                 ))
               )}
             </View>
 
-            {/* FOOTER */}
-
-            {entries.length > 0 ? (
+            {goals.length > 0 ? (
               <View style={styles.footerCard}>
                 <Text style={styles.footerQuote}>
-                  "Some moments deserve to be remembered forever."
+                  "Progress, not perfection."
                 </Text>
 
                 <Text style={styles.footerText}>
-                  Keep building your story, one moment at a time.
+                  Small, steady steps build a stronger relationship.
                 </Text>
               </View>
             ) : null}
@@ -545,115 +539,64 @@ export default function TimelineScreen() {
   );
 }
 
-/*
- * ==========================================
- * TIMELINE CARD
- * ==========================================
- */
-
-const KIND_META = {
-  memory: {
-    label: "MEMORY",
-    icon: "heart-outline",
-  },
-  dream: {
-    label: "DREAM ACHIEVED",
-    icon: "sparkles-outline",
-  },
-  special_date: {
-    label: "SPECIAL DATE",
-    icon: "calendar-outline",
-  },
-};
-
-function TimelineCard({ entry, onEdit, onDelete, onPress }) {
-  const meta = KIND_META[entry.kind] || KIND_META.memory;
-
-  const date = entry.date
-    ? new Date(entry.date).toLocaleDateString("en-US", {
+function GoalCard({ goal, index, onEdit, onDelete, onComplete }) {
+  const date = goal.target_date
+    ? new Date(goal.target_date).toLocaleDateString("en-US", {
         month: "long",
         day: "numeric",
         year: "numeric",
       })
-    : "No date";
-
-  const isMemory = entry.kind === "memory";
-
-  const CardWrapper = isMemory ? View : TouchableOpacity;
+    : null;
 
   return (
-    <CardWrapper
-      style={styles.entryCard}
-      {...(!isMemory ? { activeOpacity: 0.85, onPress } : {})}
-    >
-      <View style={styles.entryTop}>
-        <View style={styles.entryKindBadge}>
-          <Ionicons name={meta.icon} size={13} color="#6B4E45" />
-
-          <Text style={styles.entryKindText}>{meta.label}</Text>
-        </View>
-
-        <View style={styles.entryDateContainer}>
-          <Text style={styles.entryDate}>{date}</Text>
+    <View style={styles.goalCard}>
+      <View style={styles.goalTop}>
+        <View style={styles.goalNumber}>
+          <Text style={styles.goalNumberText}>
+            {String(index + 1).padStart(2, "0")}
+          </Text>
         </View>
       </View>
 
-      <Text style={styles.entryTitle}>{entry.title}</Text>
+      <Text style={styles.goalTitle}>{goal.title}</Text>
 
-      {entry.description ? (
-        <Text style={styles.entryDescription}>{entry.description}</Text>
+      {goal.description ? (
+        <Text style={styles.goalDescription}>{goal.description}</Text>
       ) : null}
 
-      {isMemory ? (
-        <>
-          <View style={styles.entryDivider} />
-
-          <View style={styles.entryBottom}>
-            <View style={styles.entryCreated}>
-              <View style={styles.miniHeart}>
-                <Text style={styles.miniHeartText}>♡</Text>
-              </View>
-
-              <Text style={styles.entryCreatedText}>A moment together</Text>
-            </View>
-
-            <View style={styles.entryActions}>
-              <TouchableOpacity
-                style={styles.editButton}
-                activeOpacity={0.8}
-                onPress={onEdit}
-              >
-                <Text style={styles.editButtonText}>Edit</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.deleteButton}
-                activeOpacity={0.8}
-                onPress={onDelete}
-              >
-                <Text style={styles.deleteButtonText}>Delete</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </>
-      ) : (
-        <View style={styles.entryLinkRow}>
-          <Text style={styles.entryLinkText}>
-            {entry.kind === "dream" ? "View on Dream Board" : "View Special Dates"}
-          </Text>
-
-          <Text style={styles.entryLinkArrow}>→</Text>
+      {date ? (
+        <View style={styles.dateContainer}>
+          <Text style={styles.dateLabel}>TARGET DATE</Text>
+          <Text style={styles.dateText}>{date}</Text>
         </View>
-      )}
-    </CardWrapper>
+      ) : null}
+
+      <View style={styles.goalDivider} />
+
+      <View style={styles.goalBottom}>
+        <TouchableOpacity
+          style={styles.completeButton}
+          onPress={onComplete}
+          activeOpacity={0.8}
+        >
+          <View style={styles.checkCircle} />
+
+          <Text style={styles.completeText}>Mark complete</Text>
+        </TouchableOpacity>
+
+        <View style={styles.goalActions}>
+          <TouchableOpacity style={styles.editButton} onPress={onEdit}>
+            <Text style={styles.editButtonText}>Edit</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
+            <Text style={styles.deleteButtonText}>Delete</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
   );
 }
-
-/*
- * ==========================================
- * STYLES
- * ==========================================
- */
 
 const styles = StyleSheet.create({
   screen: {
@@ -675,15 +618,20 @@ const styles = StyleSheet.create({
     paddingTop: 22,
   },
 
-  /*
-   * HEADER
-   */
-
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 26,
+    marginBottom: 22,
+  },
+
+  backButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#E9DED8",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 11,
   },
 
   headerText: {
@@ -691,40 +639,76 @@ const styles = StyleSheet.create({
   },
 
   brand: {
-    fontSize: 11,
+    fontSize: 9,
     fontWeight: "800",
-    letterSpacing: 2.2,
+    letterSpacing: 2,
     color: "#6B4E45",
   },
 
   pageTitle: {
-    marginTop: 7,
-    fontSize: 29,
-    lineHeight: 35,
+    marginTop: 5,
+    fontSize: 26,
+    lineHeight: 31,
     fontWeight: "700",
     color: "#302825",
   },
 
   pageSubtitle: {
-    marginTop: 5,
-    fontSize: 13,
-    lineHeight: 19,
+    marginTop: 4,
+    fontSize: 11,
+    lineHeight: 17,
     color: "#817771",
-    maxWidth: 280,
   },
 
-  headerIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  completedLink: {
+    marginBottom: 12,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 17,
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#EAE3DE",
+  },
+
+  completedLinkIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: "#E9DED8",
     justifyContent: "center",
     alignItems: "center",
   },
 
-  /*
-   * ADD MEMORY
-   */
+  completedLinkIconText: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#6B4E45",
+  },
+
+  completedLinkContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+
+  completedLinkTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#302825",
+  },
+
+  completedLinkSubtitle: {
+    marginTop: 3,
+    fontSize: 11,
+    lineHeight: 16,
+    color: "#817771",
+  },
+
+  completedLinkArrow: {
+    fontSize: 20,
+    color: "#6B4E45",
+    marginLeft: 8,
+  },
 
   addButton: {
     backgroundColor: "#6B4E45",
@@ -732,6 +716,7 @@ const styles = StyleSheet.create({
     padding: 17,
     flexDirection: "row",
     alignItems: "center",
+    marginBottom: 15,
   },
 
   addIcon: {
@@ -745,9 +730,7 @@ const styles = StyleSheet.create({
 
   addIconText: {
     fontSize: 25,
-    lineHeight: 28,
     color: "#6B4E45",
-    fontWeight: "400",
   },
 
   addContent: {
@@ -774,12 +757,8 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
 
-  /*
-   * FORM
-   */
-
   formCard: {
-    marginTop: 16,
+    marginBottom: 16,
     backgroundColor: "#FFFFFF",
     borderRadius: 20,
     padding: 19,
@@ -806,6 +785,7 @@ const styles = StyleSheet.create({
     fontSize: 19,
     fontWeight: "700",
     color: "#302825",
+    maxWidth: 260,
   },
 
   closeButton: {
@@ -819,7 +799,6 @@ const styles = StyleSheet.create({
 
   closeButtonText: {
     fontSize: 22,
-    lineHeight: 24,
     color: "#6B4E45",
   },
 
@@ -845,8 +824,7 @@ const styles = StyleSheet.create({
   },
 
   descriptionInput: {
-    height: 120,
-    marginBottom: 5,
+    height: 110,
   },
 
   saveButton: {
@@ -855,7 +833,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#6B4E45",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 12,
+    marginTop: 4,
   },
 
   saveButtonDisabled: {
@@ -868,12 +846,8 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
-  /*
-   * SECTION
-   */
-
   section: {
-    marginTop: 30,
+    marginTop: 4,
   },
 
   sectionLabel: {
@@ -892,11 +866,7 @@ const styles = StyleSheet.create({
     marginBottom: 13,
   },
 
-  /*
-   * TIMELINE ENTRY CARD
-   */
-
-  entryCard: {
+  goalCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 20,
     padding: 18,
@@ -905,43 +875,28 @@ const styles = StyleSheet.create({
     marginBottom: 13,
   },
 
-  entryTop: {
+  goalTop: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
 
-  entryKindBadge: {
-    flexDirection: "row",
+  goalNumber: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#E9DED8",
     alignItems: "center",
-    backgroundColor: "#F1E9E5",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 9,
-    gap: 5,
+    justifyContent: "center",
   },
 
-  entryKindText: {
-    fontSize: 9,
+  goalNumberText: {
+    fontSize: 10,
     fontWeight: "800",
-    letterSpacing: 0.6,
     color: "#6B4E45",
   },
 
-  entryDateContainer: {
-    backgroundColor: "#F8F5F0",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 9,
-  },
-
-  entryDate: {
-    fontSize: 10,
-    fontWeight: "600",
-    color: "#817771",
-  },
-
-  entryTitle: {
+  goalTitle: {
     marginTop: 16,
     fontSize: 20,
     lineHeight: 25,
@@ -949,52 +904,67 @@ const styles = StyleSheet.create({
     color: "#302825",
   },
 
-  entryDescription: {
+  goalDescription: {
     marginTop: 8,
     fontSize: 13,
     lineHeight: 20,
     color: "#817771",
   },
 
-  entryDivider: {
+  dateContainer: {
+    marginTop: 14,
+    backgroundColor: "#F8F5F0",
+    borderRadius: 11,
+    padding: 11,
+  },
+
+  dateLabel: {
+    fontSize: 8,
+    fontWeight: "800",
+    letterSpacing: 1.2,
+    color: "#9A918A",
+  },
+
+  dateText: {
+    marginTop: 3,
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#6B4E45",
+  },
+
+  goalDivider: {
     height: 1,
     backgroundColor: "#EAE3DE",
     marginVertical: 16,
   },
 
-  entryBottom: {
+  goalBottom: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
 
-  entryCreated: {
+  completeButton: {
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
   },
 
-  miniHeart: {
+  checkCircle: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "#F1E9E5",
-    justifyContent: "center",
-    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "#C9BDB6",
   },
 
-  miniHeartText: {
-    fontSize: 16,
-    color: "#6B4E45",
-  },
-
-  entryCreatedText: {
+  completeText: {
     marginLeft: 8,
     fontSize: 10,
-    color: "#9A918A",
+    color: "#817771",
   },
 
-  entryActions: {
+  goalActions: {
     flexDirection: "row",
     gap: 7,
   },
@@ -1025,28 +995,6 @@ const styles = StyleSheet.create({
     color: "#8A4A3D",
   },
 
-  entryLinkRow: {
-    marginTop: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-
-  entryLinkText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#6B4E45",
-  },
-
-  entryLinkArrow: {
-    fontSize: 15,
-    color: "#6B4E45",
-  },
-
-  /*
-   * EMPTY STATE
-   */
-
   emptyCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 20,
@@ -1064,6 +1012,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 15,
+  },
+
+  emptyIconText: {
+    fontSize: 25,
+    color: "#6B4E45",
   },
 
   emptyTitle: {
@@ -1094,10 +1047,6 @@ const styles = StyleSheet.create({
     color: "#6B4E45",
   },
 
-  /*
-   * FOOTER
-   */
-
   footerCard: {
     marginTop: 17,
     padding: 20,
@@ -1122,10 +1071,6 @@ const styles = StyleSheet.create({
     color: "#8D837C",
   },
 
-  /*
-   * ERROR
-   */
-
   errorBox: {
     backgroundColor: "#F3E3DF",
     paddingHorizontal: 14,
@@ -1139,10 +1084,6 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     color: "#8A4A3D",
   },
-
-  /*
-   * LOADING
-   */
 
   loadingContainer: {
     flex: 1,

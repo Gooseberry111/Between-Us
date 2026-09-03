@@ -15,6 +15,8 @@ import {
 } from "react-native";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
+import DateInput from "../../components/DateInput";
+import { clearCachedData } from "../../lib/dataCache";
 
 const API_URL = "https://between-us-api.between-us.workers.dev";
 
@@ -217,6 +219,10 @@ export default function DreamsScreen() {
 
       // Remove it from the active Dream Board.
       setDreams((current) => current.filter((item) => item.id !== dream.id));
+
+      // The Completed Dreams screen may have a stale cached
+      // list that doesn't include this dream yet.
+      if (userId) clearCachedData(`completed-dreams:${userId}`);
     } catch (err) {
       console.log("TOGGLE DREAM ERROR:", err);
 
@@ -471,13 +477,10 @@ export default function DreamsScreen() {
 
                 <Text style={styles.inputLabel}>TARGET DATE</Text>
 
-                <TextInput
+                <DateInput
                   value={targetDate}
                   onChangeText={setTargetDate}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor="#A59A93"
                   style={styles.input}
-                  autoCapitalize="none"
                 />
 
                 <TouchableOpacity

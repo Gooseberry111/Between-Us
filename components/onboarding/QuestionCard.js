@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, TextInput, StyleSheet } from "react-native";
 import OptionButton from "./OptionButton";
+import DateInput from "../DateInput";
 
 export default function QuestionCard({ question, value, onChange }) {
   if (!question) return null;
@@ -29,6 +30,16 @@ export default function QuestionCard({ question, value, onChange }) {
 
       {question.type === "text" && (
         <TextInput
+          style={styles.input}
+          placeholder={question.placeholder}
+          placeholderTextColor="#9A938C"
+          value={value || ""}
+          onChangeText={onChange}
+        />
+      )}
+
+      {question.type === "date" && (
+        <DateInput
           style={styles.input}
           placeholder={question.placeholder}
           placeholderTextColor="#9A938C"

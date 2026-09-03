@@ -8,9 +8,9 @@ export const questions = [
 
   {
     id: "birthday",
-    type: "text",
+    type: "date",
     title: "When is your birthday?",
-    placeholder: "DD/MM/YYYY",
+    placeholder: "YYYY-MM-DD",
   },
 
   {

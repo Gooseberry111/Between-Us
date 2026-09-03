@@ -8,9 +8,13 @@
 	"main": "src/index.js",
 	"compatibility_date": "2026-08-17",
 	"observability": {
-		"enabled": true
+		"enabled": true,
 	},
-	"upload_source_maps": true
+
+	"upload_source_maps": true,
+	"triggers": {
+		"crons": ["0 * * * *"],
+	},
 	/**
 	 * Smart Placement
 	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement

@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
+import { getCachedData, setCachedData } from "../lib/dataCache";
 
 const API_URL = "https://between-us-api.between-us.workers.dev";
 
@@ -16,8 +17,11 @@ export default function ConnectionScreen() {
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
 
-  const [connection, setConnection] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = userId ? `connection:${userId}` : null;
+  const cachedConnection = cacheKey ? getCachedData(cacheKey) : undefined;
+
+  const [connection, setConnection] = useState(cachedConnection ?? null);
+  const [loading, setLoading] = useState(cachedConnection === undefined);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -26,8 +30,14 @@ export default function ConnectionScreen() {
         return;
       }
 
+      const cached = cacheKey ? getCachedData(cacheKey) : undefined;
+
+      if (cached !== undefined) {
+        setConnection(cached);
+        setLoading(false);
+      }
+
       try {
-        setLoading(true);
         setError("");
 
         const response = await fetch(`${API_URL}/users/${userId}/connections`);
@@ -47,17 +57,21 @@ export default function ConnectionScreen() {
         );
 
         setConnection(accepted || null);
+
+        if (cacheKey) setCachedData(cacheKey, accepted || null);
       } catch (err) {
         console.log("CONNECTION SCREEN ERROR:", err);
 
-        setError(err?.message || "Unable to load your relationship.");
+        if (cached === undefined) {
+          setError(err?.message || "Unable to load your relationship.");
+        }
       } finally {
         setLoading(false);
       }
     };
 
     loadConnection();
-  }, [isLoaded, isSignedIn, userId]);
+  }, [isLoaded, isSignedIn, userId, cacheKey]);
 
   if (!isLoaded || loading) {
     return (
@@ -140,10 +154,10 @@ export default function ConnectionScreen() {
                 </View>
 
                 <View style={styles.featureContent}>
-                  <Text style={styles.featureTitle}>Memories</Text>
+                  <Text style={styles.featureTitle}>Timeline</Text>
 
                   <Text style={styles.featureText}>
-                    Keep the moments you never want to forget.
+                    Your story together, one moment at a time.
                   </Text>
                 </View>
 

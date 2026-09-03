@@ -1,7 +1,9 @@
-import { ClerkProvider, useAuth } from "@clerk/expo";
+import { ClerkProvider, useAuth, useClerk } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import { Slot, useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
+import { AppState } from "react-native";
+import * as SecureStore from "expo-secure-store";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
@@ -9,6 +11,47 @@ import Constants from "expo-constants";
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 const API_URL = "https://between-us-api.between-us.workers.dev";
+
+/*
+ * ==========================================
+ * AUTO SIGN-OUT
+ * ==========================================
+ *
+ * If the app has been backgrounded for longer
+ * than this, require signing in again next time
+ * it's opened. Covers both "backgrounded, then
+ * reopened" and "backgrounded, force-quit, then
+ * relaunched" — the timestamp is written to disk,
+ * not just kept in memory.
+ */
+
+const INACTIVITY_LIMIT_MS = 60 * 60 * 1000; // 1 hour
+const LAST_BACKGROUNDED_KEY = "betweenus_last_backgrounded_at";
+
+async function checkInactivityTimeout({ signOut, router }) {
+  try {
+    const stored = await SecureStore.getItemAsync(LAST_BACKGROUNDED_KEY);
+
+    if (!stored) return;
+
+    // Always consume the timestamp once it's been checked,
+    // so a stale value never lingers to wrongly trigger a
+    // sign-out on some unrelated later session.
+    await SecureStore.deleteItemAsync(LAST_BACKGROUNDED_KEY);
+
+    const elapsed = Date.now() - Number(stored);
+
+    if (elapsed >= INACTIVITY_LIMIT_MS) {
+      console.log("AUTO SIGN-OUT: inactive for", elapsed, "ms");
+
+      await signOut();
+
+      router.replace("/");
+    }
+  } catch (error) {
+    console.log("INACTIVITY CHECK ERROR:", error);
+  }
+}
 
 /*
  * ==========================================
@@ -158,6 +201,7 @@ async function registerForPushNotificationsAsync(userId) {
 
 function AuthGuard() {
   const { isLoaded, isSignedIn, userId } = useAuth();
+  const { signOut } = useClerk();
 
   const router = useRouter();
 
@@ -232,6 +276,68 @@ function AuthGuard() {
 
     registerForPushNotificationsAsync(userId);
   }, [isLoaded, isSignedIn, userId]);
+
+  /*
+   * ==========================================
+   * HEARTBEAT
+   * ==========================================
+   *
+   * Lets the scheduled job on the backend know
+   * this user is still active, so it doesn't
+   * send inactivity nudges to people still using
+   * the app.
+   */
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn || !userId) {
+      return;
+    }
+
+    fetch(`${API_URL}/users/${userId}/heartbeat`, {
+      method: "POST",
+    }).catch((error) => {
+      console.log("HEARTBEAT ERROR:", error);
+    });
+  }, [isLoaded, isSignedIn, userId]);
+
+  /*
+   * ==========================================
+   * AUTO SIGN-OUT AFTER INACTIVITY
+   * ==========================================
+   *
+   * If the app was backgrounded for over an hour,
+   * sign the user out and send them back to the
+   * welcome screen instead of leaving their session
+   * open indefinitely.
+   */
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) {
+      return;
+    }
+
+    // Also check right away, in case the app was
+    // force-quit while backgrounded and is only now
+    // being relaunched.
+    checkInactivityTimeout({ signOut, router });
+
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "background" || nextState === "inactive") {
+        SecureStore.setItemAsync(
+          LAST_BACKGROUNDED_KEY,
+          String(Date.now()),
+        ).catch((error) => {
+          console.log("BACKGROUND TIMESTAMP ERROR:", error);
+        });
+      } else if (nextState === "active") {
+        checkInactivityTimeout({ signOut, router });
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [isLoaded, isSignedIn, signOut, router]);
 
   /*
    * ==========================================
