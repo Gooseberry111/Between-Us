@@ -1134,7 +1134,7 @@ FROM profiles p
 
 				const body = await request.json();
 
-				const { firstName, birthday, gender, country, relationshipStatus } = body;
+				const { firstName, lastName, birthday, gender, country, relationshipStatus } = body;
 
 				if (!firstName || !birthday || !gender || !country || !relationshipStatus) {
 					return Response.json(
@@ -1177,7 +1177,7 @@ FROM profiles p
             UPDATE profiles
 SET
   first_name = ${firstName},
-  last_name = ${lastName},
+  last_name = ${lastName || null},
   birthday = ${birthday},
               gender = ${gender},
               country = ${country},
