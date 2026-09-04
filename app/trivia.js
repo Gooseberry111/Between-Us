@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
+import { clearCachedData } from "../lib/dataCache";
 
 const API_URL = "https://between-us-api.between-us.workers.dev";
 
@@ -98,7 +99,12 @@ export default function TriviaScreen() {
       }),
     })
       .then((response) => response.json())
-      .then((data) => console.log("TRIVIA COMPLETE RESPONSE:", data))
+      .then((data) => {
+        console.log("TRIVIA COMPLETE RESPONSE:", data);
+
+        // The history screen's cached list is now out of date.
+        clearCachedData(`trivia-history:${userId}`);
+      })
       .catch((err) => console.log("TRIVIA COMPLETE ERROR:", err));
   }, [finished, score, questions.length, userId]);
 
@@ -243,6 +249,13 @@ export default function TriviaScreen() {
             activeOpacity={0.85}
           >
             <Text style={styles.primaryButtonText}>Play again</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.push("/trivia-history")}
+          >
+            <Text style={styles.backButtonText}>View history</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

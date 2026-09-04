@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
+import DateInput from "../components/DateInput";
 
 const API_URL = "https://between-us-api.between-us.workers.dev";
 
@@ -23,6 +24,7 @@ export default function EditProfileScreen() {
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [birthday, setBirthday] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -48,6 +50,11 @@ export default function EditProfileScreen() {
 
       setFirstName(data?.profile?.first_name || "");
       setLastName(data?.profile?.last_name || "");
+      setBirthday(
+        data?.profile?.birthday
+          ? new Date(data.profile.birthday).toISOString().split("T")[0]
+          : "",
+      );
     } catch (err) {
       console.log("EDIT PROFILE LOAD ERROR:", err);
       setError(err?.message || "Unable to load your profile.");
@@ -63,9 +70,18 @@ export default function EditProfileScreen() {
   const handleSave = async () => {
     const trimmedFirstName = firstName.trim();
     const trimmedLastName = lastName.trim();
+    const trimmedBirthday = birthday.trim();
 
     if (!trimmedFirstName) {
       Alert.alert("First name required", "Please enter your first name.");
+      return;
+    }
+
+    if (trimmedBirthday && !/^\d{4}-\d{2}-\d{2}$/.test(trimmedBirthday)) {
+      Alert.alert(
+        "Check your birthday",
+        "Please enter a full date, like 1996-05-10.",
+      );
       return;
     }
 
@@ -81,6 +97,7 @@ export default function EditProfileScreen() {
         body: JSON.stringify({
           first_name: trimmedFirstName,
           last_name: trimmedLastName,
+          birthday: trimmedBirthday || null,
         }),
       });
 
@@ -206,6 +223,23 @@ export default function EditProfileScreen() {
                     autoCapitalize="words"
                     returnKeyType="done"
                   />
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>BIRTHDAY</Text>
+
+                  <DateInput
+                    value={birthday}
+                    onChangeText={setBirthday}
+                    placeholderTextColor="#A9A19B"
+                    style={styles.input}
+                  />
+
+                  <Text style={styles.inputHint}>
+                    Used to remind your partner when your birthday is coming up.
+                  </Text>
                 </View>
               </View>
             </View>
@@ -403,6 +437,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 13,
     fontSize: 14,
     color: "#302825",
+  },
+
+  inputHint: {
+    marginTop: 7,
+    fontSize: 10,
+    lineHeight: 15,
+    color: "#9A918A",
   },
 
   divider: {

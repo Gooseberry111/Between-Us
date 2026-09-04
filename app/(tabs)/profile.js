@@ -408,6 +408,46 @@ export default function ProfileScreen() {
 
               <Text style={styles.settingArrow}>›</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.settingRow}
+              activeOpacity={0.8}
+              onPress={() => router.push("/trivia-history")}
+            >
+              <View style={styles.settingIcon}>
+                <Text style={styles.settingIconText}>✦</Text>
+              </View>
+
+              <View style={styles.settingContent}>
+                <Text style={styles.settingTitle}>Trivia History</Text>
+
+                <Text style={styles.settingDescription}>
+                  See every round you've both played.
+                </Text>
+              </View>
+
+              <Text style={styles.settingArrow}>›</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.settingRow}
+              activeOpacity={0.8}
+              onPress={() => router.push("/notification-settings")}
+            >
+              <View style={styles.settingIcon}>
+                <Text style={styles.settingIconText}>◈</Text>
+              </View>
+
+              <View style={styles.settingContent}>
+                <Text style={styles.settingTitle}>Notifications</Text>
+
+                <Text style={styles.settingDescription}>
+                  Choose what Between Us reminds you about.
+                </Text>
+              </View>
+
+              <Text style={styles.settingArrow}>›</Text>
+            </TouchableOpacity>
           </View>
 
           {/* SIGN OUT */}

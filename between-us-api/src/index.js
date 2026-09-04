@@ -156,9 +156,17 @@ function isoWeekKey(date) {
  * inserted (i.e. not a duplicate for this dedupe_key), send
  * the matching push notification.
  *
+ * Skips entirely if the recipient has turned this notification
+ * type off. Preferences only store explicit opt-outs, so a
+ * missing key means the type is enabled.
+ *
  * Returns true if a new notification was created.
  */
-async function notifyUser(sql, { userId, pushToken, type, title, message, dedupeKey, data = {} }) {
+async function notifyUser(sql, { userId, pushToken, preferences, type, title, message, dedupeKey, data = {} }) {
+	if (preferences && preferences[type] === false) {
+		return false;
+	}
+
 	const inserted = await sql`
 		INSERT INTO notifications (
 			user_id,
@@ -222,6 +230,8 @@ export default {
 					c.connected_at,
 					u1.push_token AS user_one_push_token,
 					u2.push_token AS user_two_push_token,
+					u1.notification_preferences AS user_one_preferences,
+					u2.notification_preferences AS user_two_preferences,
 					p1.first_name AS user_one_first_name,
 					p2.first_name AS user_two_first_name,
 					p1.birthday AS user_one_birthday,
@@ -239,19 +249,23 @@ export default {
 					{
 						userId: connection.user_one,
 						pushToken: connection.user_one_push_token,
+						preferences: connection.user_one_preferences,
 						birthday: connection.user_one_birthday,
 						firstName: connection.user_one_first_name,
 						partnerId: connection.user_two,
 						partnerPushToken: connection.user_two_push_token,
+						partnerPreferences: connection.user_two_preferences,
 						partnerFirstName: connection.user_two_first_name,
 					},
 					{
 						userId: connection.user_two,
 						pushToken: connection.user_two_push_token,
+						preferences: connection.user_two_preferences,
 						birthday: connection.user_two_birthday,
 						firstName: connection.user_two_first_name,
 						partnerId: connection.user_one,
 						partnerPushToken: connection.user_one_push_token,
+						partnerPreferences: connection.user_one_preferences,
 						partnerFirstName: connection.user_one_first_name,
 					},
 				];
@@ -271,6 +285,7 @@ export default {
 					await notifyUser(sql, {
 						userId: member.partnerId,
 						pushToken: member.partnerPushToken,
+						preferences: member.partnerPreferences,
 						type: 'birthday',
 						title: `${ownerName}'s birthday is coming up`,
 						message:
@@ -296,6 +311,7 @@ export default {
 							await notifyUser(sql, {
 								userId: member.userId,
 								pushToken: member.pushToken,
+								preferences: member.preferences,
 								type: 'anniversary',
 								title: 'Your relationship anniversary is coming up',
 								message:
@@ -328,6 +344,7 @@ export default {
 						await notifyUser(sql, {
 							userId: member.userId,
 							pushToken: member.pushToken,
+							preferences: member.preferences,
 							type: 'trivia_nudge',
 							title: 'Play a round of couple trivia',
 							message: `See how well you know ${member.partnerFirstName?.trim() || 'your partner'}. A new round is waiting.`,
@@ -347,6 +364,7 @@ export default {
 					await notifyUser(sql, {
 						userId: member.userId,
 						pushToken: member.pushToken,
+						preferences: member.preferences,
 						type: 'date_idea',
 						title: 'A date idea for you two',
 						message: dateIdea,
@@ -369,7 +387,9 @@ export default {
 					c.user_one,
 					c.user_two,
 					u1.push_token AS user_one_push_token,
-					u2.push_token AS user_two_push_token
+					u2.push_token AS user_two_push_token,
+					u1.notification_preferences AS user_one_preferences,
+					u2.notification_preferences AS user_two_preferences
 				FROM dreams d
 				INNER JOIN connections c ON c.id = d.connection_id AND c.status = 'accepted'
 				INNER JOIN users u1 ON u1.id = c.user_one
@@ -382,8 +402,16 @@ export default {
 				const daysUntil = Math.ceil((new Date(dream.target_date) - today) / MS_PER_DAY);
 
 				const recipients = [
-					{ userId: dream.user_one, pushToken: dream.user_one_push_token },
-					{ userId: dream.user_two, pushToken: dream.user_two_push_token },
+					{
+						userId: dream.user_one,
+						pushToken: dream.user_one_push_token,
+						preferences: dream.user_one_preferences,
+					},
+					{
+						userId: dream.user_two,
+						pushToken: dream.user_two_push_token,
+						preferences: dream.user_two_preferences,
+					},
 				];
 
 				if (daysUntil >= 0 && daysUntil <= 14) {
@@ -391,6 +419,7 @@ export default {
 						await notifyUser(sql, {
 							userId: recipient.userId,
 							pushToken: recipient.pushToken,
+							preferences: recipient.preferences,
 							type: 'dream_upcoming',
 							title: 'Your dream is coming up',
 							message:
@@ -406,6 +435,7 @@ export default {
 						await notifyUser(sql, {
 							userId: recipient.userId,
 							pushToken: recipient.pushToken,
+							preferences: recipient.preferences,
 							type: 'dream_overdue',
 							title: 'A shared dream needs attention',
 							message: `"${dream.title}" has passed its target date. Maybe check in about it.`,
@@ -430,7 +460,9 @@ export default {
 					c.user_one,
 					c.user_two,
 					u1.push_token AS user_one_push_token,
-					u2.push_token AS user_two_push_token
+					u2.push_token AS user_two_push_token,
+					u1.notification_preferences AS user_one_preferences,
+					u2.notification_preferences AS user_two_preferences
 				FROM relationship_goals g
 				INNER JOIN connections c ON c.id = g.connection_id AND c.status = 'accepted'
 				INNER JOIN users u1 ON u1.id = c.user_one
@@ -443,8 +475,16 @@ export default {
 				const daysUntil = Math.ceil((new Date(goal.target_date) - today) / MS_PER_DAY);
 
 				const recipients = [
-					{ userId: goal.user_one, pushToken: goal.user_one_push_token },
-					{ userId: goal.user_two, pushToken: goal.user_two_push_token },
+					{
+						userId: goal.user_one,
+						pushToken: goal.user_one_push_token,
+						preferences: goal.user_one_preferences,
+					},
+					{
+						userId: goal.user_two,
+						pushToken: goal.user_two_push_token,
+						preferences: goal.user_two_preferences,
+					},
 				];
 
 				if (daysUntil >= 0 && daysUntil <= 14) {
@@ -452,6 +492,7 @@ export default {
 						await notifyUser(sql, {
 							userId: recipient.userId,
 							pushToken: recipient.pushToken,
+							preferences: recipient.preferences,
 							type: 'goal_upcoming',
 							title: 'A relationship goal is approaching',
 							message:
@@ -467,6 +508,7 @@ export default {
 						await notifyUser(sql, {
 							userId: recipient.userId,
 							pushToken: recipient.pushToken,
+							preferences: recipient.preferences,
 							type: 'goal_overdue',
 							title: 'A relationship goal needs attention',
 							message: `"${goal.title}" has passed its target date. Take a look together.`,
@@ -489,10 +531,13 @@ export default {
 					sd.title,
 					sd.event_date,
 					owner.push_token AS owner_push_token,
+					owner.notification_preferences AS owner_preferences,
 					c.user_one,
 					c.user_two,
 					u1.push_token AS user_one_push_token,
-					u2.push_token AS user_two_push_token
+					u2.push_token AS user_two_push_token,
+					u1.notification_preferences AS user_one_preferences,
+					u2.notification_preferences AS user_two_preferences
 				FROM special_dates sd
 				INNER JOIN users owner ON owner.id = sd.user_id
 				LEFT JOIN connections c ON (c.user_one = sd.user_id OR c.user_two = sd.user_id) AND c.status = 'accepted'
@@ -510,21 +555,35 @@ export default {
 						? `Today is "${specialDate.title}".`
 						: `"${specialDate.title}" is in ${occurrence.daysUntil} day${occurrence.daysUntil === 1 ? '' : 's'}.`;
 
-				const recipients = [{ userId: specialDate.user_id, pushToken: specialDate.owner_push_token }];
+				const recipients = [
+					{
+						userId: specialDate.user_id,
+						pushToken: specialDate.owner_push_token,
+						preferences: specialDate.owner_preferences,
+					},
+				];
 
 				if (specialDate.user_one) {
-					const partnerId = specialDate.user_one === specialDate.user_id ? specialDate.user_two : specialDate.user_one;
+					const ownerIsUserOne = specialDate.user_one === specialDate.user_id;
 
-					const partnerPushToken =
-						specialDate.user_one === specialDate.user_id ? specialDate.user_two_push_token : specialDate.user_one_push_token;
+					const partnerId = ownerIsUserOne ? specialDate.user_two : specialDate.user_one;
 
-					recipients.push({ userId: partnerId, pushToken: partnerPushToken });
+					const partnerPushToken = ownerIsUserOne ? specialDate.user_two_push_token : specialDate.user_one_push_token;
+
+					const partnerPreferences = ownerIsUserOne ? specialDate.user_two_preferences : specialDate.user_one_preferences;
+
+					recipients.push({
+						userId: partnerId,
+						pushToken: partnerPushToken,
+						preferences: partnerPreferences,
+					});
 				}
 
 				for (const recipient of recipients) {
 					await notifyUser(sql, {
 						userId: recipient.userId,
 						pushToken: recipient.pushToken,
+						preferences: recipient.preferences,
 						type: 'special_date',
 						title: 'A special date is coming up',
 						message,
@@ -540,7 +599,7 @@ export default {
 			 * ==========================================
 			 */
 			const inactiveUsers = await sql`
-				SELECT id, push_token, last_active_at
+				SELECT id, push_token, last_active_at, notification_preferences
 				FROM users
 				WHERE push_token IS NOT NULL
 					AND (last_active_at IS NULL OR last_active_at < NOW() - INTERVAL '3 days')
@@ -550,6 +609,7 @@ export default {
 				await notifyUser(sql, {
 					userId: user.id,
 					pushToken: user.push_token,
+					preferences: user.notification_preferences,
 					type: 'inactivity',
 					title: 'We miss you on Between Us',
 					message: "It's been a few days. Come see what's new with your relationship.",
@@ -567,7 +627,7 @@ export default {
 			const quote = QUOTES_OF_THE_DAY[dayOfYear % QUOTES_OF_THE_DAY.length];
 
 			const usersWithPush = await sql`
-				SELECT id, push_token
+				SELECT id, push_token, notification_preferences
 				FROM users
 				WHERE push_token IS NOT NULL
 			`;
@@ -576,6 +636,7 @@ export default {
 				await notifyUser(sql, {
 					userId: user.id,
 					pushToken: user.push_token,
+					preferences: user.notification_preferences,
 					type: 'quote_of_day',
 					title: 'Quote of the Day',
 					message: quote,
@@ -3233,13 +3294,6 @@ VALUES (
 
 				const body = await request.json();
 
-				const firstName = body?.first_name?.trim() || null;
-				const lastName = body?.last_name?.trim() || null;
-				const birthday = body?.birthday || null;
-				const gender = body?.gender?.trim() || null;
-				const country = body?.country?.trim() || null;
-				const relationshipStatus = body?.relationship_status?.trim() || null;
-
 				const userResult = await sql`
     SELECT id
     FROM users
@@ -3258,12 +3312,69 @@ VALUES (
 
 				const userId = userResult[0].id;
 
+				const existingResult = await sql`
+    SELECT
+      first_name,
+      last_name,
+      birthday,
+      gender,
+      country,
+      relationship_status
+    FROM profiles
+    WHERE user_id = ${userId}
+    LIMIT 1
+  `;
+
+				if (existingResult.length === 0) {
+					return Response.json(
+						{
+							error: 'Profile not found',
+						},
+						{ status: 404 },
+					);
+				}
+
+				const existing = existingResult[0];
+
+				/*
+				 * Only overwrite fields that were actually sent.
+				 *
+				 * Anything left out of the request keeps its current
+				 * value, so a partial update (e.g. saving just the
+				 * name from the edit screen) can't wipe the rest of
+				 * the profile.
+				 */
+				const readText = (value, current) => (value !== undefined ? String(value).trim() || null : current);
+
+				const firstName = readText(body?.first_name, existing.first_name);
+				const lastName = readText(body?.last_name, existing.last_name);
+				const gender = readText(body?.gender, existing.gender);
+				const country = readText(body?.country, existing.country);
+				const relationshipStatus = readText(body?.relationship_status, existing.relationship_status);
+
+				let birthday = existing.birthday;
+
+				if (body?.birthday !== undefined) {
+					const normalizedBirthday = body.birthday ? String(body.birthday).trim() : '';
+
+					if (normalizedBirthday && !/^\d{4}-\d{2}-\d{2}$/.test(normalizedBirthday)) {
+						return Response.json(
+							{
+								error: 'Birthday must be in YYYY-MM-DD format',
+							},
+							{ status: 400 },
+						);
+					}
+
+					birthday = normalizedBirthday || null;
+				}
+
 				const profileResult = await sql`
     UPDATE profiles
-SET
-  first_name = ${firstName},
-  last_name = ${lastName},
-  birthday = ${birthday},
+    SET
+      first_name = ${firstName},
+      last_name = ${lastName},
+      birthday = ${birthday},
       gender = ${gender},
       country = ${country},
       relationship_status = ${relationshipStatus}
@@ -3923,7 +4034,7 @@ SET
     `;
 
 				const partnerPushResult = await sql`
-        SELECT push_token
+        SELECT push_token, notification_preferences
         FROM users
         WHERE id = ${partnerId}
         LIMIT 1
@@ -3935,6 +4046,7 @@ SET
 				await notifyUser(sql, {
 					userId: partnerId,
 					pushToken: partnerPushToken,
+					preferences: partnerPushResult[0]?.notification_preferences,
 					type: 'trivia_played',
 					title: 'Trivia round completed',
 					message: `${playerName} just played couple trivia and scored ${score}/${totalQuestions}. Your turn!`,
@@ -3949,6 +4061,83 @@ SET
 					},
 					{ status: 201 },
 				);
+			}
+
+			/*
+			 * ==========================================
+			 * TRIVIA HISTORY
+			 * ==========================================
+			 *
+			 * GET /users/:clerkId/trivia/history
+			 *
+			 * Every round either person in the connection
+			 * has played, newest first.
+			 */
+
+			const triviaHistoryMatch = url.pathname.match(/^\/users\/([^/]+)\/trivia\/history$/);
+
+			if (triviaHistoryMatch && request.method === 'GET') {
+				const clerkId = triviaHistoryMatch[1];
+
+				const userResult = await sql`
+        SELECT id
+        FROM users
+        WHERE clerk_id = ${clerkId}
+        LIMIT 1
+    `;
+
+				if (userResult.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const userId = userResult[0].id;
+
+				const connectionResult = await sql`
+        SELECT id
+        FROM connections
+        WHERE
+            (user_one = ${userId} OR user_two = ${userId})
+            AND status = 'accepted'
+        LIMIT 1
+    `;
+
+				if (connectionResult.length === 0) {
+					return Response.json({ sessions: [], stats: null });
+				}
+
+				const sessions = await sql`
+        SELECT
+            ts.id,
+            ts.user_id,
+            ts.score,
+            ts.total_questions,
+            ts.completed_at,
+            p.first_name AS player_first_name
+        FROM trivia_sessions ts
+        LEFT JOIN profiles p
+            ON p.user_id = ts.user_id
+        WHERE ts.connection_id = ${connectionResult[0].id}
+        ORDER BY ts.completed_at DESC
+        LIMIT 50
+    `;
+
+				const yourSessions = sessions.filter((session) => session.user_id === userId);
+
+				const totalAnswered = yourSessions.reduce((sum, session) => sum + session.total_questions, 0);
+
+				const totalCorrect = yourSessions.reduce((sum, session) => sum + session.score, 0);
+
+				return Response.json({
+					sessions: sessions.map((session) => ({
+						...session,
+						is_you: session.user_id === userId,
+					})),
+					stats: {
+						rounds_played: yourSessions.length,
+						best_score: yourSessions.reduce((best, session) => Math.max(best, session.score), 0),
+						accuracy: totalAnswered > 0 ? Math.round((totalCorrect / totalAnswered) * 100) : null,
+					},
+				});
 			}
 
 			/*
@@ -4338,6 +4527,90 @@ SET
 				return Response.json({
 					message: 'Heartbeat recorded',
 					user: result[0],
+				});
+			}
+
+			/*
+			 * ==========================================
+			 * NOTIFICATION PREFERENCES
+			 * ==========================================
+			 *
+			 * GET /users/:clerkId/notification-preferences
+			 * PUT /users/:clerkId/notification-preferences
+			 *
+			 * Only explicit opt-outs are stored, so an empty
+			 * object means every notification type is on.
+			 */
+
+			const notificationPreferencesMatch = url.pathname.match(/^\/users\/([^/]+)\/notification-preferences$/);
+
+			if (notificationPreferencesMatch && request.method === 'GET') {
+				const clerkId = notificationPreferencesMatch[1];
+
+				const result = await sql`
+          SELECT notification_preferences
+          FROM users
+          WHERE clerk_id = ${clerkId}
+          LIMIT 1
+        `;
+
+				if (result.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				return Response.json({
+					preferences: result[0].notification_preferences || {},
+				});
+			}
+
+			if (notificationPreferencesMatch && request.method === 'PUT') {
+				const clerkId = notificationPreferencesMatch[1];
+
+				const body = await request.json();
+
+				const incoming = body?.preferences;
+
+				if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming)) {
+					return Response.json({ error: 'preferences must be an object' }, { status: 400 });
+				}
+
+				const existingResult = await sql`
+          SELECT notification_preferences
+          FROM users
+          WHERE clerk_id = ${clerkId}
+          LIMIT 1
+        `;
+
+				if (existingResult.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const merged = { ...(existingResult[0].notification_preferences || {}) };
+
+				/*
+				 * Keep only real opt-outs. Turning something back
+				 * on removes the key rather than storing `true`,
+				 * so the stored object stays small and "missing
+				 * means enabled" holds.
+				 */
+				for (const [type, enabled] of Object.entries(incoming)) {
+					if (enabled === false) {
+						merged[type] = false;
+					} else {
+						delete merged[type];
+					}
+				}
+
+				const result = await sql`
+          UPDATE users
+          SET notification_preferences = ${JSON.stringify(merged)}::jsonb
+          WHERE clerk_id = ${clerkId}
+          RETURNING notification_preferences
+        `;
+
+				return Response.json({
+					message: 'Notification preferences saved',
+					preferences: result[0].notification_preferences || {},
 				});
 			}
 
