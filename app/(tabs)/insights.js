@@ -143,10 +143,12 @@ export default function InsightsScreen() {
     ? partnerPreferences.love_languages
     : [];
 
-  const goals = Array.isArray(insights?.goals) ? insights.goals : [];
+  const focusAreas = Array.isArray(insights?.focus_areas)
+    ? insights.focus_areas
+    : [];
 
-  const partnerGoals = Array.isArray(partnerInsights?.goals)
-    ? partnerInsights.goals
+  const partnerFocusAreas = Array.isArray(partnerInsights?.focus_areas)
+    ? partnerInsights.focus_areas
     : [];
 
   /*
@@ -159,7 +161,9 @@ export default function InsightsScreen() {
     partnerLoveLanguages.includes(language),
   );
 
-  const sharedGoals = goals.filter((goal) => partnerGoals.includes(goal));
+  const sharedFocusAreas = focusAreas.filter((focusArea) =>
+    partnerFocusAreas.includes(focusArea),
+  );
 
   const sharedInterests = [];
 
@@ -400,10 +404,10 @@ export default function InsightsScreen() {
                   />
                 ) : null}
 
-                {sharedGoals.length > 0 ? (
+                {sharedFocusAreas.length > 0 ? (
                   <InsightRow
-                    title="Shared goal"
-                    value={sharedGoals.join(", ")}
+                    title="Shared focus"
+                    value={sharedFocusAreas.join(", ")}
                   />
                 ) : null}
 
@@ -418,7 +422,7 @@ export default function InsightsScreen() {
                   : null}
 
                 {sharedLoveLanguages.length === 0 &&
-                sharedGoals.length === 0 &&
+                sharedFocusAreas.length === 0 &&
                 sharedInterests.length === 0 ? (
                   <Text style={styles.emptyText}>
                     You are still discovering what you have in common.
@@ -546,26 +550,26 @@ export default function InsightsScreen() {
             </View>
           ) : null}
 
-          {/* SHARED GOALS */}
+          {/* SHARED FOCUS AREAS */}
 
-          {connection && sharedGoals.length > 0 ? (
+          {connection && sharedFocusAreas.length > 0 ? (
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>THINGS TO DO TOGETHER</Text>
 
               <View style={styles.goalsCard}>
-                {sharedGoals.map((goal, index) => (
+                {sharedFocusAreas.map((focusArea, index) => (
                   <View
                     style={[
                       styles.goalRow,
-                      index < sharedGoals.length - 1 && styles.rowDivider,
+                      index < sharedFocusAreas.length - 1 && styles.rowDivider,
                     ]}
-                    key={`${goal}-${index}`}
+                    key={`${focusArea}-${index}`}
                   >
                     <View style={styles.goalIcon}>
                       <Text style={styles.goalIconText}>+</Text>
                     </View>
 
-                    <Text style={styles.goalText}>{goal}</Text>
+                    <Text style={styles.goalText}>{focusArea}</Text>
                   </View>
                 ))}
               </View>

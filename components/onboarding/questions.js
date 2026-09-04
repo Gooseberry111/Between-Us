@@ -131,7 +131,7 @@ export const questions = [
   },
 
   {
-    id: "goals",
+    id: "focusAreas",
     type: "multi",
     title: "What would you like Between Us to help with?",
     options: [

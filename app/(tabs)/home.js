@@ -292,8 +292,8 @@ export default function HomeScreen() {
     ? partnerPreferences.love_languages
     : [];
 
-  const goals = Array.isArray(partnerInsights?.goals)
-    ? partnerInsights.goals
+  const focusAreas = Array.isArray(partnerInsights?.focus_areas)
+    ? partnerInsights.focus_areas
     : [];
 
   const conflictStyle = partnerInsights?.conflict_style || "";
@@ -322,7 +322,7 @@ export default function HomeScreen() {
   const todayPrompt = getTodayPrompt({
     partnerName,
     loveLanguages,
-    goals,
+    focusAreas,
     conflictStyle,
     affectionStyle,
     communicationFrequency,
@@ -557,18 +557,18 @@ export default function HomeScreen() {
 
           {/* GOALS */}
 
-          {goals.length > 0 ? (
+          {focusAreas.length > 0 ? (
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>WHAT THEY WANT MORE OF</Text>
 
               <View style={styles.goalsCard}>
-                {goals.map((goal, index) => (
-                  <View key={`${goal}-${index}`} style={styles.goalRow}>
+                {focusAreas.map((focusArea, index) => (
+                  <View key={`${focusArea}-${index}`} style={styles.goalRow}>
                     <View style={styles.goalIcon}>
                       <Text style={styles.goalIconText}>✦</Text>
                     </View>
 
-                    <Text style={styles.goalText}>{goal}</Text>
+                    <Text style={styles.goalText}>{focusArea}</Text>
                   </View>
                 ))}
               </View>
@@ -605,7 +605,7 @@ export default function HomeScreen() {
 function getTodayPrompt({
   partnerName,
   loveLanguages,
-  goals,
+  focusAreas,
   conflictStyle,
   communicationFrequency,
   food,
@@ -614,7 +614,7 @@ function getTodayPrompt({
   musicGenre,
   favoriteColor,
 }) {
-  if (goals.includes("Date Ideas")) {
+  if (focusAreas.includes("Date Ideas")) {
     if (movieGenre) {
       return {
         title: `Plan a ${movieGenre.toLowerCase()} movie date.`,

@@ -826,7 +826,7 @@ export default {
 					movieGenre,
 					personalityType,
 					conflictStyle,
-					goals,
+					focusAreas,
 				} = body;
 
 				if (!clerk_id || !email || !firstName || !birthday) {
@@ -951,7 +951,7 @@ export default {
             affection_style = EXCLUDED.affection_style
         `;
 
-				const insightGoals = Array.isArray(goals) ? goals.filter(Boolean) : [];
+				const insightFocusAreas = Array.isArray(focusAreas) ? focusAreas.filter(Boolean) : [];
 
 				await sql`
   DELETE FROM relationship_insights
@@ -963,13 +963,13 @@ export default {
     user_id,
     personality_type,
     conflict_style,
-    goals
+    focus_areas
   )
   VALUES (
     ${userId},
     ${personalityType || null},
     ${conflictStyle || null},
-    ${insightGoals}
+    ${insightFocusAreas}
   )
 `;
 
@@ -1066,7 +1066,7 @@ export default {
       ri.user_id,
       ri.personality_type,
       ri.conflict_style,
-      ri.goals,
+      ri.focus_areas,
       ri.created_at
     FROM relationship_insights ri
     INNER JOIN users u
@@ -3395,7 +3395,7 @@ SET
             pr.love_languages,
             ri.personality_type,
             ri.conflict_style,
-            ri.goals
+            ri.focus_areas
         FROM users u
         LEFT JOIN profiles p
             ON p.user_id = u.id
@@ -3587,19 +3587,19 @@ SET
 				}
 
 				/*
-				 * RELATIONSHIP GOAL
+				 * FOCUS AREA
 				 *
 				 * IMPORTANT:
-				 * Always use the FIRST saved goal as the correct answer.
+				 * Always use the FIRST saved focus area as the correct answer.
 				 */
-				if (Array.isArray(partner.goals) && partner.goals.length > 0) {
-					const correctGoal = partner.goals[0];
+				if (Array.isArray(partner.focus_areas) && partner.focus_areas.length > 0) {
+					const correctFocusArea = partner.focus_areas[0];
 
 					questionPool.push({
-						id: 'goal',
-						question: `Which of these is one of ${partnerName}'s relationship goals?`,
-						answer: correctGoal,
-						options: buildTriviaOptions(correctGoal, [
+						id: 'focus_area',
+						question: `Which of these is something ${partnerName} wants Between Us to help with?`,
+						answer: correctFocusArea,
+						options: buildTriviaOptions(correctFocusArea, [
 							'Date Ideas',
 							'Gift Ideas',
 							'Better Communication',
@@ -3721,7 +3721,7 @@ SET
             pr.love_languages,
             ri.personality_type,
             ri.conflict_style,
-            ri.goals
+            ri.focus_areas
         FROM users u
         LEFT JOIN profiles p
             ON p.user_id = u.id
@@ -3796,12 +3796,12 @@ SET
 						}
 						break;
 
-					case 'goal':
-						if (Array.isArray(partner.goals) && partner.goals.length > 0) {
+					case 'focus_area':
+						if (Array.isArray(partner.focus_areas) && partner.focus_areas.length > 0) {
 							/*
 							 * Must match the GET endpoint.
 							 */
-							correctAnswer = partner.goals[0];
+							correctAnswer = partner.focus_areas[0];
 						}
 						break;
 

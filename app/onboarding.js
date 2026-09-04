@@ -42,7 +42,7 @@ export default function OnboardingScreen() {
     favoriteColor: "",
     musicGenre: "",
     movieGenre: "",
-    goals: [],
+    focusAreas: [],
   });
 
   const [saving, setSaving] = useState(false);
@@ -105,7 +105,7 @@ export default function OnboardingScreen() {
 
         personalityType: answers.personalityType,
         conflictStyle: answers.conflictStyle,
-        goals: answers.goals,
+        focusAreas: answers.focusAreas,
       }),
     });
 
