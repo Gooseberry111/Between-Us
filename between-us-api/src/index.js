@@ -5551,6 +5551,55 @@ VALUES (
 
 			/*
 			 * ==========================================
+			 * DELETE AN APPRECIATION
+			 * ==========================================
+			 *
+			 * DELETE /users/:clerkId/appreciations/:id
+			 *
+			 * Only the person who wrote it can remove it.
+			 * A note someone wrote about you is theirs to
+			 * take back, not yours to erase.
+			 */
+
+			const deleteAppreciationMatch = url.pathname.match(/^\/users\/([^/]+)\/appreciations\/([^/]+)$/);
+
+			if (deleteAppreciationMatch && request.method === 'DELETE') {
+				const clerkId = deleteAppreciationMatch[1];
+				const appreciationId = deleteAppreciationMatch[2];
+
+				const userResult = await sql`
+          SELECT id FROM users WHERE clerk_id = ${clerkId} LIMIT 1
+        `;
+
+				if (userResult.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const userId = userResult[0].id;
+
+				await ensureSchema(sql);
+
+				const result = await sql`
+          DELETE FROM appreciations
+          WHERE id = ${appreciationId}
+            AND from_user_id = ${userId}
+          RETURNING id
+        `;
+
+				if (result.length === 0) {
+					return Response.json(
+						{
+							error: 'Note not found, or it is not yours to delete.',
+						},
+						{ status: 404 },
+					);
+				}
+
+				return Response.json({ message: 'Appreciation deleted' });
+			}
+
+			/*
+			 * ==========================================
 			 * WEEKLY CHECK-IN
 			 * ==========================================
 			 *

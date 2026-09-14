@@ -116,6 +116,42 @@ export default function AppreciationsScreen() {
     }
   };
 
+  const remove = (note) => {
+    Alert.alert("Delete this note?", "It will be removed for both of you.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            const response = await fetch(
+              `${API_URL}/users/${userId}/appreciations/${note.id}`,
+              { method: "DELETE" },
+            );
+
+            const json = await response.json();
+
+            if (!response.ok) {
+              throw new Error(json?.error || "Unable to delete that.");
+            }
+
+            setNotes((current) => {
+              const next = current.filter((item) => item.id !== note.id);
+              if (cacheKey) setCachedData(cacheKey, next);
+              return next;
+            });
+          } catch (err) {
+            console.log("APPRECIATION DELETE ERROR:", err);
+            Alert.alert(
+              "Something went wrong",
+              err?.message || "Unable to delete that.",
+            );
+          }
+        },
+      },
+    ]);
+  };
+
   return (
     <SafeAreaView style={styles.screen}>
       <GlassBackground>
@@ -240,6 +276,16 @@ export default function AppreciationsScreen() {
                         </View>
 
                         <Text style={styles.noteText}>{note.message}</Text>
+
+                        {note.mine ? (
+                          <TouchableOpacity
+                            style={styles.deleteButton}
+                            activeOpacity={0.8}
+                            onPress={() => remove(note)}
+                          >
+                            <Text style={styles.deleteButtonText}>Delete</Text>
+                          </TouchableOpacity>
+                        ) : null}
                       </Card>
                     </FadeIn>
                   ))
@@ -395,6 +441,21 @@ const styles = StyleSheet.create({
     fontSize: 14.5,
     lineHeight: 21,
     color: "#302825",
+  },
+
+  deleteButton: {
+    alignSelf: "flex-start",
+    marginTop: 13,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 9,
+    backgroundColor: "rgba(196, 121, 106, 0.14)",
+  },
+
+  deleteButtonText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#8A4A3D",
   },
 
   emptyCard: {
