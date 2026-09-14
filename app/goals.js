@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Celebration from "../components/Celebration";
 import { GlassBackground, Card } from "../components/Glass";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
@@ -38,6 +39,7 @@ export default function GoalsScreen() {
   const [goals, setGoals] = useState(cachedGoals || []);
   const [loading, setLoading] = useState(!cachedGoals);
   const [refreshing, setRefreshing] = useState(false);
+  const [celebrating, setCelebrating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -235,6 +237,8 @@ export default function GoalsScreen() {
         throw new Error(data?.error || "Unable to complete goal.");
       }
 
+      setCelebrating(true);
+
       setGoals((current) => {
         const next = current.filter((item) => item.id !== goal.id);
         if (cacheKey) setCachedData(cacheKey, next);
@@ -332,6 +336,13 @@ export default function GoalsScreen() {
 
   return (
     <SafeAreaView style={styles.screen}>
+      <Celebration
+        visible={celebrating}
+        title="Goal complete"
+        message="Something you worked on together, done."
+        onDone={() => setCelebrating(false)}
+      />
+
       <GlassBackground>
         <KeyboardAvoidingView
           style={styles.keyboardContainer}

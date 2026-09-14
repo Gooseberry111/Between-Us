@@ -246,6 +246,13 @@ function NotificationCard({ notification, userId, onRead }) {
       case "quote_of_day":
         return "chatbubble-ellipses-outline";
 
+      case "daily_question":
+      case "daily_question_answered":
+        return "help-circle-outline";
+
+      case "appreciation":
+        return "heart-outline";
+
       case "date_idea":
         return "restaurant-outline";
 

@@ -937,6 +937,36 @@ function QuickActions({ router }) {
         <TouchableOpacity
           style={styles.quickAction}
           activeOpacity={0.8}
+          onPress={() => router.push("/appreciations")}
+        >
+          <View style={styles.quickIcon}>
+            <Text style={styles.quickIconText}>♡</Text>
+          </View>
+
+          <Text style={styles.quickTitle}>Appreciation</Text>
+
+          <Text style={styles.quickText}>Say what you noticed</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.quickAction}
+          activeOpacity={0.8}
+          onPress={() => router.push("/check-in")}
+        >
+          <View style={styles.quickIcon}>
+            <Text style={styles.quickIconText}>◔</Text>
+          </View>
+
+          <Text style={styles.quickTitle}>Check-in</Text>
+
+          <Text style={styles.quickText}>How are we this week?</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={[styles.quickActions, styles.quickActionsSecondRow]}>
+        <TouchableOpacity
+          style={styles.quickAction}
+          activeOpacity={0.8}
           onPress={() => router.push("/goals")}
         >
           <View style={styles.quickIcon}>

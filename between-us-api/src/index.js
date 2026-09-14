@@ -154,20 +154,20 @@ const DAILY_QUESTIONS = [
 ];
 
 /*
- * The daily question table is created on demand.
+ * Tables for the newer features are created on demand.
  *
- * Migration 004 remains the canonical definition, but
- * applying it needs database access this deployment
- * pipeline does not have, so the endpoint makes sure
- * its own table is there rather than failing until
- * somebody runs the SQL by hand. The statements are
- * idempotent and purely additive, and the flag keeps
- * it to one check per isolate rather than per request.
+ * The migration files remain the canonical definitions,
+ * but applying them needs database access this pipeline
+ * does not have, so each feature makes sure its own
+ * tables exist rather than failing until somebody runs
+ * the SQL by hand. Everything here is idempotent and
+ * purely additive, and the flag keeps it to one check
+ * per isolate rather than per request.
  */
-let dailyAnswersReady = false;
+let schemaReady = false;
 
-async function ensureDailyAnswersTable(sql) {
-	if (dailyAnswersReady) return;
+async function ensureSchema(sql) {
+	if (schemaReady) return;
 
 	await sql`
 		CREATE TABLE IF NOT EXISTS daily_answers (
@@ -183,7 +183,8 @@ async function ensureDailyAnswersTable(sql) {
 	`;
 
 	/*
-	 * Not partial, so a plain ON CONFLICT can infer it.
+	 * These unique indexes are deliberately not partial,
+	 * so a plain ON CONFLICT can infer them.
 	 */
 	await sql`
 		CREATE UNIQUE INDEX IF NOT EXISTS daily_answers_user_date_idx
@@ -195,7 +196,46 @@ async function ensureDailyAnswersTable(sql) {
 			ON daily_answers (connection_id, question_date DESC)
 	`;
 
-	dailyAnswersReady = true;
+	await sql`
+		CREATE TABLE IF NOT EXISTS appreciations (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			connection_id UUID NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
+			from_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			to_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			message TEXT NOT NULL,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+		)
+	`;
+
+	await sql`
+		CREATE INDEX IF NOT EXISTS appreciations_connection_idx
+			ON appreciations (connection_id, created_at DESC)
+	`;
+
+	await sql`
+		CREATE TABLE IF NOT EXISTS checkins (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			connection_id UUID NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			week_key TEXT NOT NULL,
+			rating INTEGER NOT NULL,
+			note TEXT,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+			updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+		)
+	`;
+
+	await sql`
+		CREATE UNIQUE INDEX IF NOT EXISTS checkins_user_week_idx
+			ON checkins (user_id, week_key)
+	`;
+
+	await sql`
+		CREATE INDEX IF NOT EXISTS checkins_connection_idx
+			ON checkins (connection_id, week_key DESC)
+	`;
+
+	schemaReady = true;
 }
 
 function slugifyQuestion(text) {
@@ -790,6 +830,50 @@ export default {
 					message: "It's been a few days. Come see what's new with your relationship.",
 					dedupeKey: `inactivity:${user.id}:${weekKey}`,
 				});
+			}
+
+			/*
+			 * ==========================================
+			 * 12. DAILY QUESTION NUDGE
+			 * ==========================================
+			 *
+			 * Only at one fixed hour, because the cron runs
+			 * hourly and nobody wants this at 3am. The dedupe
+			 * key is per day, so even if that hour is retried
+			 * it still only goes out once.
+			 */
+			if (today.getUTCHours() === 17) {
+				await ensureSchema(sql);
+
+				const pending = await sql`
+					SELECT
+						c.id AS connection_id,
+						u.id AS user_id,
+						u.push_token,
+						u.notification_preferences
+					FROM connections c
+					INNER JOIN users u
+						ON u.id = c.user_one OR u.id = c.user_two
+					WHERE c.status = 'accepted'
+						AND NOT EXISTS (
+							SELECT 1
+							FROM daily_answers d
+							WHERE d.user_id = u.id
+								AND d.question_date = ${todayIso}
+						)
+				`;
+
+				for (const row of pending) {
+					await notifyUser(sql, {
+						userId: row.user_id,
+						pushToken: row.push_token,
+						preferences: row.notification_preferences,
+						type: 'daily_question',
+						title: "Today's question is waiting",
+						message: 'Answer it to unlock what your partner said.',
+						dedupeKey: `daily_question:${todayIso}`,
+					});
+				}
 			}
 
 			/*
@@ -5226,7 +5310,7 @@ VALUES (
 
 				const userId = userResult[0].id;
 
-				await ensureDailyAnswersTable(sql);
+				await ensureSchema(sql);
 
 				const today = new Date();
 				const todayIso = today.toISOString().slice(0, 10);
@@ -5355,6 +5439,211 @@ VALUES (
 						history.map((row) => row.question_date),
 						todayIso,
 					),
+				});
+			}
+
+			/*
+			 * ==========================================
+			 * APPRECIATIONS
+			 * ==========================================
+			 *
+			 * GET  /users/:clerkId/appreciations
+			 * POST /users/:clerkId/appreciations
+			 *
+			 * Short notes of thanks, kept as a running
+			 * list so a couple can look back at what the
+			 * other actually noticed.
+			 */
+
+			const appreciationsMatch = url.pathname.match(/^\/users\/([^/]+)\/appreciations$/);
+
+			if (appreciationsMatch && (request.method === 'GET' || request.method === 'POST')) {
+				const clerkId = appreciationsMatch[1];
+
+				const userResult = await sql`
+          SELECT id FROM users WHERE clerk_id = ${clerkId} LIMIT 1
+        `;
+
+				if (userResult.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const userId = userResult[0].id;
+
+				await ensureSchema(sql);
+
+				const connectionResult = await sql`
+          SELECT id, user_one, user_two
+          FROM connections
+          WHERE (user_one = ${userId} OR user_two = ${userId})
+            AND status = 'accepted'
+          LIMIT 1
+        `;
+
+				if (connectionResult.length === 0) {
+					return Response.json({ error: 'You are not connected to anyone yet.' }, { status: 404 });
+				}
+
+				const connection = connectionResult[0];
+				const partnerId = connection.user_one === userId ? connection.user_two : connection.user_one;
+
+				if (request.method === 'POST') {
+					const body = await request.json();
+					const message = body?.message?.trim();
+
+					if (!message) {
+						return Response.json({ error: 'message is required' }, { status: 400 });
+					}
+
+					await sql`
+            INSERT INTO appreciations (
+              connection_id, from_user_id, to_user_id, message
+            )
+            VALUES (
+              ${connection.id}, ${userId}, ${partnerId}, ${message}
+            )
+          `;
+
+					const partnerRow = await sql`
+            SELECT u.push_token, u.notification_preferences
+            FROM users u WHERE u.id = ${partnerId} LIMIT 1
+          `;
+
+					const meRow = await sql`
+            SELECT first_name FROM profiles WHERE user_id = ${userId} LIMIT 1
+          `;
+
+					const myName = meRow[0]?.first_name?.trim() || 'Your partner';
+
+					await notifyUser(sql, {
+						userId: partnerId,
+						pushToken: partnerRow[0]?.push_token,
+						preferences: partnerRow[0]?.notification_preferences,
+						type: 'appreciation',
+						title: `${myName} appreciated something`,
+						message,
+						dedupeKey: `appreciation:${userId}:${Date.now()}`,
+					});
+				}
+
+				const notes = await sql`
+          SELECT
+            a.id,
+            a.from_user_id,
+            a.to_user_id,
+            a.message,
+            a.created_at,
+            p.first_name AS from_first_name
+          FROM appreciations a
+          LEFT JOIN profiles p ON p.user_id = a.from_user_id
+          WHERE a.connection_id = ${connection.id}
+          ORDER BY a.created_at DESC
+          LIMIT 50
+        `;
+
+				return Response.json({
+					appreciations: notes.map((row) => ({
+						...row,
+						mine: row.from_user_id === userId,
+					})),
+				});
+			}
+
+			/*
+			 * ==========================================
+			 * WEEKLY CHECK-IN
+			 * ==========================================
+			 *
+			 * GET  /users/:clerkId/checkin
+			 * POST /users/:clerkId/checkin
+			 *
+			 * How each person feels the relationship is
+			 * going this week, plus enough history to show
+			 * whether that is trending up or down.
+			 */
+
+			const checkinMatch = url.pathname.match(/^\/users\/([^/]+)\/checkin$/);
+
+			if (checkinMatch && (request.method === 'GET' || request.method === 'POST')) {
+				const clerkId = checkinMatch[1];
+
+				const userResult = await sql`
+          SELECT id FROM users WHERE clerk_id = ${clerkId} LIMIT 1
+        `;
+
+				if (userResult.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const userId = userResult[0].id;
+
+				await ensureSchema(sql);
+
+				const connectionResult = await sql`
+          SELECT id, user_one, user_two
+          FROM connections
+          WHERE (user_one = ${userId} OR user_two = ${userId})
+            AND status = 'accepted'
+          LIMIT 1
+        `;
+
+				if (connectionResult.length === 0) {
+					return Response.json({ error: 'You are not connected to anyone yet.' }, { status: 404 });
+				}
+
+				const connection = connectionResult[0];
+				const partnerId = connection.user_one === userId ? connection.user_two : connection.user_one;
+				const weekKey = isoWeekKey(new Date());
+
+				if (request.method === 'POST') {
+					const body = await request.json();
+					const rating = Number(body?.rating);
+					const note = body?.note?.trim() || null;
+
+					if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+						return Response.json({ error: 'rating must be a whole number from 1 to 5' }, { status: 400 });
+					}
+
+					await sql`
+            INSERT INTO checkins (
+              connection_id, user_id, week_key, rating, note
+            )
+            VALUES (
+              ${connection.id}, ${userId}, ${weekKey}, ${rating}, ${note}
+            )
+            ON CONFLICT (user_id, week_key)
+            DO UPDATE SET
+              rating = EXCLUDED.rating,
+              note = EXCLUDED.note,
+              updated_at = NOW()
+          `;
+				}
+
+				const rows = await sql`
+          SELECT user_id, week_key, rating, note, updated_at
+          FROM checkins
+          WHERE connection_id = ${connection.id}
+          ORDER BY week_key DESC
+          LIMIT 24
+        `;
+
+				const mine = rows.find((r) => r.user_id === userId && r.week_key === weekKey) || null;
+				const theirs = rows.find((r) => r.user_id === partnerId && r.week_key === weekKey) || null;
+
+				const partnerProfile = await sql`
+          SELECT first_name FROM profiles WHERE user_id = ${partnerId} LIMIT 1
+        `;
+
+				return Response.json({
+					week: weekKey,
+					your_checkin: mine,
+					partner_checkin: theirs,
+					partner_name: partnerProfile[0]?.first_name?.trim() || 'Your partner',
+					history: rows.map((r) => ({
+						week: r.week_key,
+						rating: r.rating,
+						mine: r.user_id === userId,
+					})),
 				});
 			}
 

@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Celebration from "../../components/Celebration";
 import { GlassBackground, Card } from "../../components/Glass";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
@@ -30,6 +31,7 @@ export default function DreamsScreen() {
   const [dreams, setDreams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [celebrating, setCelebrating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -220,6 +222,8 @@ export default function DreamsScreen() {
         throw new Error(data?.error || "Unable to complete dream.");
       }
 
+      setCelebrating(true);
+
       // Remove it from the active Dream Board.
       setDreams((current) => current.filter((item) => item.id !== dream.id));
 
@@ -312,6 +316,13 @@ export default function DreamsScreen() {
 
   return (
     <SafeAreaView style={styles.screen}>
+      <Celebration
+        visible={celebrating}
+        title="Dream complete"
+        message="One more thing you made happen together."
+        onDone={() => setCelebrating(false)}
+      />
+
       <GlassBackground>
         <KeyboardAvoidingView
           style={styles.keyboardContainer}
