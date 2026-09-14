@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Pressable,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -377,25 +378,23 @@ export default function DreamsScreen() {
               {/* ADD */}
 
               {!showForm ? (
-                <TouchableOpacity
-                  style={styles.addButton}
-                  activeOpacity={0.85}
-                  onPress={openCreateForm}
-                >
-                  <View style={styles.addIcon}>
-                    <Text style={styles.addIconText}>+</Text>
-                  </View>
+                <Pressable onPress={openCreateForm}>
+                  <Card style={styles.addButton}>
+                    <View style={styles.addIcon}>
+                      <Text style={styles.addIconText}>+</Text>
+                    </View>
 
-                  <View style={styles.addContent}>
-                    <Text style={styles.addTitle}>Add a dream</Text>
+                    <View style={styles.addContent}>
+                      <Text style={styles.addTitle}>Add a dream</Text>
 
-                    <Text style={styles.addSubtitle}>
-                      Add something you both want to make happen.
-                    </Text>
-                  </View>
+                      <Text style={styles.addSubtitle}>
+                        Add something you both want to make happen.
+                      </Text>
+                    </View>
 
-                  <Text style={styles.addArrow}>→</Text>
-                </TouchableOpacity>
+                    <Text style={styles.addArrow}>→</Text>
+                  </Card>
+                </Pressable>
               ) : null}
 
               {/* COMPLETED DREAMS LINK */}
@@ -817,25 +816,28 @@ const styles = StyleSheet.create({
   },
 
   addButton: {
-    backgroundColor: "#6B4E45",
     borderRadius: 20,
     padding: 17,
     flexDirection: "row",
     alignItems: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255, 255, 255, 0.9)",
+    marginBottom: 12,
   },
 
   addIcon: {
     width: 43,
     height: 43,
     borderRadius: 22,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    backgroundColor: "#6B4E45",
     alignItems: "center",
     justifyContent: "center",
   },
 
   addIconText: {
-    fontSize: 25,
-    color: "#6B4E45",
+    fontSize: 24,
+    lineHeight: 27,
+    color: "#FFFFFF",
   },
 
   addContent: {
@@ -846,19 +848,19 @@ const styles = StyleSheet.create({
   addTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: "#302825",
   },
 
   addSubtitle: {
     marginTop: 3,
     fontSize: 11,
     lineHeight: 16,
-    color: "#DCCBC4",
+    color: "#817771",
   },
 
   addArrow: {
-    fontSize: 21,
-    color: "#FFFFFF",
+    fontSize: 20,
+    color: "#6B4E45",
     marginLeft: 8,
   },
 

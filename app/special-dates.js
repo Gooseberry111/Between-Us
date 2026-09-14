@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Pressable,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -280,25 +281,23 @@ export default function SpecialDatesScreen() {
               {/* ADD */}
 
               {!showForm ? (
-                <TouchableOpacity
-                  style={styles.addButton}
-                  activeOpacity={0.85}
-                  onPress={() => setShowForm(true)}
-                >
-                  <View style={styles.addIcon}>
-                    <Text style={styles.addIconText}>+</Text>
-                  </View>
+                <Pressable onPress={() => setShowForm(true)}>
+                  <Card style={styles.addButton}>
+                    <View style={styles.addIcon}>
+                      <Text style={styles.addIconText}>+</Text>
+                    </View>
 
-                  <View style={styles.addContent}>
-                    <Text style={styles.addTitle}>Add a special date</Text>
+                    <View style={styles.addContent}>
+                      <Text style={styles.addTitle}>Add a special date</Text>
 
-                    <Text style={styles.addSubtitle}>
-                      You'll both get reminded as it comes up.
-                    </Text>
-                  </View>
+                      <Text style={styles.addSubtitle}>
+                        You'll both get reminded as it comes up.
+                      </Text>
+                    </View>
 
-                  <Text style={styles.addArrow}>→</Text>
-                </TouchableOpacity>
+                    <Text style={styles.addArrow}>→</Text>
+                  </Card>
+                </Pressable>
               ) : null}
 
               {/* FORM */}
@@ -513,26 +512,28 @@ const styles = StyleSheet.create({
   },
 
   addButton: {
-    backgroundColor: "#6B4E45",
     borderRadius: 20,
     padding: 17,
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 15,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255, 255, 255, 0.9)",
+    marginBottom: 12,
   },
 
   addIcon: {
     width: 43,
     height: 43,
     borderRadius: 22,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    backgroundColor: "#6B4E45",
     alignItems: "center",
     justifyContent: "center",
   },
 
   addIconText: {
-    fontSize: 25,
-    color: "#6B4E45",
+    fontSize: 24,
+    lineHeight: 27,
+    color: "#FFFFFF",
   },
 
   addContent: {
@@ -543,19 +544,19 @@ const styles = StyleSheet.create({
   addTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: "#302825",
   },
 
   addSubtitle: {
     marginTop: 3,
     fontSize: 11,
     lineHeight: 16,
-    color: "#DCCBC4",
+    color: "#817771",
   },
 
   addArrow: {
-    fontSize: 21,
-    color: "#FFFFFF",
+    fontSize: 20,
+    color: "#6B4E45",
     marginLeft: 8,
   },
 
