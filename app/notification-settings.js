@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { GlassBackground } from "../components/Glass";
+import { GlassBackground, Card } from "../components/Glass";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
@@ -293,7 +293,7 @@ export default function NotificationSettingsScreen() {
               <View style={styles.section} key={group.label}>
                 <Text style={styles.sectionLabel}>{group.label}</Text>
 
-                <View style={styles.card}>
+                <Card style={styles.card}>
                   {group.items.map((item, index) => (
                     <View key={item.type}>
                       {index > 0 ? <View style={styles.divider} /> : null}
@@ -316,16 +316,16 @@ export default function NotificationSettingsScreen() {
                       </View>
                     </View>
                   ))}
-                </View>
+                </Card>
               </View>
             ))}
 
-            <View style={styles.noteCard}>
+            <Card style={styles.noteCard}>
               <Text style={styles.noteText}>
                 Connection requests always come through, so you never miss
                 someone asking to connect with you.
               </Text>
-            </View>
+            </Card>
           </View>
         </ScrollView>
       </GlassBackground>

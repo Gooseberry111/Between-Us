@@ -10,6 +10,7 @@ import {
   FlatList,
   Keyboard,
 } from "react-native";
+import { Card } from "../components/Glass";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 
@@ -338,7 +339,7 @@ export default function FindPersonScreen() {
 
   const renderRequest = ({ item }) => {
     return (
-      <View style={styles.requestCard}>
+      <Card style={styles.requestCard}>
         <View style={styles.requestAvatar}>
           <Text style={styles.requestAvatarText}>
             {item.requester_first_name?.charAt(0)?.toUpperCase() || "?"}
@@ -367,7 +368,7 @@ export default function FindPersonScreen() {
         >
           <Text style={styles.requestViewButtonText}>View</Text>
         </TouchableOpacity>
-      </View>
+      </Card>
     );
   };
 

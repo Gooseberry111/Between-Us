@@ -135,6 +135,66 @@ export function GlassPanel({ children, style, radius = 26, padding = 20 }) {
 
 /*
  * ==========================================
+ * CARD
+ * ==========================================
+ *
+ * A drop-in replacement for a plain <View> that
+ * already has card styling. It keeps whatever
+ * padding, radius and border the screen defined
+ * and simply renders the frosted material behind
+ * the content, so existing screens become glass
+ * without reshuffling their layout.
+ *
+ * dark: use for the brown cards, so they match the
+ * question panel on Home rather than being flat
+ * blocks of colour.
+ */
+export function Card({ children, style, dark = false, ...rest }) {
+  return (
+    <View style={[styles.cardBase, style]} {...rest}>
+      <BlurView
+        intensity={dark ? 35 : 55}
+        tint={dark ? "dark" : "light"}
+        {...androidBlur}
+        style={StyleSheet.absoluteFill}
+      />
+
+      <LinearGradient
+        colors={
+          dark
+            ? ["rgba(94,68,60,0.94)", "rgba(58,40,35,0.9)"]
+            : [
+                "rgba(255,255,255,0.9)",
+                "rgba(255,255,255,0.7)",
+                "rgba(255,255,255,0.6)",
+              ]
+        }
+        locations={dark ? [0, 1] : [0, 0.5, 1]}
+        start={{ x: 0.2, y: 0 }}
+        end={{ x: 0.85, y: 1 }}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
+
+      {/* Light catching the top lip. */}
+      <LinearGradient
+        colors={[
+          dark ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.85)",
+          "rgba(255,255,255,0)",
+        ]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 0.55 }}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
+
+      {children}
+    </View>
+  );
+}
+
+/*
+ * ==========================================
  * PRESSABLE GLASS
  * ==========================================
  *
@@ -142,7 +202,13 @@ export function GlassPanel({ children, style, radius = 26, padding = 20 }) {
  * movement, but it is the difference between the
  * UI feeling inert and feeling alive.
  */
-export function GlassPressable({ children, onPress, style, radius = 24, padding = 18 }) {
+export function GlassPressable({
+  children,
+  onPress,
+  style,
+  radius = 24,
+  padding = 18,
+}) {
   const scale = useRef(new Animated.Value(1)).current;
 
   const to = (value) =>
@@ -211,11 +277,15 @@ export function FadeIn({ children, delay = 0, style, distance = 14 }) {
 }
 
 const styles = StyleSheet.create({
+  /* Blur has to be clipped to the card's own radius. */
+  cardBase: {
+    overflow: "hidden",
+  },
+
   fill: {
     flex: 1,
     backgroundColor: "#FDF9F6",
   },
-
 
   card: {
     overflow: "hidden",

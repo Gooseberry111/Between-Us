@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { GlassBackground } from "../components/Glass";
+import { GlassBackground, Card } from "../components/Glass";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import {
@@ -209,7 +209,7 @@ export default function CompletedGoalsScreen() {
 
             {/* SUMMARY */}
 
-            <View style={styles.summaryCard}>
+            <Card style={styles.summaryCard}>
               <Text style={styles.summaryNumber}>{goals.length}</Text>
 
               <View style={styles.summaryText}>
@@ -221,7 +221,7 @@ export default function CompletedGoalsScreen() {
                   Keep growing together, one goal at a time.
                 </Text>
               </View>
-            </View>
+            </Card>
 
             {/* GOALS */}
 
@@ -237,7 +237,7 @@ export default function CompletedGoalsScreen() {
               </Text>
 
               {goals.length === 0 ? (
-                <View style={styles.emptyCard}>
+                <Card style={styles.emptyCard}>
                   <View style={styles.emptyIcon}>
                     <Text style={styles.emptyIconText}>✓</Text>
                   </View>
@@ -258,7 +258,7 @@ export default function CompletedGoalsScreen() {
                   >
                     <Text style={styles.backToGoalsText}>Back to goals</Text>
                   </TouchableOpacity>
-                </View>
+                </Card>
               ) : (
                 goals.map((goal, index) => (
                   <CompletedGoalCard
@@ -272,7 +272,7 @@ export default function CompletedGoalsScreen() {
             </View>
 
             {goals.length > 0 ? (
-              <View style={styles.footerCard}>
+              <Card style={styles.footerCard}>
                 <Text style={styles.footerQuote}>
                   "Progress, not perfection."
                 </Text>
@@ -280,7 +280,7 @@ export default function CompletedGoalsScreen() {
                 <Text style={styles.footerText}>
                   Look back at what you have already worked through together.
                 </Text>
-              </View>
+              </Card>
             ) : null}
           </View>
         </ScrollView>
@@ -307,7 +307,7 @@ function CompletedGoalCard({ goal, index, onMarkActive }) {
     : null;
 
   return (
-    <View style={styles.goalCard}>
+    <Card style={styles.goalCard}>
       <View style={styles.goalTop}>
         <View style={styles.goalNumber}>
           <Text style={styles.goalNumberText}>
@@ -353,7 +353,7 @@ function CompletedGoalCard({ goal, index, onMarkActive }) {
 
         <Text style={styles.reactivateText}>Move back to active goals</Text>
       </TouchableOpacity>
-    </View>
+    </Card>
   );
 }
 

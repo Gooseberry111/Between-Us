@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { GlassBackground } from "../../components/Glass";
+import { GlassBackground, Card } from "../../components/Glass";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import DateInput from "../../components/DateInput";
@@ -356,7 +356,7 @@ export default function DreamsScreen() {
 
               {/* SUMMARY */}
 
-              <View style={styles.summaryCard}>
+              <Card style={styles.summaryCard}>
                 <View style={styles.summaryItem}>
                   <Text style={styles.summaryNumber}>{dreams.length}</Text>
                   <Text style={styles.summaryLabel}>In progress</Text>
@@ -372,7 +372,7 @@ export default function DreamsScreen() {
                   <Text style={styles.summaryNumber}>›</Text>
                   <Text style={styles.summaryLabel}>Completed dreams</Text>
                 </TouchableOpacity>
-              </View>
+              </Card>
 
               {/* ADD */}
 
@@ -425,7 +425,7 @@ export default function DreamsScreen() {
               {/* FORM */}
 
               {showForm ? (
-                <View style={styles.formCard}>
+                <Card style={styles.formCard}>
                   <View style={styles.formHeader}>
                     <View>
                       <Text style={styles.formLabel}>
@@ -523,7 +523,7 @@ export default function DreamsScreen() {
                       </Text>
                     )}
                   </TouchableOpacity>
-                </View>
+                </Card>
               ) : null}
 
               {/* ACTIVE DREAMS */}
@@ -540,7 +540,7 @@ export default function DreamsScreen() {
                 </Text>
 
                 {dreams.length === 0 ? (
-                  <View style={styles.emptyCard}>
+                  <Card style={styles.emptyCard}>
                     <View style={styles.emptyIcon}>
                       <Text style={styles.emptyIconText}>✦</Text>
                     </View>
@@ -560,7 +560,7 @@ export default function DreamsScreen() {
                         Add your first dream
                       </Text>
                     </TouchableOpacity>
-                  </View>
+                  </Card>
                 ) : (
                   dreams.map((dream, index) => (
                     <DreamCard
@@ -576,7 +576,7 @@ export default function DreamsScreen() {
               </View>
 
               {dreams.length > 0 ? (
-                <View style={styles.footerCard}>
+                <Card style={styles.footerCard}>
                   <Text style={styles.footerQuote}>
                     "Dreams are better when you build them together."
                   </Text>
@@ -584,7 +584,7 @@ export default function DreamsScreen() {
                   <Text style={styles.footerText}>
                     Keep adding things you want your future to hold.
                   </Text>
-                </View>
+                </Card>
               ) : null}
             </View>
           </ScrollView>
@@ -604,7 +604,7 @@ function DreamCard({ dream, index, onEdit, onDelete, onToggle }) {
     : null;
 
   return (
-    <View style={styles.dreamCard}>
+    <Card style={styles.dreamCard}>
       <View style={styles.dreamTop}>
         <View style={styles.dreamNumber}>
           <Text style={styles.dreamNumberText}>
@@ -655,7 +655,7 @@ function DreamCard({ dream, index, onEdit, onDelete, onToggle }) {
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </Card>
   );
 }
 

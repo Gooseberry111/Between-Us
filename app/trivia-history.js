@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { GlassBackground } from "../components/Glass";
+import { GlassBackground, Card } from "../components/Glass";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
@@ -164,7 +164,7 @@ export default function TriviaHistoryScreen() {
             {/* STATS */}
 
             {stats && stats.rounds_played > 0 ? (
-              <View style={styles.statsCard}>
+              <Card style={styles.statsCard}>
                 <View style={styles.statItem}>
                   <Text style={styles.statNumber}>{stats.rounds_played}</Text>
                   <Text style={styles.statLabel}>
@@ -187,7 +187,7 @@ export default function TriviaHistoryScreen() {
                   </Text>
                   <Text style={styles.statLabel}>Accuracy</Text>
                 </View>
-              </View>
+              </Card>
             ) : null}
 
             {/* SESSIONS */}
@@ -204,7 +204,7 @@ export default function TriviaHistoryScreen() {
               </Text>
 
               {sessions.length === 0 ? (
-                <View style={styles.emptyCard}>
+                <Card style={styles.emptyCard}>
                   <View style={styles.emptyIcon}>
                     <Ionicons
                       name="help-circle-outline"
@@ -227,7 +227,7 @@ export default function TriviaHistoryScreen() {
                   >
                     <Text style={styles.emptyButtonText}>Play trivia</Text>
                   </TouchableOpacity>
-                </View>
+                </Card>
               ) : (
                 sessions.map((session) => (
                   <SessionCard key={session.id} session={session} />
@@ -236,12 +236,12 @@ export default function TriviaHistoryScreen() {
             </View>
 
             {sessions.length > 0 ? (
-              <View style={styles.footerCard}>
+              <Card style={styles.footerCard}>
                 <Text style={styles.footerQuote}>
                   "The point is not to get everything right. It is to keep
                   paying attention to each other."
                 </Text>
-              </View>
+              </Card>
             ) : null}
           </View>
         </ScrollView>

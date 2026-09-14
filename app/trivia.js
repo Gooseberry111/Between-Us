@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { GlassBackground } from "../components/Glass";
+import { GlassBackground, Card } from "../components/Glass";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import { clearCachedData } from "../lib/dataCache";
@@ -240,14 +240,14 @@ export default function TriviaScreen() {
                   : `There is always more to discover about ${partnerName}.`}
             </Text>
 
-            <View style={styles.resultCard}>
+            <Card style={styles.resultCard}>
               <Text style={styles.resultCardTitle}>A little reminder</Text>
 
               <Text style={styles.resultCardText}>
                 The point is not to get everything right. It is to keep paying
                 attention to each other.
               </Text>
-            </View>
+            </Card>
 
             <TouchableOpacity
               style={styles.primaryButton}
@@ -345,7 +345,7 @@ export default function TriviaScreen() {
 
           {/* QUESTION */}
 
-          <View style={styles.questionCard}>
+          <Card dark style={styles.questionCard}>
             <View style={styles.questionIcon}>
               <Text style={styles.questionIconText}>✦</Text>
             </View>
@@ -355,7 +355,7 @@ export default function TriviaScreen() {
             <Text style={styles.questionHint}>
               Choose the answer you think they would give.
             </Text>
-          </View>
+          </Card>
 
           {/* OPTIONS */}
 

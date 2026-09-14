@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Pressable,
   RefreshControl,
   SafeAreaView,
   ScrollView,
@@ -19,6 +20,7 @@ import {
   GlassPanel,
   GlassPressable,
   FadeIn,
+  Card,
 } from "../../components/Glass";
 
 const API_URL = "https://between-us-api.between-us.workers.dev";
@@ -295,7 +297,7 @@ export default function HomeScreen() {
 
               {error ? <ErrorMessage message={error} /> : null}
 
-              <View style={styles.welcomeCard}>
+              <Card style={styles.welcomeCard}>
                 <View style={styles.welcomeIcon}>
                   <Text style={styles.heart}>♡</Text>
                 </View>
@@ -321,13 +323,13 @@ export default function HomeScreen() {
 
                   <Text style={styles.primaryArrow}>→</Text>
                 </TouchableOpacity>
-              </View>
+              </Card>
 
               {pendingRequests.length > 0 ? (
                 <View style={styles.section}>
                   <Text style={styles.sectionLabel}>CONNECTION REQUEST</Text>
 
-                  <View style={styles.pendingCard}>
+                  <Card style={styles.pendingCard}>
                     <View style={styles.pendingIcon}>
                       <Text style={styles.pendingHeart}>♡</Text>
                     </View>
@@ -348,7 +350,7 @@ export default function HomeScreen() {
                     >
                       <Text style={styles.smallButtonText}>View</Text>
                     </TouchableOpacity>
-                  </View>
+                  </Card>
                 </View>
               ) : null}
 
@@ -439,35 +441,9 @@ export default function HomeScreen() {
 
             {error ? <ErrorMessage message={error} /> : null}
 
-            {/* DAILY QUESTION */}
-
-            <FadeIn delay={40}>
-              <GlassPanel style={styles.dailyPanel}>
-                <View style={styles.dailyTop}>
-                  <Text style={styles.dailyLabel}>TODAY'S QUESTION</Text>
-
-                  <Ionicons name="arrow-forward" size={16} color="#F0E4DE" />
-                </View>
-
-                <Text style={styles.dailyText} numberOfLines={3}>
-                  {dailyQuestion}
-                </Text>
-
-                <TouchableOpacity
-                  style={styles.dailyButton}
-                  activeOpacity={0.85}
-                  onPress={() => router.push("/daily-question")}
-                >
-                  <Text style={styles.dailyButtonText}>
-                    Answer & unlock {partnerName}'s
-                  </Text>
-                </TouchableOpacity>
-              </GlassPanel>
-            </FadeIn>
-
             {/* CONNECTION CARD */}
 
-            <FadeIn delay={120}>
+            <FadeIn delay={40}>
               <GlassPressable
                 style={styles.connectionCard}
                 onPress={() => router.push("/connection")}
@@ -508,6 +484,32 @@ export default function HomeScreen() {
               </GlassPressable>
             </FadeIn>
 
+            {/* DAILY QUESTION */}
+
+            <FadeIn delay={120}>
+              <GlassPanel style={styles.dailyPanel}>
+                <View style={styles.dailyTop}>
+                  <Text style={styles.dailyLabel}>TODAY'S QUESTION</Text>
+
+                  <Ionicons name="arrow-forward" size={16} color="#F0E4DE" />
+                </View>
+
+                <Text style={styles.dailyText} numberOfLines={3}>
+                  {dailyQuestion}
+                </Text>
+
+                <TouchableOpacity
+                  style={styles.dailyButton}
+                  activeOpacity={0.85}
+                  onPress={() => router.push("/daily-question")}
+                >
+                  <Text style={styles.dailyButtonText}>
+                    Answer & unlock {partnerName}'s
+                  </Text>
+                </TouchableOpacity>
+              </GlassPanel>
+            </FadeIn>
+
             {/* TODAY */}
 
             <View style={styles.section}>
@@ -521,7 +523,7 @@ export default function HomeScreen() {
                 </View>
               </View>
 
-              <View style={styles.promptCard}>
+              <Card style={styles.promptCard}>
                 <View style={styles.promptIcon}>
                   <Text style={styles.promptIconText}>✦</Text>
                 </View>
@@ -549,7 +551,7 @@ export default function HomeScreen() {
                     {todayPrompt.buttonText}
                   </Text>
                 </TouchableOpacity>
-              </View>
+              </Card>
             </View>
 
             {/* COUPLE TRIVIA */}
@@ -566,30 +568,35 @@ export default function HomeScreen() {
                   </View>
                 </View>
 
-                <TouchableOpacity
+                <Pressable
                   style={styles.triviaCard}
-                  activeOpacity={0.9}
                   onPress={() => router.push("/trivia")}
                 >
-                  <View style={styles.triviaIcon}>
-                    <Text style={styles.triviaIconText}>?</Text>
-                  </View>
+                  <GlassPanel>
+                    <View style={styles.triviaRow}>
+                      <View style={styles.triviaIcon}>
+                        <Text style={styles.triviaIconText}>?</Text>
+                      </View>
 
-                  <View style={styles.triviaContent}>
-                    <Text style={styles.triviaTitle}>
-                      Test what you know about them
-                    </Text>
+                      <View style={styles.triviaContent}>
+                        <Text style={styles.triviaTitle}>
+                          Test what you know about them
+                        </Text>
 
-                    <Text style={styles.triviaDescription}>
-                      Answer {trivia.total_questions} quick questions about{" "}
-                      {partnerName}.
-                    </Text>
+                        <Text style={styles.triviaDescription}>
+                          Answer {trivia.total_questions} quick questions about{" "}
+                          {partnerName}.
+                        </Text>
 
-                    <View style={styles.triviaButton}>
-                      <Text style={styles.triviaButtonText}>Play trivia →</Text>
+                        <View style={styles.triviaButton}>
+                          <Text style={styles.triviaButtonText}>
+                            Play trivia →
+                          </Text>
+                        </View>
+                      </View>
                     </View>
-                  </View>
-                </TouchableOpacity>
+                  </GlassPanel>
+                </Pressable>
               </View>
             ) : null}
 
@@ -598,7 +605,7 @@ export default function HomeScreen() {
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>ABOUT THEM</Text>
 
-              <View style={styles.snapshotCard}>
+              <Card style={styles.snapshotCard}>
                 <Text style={styles.snapshotTitle}>What they enjoy</Text>
 
                 {food ? <SnapshotRow label="Food" value={food} /> : null}
@@ -626,7 +633,7 @@ export default function HomeScreen() {
                     You are still learning more about each other.
                   </Text>
                 ) : null}
-              </View>
+              </Card>
             </View>
 
             {/* HOW TO LOVE THEM */}
@@ -634,7 +641,7 @@ export default function HomeScreen() {
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>HOW TO LOVE THEM</Text>
 
-              <View style={styles.loveCard}>
+              <Card style={styles.loveCard}>
                 <Text style={styles.loveCardTitle}>
                   What feels natural to them
                 </Text>
@@ -663,7 +670,7 @@ export default function HomeScreen() {
                 {conflictStyle ? (
                   <InfoRow label="During conflict" value={conflictStyle} />
                 ) : null}
-              </View>
+              </Card>
             </View>
 
             {/* GOALS */}
@@ -672,7 +679,7 @@ export default function HomeScreen() {
               <View style={styles.section}>
                 <Text style={styles.sectionLabel}>WHAT THEY WANT MORE OF</Text>
 
-                <View style={styles.goalsCard}>
+                <Card style={styles.goalsCard}>
                   {focusAreas.map((focusArea, index) => (
                     <View key={`${focusArea}-${index}`} style={styles.goalRow}>
                       <View style={styles.goalIcon}>
@@ -682,7 +689,7 @@ export default function HomeScreen() {
                       <Text style={styles.goalText}>{focusArea}</Text>
                     </View>
                   ))}
-                </View>
+                </Card>
               </View>
             ) : null}
 
@@ -692,7 +699,7 @@ export default function HomeScreen() {
 
             {/* FOOTER */}
 
-            <View style={styles.footerCard}>
+            <Card style={styles.footerCard}>
               <Text style={styles.footerQuote}>
                 "The little things are often the big things."
               </Text>
@@ -700,7 +707,7 @@ export default function HomeScreen() {
               <Text style={styles.footerSubtext}>
                 Between Us is here to help you remember them.
               </Text>
-            </View>
+            </Card>
           </View>
         </ScrollView>
       </GlassBackground>
@@ -1205,7 +1212,7 @@ const styles = StyleSheet.create({
   },
 
   connectionCard: {
-    marginBottom: 13,
+    marginBottom: 18,
   },
 
   connectionTop: {
@@ -1544,9 +1551,9 @@ const styles = StyleSheet.create({
 
   triviaCard: {
     marginTop: 14,
-    backgroundColor: "#6B4E45",
-    borderRadius: 20,
-    padding: 18,
+  },
+
+  triviaRow: {
     flexDirection: "row",
     alignItems: "center",
   },
@@ -1555,7 +1562,9 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    backgroundColor: "rgba(255, 255, 255, 0.18)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255, 255, 255, 0.35)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1563,7 +1572,7 @@ const styles = StyleSheet.create({
   triviaIconText: {
     fontSize: 22,
     fontWeight: "800",
-    color: "#6B4E45",
+    color: "#FFFFFF",
   },
 
   triviaContent: {
@@ -1587,16 +1596,18 @@ const styles = StyleSheet.create({
   triviaButton: {
     alignSelf: "flex-start",
     marginTop: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 9,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    paddingHorizontal: 13,
+    paddingVertical: 9,
+    borderRadius: 10,
+    backgroundColor: "rgba(255, 255, 255, 0.18)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255, 255, 255, 0.4)",
   },
 
   triviaButtonText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#6B4E45",
+    fontSize: 11.5,
+    fontWeight: "800",
+    color: "#FFFFFF",
   },
 
   /*

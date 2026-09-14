@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { GlassBackground } from "../components/Glass";
+import { GlassBackground, Card } from "../components/Glass";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import { getCachedData, setCachedData } from "../lib/dataCache";
@@ -199,7 +199,7 @@ export default function CompletedDreamsScreen() {
 
             {/* SUMMARY */}
 
-            <View style={styles.summaryCard}>
+            <Card style={styles.summaryCard}>
               <Text style={styles.summaryNumber}>{dreams.length}</Text>
 
               <View style={styles.summaryText}>
@@ -211,7 +211,7 @@ export default function CompletedDreamsScreen() {
                   Keep building your story together.
                 </Text>
               </View>
-            </View>
+            </Card>
 
             {/* DREAMS */}
 
@@ -227,7 +227,7 @@ export default function CompletedDreamsScreen() {
               </Text>
 
               {dreams.length === 0 ? (
-                <View style={styles.emptyCard}>
+                <Card style={styles.emptyCard}>
                   <View style={styles.emptyIcon}>
                     <Text style={styles.emptyIconText}>✓</Text>
                   </View>
@@ -248,7 +248,7 @@ export default function CompletedDreamsScreen() {
                   >
                     <Text style={styles.backToDreamsText}>Back to dreams</Text>
                   </TouchableOpacity>
-                </View>
+                </Card>
               ) : (
                 dreams.map((dream, index) => (
                   <CompletedDreamCard
@@ -262,13 +262,13 @@ export default function CompletedDreamsScreen() {
             </View>
 
             {dreams.length > 0 ? (
-              <View style={styles.footerCard}>
+              <Card style={styles.footerCard}>
                 <Text style={styles.footerQuote}>"One dream at a time."</Text>
 
                 <Text style={styles.footerText}>
                   Look back at what you have already built together.
                 </Text>
-              </View>
+              </Card>
             ) : null}
           </View>
         </ScrollView>
@@ -295,7 +295,7 @@ function CompletedDreamCard({ dream, index, onMarkIncomplete }) {
     : null;
 
   return (
-    <View style={styles.dreamCard}>
+    <Card style={styles.dreamCard}>
       <View style={styles.dreamTop}>
         <View style={styles.dreamNumber}>
           <Text style={styles.dreamNumberText}>
@@ -341,7 +341,7 @@ function CompletedDreamCard({ dream, index, onMarkIncomplete }) {
 
         <Text style={styles.incompleteText}>Move back to dreams</Text>
       </TouchableOpacity>
-    </View>
+    </Card>
   );
 }
 

@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { GlassBackground } from "../components/Glass";
+import { GlassBackground, Card } from "../components/Glass";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
@@ -159,7 +159,7 @@ export default function NotificationsScreen() {
 
             <View style={styles.section}>
               {notifications.length === 0 ? (
-                <View style={styles.emptyCard}>
+                <Card style={styles.emptyCard}>
                   <View style={styles.emptyIcon}>
                     <Ionicons
                       name="notifications-outline"
@@ -173,7 +173,7 @@ export default function NotificationsScreen() {
                   <Text style={styles.emptyText}>
                     When something important happens, you'll find it here.
                   </Text>
-                </View>
+                </Card>
               ) : (
                 notifications.map((notification) => (
                   <NotificationCard

@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { GlassBackground } from "../components/Glass";
+import { GlassBackground, Card } from "../components/Glass";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
@@ -426,7 +426,7 @@ export default function GoalsScreen() {
               {/* FORM */}
 
               {showForm ? (
-                <View style={styles.formCard}>
+                <Card style={styles.formCard}>
                   <View style={styles.formHeader}>
                     <View>
                       <Text style={styles.formLabel}>
@@ -495,7 +495,7 @@ export default function GoalsScreen() {
                       </Text>
                     )}
                   </TouchableOpacity>
-                </View>
+                </Card>
               ) : null}
 
               {/* GOALS */}
@@ -512,7 +512,7 @@ export default function GoalsScreen() {
                 </Text>
 
                 {goals.length === 0 ? (
-                  <View style={styles.emptyCard}>
+                  <Card style={styles.emptyCard}>
                     <View style={styles.emptyIcon}>
                       <Text style={styles.emptyIconText}>◆</Text>
                     </View>
@@ -532,7 +532,7 @@ export default function GoalsScreen() {
                         Add your first goal
                       </Text>
                     </TouchableOpacity>
-                  </View>
+                  </Card>
                 ) : (
                   goals.map((goal, index) => (
                     <GoalCard
@@ -548,7 +548,7 @@ export default function GoalsScreen() {
               </View>
 
               {goals.length > 0 ? (
-                <View style={styles.footerCard}>
+                <Card style={styles.footerCard}>
                   <Text style={styles.footerQuote}>
                     "Progress, not perfection."
                   </Text>
@@ -556,7 +556,7 @@ export default function GoalsScreen() {
                   <Text style={styles.footerText}>
                     Small, steady steps build a stronger relationship.
                   </Text>
-                </View>
+                </Card>
               ) : null}
             </View>
           </ScrollView>
@@ -576,7 +576,7 @@ function GoalCard({ goal, index, onEdit, onDelete, onComplete }) {
     : null;
 
   return (
-    <View style={styles.goalCard}>
+    <Card style={styles.goalCard}>
       <View style={styles.goalTop}>
         <View style={styles.goalNumber}>
           <Text style={styles.goalNumberText}>
@@ -621,7 +621,7 @@ function GoalCard({ goal, index, onEdit, onDelete, onComplete }) {
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </Card>
   );
 }
 

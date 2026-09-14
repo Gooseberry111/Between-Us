@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Card } from "../components/Glass";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import DateInput from "../components/DateInput";
@@ -176,7 +177,7 @@ export default function EditProfileScreen() {
 
             {/* INTRO */}
 
-            <View style={styles.introCard}>
+            <Card dark style={styles.introCard}>
               <View style={styles.introIcon}>
                 <Text style={styles.introHeart}>♡</Text>
               </View>
@@ -187,14 +188,14 @@ export default function EditProfileScreen() {
                 Keep your information up to date so Between Us can feel more
                 personal to you.
               </Text>
-            </View>
+            </Card>
 
             {/* FORM */}
 
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>YOUR INFORMATION</Text>
 
-              <View style={styles.formCard}>
+              <Card style={styles.formCard}>
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>FIRST NAME</Text>
 
@@ -241,7 +242,7 @@ export default function EditProfileScreen() {
                     Used to remind your partner when your birthday is coming up.
                   </Text>
                 </View>
-              </View>
+              </Card>
             </View>
 
             {/* SAVE */}
@@ -372,7 +373,7 @@ const styles = StyleSheet.create({
 
   introHeart: {
     fontSize: 26,
-    color: "#6B4E45",
+    color: "#FFFFFF",
   },
 
   introTitle: {

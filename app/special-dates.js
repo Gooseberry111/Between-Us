@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { GlassBackground } from "../components/Glass";
+import { GlassBackground, Card } from "../components/Glass";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
@@ -304,7 +304,7 @@ export default function SpecialDatesScreen() {
               {/* FORM */}
 
               {showForm ? (
-                <View style={styles.formCard}>
+                <Card style={styles.formCard}>
                   <View style={styles.formHeader}>
                     <View>
                       <Text style={styles.formLabel}>NEW SPECIAL DATE</Text>
@@ -355,7 +355,7 @@ export default function SpecialDatesScreen() {
                       <Text style={styles.saveButtonText}>Add date</Text>
                     )}
                   </TouchableOpacity>
-                </View>
+                </Card>
               ) : null}
 
               {/* SPECIAL DATES */}
@@ -372,7 +372,7 @@ export default function SpecialDatesScreen() {
                 </Text>
 
                 {specialDates.length === 0 ? (
-                  <View style={styles.emptyCard}>
+                  <Card style={styles.emptyCard}>
                     <View style={styles.emptyIcon}>
                       <Ionicons
                         name="calendar-outline"
@@ -396,7 +396,7 @@ export default function SpecialDatesScreen() {
                         Add your first date
                       </Text>
                     </TouchableOpacity>
-                  </View>
+                  </Card>
                 ) : (
                   specialDates.map((specialDate) => (
                     <SpecialDateCard
@@ -409,12 +409,12 @@ export default function SpecialDatesScreen() {
               </View>
 
               {specialDates.length > 0 ? (
-                <View style={styles.footerCard}>
+                <Card style={styles.footerCard}>
                   <Text style={styles.footerQuote}>
                     "The days you choose to remember are the days that mean the
                     most."
                   </Text>
-                </View>
+                </Card>
               ) : null}
             </View>
           </ScrollView>
@@ -433,7 +433,7 @@ function SpecialDateCard({ specialDate, onDelete }) {
     : null;
 
   return (
-    <View style={styles.dateCard}>
+    <Card style={styles.dateCard}>
       <View style={styles.dateCardIcon}>
         <Ionicons name="calendar-outline" size={19} color="#6B4E45" />
       </View>
@@ -447,7 +447,7 @@ function SpecialDateCard({ specialDate, onDelete }) {
       <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
         <Text style={styles.deleteButtonText}>Delete</Text>
       </TouchableOpacity>
-    </View>
+    </Card>
   );
 }
 

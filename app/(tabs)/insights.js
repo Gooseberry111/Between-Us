@@ -8,7 +8,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { GlassBackground } from "../../components/Glass";
+import { GlassBackground, Card } from "../../components/Glass";
 import { getCachedData, setCachedData } from "../../lib/dataCache";
 import { Skeleton, SkeletonList } from "../../components/Skeleton";
 import { useAuth } from "@clerk/expo";
@@ -335,7 +335,7 @@ export default function InsightsScreen() {
 
             {/* HERO */}
 
-            <View style={styles.heroCard}>
+            <Card dark style={styles.heroCard}>
               <View style={styles.heroIcon}>
                 <Text style={styles.heroHeart}>♡</Text>
               </View>
@@ -348,14 +348,14 @@ export default function InsightsScreen() {
                 Between Us compares the things you both shared to help you
                 understand each other better.
               </Text>
-            </View>
+            </Card>
 
             {/* RELATIONSHIP */}
 
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>YOUR RELATIONSHIP</Text>
 
-              <View style={styles.connectionCard}>
+              <Card style={styles.connectionCard}>
                 <View style={styles.connectionAvatar}>
                   <Text style={styles.connectionAvatarText}>
                     {partnerName.charAt(0).toUpperCase()}
@@ -369,11 +369,11 @@ export default function InsightsScreen() {
 
                   <Text style={styles.connectionType}>{relationshipType}</Text>
                 </View>
-              </View>
+              </Card>
             </View>
 
             {!connection ? (
-              <View style={styles.noConnectionCard}>
+              <Card style={styles.noConnectionCard}>
                 <Text style={styles.noConnectionTitle}>
                   Connect with someone
                 </Text>
@@ -383,7 +383,7 @@ export default function InsightsScreen() {
                   shared insights and discover what makes your relationship
                   unique.
                 </Text>
-              </View>
+              </Card>
             ) : null}
 
             {/* YOUR INSIGHTS */}
@@ -392,21 +392,21 @@ export default function InsightsScreen() {
               <Text style={styles.sectionLabel}>YOUR INSIGHTS</Text>
 
               <View style={styles.aboutGrid}>
-                <View style={styles.smallCard}>
+                <Card style={styles.smallCard}>
                   <Text style={styles.cardEyebrow}>PERSONALITY</Text>
 
                   <Text style={styles.smallCardValue}>
                     {insights?.personality_type || "Not set"}
                   </Text>
-                </View>
+                </Card>
 
-                <View style={styles.smallCard}>
+                <Card style={styles.smallCard}>
                   <Text style={styles.cardEyebrow}>CONFLICT STYLE</Text>
 
                   <Text style={styles.smallCardValue}>
                     {insights?.conflict_style || "Not set"}
                   </Text>
-                </View>
+                </Card>
               </View>
             </View>
 
@@ -419,21 +419,21 @@ export default function InsightsScreen() {
                 </Text>
 
                 <View style={styles.aboutGrid}>
-                  <View style={styles.smallCard}>
+                  <Card style={styles.smallCard}>
                     <Text style={styles.cardEyebrow}>PERSONALITY</Text>
 
                     <Text style={styles.smallCardValue}>
                       {partnerInsights?.personality_type || "Not set"}
                     </Text>
-                  </View>
+                  </Card>
 
-                  <View style={styles.smallCard}>
+                  <Card style={styles.smallCard}>
                     <Text style={styles.cardEyebrow}>CONFLICT STYLE</Text>
 
                     <Text style={styles.smallCardValue}>
                       {partnerInsights?.conflict_style || "Not set"}
                     </Text>
-                  </View>
+                  </Card>
                 </View>
               </View>
             ) : null}
@@ -444,7 +444,7 @@ export default function InsightsScreen() {
               <View style={styles.section}>
                 <Text style={styles.sectionLabel}>WHAT YOU HAVE IN COMMON</Text>
 
-                <View style={styles.sharedCard}>
+                <Card style={styles.sharedCard}>
                   {sharedLoveLanguages.length > 0 ? (
                     <InsightRow
                       title="Shared love language"
@@ -476,7 +476,7 @@ export default function InsightsScreen() {
                       You are still discovering what you have in common.
                     </Text>
                   ) : null}
-                </View>
+                </Card>
               </View>
             ) : null}
 
@@ -486,7 +486,7 @@ export default function InsightsScreen() {
               <View style={styles.section}>
                 <Text style={styles.sectionLabel}>WHERE YOU DIFFER</Text>
 
-                <View style={styles.sharedCard}>
+                <Card style={styles.sharedCard}>
                   {differences.length > 0 ? (
                     differences.map((difference, index) => (
                       <View
@@ -507,7 +507,7 @@ export default function InsightsScreen() {
                       questions to discover more about each other.
                     </Text>
                   )}
-                </View>
+                </Card>
               </View>
             ) : null}
 
@@ -516,7 +516,7 @@ export default function InsightsScreen() {
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>YOUR LOVE LANGUAGES</Text>
 
-              <View style={styles.loveCard}>
+              <Card style={styles.loveCard}>
                 {loveLanguages.length > 0 ? (
                   loveLanguages.map((language, index) => (
                     <View
@@ -540,7 +540,7 @@ export default function InsightsScreen() {
                     Your love languages have not been added yet.
                   </Text>
                 )}
-              </View>
+              </Card>
             </View>
 
             {/* PARTNER LOVE LANGUAGE */}
@@ -551,7 +551,7 @@ export default function InsightsScreen() {
                   {partnerName.toUpperCase()}'S LOVE LANGUAGES
                 </Text>
 
-                <View style={styles.loveCard}>
+                <Card style={styles.loveCard}>
                   {partnerLoveLanguages.length > 0 ? (
                     partnerLoveLanguages.map((language, index) => (
                       <View
@@ -576,7 +576,7 @@ export default function InsightsScreen() {
                       Your partner has not added any love languages yet.
                     </Text>
                   )}
-                </View>
+                </Card>
               </View>
             ) : null}
 
@@ -586,7 +586,7 @@ export default function InsightsScreen() {
               <View style={styles.section}>
                 <Text style={styles.sectionLabel}>A LITTLE INSIGHT</Text>
 
-                <View style={styles.insightCard}>
+                <Card style={styles.insightCard}>
                   <View style={styles.insightIcon}>
                     <Text style={styles.insightIconText}>♡</Text>
                   </View>
@@ -596,7 +596,7 @@ export default function InsightsScreen() {
                   <Text style={styles.cardDescription}>
                     {relationshipInsight}
                   </Text>
-                </View>
+                </Card>
               </View>
             ) : null}
 
@@ -606,7 +606,7 @@ export default function InsightsScreen() {
               <View style={styles.section}>
                 <Text style={styles.sectionLabel}>THINGS TO DO TOGETHER</Text>
 
-                <View style={styles.goalsCard}>
+                <Card style={styles.goalsCard}>
                   {sharedFocusAreas.map((focusArea, index) => (
                     <View
                       style={[
@@ -623,7 +623,7 @@ export default function InsightsScreen() {
                       <Text style={styles.goalText}>{focusArea}</Text>
                     </View>
                   ))}
-                </View>
+                </Card>
               </View>
             ) : null}
 
@@ -632,7 +632,7 @@ export default function InsightsScreen() {
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>YOUR FAVORITES</Text>
 
-              <View style={styles.favoritesCard}>
+              <Card style={styles.favoritesCard}>
                 <FavoriteRow label="Food" value={preferences?.favorite_food} />
 
                 <View style={styles.divider} />
@@ -663,7 +663,7 @@ export default function InsightsScreen() {
                 <View style={styles.divider} />
 
                 <FavoriteRow label="Movies" value={preferences?.movie_genre} />
-              </View>
+              </Card>
             </View>
 
             {/* PARTNER FAVORITES */}
@@ -674,7 +674,7 @@ export default function InsightsScreen() {
                   {partnerName.toUpperCase()}'S FAVORITES
                 </Text>
 
-                <View style={styles.favoritesCard}>
+                <Card style={styles.favoritesCard}>
                   <FavoriteRow
                     label="Food"
                     value={partnerPreferences?.favorite_food}
@@ -714,7 +714,7 @@ export default function InsightsScreen() {
                     label="Movies"
                     value={partnerPreferences?.movie_genre}
                   />
-                </View>
+                </Card>
               </View>
             ) : null}
 
@@ -857,7 +857,7 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    backgroundColor: "rgba(255, 255, 255, 0.18)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 15,
@@ -865,7 +865,7 @@ const styles = StyleSheet.create({
 
   heroHeart: {
     fontSize: 27,
-    color: "#6B4E45",
+    color: "#FFFFFF",
   },
 
   heroTitle: {

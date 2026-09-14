@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Card } from "../components/Glass";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import { getCachedData, setCachedData } from "../lib/dataCache";
@@ -127,7 +128,7 @@ export default function ConnectionScreen() {
               This is your shared space for everything you build together.
             </Text>
 
-            <View style={styles.profileCard}>
+            <Card dark style={styles.profileCard}>
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>
                   {partnerName.charAt(0).toUpperCase()}
@@ -141,7 +142,7 @@ export default function ConnectionScreen() {
               </View>
 
               <View style={styles.connectedDot} />
-            </View>
+            </Card>
 
             <View style={styles.featureSection}>
               <TouchableOpacity
@@ -184,7 +185,7 @@ export default function ConnectionScreen() {
                 <Text style={styles.featureArrow}>›</Text>
               </TouchableOpacity>
 
-              <View style={styles.featureCard}>
+              <Card style={styles.featureCard}>
                 <View style={styles.featureIcon}>
                   <Text style={styles.featureIconText}>♡</Text>
                 </View>
@@ -198,7 +199,7 @@ export default function ConnectionScreen() {
                 </View>
 
                 <Text style={styles.comingSoon}>SOON</Text>
-              </View>
+              </Card>
             </View>
           </>
         )}
@@ -347,7 +348,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 23,
     fontWeight: "700",
-    color: "#6B4E45",
+    color: "#FFFFFF",
   },
 
   profileInfo: {

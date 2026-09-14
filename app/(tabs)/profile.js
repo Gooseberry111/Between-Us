@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { GlassBackground } from "../../components/Glass";
+import { GlassBackground, Card } from "../../components/Glass";
 import { getCachedData, setCachedData } from "../../lib/dataCache";
 import { Skeleton, SkeletonList } from "../../components/Skeleton";
 import { useAuth, useClerk } from "@clerk/expo";
@@ -268,7 +268,7 @@ export default function ProfileScreen() {
 
             {/* YOUR PROFILE */}
 
-            <View style={styles.profileCard}>
+            <Card dark style={styles.profileCard}>
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>{initials || "U"}</Text>
               </View>
@@ -284,7 +284,7 @@ export default function ProfileScreen() {
                   <Text style={styles.profileBadgeText}>BETWEEN US MEMBER</Text>
                 </View>
               </View>
-            </View>
+            </Card>
 
             {/* PERSONAL INFORMATION */}
 
@@ -301,7 +301,7 @@ export default function ProfileScreen() {
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.infoCard}>
+              <Card style={styles.infoCard}>
                 <InfoRow
                   label="First name"
                   value={profile?.first_name || "Not set"}
@@ -321,7 +321,7 @@ export default function ProfileScreen() {
                     <InfoRow label="Email" value={profile.email} />
                   </>
                 ) : null}
-              </View>
+              </Card>
             </View>
 
             {/* YOUR CONNECTION */}
@@ -331,7 +331,7 @@ export default function ProfileScreen() {
 
               {connection ? (
                 <>
-                  <View style={styles.partnerCard}>
+                  <Card style={styles.partnerCard}>
                     <View style={styles.partnerAvatar}>
                       <Text style={styles.partnerAvatarText}>
                         {partnerInitial}
@@ -349,7 +349,7 @@ export default function ProfileScreen() {
                     </View>
 
                     <View style={styles.connectedDot} />
-                  </View>
+                  </Card>
 
                   <TouchableOpacity
                     style={[
@@ -651,7 +651,7 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 34,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    backgroundColor: "rgba(255, 255, 255, 0.18)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -659,7 +659,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 24,
     fontWeight: "800",
-    color: "#6B4E45",
+    color: "#FFFFFF",
   },
 
   profileInfo: {

@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { GlassBackground } from "../../components/Glass";
+import { GlassBackground, Card } from "../../components/Glass";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
@@ -417,7 +417,7 @@ export default function TimelineScreen() {
               {/* FORM */}
 
               {showForm ? (
-                <View style={styles.formCard}>
+                <Card style={styles.formCard}>
                   <View style={styles.formHeader}>
                     <View>
                       <Text style={styles.formLabel}>
@@ -487,7 +487,7 @@ export default function TimelineScreen() {
                       </Text>
                     )}
                   </TouchableOpacity>
-                </View>
+                </Card>
               ) : null}
 
               {/* TIMELINE */}
@@ -504,7 +504,7 @@ export default function TimelineScreen() {
                 </Text>
 
                 {entries.length === 0 ? (
-                  <View style={styles.emptyCard}>
+                  <Card style={styles.emptyCard}>
                     <View style={styles.emptyIcon}>
                       <Ionicons name="time-outline" size={24} color="#6B4E45" />
                     </View>
@@ -526,7 +526,7 @@ export default function TimelineScreen() {
                         Add your first memory
                       </Text>
                     </TouchableOpacity>
-                  </View>
+                  </Card>
                 ) : (
                   entries.map((entry) => (
                     <TimelineCard
@@ -549,7 +549,7 @@ export default function TimelineScreen() {
               {/* FOOTER */}
 
               {entries.length > 0 ? (
-                <View style={styles.footerCard}>
+                <Card style={styles.footerCard}>
                   <Text style={styles.footerQuote}>
                     "Some moments deserve to be remembered forever."
                   </Text>
@@ -557,7 +557,7 @@ export default function TimelineScreen() {
                   <Text style={styles.footerText}>
                     Keep building your story, one moment at a time.
                   </Text>
-                </View>
+                </Card>
               ) : null}
             </View>
           </ScrollView>
