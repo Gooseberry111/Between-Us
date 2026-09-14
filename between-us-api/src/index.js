@@ -167,40 +167,59 @@ async function notifyUser(sql, { userId, pushToken, preferences, type, title, me
 		return false;
 	}
 
-	const inserted = await sql`
-		INSERT INTO notifications (
-			user_id,
-			type,
-			title,
-			message,
-			dedupe_key
-		)
-		VALUES (
-			${userId},
-			${type},
-			${title},
-			${message},
-			${dedupeKey}
-		)
-		ON CONFLICT (user_id, dedupe_key)
-		DO NOTHING
-		RETURNING id
-	`;
+	try {
+		/*
+		 * The unique index backing this is partial
+		 * (WHERE dedupe_key IS NOT NULL), so the same
+		 * predicate has to be repeated here for Postgres
+		 * to infer it. Without it, every insert fails with
+		 * "no unique or exclusion constraint matching the
+		 * ON CONFLICT specification".
+		 */
+		const inserted = await sql`
+			INSERT INTO notifications (
+				user_id,
+				type,
+				title,
+				message,
+				dedupe_key
+			)
+			VALUES (
+				${userId},
+				${type},
+				${title},
+				${message},
+				${dedupeKey}
+			)
+			ON CONFLICT (user_id, dedupe_key)
+			WHERE dedupe_key IS NOT NULL
+			DO NOTHING
+			RETURNING id
+		`;
 
-	if (inserted.length === 0) {
+		if (inserted.length === 0) {
+			return false;
+		}
+
+		if (pushToken) {
+			await sendPushNotification({
+				pushToken,
+				title,
+				body: message,
+				data: { type, ...data },
+			});
+		}
+
+		return true;
+	} catch (error) {
+		/*
+		 * A single failed notification must never abort
+		 * the rest of the scheduled run.
+		 */
+		console.error('NOTIFY USER ERROR:', type, error?.message || error);
+
 		return false;
 	}
-
-	if (pushToken) {
-		await sendPushNotification({
-			pushToken,
-			title,
-			body: message,
-			data: { type, ...data },
-		});
-	}
-
-	return true;
 }
 
 export default {
