@@ -153,6 +153,51 @@ const DAILY_QUESTIONS = [
 	'What is one way we have grown since we started?',
 ];
 
+/*
+ * The daily question table is created on demand.
+ *
+ * Migration 004 remains the canonical definition, but
+ * applying it needs database access this deployment
+ * pipeline does not have, so the endpoint makes sure
+ * its own table is there rather than failing until
+ * somebody runs the SQL by hand. The statements are
+ * idempotent and purely additive, and the flag keeps
+ * it to one check per isolate rather than per request.
+ */
+let dailyAnswersReady = false;
+
+async function ensureDailyAnswersTable(sql) {
+	if (dailyAnswersReady) return;
+
+	await sql`
+		CREATE TABLE IF NOT EXISTS daily_answers (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			connection_id UUID NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			question_date DATE NOT NULL,
+			question_key TEXT NOT NULL,
+			answer TEXT NOT NULL,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+			updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+		)
+	`;
+
+	/*
+	 * Not partial, so a plain ON CONFLICT can infer it.
+	 */
+	await sql`
+		CREATE UNIQUE INDEX IF NOT EXISTS daily_answers_user_date_idx
+			ON daily_answers (user_id, question_date)
+	`;
+
+	await sql`
+		CREATE INDEX IF NOT EXISTS daily_answers_connection_date_idx
+			ON daily_answers (connection_id, question_date DESC)
+	`;
+
+	dailyAnswersReady = true;
+}
+
 function slugifyQuestion(text) {
 	return text
 		.toLowerCase()
@@ -5180,6 +5225,8 @@ VALUES (
 				}
 
 				const userId = userResult[0].id;
+
+				await ensureDailyAnswersTable(sql);
 
 				const today = new Date();
 				const todayIso = today.toISOString().slice(0, 10);
