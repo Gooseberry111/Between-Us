@@ -18,6 +18,27 @@ import { GlassBackground, GlassCard } from "../../components/Glass";
 
 const API_URL = "https://between-us-api.between-us.workers.dev";
 
+const DAILY_QUESTION_PREVIEWS = [
+  "What is something I did recently that you appreciated but never said out loud?",
+  "What does a perfect ordinary day together look like to you?",
+  "When do you feel closest to me?",
+  "What is something you are looking forward to right now?",
+  "What is one thing you wish we did more often?",
+  "What is a small thing that instantly improves your mood?",
+  "What is something you are proud of yourself for this week?",
+  "Where would you most want to wake up tomorrow?",
+  "What is something about me that made you laugh recently?",
+  "What is one thing you need more of from me right now?",
+];
+
+function todaysQuestionPreview() {
+  const now = new Date();
+  const startOfYear = new Date(now.getFullYear(), 0, 0);
+  const dayOfYear = Math.floor((now - startOfYear) / 86400000);
+
+  return DAILY_QUESTION_PREVIEWS[dayOfYear % DAILY_QUESTION_PREVIEWS.length];
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
@@ -229,6 +250,8 @@ export default function HomeScreen() {
     return <HomeSkeleton />;
   }
 
+  const dailyQuestion = todaysQuestionPreview();
+
   const firstName = profile?.first_name?.trim() || "there";
 
   const partnerName = connection?.other_first_name?.trim() || "Your person";
@@ -410,6 +433,28 @@ export default function HomeScreen() {
             />
 
             {error ? <ErrorMessage message={error} /> : null}
+
+            {/* DAILY QUESTION */}
+
+            <TouchableOpacity
+              style={styles.dailyCard}
+              activeOpacity={0.9}
+              onPress={() => router.push("/daily-question")}
+            >
+              <View style={styles.dailyTop}>
+                <Text style={styles.dailyLabel}>TODAY'S QUESTION</Text>
+
+                <Ionicons name="arrow-forward" size={16} color="#6B4E45" />
+              </View>
+
+              <Text style={styles.dailyText} numberOfLines={3}>
+                {dailyQuestion}
+              </Text>
+
+              <Text style={styles.dailyHint}>
+                Answer yours to unlock {partnerName}'s.
+              </Text>
+            </TouchableOpacity>
 
             {/* CONNECTION CARD */}
 
@@ -1101,6 +1146,42 @@ const styles = StyleSheet.create({
   /*
    * CONNECTION
    */
+
+  dailyCard: {
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
+    borderRadius: 22,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.75)",
+    marginBottom: 13,
+  },
+
+  dailyTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  dailyLabel: {
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 1.6,
+    color: "#9A918A",
+  },
+
+  dailyText: {
+    marginTop: 12,
+    fontSize: 17,
+    lineHeight: 24,
+    fontWeight: "700",
+    color: "#302825",
+  },
+
+  dailyHint: {
+    marginTop: 9,
+    fontSize: 11,
+    color: "#817771",
+  },
 
   connectionCard: {
     backgroundColor: "#6B4E45",

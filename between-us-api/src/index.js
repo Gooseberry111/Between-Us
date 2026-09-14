@@ -95,6 +95,117 @@ const DATE_IDEAS = [
 	'Revisit an old photo album and tell the stories behind them.',
 ];
 
+
+/*
+ * Daily question catalogue.
+ *
+ * One is served per day, rotating by day of year.
+ * Kept here rather than in a table so there is
+ * nothing to seed; answers store a slug of the
+ * question so history stays readable even if this
+ * list is reordered later.
+ */
+const DAILY_QUESTIONS = [
+	'What is something I did recently that you appreciated but never said out loud?',
+	'What does a perfect ordinary day together look like to you?',
+	'When do you feel closest to me?',
+	'What is something you are looking forward to right now?',
+	'What is one thing you wish we did more often?',
+	'What is a small thing that instantly improves your mood?',
+	'What is something you are proud of yourself for this week?',
+	'Where would you most want to wake up tomorrow?',
+	'What is something about me that made you laugh recently?',
+	'What is one thing you need more of from me right now?',
+	'What is a memory of us you think about often?',
+	'What is something you are worried about that you have not said?',
+	'What is your favourite thing about our relationship right now?',
+	'What is something new you would like us to try together?',
+	'What does feeling loved actually look like for you?',
+	'What is the hardest part of your week so far?',
+	'What is something you have changed your mind about lately?',
+	'What song reminds you of us?',
+	'What is one thing you would like us to stop doing?',
+	'What is something you find attractive about me that is not physical?',
+	'What is a goal you want us to work on together?',
+	'When did you last feel really understood by me?',
+	'What is something you are grateful for today?',
+	'What is a tradition you would like us to start?',
+	'What is something you loved doing as a child?',
+	'What is the best advice about love you have ever heard?',
+	'What is something you want to do before the year ends?',
+	'What do you need after a hard day?',
+	'What is something I do that makes you feel safe?',
+	'What is a place you would love us to travel to?',
+	'What is something you want to get better at?',
+	'What was the moment you knew you cared about me?',
+	'What is something you find difficult to talk about?',
+	'What does support look like to you when you are stressed?',
+	'What is a compliment you received that stuck with you?',
+	'What would you want our life to look like in five years?',
+	'What is something small I could do this week that would mean a lot?',
+	'What is your favourite thing we have done together?',
+	'What is something you are curious about lately?',
+	'What is a fear you have about the future?',
+	'What makes you feel most like yourself?',
+	'What is something you wish I understood better about you?',
+	'What is the nicest thing someone has done for you?',
+	'What is something you want to celebrate about us?',
+	'What is one way we have grown since we started?',
+];
+
+function slugifyQuestion(text) {
+	return text
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, '-')
+		.replace(/^-|-$/g, '')
+		.slice(0, 60);
+}
+
+/*
+ * The question for a given day, rotating by day of year.
+ */
+function questionForDate(date) {
+	const startOfYear = new Date(date.getFullYear(), 0, 0);
+	const dayOfYear = Math.floor((date - startOfYear) / MS_PER_DAY);
+	const text = DAILY_QUESTIONS[dayOfYear % DAILY_QUESTIONS.length];
+
+	return { key: slugifyQuestion(text), text };
+}
+
+function toIsoDate(value) {
+	if (!value) return null;
+
+	return typeof value === 'string' ? value.slice(0, 10) : new Date(value).toISOString().slice(0, 10);
+}
+
+/*
+ * Consecutive days answered, counting back from today.
+ * Answering yesterday but not yet today keeps the streak
+ * alive -- it only breaks once a whole day is missed.
+ */
+function computeStreak(dates, todayIso) {
+	const answered = new Set(dates.map(toIsoDate).filter(Boolean));
+
+	const cursor = new Date(`${todayIso}T00:00:00Z`);
+
+	if (!answered.has(todayIso)) {
+		cursor.setUTCDate(cursor.getUTCDate() - 1);
+
+		if (!answered.has(cursor.toISOString().slice(0, 10))) {
+			return 0;
+		}
+	}
+
+	let streak = 0;
+
+	while (answered.has(cursor.toISOString().slice(0, 10))) {
+		streak += 1;
+		cursor.setUTCDate(cursor.getUTCDate() - 1);
+	}
+
+	return streak;
+}
+
 /*
  * Days remaining until the next annual occurrence
  * of a month/day (birthday, anniversary, special date).
@@ -5037,6 +5148,167 @@ VALUES (
         `;
 
 				return Response.json({ message: 'Goal deleted successfully' });
+			}
+
+			/*
+			 * ==========================================
+			 * DAILY QUESTION
+			 * ==========================================
+			 *
+			 * GET  /users/:clerkId/daily-question
+			 * POST /users/:clerkId/daily-question
+			 *
+			 * One shared question per day. A partner's
+			 * answer is withheld until you have written
+			 * your own.
+			 */
+
+			const dailyQuestionMatch = url.pathname.match(/^\/users\/([^/]+)\/daily-question$/);
+
+			if (dailyQuestionMatch && (request.method === 'GET' || request.method === 'POST')) {
+				const clerkId = dailyQuestionMatch[1];
+
+				const userResult = await sql`
+          SELECT id
+          FROM users
+          WHERE clerk_id = ${clerkId}
+          LIMIT 1
+        `;
+
+				if (userResult.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const userId = userResult[0].id;
+
+				const today = new Date();
+				const todayIso = today.toISOString().slice(0, 10);
+				const question = questionForDate(today);
+
+				const connectionResult = await sql`
+          SELECT id, user_one, user_two
+          FROM connections
+          WHERE (user_one = ${userId} OR user_two = ${userId})
+            AND status = 'accepted'
+          LIMIT 1
+        `;
+
+				if (connectionResult.length === 0) {
+					return Response.json(
+						{
+							error: 'You are not connected to anyone yet.',
+						},
+						{ status: 404 },
+					);
+				}
+
+				const connection = connectionResult[0];
+
+				const partnerId = connection.user_one === userId ? connection.user_two : connection.user_one;
+
+				if (request.method === 'POST') {
+					const body = await request.json();
+
+					const answer = body?.answer?.trim();
+
+					if (!answer) {
+						return Response.json({ error: 'answer is required' }, { status: 400 });
+					}
+
+					await sql`
+            INSERT INTO daily_answers (
+              connection_id,
+              user_id,
+              question_date,
+              question_key,
+              answer
+            )
+            VALUES (
+              ${connection.id},
+              ${userId},
+              ${todayIso},
+              ${question.key},
+              ${answer}
+            )
+            ON CONFLICT (user_id, question_date)
+            DO UPDATE SET
+              answer = EXCLUDED.answer,
+              updated_at = NOW()
+          `;
+
+					/*
+					 * Let the partner know there is something
+					 * waiting for them to unlock.
+					 */
+					const partnerRow = await sql`
+            SELECT u.push_token, u.notification_preferences, p.first_name
+            FROM users u
+            LEFT JOIN profiles p ON p.user_id = u.id
+            WHERE u.id = ${partnerId}
+            LIMIT 1
+          `;
+
+					const meRow = await sql`
+            SELECT first_name
+            FROM profiles
+            WHERE user_id = ${userId}
+            LIMIT 1
+          `;
+
+					const myName = meRow[0]?.first_name?.trim() || 'Your partner';
+
+					await notifyUser(sql, {
+						userId: partnerId,
+						pushToken: partnerRow[0]?.push_token,
+						preferences: partnerRow[0]?.notification_preferences,
+						type: 'daily_question_answered',
+						title: `${myName} answered today's question`,
+						message: 'Answer yours to see what they said.',
+						dedupeKey: `daily_answered:${userId}:${todayIso}`,
+					});
+				}
+
+				const answers = await sql`
+          SELECT user_id, answer, updated_at
+          FROM daily_answers
+          WHERE question_date = ${todayIso}
+            AND user_id IN (${userId}, ${partnerId})
+        `;
+
+				const mine = answers.find((row) => row.user_id === userId) || null;
+				const theirs = answers.find((row) => row.user_id === partnerId) || null;
+
+				const history = await sql`
+          SELECT question_date
+          FROM daily_answers
+          WHERE user_id = ${userId}
+          ORDER BY question_date DESC
+          LIMIT 120
+        `;
+
+				const partnerProfile = await sql`
+          SELECT first_name
+          FROM profiles
+          WHERE user_id = ${partnerId}
+          LIMIT 1
+        `;
+
+				return Response.json({
+					date: todayIso,
+					question: question.text,
+					question_key: question.key,
+					your_answer: mine?.answer || null,
+					/*
+					 * Withheld on purpose until you answer.
+					 */
+					partner_answer: mine ? theirs?.answer || null : null,
+					partner_answered: Boolean(theirs),
+					partner_name: partnerProfile[0]?.first_name?.trim() || 'Your partner',
+					streak: computeStreak(
+						history.map((row) => row.question_date),
+						todayIso,
+					),
+				});
 			}
 
 			/*
