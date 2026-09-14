@@ -516,11 +516,11 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.65)",
+    borderColor: "rgba(255, 255, 255, 0.85)",
   },
 
   headerBackText: {
@@ -555,7 +555,7 @@ const styles = StyleSheet.create({
     height: 42,
     paddingHorizontal: 10,
     borderRadius: 21,
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -636,21 +636,21 @@ const styles = StyleSheet.create({
     minHeight: 57,
     paddingHorizontal: 14,
     borderRadius: 15,
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.65)",
+    borderColor: "rgba(255, 255, 255, 0.85)",
     flexDirection: "row",
     alignItems: "center",
   },
 
   optionSelected: {
     borderColor: "#6B4E45",
-    backgroundColor: "rgba(255, 255, 255, 0.42)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
   },
 
   optionCorrect: {
     borderColor: "#6B4E45",
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
   },
 
   optionWrong: {
@@ -662,7 +662,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.42)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
@@ -718,7 +718,7 @@ const styles = StyleSheet.create({
   },
 
   correctMessage: {
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
   },
 
   wrongMessage: {
@@ -772,7 +772,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -839,7 +839,7 @@ const styles = StyleSheet.create({
     width: 74,
     height: 74,
     borderRadius: 37,
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -878,9 +878,9 @@ const styles = StyleSheet.create({
     marginTop: 28,
     padding: 18,
     borderRadius: 18,
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.65)",
+    borderColor: "rgba(255, 255, 255, 0.85)",
   },
 
   resultCardTitle: {

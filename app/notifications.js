@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
 
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 40,
+    paddingBottom: 120,
   },
 
   container: {
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 11,
@@ -388,11 +388,11 @@ const styles = StyleSheet.create({
   },
 
   notificationCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     borderRadius: 16,
     padding: 15,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.65)",
+    borderColor: "rgba(255, 255, 255, 0.85)",
     marginBottom: 10,
   },
 
@@ -409,14 +409,14 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(255, 255, 255, 0.42)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
   },
 
   notificationIconUnread: {
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
   },
 
   notificationContent: {
@@ -464,11 +464,11 @@ const styles = StyleSheet.create({
   },
 
   emptyCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     borderRadius: 17,
     padding: 24,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.65)",
+    borderColor: "rgba(255, 255, 255, 0.85)",
     alignItems: "center",
   },
 
@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 13,

@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
 
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 40,
+    paddingBottom: 120,
   },
 
   container: {
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 11,
@@ -347,13 +347,13 @@ const styles = StyleSheet.create({
   },
 
   statsCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     borderRadius: 18,
     paddingVertical: 18,
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.65)",
+    borderColor: "rgba(255, 255, 255, 0.85)",
     marginBottom: 4,
   },
 
@@ -402,11 +402,11 @@ const styles = StyleSheet.create({
   },
 
   sessionCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     borderRadius: 16,
     padding: 15,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.65)",
+    borderColor: "rgba(255, 255, 255, 0.85)",
     marginBottom: 10,
     flexDirection: "row",
     alignItems: "center",
@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
     height: 40,
     paddingHorizontal: 10,
     borderRadius: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.42)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 13,
@@ -459,11 +459,11 @@ const styles = StyleSheet.create({
   },
 
   emptyCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     borderRadius: 20,
     padding: 24,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.65)",
+    borderColor: "rgba(255, 255, 255, 0.85)",
     alignItems: "center",
   },
 
@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 15,
@@ -496,7 +496,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 11,
     borderRadius: 11,
-    backgroundColor: "rgba(255, 255, 255, 0.42)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
   },
 
   emptyButtonText: {

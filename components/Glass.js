@@ -1,70 +1,118 @@
+import { useRef } from "react";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
-import { Platform, StyleSheet, View } from "react-native";
+import { Animated, Platform, Pressable, StyleSheet, View } from "react-native";
 
 /*
  * ==========================================
  * GLASS
  * ==========================================
  *
- * Frosted-glass building blocks.
+ * Frosted building blocks.
  *
- * Glass only reads as glass when there is
- * something behind it worth blurring, so
- * GlassBackground lays down a warm gradient
- * plus a few soft colour blobs, and GlassCard
- * frosts whatever ends up behind it.
- *
- * Android note: blur is experimental there and
- * does nothing unless experimentalBlurMethod is
- * set, so we opt in explicitly.
+ * The trick with glass is restraint: the blur has
+ * to do the work. Piling a thick white layer on top
+ * kills it and you end up with flat milky boxes, so
+ * the overlays here are deliberately faint and the
+ * edge highlight is what sells the material.
  */
 
-const androidBlur =
-  Platform.OS === "android"
-    ? { experimentalBlurMethod: "dimezisBlurView" }
-    : {};
+const isAndroid = Platform.OS === "android";
+
+/* Android blur is experimental and renders flat without this. */
+const androidBlur = isAndroid
+  ? { experimentalBlurMethod: "dimezisBlurView", blurReductionFactor: 4 }
+  : {};
 
 export function GlassBackground({ children, style }) {
   return (
-    <LinearGradient
-      colors={["#FAF7F3", "#F1E6DE", "#E8D8D0"]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={[styles.fill, style]}
-    >
-      {/* Soft colour blobs give the blur something to chew on */}
-      <View pointerEvents="none" style={[styles.blob, styles.blobOne]} />
-      <View pointerEvents="none" style={[styles.blob, styles.blobTwo]} />
-      <View pointerEvents="none" style={[styles.blob, styles.blobThree]} />
+    <View style={[styles.fill, style]}>
+      <LinearGradient
+        colors={["#FDF9F6", "#F6EDE7", "#EFE2DE"]}
+        start={{ x: 0.1, y: 0 }}
+        end={{ x: 0.9, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {/*
+       * Diffuse washes of colour. Large, soft and low
+       * opacity so they read as depth behind the glass
+       * rather than as blobs sitting on the page.
+       */}
+      <View pointerEvents="none" style={[styles.wash, styles.washWarm]} />
+      <View pointerEvents="none" style={[styles.wash, styles.washRose]} />
+      <View pointerEvents="none" style={[styles.wash, styles.washCool]} />
 
       {children}
-    </LinearGradient>
+    </View>
   );
 }
 
+/*
+ * A light frosted pane.
+ */
 export function GlassCard({
   children,
   style,
-  intensity = 40,
-  tint = "light",
-  radius = 22,
+  intensity = 60,
+  radius = 24,
   padding = 18,
 }) {
   return (
     <View style={[styles.card, { borderRadius: radius }, style]}>
       <BlurView
         intensity={intensity}
-        tint={tint}
+        tint="light"
         {...androidBlur}
         style={StyleSheet.absoluteFill}
       />
 
-      {/* Sheen: brightest at the top edge, like light catching glass */}
+      {/* Specular highlight along the top edge only. */}
       <LinearGradient
-        colors={["rgba(255,255,255,0.55)", "rgba(255,255,255,0.18)"]}
+        colors={[
+          "rgba(255,255,255,0.5)",
+          "rgba(255,255,255,0.12)",
+          "rgba(255,255,255,0.04)",
+        ]}
+        locations={[0, 0.45, 1]}
+        start={{ x: 0.2, y: 0 }}
+        end={{ x: 0.8, y: 1 }}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
+
+      <View style={styles.hairline} pointerEvents="none" />
+
+      <View style={{ padding }}>{children}</View>
+    </View>
+  );
+}
+
+/*
+ * A dark pane, for anything carrying white text.
+ */
+export function GlassPanel({ children, style, radius = 26, padding = 20 }) {
+  return (
+    <View style={[styles.panel, { borderRadius: radius }, style]}>
+      <BlurView
+        intensity={40}
+        tint="dark"
+        {...androidBlur}
+        style={StyleSheet.absoluteFill}
+      />
+
+      <LinearGradient
+        colors={["rgba(94,68,60,0.94)", "rgba(58,40,35,0.9)"]}
         start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
+
+      <LinearGradient
+        colors={["rgba(255,255,255,0.22)", "rgba(255,255,255,0)"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 0.6 }}
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
@@ -75,86 +123,146 @@ export function GlassCard({
 }
 
 /*
- * A darker pane, for cards that need to carry
- * white text (hero panels, the daily question).
+ * ==========================================
+ * PRESSABLE GLASS
+ * ==========================================
+ *
+ * A card that dips slightly when touched. Small
+ * movement, but it is the difference between the
+ * UI feeling inert and feeling alive.
  */
-export function GlassPanel({ children, style, radius = 24, padding = 20 }) {
+export function GlassPressable({ children, onPress, style, radius = 24, padding = 18 }) {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const to = (value) =>
+    Animated.spring(scale, {
+      toValue: value,
+      friction: 7,
+      tension: 180,
+      useNativeDriver: true,
+    }).start();
+
   return (
-    <View style={[styles.panel, { borderRadius: radius }, style]}>
-      <BlurView
-        intensity={55}
-        tint="dark"
-        {...androidBlur}
-        style={StyleSheet.absoluteFill}
-      />
+    <Pressable
+      onPress={onPress}
+      onPressIn={() => to(0.97)}
+      onPressOut={() => to(1)}
+    >
+      <Animated.View style={{ transform: [{ scale }] }}>
+        <GlassCard style={style} radius={radius} padding={padding}>
+          {children}
+        </GlassCard>
+      </Animated.View>
+    </Pressable>
+  );
+}
 
-      <LinearGradient
-        colors={["rgba(107,78,69,0.92)", "rgba(72,50,44,0.88)"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
-      />
+/*
+ * Fades and lifts children into place, with an
+ * optional stagger so lists arrive in sequence
+ * rather than all at once.
+ */
+export function FadeIn({ children, delay = 0, style, distance = 14 }) {
+  const progress = useRef(new Animated.Value(0)).current;
+  const started = useRef(false);
 
-      <View style={{ padding }}>{children}</View>
-    </View>
+  if (!started.current) {
+    started.current = true;
+
+    Animated.timing(progress, {
+      toValue: 1,
+      duration: 420,
+      delay,
+      useNativeDriver: true,
+    }).start();
+  }
+
+  return (
+    <Animated.View
+      style={[
+        {
+          opacity: progress,
+          transform: [
+            {
+              translateY: progress.interpolate({
+                inputRange: [0, 1],
+                outputRange: [distance, 0],
+              }),
+            },
+          ],
+        },
+        style,
+      ]}
+    >
+      {children}
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   fill: {
     flex: 1,
+    backgroundColor: "#FDF9F6",
   },
 
-  blob: {
+  wash: {
     position: "absolute",
     borderRadius: 999,
-    opacity: 0.5,
+    opacity: 0.38,
   },
 
-  blobOne: {
-    width: 300,
-    height: 300,
-    top: -90,
-    right: -70,
-    backgroundColor: "#E9CFC2",
+  washWarm: {
+    width: 420,
+    height: 420,
+    top: -160,
+    right: -150,
+    backgroundColor: "#F0CDB8",
   },
 
-  blobTwo: {
-    width: 260,
-    height: 260,
-    top: 260,
-    left: -110,
-    backgroundColor: "#DCC7D8",
+  washRose: {
+    width: 380,
+    height: 380,
+    top: 220,
+    left: -180,
+    backgroundColor: "#E3C6D6",
   },
 
-  blobThree: {
-    width: 320,
-    height: 320,
-    bottom: -120,
-    right: -80,
-    backgroundColor: "#CFD8DC",
+  washCool: {
+    width: 440,
+    height: 440,
+    bottom: -200,
+    right: -160,
+    backgroundColor: "#C7D4DE",
   },
 
   card: {
     overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.6)",
-    backgroundColor: "rgba(255,255,255,0.28)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,255,255,0.85)",
     shadowColor: "#6B4E45",
-    shadowOpacity: 0.1,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.09,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
     elevation: 3,
+  },
+
+  /* A brighter line right at the top lip of the glass. */
+  hairline: {
+    position: "absolute",
+    top: 0,
+    left: 12,
+    right: 12,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: "rgba(255,255,255,0.95)",
   },
 
   panel: {
     overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.22)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,255,255,0.25)",
     shadowColor: "#3A2A25",
-    shadowOpacity: 0.25,
-    shadowRadius: 22,
+    shadowOpacity: 0.22,
+    shadowRadius: 20,
     shadowOffset: { width: 0, height: 10 },
     elevation: 6,
   },

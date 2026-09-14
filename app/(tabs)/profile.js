@@ -625,7 +625,7 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -651,7 +651,7 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 34,
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -727,7 +727,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     paddingVertical: 6,
     borderRadius: 9,
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
   },
 
   editButtonText: {
@@ -741,11 +741,11 @@ const styles = StyleSheet.create({
    */
 
   infoCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     borderRadius: 18,
     paddingHorizontal: 17,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.65)",
+    borderColor: "rgba(255, 255, 255, 0.85)",
   },
 
   infoRow: {
@@ -778,20 +778,20 @@ const styles = StyleSheet.create({
    */
 
   partnerCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     borderRadius: 20,
     padding: 17,
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.65)",
+    borderColor: "rgba(255, 255, 255, 0.85)",
   },
 
   partnerAvatar: {
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -873,20 +873,20 @@ const styles = StyleSheet.create({
    */
 
   noConnectionCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     borderRadius: 20,
     padding: 17,
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.65)",
+    borderColor: "rgba(255, 255, 255, 0.85)",
   },
 
   noConnectionIcon: {
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: "rgba(255, 255, 255, 0.42)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -925,7 +925,7 @@ const styles = StyleSheet.create({
    */
 
   settingRow: {
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     minHeight: 75,
     borderRadius: 17,
     paddingHorizontal: 15,
@@ -933,7 +933,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.65)",
+    borderColor: "rgba(255, 255, 255, 0.85)",
     marginBottom: 10,
   },
 
@@ -941,7 +941,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.42)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1084,7 +1084,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     alignItems: "center",
     justifyContent: "center",
   },

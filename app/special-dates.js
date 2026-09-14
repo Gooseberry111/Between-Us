@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
 
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 40,
+    paddingBottom: 120,
   },
 
   container: {
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 11,
@@ -525,7 +525,7 @@ const styles = StyleSheet.create({
     width: 43,
     height: 43,
     borderRadius: 22,
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -561,11 +561,11 @@ const styles = StyleSheet.create({
 
   formCard: {
     marginBottom: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     borderRadius: 20,
     padding: 19,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.65)",
+    borderColor: "rgba(255, 255, 255, 0.85)",
   },
 
   formHeader: {
@@ -594,7 +594,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "rgba(255, 255, 255, 0.42)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -615,9 +615,9 @@ const styles = StyleSheet.create({
   input: {
     minHeight: 49,
     borderRadius: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.32)",
+    backgroundColor: "rgba(255, 255, 255, 0.22)",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.65)",
+    borderColor: "rgba(255, 255, 255, 0.85)",
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 14,
@@ -665,11 +665,11 @@ const styles = StyleSheet.create({
   },
 
   dateCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     borderRadius: 16,
     padding: 15,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.65)",
+    borderColor: "rgba(255, 255, 255, 0.85)",
     marginBottom: 10,
     flexDirection: "row",
     alignItems: "center",
@@ -679,7 +679,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(255, 255, 255, 0.42)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
@@ -717,11 +717,11 @@ const styles = StyleSheet.create({
   },
 
   emptyCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     borderRadius: 20,
     padding: 24,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.65)",
+    borderColor: "rgba(255, 255, 255, 0.85)",
     alignItems: "center",
   },
 
@@ -729,7 +729,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 15,
@@ -754,7 +754,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 11,
     borderRadius: 11,
-    backgroundColor: "rgba(255, 255, 255, 0.42)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
   },
 
   emptyButtonText: {

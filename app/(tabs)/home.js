@@ -14,7 +14,12 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { getCachedData, setCachedData } from "../../lib/dataCache";
 import { Skeleton, SkeletonCard } from "../../components/Skeleton";
-import { GlassBackground, GlassCard } from "../../components/Glass";
+import {
+  GlassBackground,
+  GlassPanel,
+  GlassPressable,
+  FadeIn,
+} from "../../components/Glass";
 
 const API_URL = "https://between-us-api.between-us.workers.dev";
 
@@ -436,67 +441,72 @@ export default function HomeScreen() {
 
             {/* DAILY QUESTION */}
 
-            <TouchableOpacity
-              style={styles.dailyCard}
-              activeOpacity={0.9}
-              onPress={() => router.push("/daily-question")}
-            >
-              <View style={styles.dailyTop}>
-                <Text style={styles.dailyLabel}>TODAY'S QUESTION</Text>
+            <FadeIn delay={40}>
+              <GlassPanel style={styles.dailyPanel}>
+                <View style={styles.dailyTop}>
+                  <Text style={styles.dailyLabel}>TODAY'S QUESTION</Text>
 
-                <Ionicons name="arrow-forward" size={16} color="#6B4E45" />
-              </View>
+                  <Ionicons name="arrow-forward" size={16} color="#F0E4DE" />
+                </View>
 
-              <Text style={styles.dailyText} numberOfLines={3}>
-                {dailyQuestion}
-              </Text>
+                <Text style={styles.dailyText} numberOfLines={3}>
+                  {dailyQuestion}
+                </Text>
 
-              <Text style={styles.dailyHint}>
-                Answer yours to unlock {partnerName}'s.
-              </Text>
-            </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.dailyButton}
+                  activeOpacity={0.85}
+                  onPress={() => router.push("/daily-question")}
+                >
+                  <Text style={styles.dailyButtonText}>
+                    Answer & unlock {partnerName}'s
+                  </Text>
+                </TouchableOpacity>
+              </GlassPanel>
+            </FadeIn>
 
             {/* CONNECTION CARD */}
 
-            <TouchableOpacity
-              style={styles.connectionCard}
-              activeOpacity={0.9}
-              onPress={() => router.push("/connection")}
-            >
-              <View style={styles.connectionTop}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>
-                    {(partnerName || "?").charAt(0).toUpperCase()}
-                  </Text>
+            <FadeIn delay={120}>
+              <GlassPressable
+                style={styles.connectionCard}
+                onPress={() => router.push("/connection")}
+              >
+                <View style={styles.connectionTop}>
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>
+                      {(partnerName || "?").charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+
+                  <View style={styles.connectionInfo}>
+                    <Text style={styles.togetherLabel}>YOU & THEM</Text>
+
+                    <Text style={styles.partnerName}>{partnerName}</Text>
+
+                    <Text style={styles.relationshipText}>
+                      {relationshipLabel}
+                    </Text>
+                  </View>
+
+                  <View style={styles.onlineDot} />
                 </View>
 
-                <View style={styles.connectionInfo}>
-                  <Text style={styles.togetherLabel}>YOU & THEM</Text>
+                <View style={styles.connectionDivider} />
 
-                  <Text style={styles.partnerName}>{partnerName}</Text>
+                <View style={styles.connectionBottom}>
+                  <View>
+                    <Text style={styles.connectionSmallLabel}>YOUR SPACE</Text>
 
-                  <Text style={styles.relationshipText}>
-                    {relationshipLabel}
-                  </Text>
+                    <Text style={styles.connectionSmallText}>
+                      Keep choosing each other.
+                    </Text>
+                  </View>
+
+                  <Text style={styles.connectionHeart}>♡</Text>
                 </View>
-
-                <View style={styles.onlineDot} />
-              </View>
-
-              <View style={styles.connectionDivider} />
-
-              <View style={styles.connectionBottom}>
-                <View>
-                  <Text style={styles.connectionSmallLabel}>YOUR SPACE</Text>
-
-                  <Text style={styles.connectionSmallText}>
-                    Keep choosing each other.
-                  </Text>
-                </View>
-
-                <Text style={styles.connectionHeart}>♡</Text>
-              </View>
-            </TouchableOpacity>
+              </GlassPressable>
+            </FadeIn>
 
             {/* TODAY */}
 
@@ -1124,7 +1134,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     alignItems: "center",
     justifyContent: "center",
     marginLeft: 12,
@@ -1166,21 +1176,32 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.6,
-    color: "#9A918A",
+    color: "#DCCBC4",
   },
 
   dailyText: {
     marginTop: 12,
-    fontSize: 17,
-    lineHeight: 24,
+    fontSize: 19,
+    lineHeight: 27,
     fontWeight: "700",
-    color: "#302825",
+    color: "#FFFFFF",
   },
 
-  dailyHint: {
-    marginTop: 9,
-    fontSize: 11,
-    color: "#817771",
+  dailyButton: {
+    marginTop: 16,
+    height: 44,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.16)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,255,255,0.4)",
+  },
+
+  dailyButtonText: {
+    fontSize: 12.5,
+    fontWeight: "800",
+    color: "#FFFFFF",
   },
 
   connectionCard: {
@@ -1198,7 +1219,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1305,18 +1326,18 @@ const styles = StyleSheet.create({
 
   promptCard: {
     marginTop: 14,
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     borderRadius: 20,
     padding: 19,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.65)",
+    borderColor: "rgba(255, 255, 255, 0.85)",
   },
 
   promptIcon: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 14,
@@ -1355,7 +1376,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 10,
     borderRadius: 11,
-    backgroundColor: "rgba(255, 255, 255, 0.42)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
   },
 
   promptButtonText: {
@@ -1369,12 +1390,12 @@ const styles = StyleSheet.create({
    */
 
   snapshotCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     borderRadius: 20,
     paddingHorizontal: 18,
     paddingVertical: 17,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.65)",
+    borderColor: "rgba(255, 255, 255, 0.85)",
   },
 
   snapshotTitle: {
@@ -1420,11 +1441,11 @@ const styles = StyleSheet.create({
    */
 
   loveCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.65)",
+    borderColor: "rgba(255, 255, 255, 0.85)",
   },
 
   loveCardTitle: {
@@ -1442,7 +1463,7 @@ const styles = StyleSheet.create({
   },
 
   tag: {
-    backgroundColor: "rgba(255, 255, 255, 0.42)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     borderRadius: 10,
     paddingHorizontal: 11,
     paddingVertical: 8,
@@ -1483,11 +1504,11 @@ const styles = StyleSheet.create({
    */
 
   goalsCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     borderRadius: 20,
     paddingHorizontal: 17,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.65)",
+    borderColor: "rgba(255, 255, 255, 0.85)",
   },
 
   goalRow: {
@@ -1500,7 +1521,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "rgba(255, 255, 255, 0.42)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1534,7 +1555,7 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1569,7 +1590,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 9,
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
   },
 
   triviaButtonText: {
@@ -1593,18 +1614,18 @@ const styles = StyleSheet.create({
 
   quickAction: {
     flex: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     borderRadius: 18,
     padding: 15,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.65)",
+    borderColor: "rgba(255, 255, 255, 0.85)",
   },
 
   quickIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "rgba(255, 255, 255, 0.42)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 12,
@@ -1633,18 +1654,18 @@ const styles = StyleSheet.create({
    */
 
   welcomeCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     borderRadius: 22,
     padding: 22,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.65)",
+    borderColor: "rgba(255, 255, 255, 0.85)",
   },
 
   welcomeIcon: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 18,
@@ -1696,20 +1717,20 @@ const styles = StyleSheet.create({
    */
 
   pendingCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     borderRadius: 18,
     padding: 15,
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.65)",
+    borderColor: "rgba(255, 255, 255, 0.85)",
   },
 
   pendingIcon: {
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1741,7 +1762,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 9,
     borderRadius: 10,
-    backgroundColor: "rgba(255, 255, 255, 0.42)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
   },
 
   smallButtonText: {
@@ -1811,7 +1832,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     alignItems: "center",
     justifyContent: "center",
   },
