@@ -10,6 +10,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { getCachedData, setCachedData } from "../../lib/dataCache";
+import { Skeleton, SkeletonList } from "../../components/Skeleton";
 import { useAuth, useClerk } from "@clerk/expo";
 import { useRouter } from "expo-router";
 
@@ -20,9 +22,12 @@ export default function ProfileScreen() {
   const { signOut } = useClerk();
   const { isLoaded, isSignedIn, userId } = useAuth();
 
-  const [profile, setProfile] = useState(null);
-  const [connection, setConnection] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = userId ? `profile-tab:${userId}` : null;
+  const cached = cacheKey ? getCachedData(cacheKey) : undefined;
+
+  const [profile, setProfile] = useState(cached?.profile ?? null);
+  const [connection, setConnection] = useState(cached?.connection ?? null);
+  const [loading, setLoading] = useState(!cached);
   const [refreshing, setRefreshing] = useState(false);
   const [unlinking, setUnlinking] = useState(false);
   const [error, setError] = useState("");
@@ -78,6 +83,20 @@ export default function ProfileScreen() {
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
+
+  useEffect(() => {
+    if (loading || !cacheKey) return;
+
+    setCachedData(cacheKey, {
+      profile,
+      connection,
+    });
+  }, [
+    loading,
+    cacheKey,
+    profile,
+    connection,
+  ]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -174,7 +193,23 @@ export default function ProfileScreen() {
   };
 
   if (loading) {
-    return <LoadingScreen />;
+    return (
+      <SafeAreaView style={styles.screen}>
+        <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
+          <Skeleton width={96} height={11} radius={6} />
+          <Skeleton
+            width="62%"
+            height={26}
+            radius={9}
+            style={{ marginTop: 12 }}
+          />
+
+          <View style={{ marginTop: 26 }}>
+            <SkeletonList count={3} />
+          </View>
+        </View>
+      </SafeAreaView>
+    );
   }
 
   const firstName = profile?.first_name?.trim() || "User";

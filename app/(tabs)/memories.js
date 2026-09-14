@@ -18,6 +18,7 @@ import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import DateInput from "../../components/DateInput";
 import { getCachedData, setCachedData } from "../../lib/dataCache";
+import { Skeleton, SkeletonList } from "../../components/Skeleton";
 
 const API_URL = "https://between-us-api.between-us.workers.dev";
 
@@ -315,12 +316,26 @@ export default function TimelineScreen() {
   };
 
   if (loading) {
+    /*
+     * Cold load only (nothing cached yet). Mirrors the
+     * real layout so the page appears at once and fills
+     * in, instead of blocking on a spinner.
+     */
     return (
       <SafeAreaView style={styles.screen}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color="#6B4E45" />
+        <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
+          <Skeleton width={96} height={11} radius={6} />
+          <Skeleton
+            width="62%"
+            height={26}
+            radius={9}
+            style={{ marginTop: 12 }}
+          />
+          <Skeleton width="80%" height={12} style={{ marginTop: 10 }} />
 
-          <Text style={styles.loadingText}>Loading your timeline...</Text>
+          <View style={{ marginTop: 26 }}>
+            <SkeletonList count={3} />
+          </View>
         </View>
       </SafeAreaView>
     );

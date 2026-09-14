@@ -8,6 +8,8 @@ import {
   Text,
   View,
 } from "react-native";
+import { getCachedData, setCachedData } from "../../lib/dataCache";
+import { Skeleton, SkeletonList } from "../../components/Skeleton";
 import { useAuth } from "@clerk/expo";
 
 const API_URL = "https://between-us-api.between-us.workers.dev";
@@ -15,15 +17,18 @@ const API_URL = "https://between-us-api.between-us.workers.dev";
 export default function InsightsScreen() {
   const { isLoaded, isSignedIn, userId } = useAuth();
 
-  const [insights, setInsights] = useState(null);
-  const [preferences, setPreferences] = useState(null);
+  const cacheKey = userId ? `insights:${userId}` : null;
+  const cached = cacheKey ? getCachedData(cacheKey) : undefined;
+
+  const [insights, setInsights] = useState(cached?.insights ?? null);
+  const [preferences, setPreferences] = useState(cached?.preferences ?? null);
 
   const [partnerInsights, setPartnerInsights] = useState(null);
   const [partnerPreferences, setPartnerPreferences] = useState(null);
 
   const [connection, setConnection] = useState(null);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cached);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
@@ -113,13 +118,49 @@ export default function InsightsScreen() {
     loadInsights();
   }, [loadInsights]);
 
+  useEffect(() => {
+    if (loading || !cacheKey) return;
+
+    setCachedData(cacheKey, {
+      insights,
+      preferences,
+      partnerInsights,
+      partnerPreferences,
+      connection,
+    });
+  }, [
+    loading,
+    cacheKey,
+    insights,
+    preferences,
+    partnerInsights,
+    partnerPreferences,
+    connection,
+  ]);
+
   const handleRefresh = () => {
     setRefreshing(true);
     loadInsights();
   };
 
   if (loading) {
-    return <LoadingScreen />;
+    return (
+      <SafeAreaView style={styles.screen}>
+        <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
+          <Skeleton width={96} height={11} radius={6} />
+          <Skeleton
+            width="62%"
+            height={26}
+            radius={9}
+            style={{ marginTop: 12 }}
+          />
+
+          <View style={{ marginTop: 26 }}>
+            <SkeletonList count={3} />
+          </View>
+        </View>
+      </SafeAreaView>
+    );
   }
 
   /*

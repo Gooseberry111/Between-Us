@@ -12,6 +12,8 @@ import {
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { getCachedData, setCachedData } from "../../lib/dataCache";
+import { Skeleton, SkeletonCard } from "../../components/Skeleton";
 
 const API_URL = "https://between-us-api.between-us.workers.dev";
 
@@ -19,15 +21,23 @@ export default function HomeScreen() {
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
 
-  const [profile, setProfile] = useState(null);
-  const [connection, setConnection] = useState(null);
-  const [partnerInsights, setPartnerInsights] = useState(null);
-  const [partnerPreferences, setPartnerPreferences] = useState(null);
-  const [pendingRequests, setPendingRequests] = useState([]);
-  const [trivia, setTrivia] = useState(null);
-  const [reminders, setReminders] = useState([]);
-  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
-  const [loading, setLoading] = useState(true);
+  /*
+   * Seed straight from the session cache so coming
+   * back to Home renders the real screen instantly
+   * instead of flashing a spinner.
+   */
+  const cacheKey = userId ? `home:${userId}` : null;
+  const cached = cacheKey ? getCachedData(cacheKey) : undefined;
+
+  const [profile, setProfile] = useState(cached?.profile ?? null);
+  const [connection, setConnection] = useState(cached?.connection ?? null);
+  const [partnerInsights, setPartnerInsights] = useState(cached?.partnerInsights ?? null);
+  const [partnerPreferences, setPartnerPreferences] = useState(cached?.partnerPreferences ?? null);
+  const [pendingRequests, setPendingRequests] = useState(cached?.pendingRequests ?? []);
+  const [trivia, setTrivia] = useState(cached?.trivia ?? null);
+  const [reminders, setReminders] = useState(cached?.reminders ?? []);
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(cached?.hasUnreadNotifications ?? false);
+  const [loading, setLoading] = useState(!cached);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
@@ -172,13 +182,42 @@ export default function HomeScreen() {
     loadHome();
   }, [loadHome]);
 
+  /*
+   * Keep the cache in step with whatever is on screen.
+   */
+  useEffect(() => {
+    if (loading || !cacheKey) return;
+
+    setCachedData(cacheKey, {
+      profile,
+      connection,
+      partnerInsights,
+      partnerPreferences,
+      pendingRequests,
+      trivia,
+      reminders,
+      hasUnreadNotifications,
+    });
+  }, [
+    loading,
+    cacheKey,
+    profile,
+    connection,
+    partnerInsights,
+    partnerPreferences,
+    pendingRequests,
+    trivia,
+    reminders,
+    hasUnreadNotifications,
+  ]);
+
   const handleRefresh = () => {
     setRefreshing(true);
     loadHome();
   };
 
   if (loading) {
-    return <LoadingScreen />;
+    return <HomeSkeleton />;
   }
 
   const firstName = profile?.first_name?.trim() || "there";
@@ -898,6 +937,49 @@ function ErrorMessage({ message }) {
  * LOADING
  * ==========================================
  */
+
+/*
+ * ==========================================
+ * HOME SKELETON
+ * ==========================================
+ *
+ * Shown only on a genuinely cold load, when
+ * there is nothing cached yet. It mirrors the
+ * real layout so the screen appears immediately
+ * and fills in, rather than blocking on a spinner.
+ */
+
+function HomeSkeleton() {
+  return (
+    <SafeAreaView style={styles.screen}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <View style={styles.container}>
+          <View style={{ marginBottom: 26 }}>
+            <Skeleton width={96} height={11} radius={6} />
+            <Skeleton
+              width="65%"
+              height={28}
+              radius={9}
+              style={{ marginTop: 12 }}
+            />
+            <Skeleton
+              width="45%"
+              height={13}
+              style={{ marginTop: 10 }}
+            />
+          </View>
+
+          <SkeletonCard lines={2} style={{ marginBottom: 13 }} />
+          <SkeletonCard lines={3} style={{ marginBottom: 13 }} />
+          <SkeletonCard lines={2} />
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
 
 function LoadingScreen() {
   return (
