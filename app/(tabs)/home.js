@@ -1205,9 +1205,7 @@ const styles = StyleSheet.create({
   },
 
   connectionCard: {
-    backgroundColor: "#6B4E45",
-    borderRadius: 22,
-    padding: 20,
+    marginBottom: 13,
   },
 
   connectionTop: {
@@ -1219,7 +1217,9 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    backgroundColor: "rgba(107, 78, 69, 0.1)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255, 255, 255, 0.9)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1239,32 +1239,32 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.5,
-    color: "#DCCBC4",
+    color: "#9A918A",
   },
 
   partnerName: {
     marginTop: 3,
     fontSize: 21,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: "#302825",
   },
 
   relationshipText: {
     marginTop: 2,
     fontSize: 12,
-    color: "#DCCBC4",
+    color: "#817771",
   },
 
   onlineDot: {
     width: 9,
     height: 9,
     borderRadius: 5,
-    backgroundColor: "#D9C7BE",
+    backgroundColor: "#7FA383",
   },
 
   connectionDivider: {
-    height: 1,
-    backgroundColor: "#806B62",
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: "rgba(107, 78, 69, 0.18)",
     marginVertical: 18,
   },
 
@@ -1278,18 +1278,18 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.3,
-    color: "#DCCBC4",
+    color: "#9A918A",
   },
 
   connectionSmallText: {
     marginTop: 4,
     fontSize: 13,
-    color: "#FFFFFF",
+    color: "#302825",
   },
 
   connectionHeart: {
     fontSize: 27,
-    color: "#E9DED8",
+    color: "#C4796A",
   },
 
   /*
