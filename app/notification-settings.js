@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { GlassBackground } from "../components/Glass";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
@@ -232,98 +233,102 @@ export default function NotificationSettingsScreen() {
      */
     return (
       <SafeAreaView style={styles.screen}>
-        <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
-          <Skeleton width={96} height={11} radius={6} />
-          <Skeleton
-            width="62%"
-            height={26}
-            radius={9}
-            style={{ marginTop: 12 }}
-          />
-          <Skeleton width="80%" height={12} style={{ marginTop: 10 }} />
+        <GlassBackground>
+          <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
+            <Skeleton width={96} height={11} radius={6} />
+            <Skeleton
+              width="62%"
+              height={26}
+              radius={9}
+              style={{ marginTop: 12 }}
+            />
+            <Skeleton width="80%" height={12} style={{ marginTop: 10 }} />
 
-          <View style={{ marginTop: 26 }}>
-            <SkeletonList count={3} />
+            <View style={{ marginTop: 26 }}>
+              <SkeletonList count={3} />
+            </View>
           </View>
-        </View>
+        </GlassBackground>
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.screen}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        <View style={styles.container}>
-          {/* HEADER */}
+      <GlassBackground>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          <View style={styles.container}>
+            {/* HEADER */}
 
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              activeOpacity={0.8}
-              onPress={() => router.back()}
-            >
-              <Ionicons name="chevron-back" size={20} color="#6B4E45" />
-            </TouchableOpacity>
+            <View style={styles.header}>
+              <TouchableOpacity
+                style={styles.backButton}
+                activeOpacity={0.8}
+                onPress={() => router.back()}
+              >
+                <Ionicons name="chevron-back" size={20} color="#6B4E45" />
+              </TouchableOpacity>
 
-            <View style={styles.headerText}>
-              <Text style={styles.brand}>BETWEEN US</Text>
+              <View style={styles.headerText}>
+                <Text style={styles.brand}>BETWEEN US</Text>
 
-              <Text style={styles.pageTitle}>Notifications</Text>
+                <Text style={styles.pageTitle}>Notifications</Text>
 
-              <Text style={styles.pageSubtitle}>
-                Choose what Between Us reminds you about.
+                <Text style={styles.pageSubtitle}>
+                  Choose what Between Us reminds you about.
+                </Text>
+              </View>
+            </View>
+
+            {error ? (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
+
+            {NOTIFICATION_GROUPS.map((group) => (
+              <View style={styles.section} key={group.label}>
+                <Text style={styles.sectionLabel}>{group.label}</Text>
+
+                <View style={styles.card}>
+                  {group.items.map((item, index) => (
+                    <View key={item.type}>
+                      {index > 0 ? <View style={styles.divider} /> : null}
+
+                      <View style={styles.row}>
+                        <View style={styles.rowContent}>
+                          <Text style={styles.rowTitle}>{item.title}</Text>
+
+                          <Text style={styles.rowDescription}>
+                            {item.description}
+                          </Text>
+                        </View>
+
+                        <Switch
+                          value={preferences[item.type] !== false}
+                          onValueChange={(value) => toggle(item.type, value)}
+                          trackColor={{ false: "#DDD4CE", true: "#6B4E45" }}
+                          thumbColor="#FFFFFF"
+                        />
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ))}
+
+            <View style={styles.noteCard}>
+              <Text style={styles.noteText}>
+                Connection requests always come through, so you never miss
+                someone asking to connect with you.
               </Text>
             </View>
           </View>
-
-          {error ? (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          ) : null}
-
-          {NOTIFICATION_GROUPS.map((group) => (
-            <View style={styles.section} key={group.label}>
-              <Text style={styles.sectionLabel}>{group.label}</Text>
-
-              <View style={styles.card}>
-                {group.items.map((item, index) => (
-                  <View key={item.type}>
-                    {index > 0 ? <View style={styles.divider} /> : null}
-
-                    <View style={styles.row}>
-                      <View style={styles.rowContent}>
-                        <Text style={styles.rowTitle}>{item.title}</Text>
-
-                        <Text style={styles.rowDescription}>
-                          {item.description}
-                        </Text>
-                      </View>
-
-                      <Switch
-                        value={preferences[item.type] !== false}
-                        onValueChange={(value) => toggle(item.type, value)}
-                        trackColor={{ false: "#DDD4CE", true: "#6B4E45" }}
-                        thumbColor="#FFFFFF"
-                      />
-                    </View>
-                  </View>
-                ))}
-              </View>
-            </View>
-          ))}
-
-          <View style={styles.noteCard}>
-            <Text style={styles.noteText}>
-              Connection requests always come through, so you never miss
-              someone asking to connect with you.
-            </Text>
-          </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </GlassBackground>
     </SafeAreaView>
   );
 }
@@ -331,7 +336,6 @@ export default function NotificationSettingsScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F8F5F0",
   },
 
   scrollContent: {
@@ -354,7 +358,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 11,
@@ -399,11 +403,11 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 18,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
   },
 
   row: {

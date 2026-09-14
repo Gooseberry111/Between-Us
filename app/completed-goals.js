@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { GlassBackground } from "../components/Glass";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import {
@@ -140,144 +141,150 @@ export default function CompletedGoalsScreen() {
      */
     return (
       <SafeAreaView style={styles.screen}>
-        <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
-          <Skeleton width={96} height={11} radius={6} />
-          <Skeleton
-            width="62%"
-            height={26}
-            radius={9}
-            style={{ marginTop: 12 }}
-          />
-          <Skeleton width="80%" height={12} style={{ marginTop: 10 }} />
+        <GlassBackground>
+          <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
+            <Skeleton width={96} height={11} radius={6} />
+            <Skeleton
+              width="62%"
+              height={26}
+              radius={9}
+              style={{ marginTop: 12 }}
+            />
+            <Skeleton width="80%" height={12} style={{ marginTop: 10 }} />
 
-          <View style={{ marginTop: 26 }}>
-            <SkeletonList count={3} />
+            <View style={{ marginTop: 26 }}>
+              <SkeletonList count={3} />
+            </View>
           </View>
-        </View>
+        </GlassBackground>
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.screen}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor="#6B4E45"
-          />
-        }
-        contentContainerStyle={styles.scrollContent}
-      >
-        <View style={styles.container}>
-          {/* HEADER */}
+      <GlassBackground>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor="#6B4E45"
+            />
+          }
+          contentContainerStyle={styles.scrollContent}
+        >
+          <View style={styles.container}>
+            {/* HEADER */}
 
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => router.push("/goals")}
-            >
-              <Text style={styles.backButtonText}>←</Text>
-            </TouchableOpacity>
+            <View style={styles.header}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => router.push("/goals")}
+              >
+                <Text style={styles.backButtonText}>←</Text>
+              </TouchableOpacity>
 
-            <View style={styles.headerText}>
-              <Text style={styles.brand}>BETWEEN US</Text>
+              <View style={styles.headerText}>
+                <Text style={styles.brand}>BETWEEN US</Text>
 
-              <Text style={styles.pageTitle}>Completed Goals</Text>
+                <Text style={styles.pageTitle}>Completed Goals</Text>
 
-              <Text style={styles.pageSubtitle}>
-                Everything you have already worked through together.
-              </Text>
-            </View>
-
-            <View style={styles.headerIcon}>
-              <Text style={styles.headerIconText}>✓</Text>
-            </View>
-          </View>
-
-          {error ? (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          ) : null}
-
-          {/* SUMMARY */}
-
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryNumber}>{goals.length}</Text>
-
-            <View style={styles.summaryText}>
-              <Text style={styles.summaryTitle}>
-                {goals.length === 1 ? "Goal completed" : "Goals completed"}
-              </Text>
-
-              <Text style={styles.summarySubtitle}>
-                Keep growing together, one goal at a time.
-              </Text>
-            </View>
-          </View>
-
-          {/* GOALS */}
-
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>YOUR PROGRESS</Text>
-
-            <Text style={styles.sectionTitle}>
-              {goals.length === 0
-                ? "Nothing completed yet."
-                : `${goals.length} ${
-                    goals.length === 1 ? "goal" : "goals"
-                  } achieved together.`}
-            </Text>
-
-            {goals.length === 0 ? (
-              <View style={styles.emptyCard}>
-                <View style={styles.emptyIcon}>
-                  <Text style={styles.emptyIconText}>✓</Text>
-                </View>
-
-                <Text style={styles.emptyTitle}>
-                  Your completed goals will appear here.
+                <Text style={styles.pageSubtitle}>
+                  Everything you have already worked through together.
                 </Text>
-
-                <Text style={styles.emptyText}>
-                  When you mark a goal as complete, it will move here
-                  automatically.
-                </Text>
-
-                <TouchableOpacity
-                  style={styles.backToGoalsButton}
-                  onPress={() => router.back()}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.backToGoalsText}>Back to goals</Text>
-                </TouchableOpacity>
               </View>
-            ) : (
-              goals.map((goal, index) => (
-                <CompletedGoalCard
-                  key={goal.id}
-                  goal={goal}
-                  index={index}
-                  onMarkActive={() => markActive(goal)}
-                />
-              ))
-            )}
-          </View>
 
-          {goals.length > 0 ? (
-            <View style={styles.footerCard}>
-              <Text style={styles.footerQuote}>"Progress, not perfection."</Text>
-
-              <Text style={styles.footerText}>
-                Look back at what you have already worked through together.
-              </Text>
+              <View style={styles.headerIcon}>
+                <Text style={styles.headerIconText}>✓</Text>
+              </View>
             </View>
-          ) : null}
-        </View>
-      </ScrollView>
+
+            {error ? (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
+
+            {/* SUMMARY */}
+
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryNumber}>{goals.length}</Text>
+
+              <View style={styles.summaryText}>
+                <Text style={styles.summaryTitle}>
+                  {goals.length === 1 ? "Goal completed" : "Goals completed"}
+                </Text>
+
+                <Text style={styles.summarySubtitle}>
+                  Keep growing together, one goal at a time.
+                </Text>
+              </View>
+            </View>
+
+            {/* GOALS */}
+
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>YOUR PROGRESS</Text>
+
+              <Text style={styles.sectionTitle}>
+                {goals.length === 0
+                  ? "Nothing completed yet."
+                  : `${goals.length} ${
+                      goals.length === 1 ? "goal" : "goals"
+                    } achieved together.`}
+              </Text>
+
+              {goals.length === 0 ? (
+                <View style={styles.emptyCard}>
+                  <View style={styles.emptyIcon}>
+                    <Text style={styles.emptyIconText}>✓</Text>
+                  </View>
+
+                  <Text style={styles.emptyTitle}>
+                    Your completed goals will appear here.
+                  </Text>
+
+                  <Text style={styles.emptyText}>
+                    When you mark a goal as complete, it will move here
+                    automatically.
+                  </Text>
+
+                  <TouchableOpacity
+                    style={styles.backToGoalsButton}
+                    onPress={() => router.back()}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.backToGoalsText}>Back to goals</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                goals.map((goal, index) => (
+                  <CompletedGoalCard
+                    key={goal.id}
+                    goal={goal}
+                    index={index}
+                    onMarkActive={() => markActive(goal)}
+                  />
+                ))
+              )}
+            </View>
+
+            {goals.length > 0 ? (
+              <View style={styles.footerCard}>
+                <Text style={styles.footerQuote}>
+                  "Progress, not perfection."
+                </Text>
+
+                <Text style={styles.footerText}>
+                  Look back at what you have already worked through together.
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        </ScrollView>
+      </GlassBackground>
     </SafeAreaView>
   );
 }
@@ -353,7 +360,6 @@ function CompletedGoalCard({ goal, index, onMarkActive }) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F8F5F0",
   },
 
   scrollContent: {
@@ -376,7 +382,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 11,
@@ -417,7 +423,7 @@ const styles = StyleSheet.create({
     width: 45,
     height: 45,
     borderRadius: 23,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     justifyContent: "center",
     alignItems: "center",
     marginLeft: 8,
@@ -430,11 +436,11 @@ const styles = StyleSheet.create({
   },
 
   summaryCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 18,
     padding: 18,
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
     flexDirection: "row",
     alignItems: "center",
   },
@@ -482,11 +488,11 @@ const styles = StyleSheet.create({
   },
 
   goalCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
     marginBottom: 13,
   },
 
@@ -500,7 +506,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -515,7 +521,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 9,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
   },
 
   completedBadgeText: {
@@ -542,7 +548,7 @@ const styles = StyleSheet.create({
 
   dateContainer: {
     marginTop: 14,
-    backgroundColor: "#F8F5F0",
+    backgroundColor: "rgba(255, 255, 255, 0.32)",
     borderRadius: 11,
     padding: 11,
   },
@@ -563,7 +569,7 @@ const styles = StyleSheet.create({
 
   completedContainer: {
     marginTop: 8,
-    backgroundColor: "#F1E9E5",
+    backgroundColor: "rgba(255, 255, 255, 0.42)",
     borderRadius: 11,
     padding: 11,
   },
@@ -616,11 +622,11 @@ const styles = StyleSheet.create({
   },
 
   emptyCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 20,
     padding: 24,
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
     alignItems: "center",
   },
 
@@ -628,7 +634,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 15,
@@ -660,7 +666,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 11,
     borderRadius: 11,
-    backgroundColor: "#F1E9E5",
+    backgroundColor: "rgba(255, 255, 255, 0.42)",
   },
 
   backToGoalsText: {

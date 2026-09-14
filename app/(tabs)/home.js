@@ -14,6 +14,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { getCachedData, setCachedData } from "../../lib/dataCache";
 import { Skeleton, SkeletonCard } from "../../components/Skeleton";
+import { GlassBackground, GlassCard } from "../../components/Glass";
 
 const API_URL = "https://between-us-api.between-us.workers.dev";
 
@@ -31,12 +32,20 @@ export default function HomeScreen() {
 
   const [profile, setProfile] = useState(cached?.profile ?? null);
   const [connection, setConnection] = useState(cached?.connection ?? null);
-  const [partnerInsights, setPartnerInsights] = useState(cached?.partnerInsights ?? null);
-  const [partnerPreferences, setPartnerPreferences] = useState(cached?.partnerPreferences ?? null);
-  const [pendingRequests, setPendingRequests] = useState(cached?.pendingRequests ?? []);
+  const [partnerInsights, setPartnerInsights] = useState(
+    cached?.partnerInsights ?? null,
+  );
+  const [partnerPreferences, setPartnerPreferences] = useState(
+    cached?.partnerPreferences ?? null,
+  );
+  const [pendingRequests, setPendingRequests] = useState(
+    cached?.pendingRequests ?? [],
+  );
   const [trivia, setTrivia] = useState(cached?.trivia ?? null);
   const [reminders, setReminders] = useState(cached?.reminders ?? []);
-  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(cached?.hasUnreadNotifications ?? false);
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(
+    cached?.hasUnreadNotifications ?? false,
+  );
   const [loading, setLoading] = useState(!cached);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -238,85 +247,87 @@ export default function HomeScreen() {
   if (!connection) {
     return (
       <SafeAreaView style={styles.screen}>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor="#6B4E45"
-            />
-          }
-          contentContainerStyle={styles.scrollContent}
-        >
-          <View style={styles.container}>
-            <Header
-              firstName={firstName}
-              hasUnreadNotifications={hasUnreadNotifications}
-            />
+        <GlassBackground>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                tintColor="#6B4E45"
+              />
+            }
+            contentContainerStyle={styles.scrollContent}
+          >
+            <View style={styles.container}>
+              <Header
+                firstName={firstName}
+                hasUnreadNotifications={hasUnreadNotifications}
+              />
 
-            {error ? <ErrorMessage message={error} /> : null}
+              {error ? <ErrorMessage message={error} /> : null}
 
-            <View style={styles.welcomeCard}>
-              <View style={styles.welcomeIcon}>
-                <Text style={styles.heart}>♡</Text>
-              </View>
-
-              <Text style={styles.welcomeTitle}>
-                Make Between Us
-                {"\n"}
-                about both of you.
-              </Text>
-
-              <Text style={styles.welcomeDescription}>
-                Find the person you want to stay connected with. Once you
-                connect, this becomes your shared space for memories, insights,
-                reminders and meaningful moments.
-              </Text>
-
-              <TouchableOpacity
-                style={styles.primaryButton}
-                activeOpacity={0.85}
-                onPress={() => router.push("/find-person")}
-              >
-                <Text style={styles.primaryButtonText}>Find someone</Text>
-
-                <Text style={styles.primaryArrow}>→</Text>
-              </TouchableOpacity>
-            </View>
-
-            {pendingRequests.length > 0 ? (
-              <View style={styles.section}>
-                <Text style={styles.sectionLabel}>CONNECTION REQUEST</Text>
-
-                <View style={styles.pendingCard}>
-                  <View style={styles.pendingIcon}>
-                    <Text style={styles.pendingHeart}>♡</Text>
-                  </View>
-
-                  <View style={styles.pendingContent}>
-                    <Text style={styles.pendingTitle}>
-                      Someone wants to connect
-                    </Text>
-
-                    <Text style={styles.pendingText}>
-                      Open your connections to review the request.
-                    </Text>
-                  </View>
-
-                  <TouchableOpacity
-                    onPress={() => router.push("/find-person")}
-                    style={styles.smallButton}
-                  >
-                    <Text style={styles.smallButtonText}>View</Text>
-                  </TouchableOpacity>
+              <View style={styles.welcomeCard}>
+                <View style={styles.welcomeIcon}>
+                  <Text style={styles.heart}>♡</Text>
                 </View>
-              </View>
-            ) : null}
 
-            <QuickActions router={router} />
-          </View>
-        </ScrollView>
+                <Text style={styles.welcomeTitle}>
+                  Make Between Us
+                  {"\n"}
+                  about both of you.
+                </Text>
+
+                <Text style={styles.welcomeDescription}>
+                  Find the person you want to stay connected with. Once you
+                  connect, this becomes your shared space for memories,
+                  insights, reminders and meaningful moments.
+                </Text>
+
+                <TouchableOpacity
+                  style={styles.primaryButton}
+                  activeOpacity={0.85}
+                  onPress={() => router.push("/find-person")}
+                >
+                  <Text style={styles.primaryButtonText}>Find someone</Text>
+
+                  <Text style={styles.primaryArrow}>→</Text>
+                </TouchableOpacity>
+              </View>
+
+              {pendingRequests.length > 0 ? (
+                <View style={styles.section}>
+                  <Text style={styles.sectionLabel}>CONNECTION REQUEST</Text>
+
+                  <View style={styles.pendingCard}>
+                    <View style={styles.pendingIcon}>
+                      <Text style={styles.pendingHeart}>♡</Text>
+                    </View>
+
+                    <View style={styles.pendingContent}>
+                      <Text style={styles.pendingTitle}>
+                        Someone wants to connect
+                      </Text>
+
+                      <Text style={styles.pendingText}>
+                        Open your connections to review the request.
+                      </Text>
+                    </View>
+
+                    <TouchableOpacity
+                      onPress={() => router.push("/find-person")}
+                      style={styles.smallButton}
+                    >
+                      <Text style={styles.smallButtonText}>View</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : null}
+
+              <QuickActions router={router} />
+            </View>
+          </ScrollView>
+        </GlassBackground>
       </SafeAreaView>
     );
   }
@@ -380,257 +391,264 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor="#6B4E45"
-          />
-        }
-        contentContainerStyle={styles.scrollContent}
-      >
-        <View style={styles.container}>
-          <Header
-            firstName={firstName}
-            hasUnreadNotifications={hasUnreadNotifications}
-          />
+      <GlassBackground>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor="#6B4E45"
+            />
+          }
+          contentContainerStyle={styles.scrollContent}
+        >
+          <View style={styles.container}>
+            <Header
+              firstName={firstName}
+              hasUnreadNotifications={hasUnreadNotifications}
+            />
 
-          {error ? <ErrorMessage message={error} /> : null}
+            {error ? <ErrorMessage message={error} /> : null}
 
-          {/* CONNECTION CARD */}
+            {/* CONNECTION CARD */}
 
-          <TouchableOpacity
-            style={styles.connectionCard}
-            activeOpacity={0.9}
-            onPress={() => router.push("/connection")}
-          >
-            <View style={styles.connectionTop}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
-                  {(partnerName || "?").charAt(0).toUpperCase()}
-                </Text>
+            <TouchableOpacity
+              style={styles.connectionCard}
+              activeOpacity={0.9}
+              onPress={() => router.push("/connection")}
+            >
+              <View style={styles.connectionTop}>
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>
+                    {(partnerName || "?").charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+
+                <View style={styles.connectionInfo}>
+                  <Text style={styles.togetherLabel}>YOU & THEM</Text>
+
+                  <Text style={styles.partnerName}>{partnerName}</Text>
+
+                  <Text style={styles.relationshipText}>
+                    {relationshipLabel}
+                  </Text>
+                </View>
+
+                <View style={styles.onlineDot} />
               </View>
 
-              <View style={styles.connectionInfo}>
-                <Text style={styles.togetherLabel}>YOU & THEM</Text>
+              <View style={styles.connectionDivider} />
 
-                <Text style={styles.partnerName}>{partnerName}</Text>
+              <View style={styles.connectionBottom}>
+                <View>
+                  <Text style={styles.connectionSmallLabel}>YOUR SPACE</Text>
 
-                <Text style={styles.relationshipText}>{relationshipLabel}</Text>
+                  <Text style={styles.connectionSmallText}>
+                    Keep choosing each other.
+                  </Text>
+                </View>
+
+                <Text style={styles.connectionHeart}>♡</Text>
               </View>
+            </TouchableOpacity>
 
-              <View style={styles.onlineDot} />
-            </View>
+            {/* TODAY */}
 
-            <View style={styles.connectionDivider} />
-
-            <View style={styles.connectionBottom}>
-              <View>
-                <Text style={styles.connectionSmallLabel}>YOUR SPACE</Text>
-
-                <Text style={styles.connectionSmallText}>
-                  Keep choosing each other.
-                </Text>
-              </View>
-
-              <Text style={styles.connectionHeart}>♡</Text>
-            </View>
-          </TouchableOpacity>
-
-          {/* TODAY */}
-
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View>
-                <Text style={styles.sectionLabel}>TODAY</Text>
-
-                <Text style={styles.sectionTitle}>
-                  A little intention goes a long way.
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.promptCard}>
-              <View style={styles.promptIcon}>
-                <Text style={styles.promptIconText}>✦</Text>
-              </View>
-
-              <Text style={styles.promptEyebrow}>
-                FOR {partnerName.toUpperCase()}
-              </Text>
-
-              <Text style={styles.promptTitle}>{todayPrompt.title}</Text>
-
-              <Text style={styles.promptDescription}>
-                {todayPrompt.description}
-              </Text>
-
-              <TouchableOpacity
-                style={styles.promptButton}
-                activeOpacity={0.8}
-                onPress={() => {
-                  if (todayPrompt.route) {
-                    router.push(todayPrompt.route);
-                  }
-                }}
-              >
-                <Text style={styles.promptButtonText}>
-                  {todayPrompt.buttonText}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* COUPLE TRIVIA */}
-
-          {trivia?.questions?.length > 0 ? (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <View>
-                  <Text style={styles.sectionLabel}>COUPLE TRIVIA</Text>
+                  <Text style={styles.sectionLabel}>TODAY</Text>
 
                   <Text style={styles.sectionTitle}>
-                    How well do you know {partnerName}?
+                    A little intention goes a long way.
                   </Text>
                 </View>
               </View>
 
-              <TouchableOpacity
-                style={styles.triviaCard}
-                activeOpacity={0.9}
-                onPress={() => router.push("/trivia")}
-              >
-                <View style={styles.triviaIcon}>
-                  <Text style={styles.triviaIconText}>?</Text>
+              <View style={styles.promptCard}>
+                <View style={styles.promptIcon}>
+                  <Text style={styles.promptIconText}>✦</Text>
                 </View>
 
-                <View style={styles.triviaContent}>
-                  <Text style={styles.triviaTitle}>
-                    Test what you know about them
-                  </Text>
+                <Text style={styles.promptEyebrow}>
+                  FOR {partnerName.toUpperCase()}
+                </Text>
 
-                  <Text style={styles.triviaDescription}>
-                    Answer {trivia.total_questions} quick questions about{" "}
-                    {partnerName}.
-                  </Text>
+                <Text style={styles.promptTitle}>{todayPrompt.title}</Text>
 
-                  <View style={styles.triviaButton}>
-                    <Text style={styles.triviaButtonText}>Play trivia →</Text>
+                <Text style={styles.promptDescription}>
+                  {todayPrompt.description}
+                </Text>
+
+                <TouchableOpacity
+                  style={styles.promptButton}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    if (todayPrompt.route) {
+                      router.push(todayPrompt.route);
+                    }
+                  }}
+                >
+                  <Text style={styles.promptButtonText}>
+                    {todayPrompt.buttonText}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* COUPLE TRIVIA */}
+
+            {trivia?.questions?.length > 0 ? (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <View>
+                    <Text style={styles.sectionLabel}>COUPLE TRIVIA</Text>
+
+                    <Text style={styles.sectionTitle}>
+                      How well do you know {partnerName}?
+                    </Text>
                   </View>
                 </View>
-              </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.triviaCard}
+                  activeOpacity={0.9}
+                  onPress={() => router.push("/trivia")}
+                >
+                  <View style={styles.triviaIcon}>
+                    <Text style={styles.triviaIconText}>?</Text>
+                  </View>
+
+                  <View style={styles.triviaContent}>
+                    <Text style={styles.triviaTitle}>
+                      Test what you know about them
+                    </Text>
+
+                    <Text style={styles.triviaDescription}>
+                      Answer {trivia.total_questions} quick questions about{" "}
+                      {partnerName}.
+                    </Text>
+
+                    <View style={styles.triviaButton}>
+                      <Text style={styles.triviaButtonText}>Play trivia →</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+
+            {/* PARTNER SNAPSHOT */}
+
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>ABOUT THEM</Text>
+
+              <View style={styles.snapshotCard}>
+                <Text style={styles.snapshotTitle}>What they enjoy</Text>
+
+                {food ? <SnapshotRow label="Food" value={food} /> : null}
+
+                {drink ? <SnapshotRow label="Drink" value={drink} /> : null}
+
+                {movieGenre ? (
+                  <SnapshotRow label="Movies" value={movieGenre} />
+                ) : null}
+
+                {musicGenre ? (
+                  <SnapshotRow label="Music" value={musicGenre} />
+                ) : null}
+
+                {favoriteColor ? (
+                  <SnapshotRow label="Favorite color" value={favoriteColor} />
+                ) : null}
+
+                {!food &&
+                !drink &&
+                !movieGenre &&
+                !musicGenre &&
+                !favoriteColor ? (
+                  <Text style={styles.emptySnapshot}>
+                    You are still learning more about each other.
+                  </Text>
+                ) : null}
+              </View>
             </View>
-          ) : null}
 
-          {/* PARTNER SNAPSHOT */}
+            {/* HOW TO LOVE THEM */}
 
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>ABOUT THEM</Text>
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>HOW TO LOVE THEM</Text>
 
-            <View style={styles.snapshotCard}>
-              <Text style={styles.snapshotTitle}>What they enjoy</Text>
-
-              {food ? <SnapshotRow label="Food" value={food} /> : null}
-
-              {drink ? <SnapshotRow label="Drink" value={drink} /> : null}
-
-              {movieGenre ? (
-                <SnapshotRow label="Movies" value={movieGenre} />
-              ) : null}
-
-              {musicGenre ? (
-                <SnapshotRow label="Music" value={musicGenre} />
-              ) : null}
-
-              {favoriteColor ? (
-                <SnapshotRow label="Favorite color" value={favoriteColor} />
-              ) : null}
-
-              {!food &&
-              !drink &&
-              !movieGenre &&
-              !musicGenre &&
-              !favoriteColor ? (
-                <Text style={styles.emptySnapshot}>
-                  You are still learning more about each other.
+              <View style={styles.loveCard}>
+                <Text style={styles.loveCardTitle}>
+                  What feels natural to them
                 </Text>
-              ) : null}
+
+                {loveLanguages.length > 0 ? (
+                  <View style={styles.tagContainer}>
+                    {loveLanguages.map((language, index) => (
+                      <View key={`${language}-${index}`} style={styles.tag}>
+                        <Text style={styles.tagText}>{language}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+
+                {affectionStyle ? (
+                  <InfoRow label="Affection" value={affectionStyle} />
+                ) : null}
+
+                {communicationFrequency ? (
+                  <InfoRow
+                    label="Communication"
+                    value={communicationFrequency}
+                  />
+                ) : null}
+
+                {conflictStyle ? (
+                  <InfoRow label="During conflict" value={conflictStyle} />
+                ) : null}
+              </View>
             </View>
-          </View>
 
-          {/* HOW TO LOVE THEM */}
+            {/* GOALS */}
 
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>HOW TO LOVE THEM</Text>
+            {focusAreas.length > 0 ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>WHAT THEY WANT MORE OF</Text>
 
-            <View style={styles.loveCard}>
-              <Text style={styles.loveCardTitle}>
-                What feels natural to them
-              </Text>
+                <View style={styles.goalsCard}>
+                  {focusAreas.map((focusArea, index) => (
+                    <View key={`${focusArea}-${index}`} style={styles.goalRow}>
+                      <View style={styles.goalIcon}>
+                        <Text style={styles.goalIconText}>✦</Text>
+                      </View>
 
-              {loveLanguages.length > 0 ? (
-                <View style={styles.tagContainer}>
-                  {loveLanguages.map((language, index) => (
-                    <View key={`${language}-${index}`} style={styles.tag}>
-                      <Text style={styles.tagText}>{language}</Text>
+                      <Text style={styles.goalText}>{focusArea}</Text>
                     </View>
                   ))}
                 </View>
-              ) : null}
-
-              {affectionStyle ? (
-                <InfoRow label="Affection" value={affectionStyle} />
-              ) : null}
-
-              {communicationFrequency ? (
-                <InfoRow label="Communication" value={communicationFrequency} />
-              ) : null}
-
-              {conflictStyle ? (
-                <InfoRow label="During conflict" value={conflictStyle} />
-              ) : null}
-            </View>
-          </View>
-
-          {/* GOALS */}
-
-          {focusAreas.length > 0 ? (
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>WHAT THEY WANT MORE OF</Text>
-
-              <View style={styles.goalsCard}>
-                {focusAreas.map((focusArea, index) => (
-                  <View key={`${focusArea}-${index}`} style={styles.goalRow}>
-                    <View style={styles.goalIcon}>
-                      <Text style={styles.goalIconText}>✦</Text>
-                    </View>
-
-                    <Text style={styles.goalText}>{focusArea}</Text>
-                  </View>
-                ))}
               </View>
+            ) : null}
+
+            {/* QUICK ACTIONS */}
+
+            <QuickActions router={router} />
+
+            {/* FOOTER */}
+
+            <View style={styles.footerCard}>
+              <Text style={styles.footerQuote}>
+                "The little things are often the big things."
+              </Text>
+
+              <Text style={styles.footerSubtext}>
+                Between Us is here to help you remember them.
+              </Text>
             </View>
-          ) : null}
-
-          {/* QUICK ACTIONS */}
-
-          <QuickActions router={router} />
-
-          {/* FOOTER */}
-
-          <View style={styles.footerCard}>
-            <Text style={styles.footerQuote}>
-              "The little things are often the big things."
-            </Text>
-
-            <Text style={styles.footerSubtext}>
-              Between Us is here to help you remember them.
-            </Text>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </GlassBackground>
     </SafeAreaView>
   );
 }
@@ -952,31 +970,29 @@ function ErrorMessage({ message }) {
 function HomeSkeleton() {
   return (
     <SafeAreaView style={styles.screen}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        <View style={styles.container}>
-          <View style={{ marginBottom: 26 }}>
-            <Skeleton width={96} height={11} radius={6} />
-            <Skeleton
-              width="65%"
-              height={28}
-              radius={9}
-              style={{ marginTop: 12 }}
-            />
-            <Skeleton
-              width="45%"
-              height={13}
-              style={{ marginTop: 10 }}
-            />
-          </View>
+      <GlassBackground>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          <View style={styles.container}>
+            <View style={{ marginBottom: 26 }}>
+              <Skeleton width={96} height={11} radius={6} />
+              <Skeleton
+                width="65%"
+                height={28}
+                radius={9}
+                style={{ marginTop: 12 }}
+              />
+              <Skeleton width="45%" height={13} style={{ marginTop: 10 }} />
+            </View>
 
-          <SkeletonCard lines={2} style={{ marginBottom: 13 }} />
-          <SkeletonCard lines={3} style={{ marginBottom: 13 }} />
-          <SkeletonCard lines={2} />
-        </View>
-      </ScrollView>
+            <SkeletonCard lines={2} style={{ marginBottom: 13 }} />
+            <SkeletonCard lines={3} style={{ marginBottom: 13 }} />
+            <SkeletonCard lines={2} />
+          </View>
+        </ScrollView>
+      </GlassBackground>
     </SafeAreaView>
   );
 }
@@ -984,19 +1000,21 @@ function HomeSkeleton() {
 function LoadingScreen() {
   return (
     <SafeAreaView style={styles.screen}>
-      <View style={styles.loadingContainer}>
-        <View style={styles.loadingLogo}>
-          <Text style={styles.loadingHeart}>♡</Text>
+      <GlassBackground>
+        <View style={styles.loadingContainer}>
+          <View style={styles.loadingLogo}>
+            <Text style={styles.loadingHeart}>♡</Text>
+          </View>
+
+          <Text style={styles.loadingTitle}>Between Us</Text>
+
+          <ActivityIndicator
+            size="small"
+            color="#6B4E45"
+            style={styles.loadingIndicator}
+          />
         </View>
-
-        <Text style={styles.loadingTitle}>Between Us</Text>
-
-        <ActivityIndicator
-          size="small"
-          color="#6B4E45"
-          style={styles.loadingIndicator}
-        />
-      </View>
+      </GlassBackground>
     </SafeAreaView>
   );
 }
@@ -1010,8 +1028,12 @@ function LoadingScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F8F5F0",
   },
+
+  /*
+   * Cards are translucent now so the gradient and
+   * colour blobs behind them show through as glass.
+   */
 
   scrollContent: {
     flexGrow: 1,
@@ -1057,7 +1079,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     alignItems: "center",
     justifyContent: "center",
     marginLeft: 12,
@@ -1095,7 +1117,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1202,18 +1224,18 @@ const styles = StyleSheet.create({
 
   promptCard: {
     marginTop: 14,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 20,
     padding: 19,
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
   },
 
   promptIcon: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 14,
@@ -1252,7 +1274,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 10,
     borderRadius: 11,
-    backgroundColor: "#F1E9E5",
+    backgroundColor: "rgba(255, 255, 255, 0.42)",
   },
 
   promptButtonText: {
@@ -1266,12 +1288,12 @@ const styles = StyleSheet.create({
    */
 
   snapshotCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 20,
     paddingHorizontal: 18,
     paddingVertical: 17,
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
   },
 
   snapshotTitle: {
@@ -1317,11 +1339,11 @@ const styles = StyleSheet.create({
    */
 
   loveCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
   },
 
   loveCardTitle: {
@@ -1339,7 +1361,7 @@ const styles = StyleSheet.create({
   },
 
   tag: {
-    backgroundColor: "#F1E9E5",
+    backgroundColor: "rgba(255, 255, 255, 0.42)",
     borderRadius: 10,
     paddingHorizontal: 11,
     paddingVertical: 8,
@@ -1380,11 +1402,11 @@ const styles = StyleSheet.create({
    */
 
   goalsCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 20,
     paddingHorizontal: 17,
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
   },
 
   goalRow: {
@@ -1397,7 +1419,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "#F1E9E5",
+    backgroundColor: "rgba(255, 255, 255, 0.42)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1431,7 +1453,7 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1466,7 +1488,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 9,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
   },
 
   triviaButtonText: {
@@ -1490,18 +1512,18 @@ const styles = StyleSheet.create({
 
   quickAction: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 18,
     padding: 15,
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
   },
 
   quickIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#F1E9E5",
+    backgroundColor: "rgba(255, 255, 255, 0.42)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 12,
@@ -1530,18 +1552,18 @@ const styles = StyleSheet.create({
    */
 
   welcomeCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 22,
     padding: 22,
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
   },
 
   welcomeIcon: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 18,
@@ -1593,20 +1615,20 @@ const styles = StyleSheet.create({
    */
 
   pendingCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 18,
     padding: 15,
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
   },
 
   pendingIcon: {
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1638,7 +1660,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 9,
     borderRadius: 10,
-    backgroundColor: "#F1E9E5",
+    backgroundColor: "rgba(255, 255, 255, 0.42)",
   },
 
   smallButtonText: {
@@ -1708,7 +1730,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     alignItems: "center",
     justifyContent: "center",
   },

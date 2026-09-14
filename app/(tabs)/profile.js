@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { GlassBackground } from "../../components/Glass";
 import { getCachedData, setCachedData } from "../../lib/dataCache";
 import { Skeleton, SkeletonList } from "../../components/Skeleton";
 import { useAuth, useClerk } from "@clerk/expo";
@@ -91,12 +92,7 @@ export default function ProfileScreen() {
       profile,
       connection,
     });
-  }, [
-    loading,
-    cacheKey,
-    profile,
-    connection,
-  ]);
+  }, [loading, cacheKey, profile, connection]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -195,19 +191,21 @@ export default function ProfileScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.screen}>
-        <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
-          <Skeleton width={96} height={11} radius={6} />
-          <Skeleton
-            width="62%"
-            height={26}
-            radius={9}
-            style={{ marginTop: 12 }}
-          />
+        <GlassBackground>
+          <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
+            <Skeleton width={96} height={11} radius={6} />
+            <Skeleton
+              width="62%"
+              height={26}
+              radius={9}
+              style={{ marginTop: 12 }}
+            />
 
-          <View style={{ marginTop: 26 }}>
-            <SkeletonList count={3} />
+            <View style={{ marginTop: 26 }}>
+              <SkeletonList count={3} />
+            </View>
           </View>
-        </View>
+        </GlassBackground>
       </SafeAreaView>
     );
   }
@@ -235,297 +233,299 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor="#6B4E45"
-          />
-        }
-        contentContainerStyle={styles.scrollContent}
-      >
-        <View style={styles.container}>
-          {/* HEADER */}
+      <GlassBackground>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor="#6B4E45"
+            />
+          }
+          contentContainerStyle={styles.scrollContent}
+        >
+          <View style={styles.container}>
+            {/* HEADER */}
 
-          <View style={styles.header}>
-            <View>
-              <Text style={styles.brand}>BETWEEN US</Text>
+            <View style={styles.header}>
+              <View>
+                <Text style={styles.brand}>BETWEEN US</Text>
 
-              <Text style={styles.pageTitle}>Profile</Text>
-            </View>
+                <Text style={styles.pageTitle}>Profile</Text>
+              </View>
 
-            <View style={styles.headerIcon}>
-              <Text style={styles.headerHeart}>♡</Text>
-            </View>
-          </View>
-
-          {error ? (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          ) : null}
-
-          {/* YOUR PROFILE */}
-
-          <View style={styles.profileCard}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{initials || "U"}</Text>
-            </View>
-
-            <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>{fullName}</Text>
-
-              {profile?.email ? (
-                <Text style={styles.profileEmail}>{profile.email}</Text>
-              ) : null}
-
-              <View style={styles.profileBadge}>
-                <Text style={styles.profileBadgeText}>BETWEEN US MEMBER</Text>
+              <View style={styles.headerIcon}>
+                <Text style={styles.headerHeart}>♡</Text>
               </View>
             </View>
-          </View>
 
-          {/* PERSONAL INFORMATION */}
+            {error ? (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
 
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionLabel}>PERSONAL INFORMATION</Text>
+            {/* YOUR PROFILE */}
 
-              <TouchableOpacity
-                style={styles.editButton}
-                activeOpacity={0.8}
-                onPress={() => router.push("/edit-profile")}
-              >
-                <Text style={styles.editButtonText}>Edit Profile</Text>
-              </TouchableOpacity>
-            </View>
+            <View style={styles.profileCard}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{initials || "U"}</Text>
+              </View>
 
-            <View style={styles.infoCard}>
-              <InfoRow
-                label="First name"
-                value={profile?.first_name || "Not set"}
-              />
+              <View style={styles.profileInfo}>
+                <Text style={styles.profileName}>{fullName}</Text>
 
-              <View style={styles.divider} />
+                {profile?.email ? (
+                  <Text style={styles.profileEmail}>{profile.email}</Text>
+                ) : null}
 
-              <InfoRow
-                label="Last name"
-                value={profile?.last_name || "Not set"}
-              />
-
-              {profile?.email ? (
-                <>
-                  <View style={styles.divider} />
-
-                  <InfoRow label="Email" value={profile.email} />
-                </>
-              ) : null}
-            </View>
-          </View>
-
-          {/* YOUR CONNECTION */}
-
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>YOUR CONNECTION</Text>
-
-            {connection ? (
-              <>
-                <View style={styles.partnerCard}>
-                  <View style={styles.partnerAvatar}>
-                    <Text style={styles.partnerAvatarText}>
-                      {partnerInitial}
-                    </Text>
-                  </View>
-
-                  <View style={styles.partnerInfo}>
-                    <Text style={styles.partnerEyebrow}>CONNECTED WITH</Text>
-
-                    <Text style={styles.partnerName}>{partnerName}</Text>
-
-                    <Text style={styles.partnerRelationship}>
-                      {relationshipLabel}
-                    </Text>
-                  </View>
-
-                  <View style={styles.connectedDot} />
+                <View style={styles.profileBadge}>
+                  <Text style={styles.profileBadgeText}>BETWEEN US MEMBER</Text>
                 </View>
+              </View>
+            </View>
+
+            {/* PERSONAL INFORMATION */}
+
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionLabel}>PERSONAL INFORMATION</Text>
 
                 <TouchableOpacity
-                  style={[
-                    styles.unlinkButton,
-                    unlinking && styles.unlinkButtonDisabled,
-                  ]}
+                  style={styles.editButton}
                   activeOpacity={0.8}
-                  onPress={handleUnlink}
-                  disabled={unlinking}
+                  onPress={() => router.push("/edit-profile")}
                 >
-                  {unlinking ? (
-                    <ActivityIndicator size="small" color="#9A5548" />
-                  ) : (
-                    <Text style={styles.unlinkText}>Unlink Partner</Text>
-                  )}
+                  <Text style={styles.editButtonText}>Edit Profile</Text>
                 </TouchableOpacity>
+              </View>
 
-                <Text style={styles.unlinkWarning}>
-                  Unlinking ends your current connection. You can connect again
-                  later.
-                </Text>
-              </>
-            ) : (
+              <View style={styles.infoCard}>
+                <InfoRow
+                  label="First name"
+                  value={profile?.first_name || "Not set"}
+                />
+
+                <View style={styles.divider} />
+
+                <InfoRow
+                  label="Last name"
+                  value={profile?.last_name || "Not set"}
+                />
+
+                {profile?.email ? (
+                  <>
+                    <View style={styles.divider} />
+
+                    <InfoRow label="Email" value={profile.email} />
+                  </>
+                ) : null}
+              </View>
+            </View>
+
+            {/* YOUR CONNECTION */}
+
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>YOUR CONNECTION</Text>
+
+              {connection ? (
+                <>
+                  <View style={styles.partnerCard}>
+                    <View style={styles.partnerAvatar}>
+                      <Text style={styles.partnerAvatarText}>
+                        {partnerInitial}
+                      </Text>
+                    </View>
+
+                    <View style={styles.partnerInfo}>
+                      <Text style={styles.partnerEyebrow}>CONNECTED WITH</Text>
+
+                      <Text style={styles.partnerName}>{partnerName}</Text>
+
+                      <Text style={styles.partnerRelationship}>
+                        {relationshipLabel}
+                      </Text>
+                    </View>
+
+                    <View style={styles.connectedDot} />
+                  </View>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.unlinkButton,
+                      unlinking && styles.unlinkButtonDisabled,
+                    ]}
+                    activeOpacity={0.8}
+                    onPress={handleUnlink}
+                    disabled={unlinking}
+                  >
+                    {unlinking ? (
+                      <ActivityIndicator size="small" color="#9A5548" />
+                    ) : (
+                      <Text style={styles.unlinkText}>Unlink Partner</Text>
+                    )}
+                  </TouchableOpacity>
+
+                  <Text style={styles.unlinkWarning}>
+                    Unlinking ends your current connection. You can connect
+                    again later.
+                  </Text>
+                </>
+              ) : (
+                <TouchableOpacity
+                  style={styles.noConnectionCard}
+                  activeOpacity={0.85}
+                  onPress={() => router.push("/connection")}
+                >
+                  <View style={styles.noConnectionIcon}>
+                    <Text style={styles.noConnectionIconText}>♡</Text>
+                  </View>
+
+                  <View style={styles.noConnectionInfo}>
+                    <Text style={styles.noConnectionTitle}>
+                      No partner connected
+                    </Text>
+
+                    <Text style={styles.noConnectionDescription}>
+                      Connect with someone to start building your relationship
+                      together.
+                    </Text>
+                  </View>
+
+                  <Text style={styles.noConnectionArrow}>›</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* SETTINGS */}
+
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>YOUR SPACE</Text>
+
               <TouchableOpacity
-                style={styles.noConnectionCard}
-                activeOpacity={0.85}
-                onPress={() => router.push("/connection")}
+                style={styles.settingRow}
+                activeOpacity={0.8}
+                onPress={() => router.push("/memories")}
               >
-                <View style={styles.noConnectionIcon}>
-                  <Text style={styles.noConnectionIconText}>♡</Text>
+                <View style={styles.settingIcon}>
+                  <Text style={styles.settingIconText}>♡</Text>
                 </View>
 
-                <View style={styles.noConnectionInfo}>
-                  <Text style={styles.noConnectionTitle}>
-                    No partner connected
-                  </Text>
+                <View style={styles.settingContent}>
+                  <Text style={styles.settingTitle}>Your Timeline</Text>
 
-                  <Text style={styles.noConnectionDescription}>
-                    Connect with someone to start building your relationship
-                    together.
+                  <Text style={styles.settingDescription}>
+                    View your story together, one moment at a time.
                   </Text>
                 </View>
 
-                <Text style={styles.noConnectionArrow}>›</Text>
+                <Text style={styles.settingArrow}>›</Text>
               </TouchableOpacity>
-            )}
+
+              <TouchableOpacity
+                style={styles.settingRow}
+                activeOpacity={0.8}
+                onPress={() => router.push("/insights")}
+              >
+                <View style={styles.settingIcon}>
+                  <Text style={styles.settingIconText}>◌</Text>
+                </View>
+
+                <View style={styles.settingContent}>
+                  <Text style={styles.settingTitle}>Insights</Text>
+
+                  <Text style={styles.settingDescription}>
+                    Learn more about your relationship.
+                  </Text>
+                </View>
+
+                <Text style={styles.settingArrow}>›</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.settingRow}
+                activeOpacity={0.8}
+                onPress={() => router.push("/trivia-history")}
+              >
+                <View style={styles.settingIcon}>
+                  <Text style={styles.settingIconText}>✦</Text>
+                </View>
+
+                <View style={styles.settingContent}>
+                  <Text style={styles.settingTitle}>Trivia History</Text>
+
+                  <Text style={styles.settingDescription}>
+                    See every round you've both played.
+                  </Text>
+                </View>
+
+                <Text style={styles.settingArrow}>›</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.settingRow}
+                activeOpacity={0.8}
+                onPress={() => router.push("/notification-settings")}
+              >
+                <View style={styles.settingIcon}>
+                  <Text style={styles.settingIconText}>◈</Text>
+                </View>
+
+                <View style={styles.settingContent}>
+                  <Text style={styles.settingTitle}>Notifications</Text>
+
+                  <Text style={styles.settingDescription}>
+                    Choose what Between Us reminds you about.
+                  </Text>
+                </View>
+
+                <Text style={styles.settingArrow}>›</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* SIGN OUT */}
+
+            <View style={styles.section}>
+              <TouchableOpacity
+                style={styles.signOutButton}
+                activeOpacity={0.8}
+                onPress={handleSignOut}
+              >
+                <Text style={styles.signOutText}>Sign Out</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* DELETE ACCOUNT */}
+
+            <View style={styles.dangerSection}>
+              <TouchableOpacity
+                style={styles.deleteButton}
+                activeOpacity={0.8}
+                onPress={handleDeleteAccount}
+              >
+                <Text style={styles.deleteText}>Delete Account</Text>
+              </TouchableOpacity>
+
+              <Text style={styles.deleteWarning}>
+                Account deletion permanently removes your Between Us data.
+              </Text>
+            </View>
+
+            {/* FOOTER */}
+
+            <View style={styles.footer}>
+              <Text style={styles.footerHeart}>♡</Text>
+
+              <Text style={styles.footerText}>BETWEEN US</Text>
+
+              <Text style={styles.footerSubtext}>
+                A little more intention. A little more connection.
+              </Text>
+            </View>
           </View>
-
-          {/* SETTINGS */}
-
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>YOUR SPACE</Text>
-
-            <TouchableOpacity
-              style={styles.settingRow}
-              activeOpacity={0.8}
-              onPress={() => router.push("/memories")}
-            >
-              <View style={styles.settingIcon}>
-                <Text style={styles.settingIconText}>♡</Text>
-              </View>
-
-              <View style={styles.settingContent}>
-                <Text style={styles.settingTitle}>Your Timeline</Text>
-
-                <Text style={styles.settingDescription}>
-                  View your story together, one moment at a time.
-                </Text>
-              </View>
-
-              <Text style={styles.settingArrow}>›</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.settingRow}
-              activeOpacity={0.8}
-              onPress={() => router.push("/insights")}
-            >
-              <View style={styles.settingIcon}>
-                <Text style={styles.settingIconText}>◌</Text>
-              </View>
-
-              <View style={styles.settingContent}>
-                <Text style={styles.settingTitle}>Insights</Text>
-
-                <Text style={styles.settingDescription}>
-                  Learn more about your relationship.
-                </Text>
-              </View>
-
-              <Text style={styles.settingArrow}>›</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.settingRow}
-              activeOpacity={0.8}
-              onPress={() => router.push("/trivia-history")}
-            >
-              <View style={styles.settingIcon}>
-                <Text style={styles.settingIconText}>✦</Text>
-              </View>
-
-              <View style={styles.settingContent}>
-                <Text style={styles.settingTitle}>Trivia History</Text>
-
-                <Text style={styles.settingDescription}>
-                  See every round you've both played.
-                </Text>
-              </View>
-
-              <Text style={styles.settingArrow}>›</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.settingRow}
-              activeOpacity={0.8}
-              onPress={() => router.push("/notification-settings")}
-            >
-              <View style={styles.settingIcon}>
-                <Text style={styles.settingIconText}>◈</Text>
-              </View>
-
-              <View style={styles.settingContent}>
-                <Text style={styles.settingTitle}>Notifications</Text>
-
-                <Text style={styles.settingDescription}>
-                  Choose what Between Us reminds you about.
-                </Text>
-              </View>
-
-              <Text style={styles.settingArrow}>›</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* SIGN OUT */}
-
-          <View style={styles.section}>
-            <TouchableOpacity
-              style={styles.signOutButton}
-              activeOpacity={0.8}
-              onPress={handleSignOut}
-            >
-              <Text style={styles.signOutText}>Sign Out</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* DELETE ACCOUNT */}
-
-          <View style={styles.dangerSection}>
-            <TouchableOpacity
-              style={styles.deleteButton}
-              activeOpacity={0.8}
-              onPress={handleDeleteAccount}
-            >
-              <Text style={styles.deleteText}>Delete Account</Text>
-            </TouchableOpacity>
-
-            <Text style={styles.deleteWarning}>
-              Account deletion permanently removes your Between Us data.
-            </Text>
-          </View>
-
-          {/* FOOTER */}
-
-          <View style={styles.footer}>
-            <Text style={styles.footerHeart}>♡</Text>
-
-            <Text style={styles.footerText}>BETWEEN US</Text>
-
-            <Text style={styles.footerSubtext}>
-              A little more intention. A little more connection.
-            </Text>
-          </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </GlassBackground>
     </SafeAreaView>
   );
 }
@@ -555,19 +555,21 @@ function InfoRow({ label, value }) {
 function LoadingScreen() {
   return (
     <SafeAreaView style={styles.screen}>
-      <View style={styles.loadingContainer}>
-        <View style={styles.loadingLogo}>
-          <Text style={styles.loadingHeart}>♡</Text>
+      <GlassBackground>
+        <View style={styles.loadingContainer}>
+          <View style={styles.loadingLogo}>
+            <Text style={styles.loadingHeart}>♡</Text>
+          </View>
+
+          <Text style={styles.loadingTitle}>Between Us</Text>
+
+          <ActivityIndicator
+            size="small"
+            color="#6B4E45"
+            style={styles.loadingIndicator}
+          />
         </View>
-
-        <Text style={styles.loadingTitle}>Between Us</Text>
-
-        <ActivityIndicator
-          size="small"
-          color="#6B4E45"
-          style={styles.loadingIndicator}
-        />
-      </View>
+      </GlassBackground>
     </SafeAreaView>
   );
 }
@@ -581,7 +583,6 @@ function LoadingScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F8F5F0",
   },
 
   scrollContent: {
@@ -624,7 +625,7 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -650,7 +651,7 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 34,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -726,7 +727,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     paddingVertical: 6,
     borderRadius: 9,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
   },
 
   editButtonText: {
@@ -740,11 +741,11 @@ const styles = StyleSheet.create({
    */
 
   infoCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 18,
     paddingHorizontal: 17,
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
   },
 
   infoRow: {
@@ -777,20 +778,20 @@ const styles = StyleSheet.create({
    */
 
   partnerCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 20,
     padding: 17,
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
   },
 
   partnerAvatar: {
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -872,20 +873,20 @@ const styles = StyleSheet.create({
    */
 
   noConnectionCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 20,
     padding: 17,
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
   },
 
   noConnectionIcon: {
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: "#F1E9E5",
+    backgroundColor: "rgba(255, 255, 255, 0.42)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -924,7 +925,7 @@ const styles = StyleSheet.create({
    */
 
   settingRow: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     minHeight: 75,
     borderRadius: 17,
     paddingHorizontal: 15,
@@ -932,7 +933,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
     marginBottom: 10,
   },
 
@@ -940,7 +941,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#F1E9E5",
+    backgroundColor: "rgba(255, 255, 255, 0.42)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1083,7 +1084,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     alignItems: "center",
     justifyContent: "center",
   },

@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { GlassBackground } from "../components/Glass";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
@@ -97,150 +98,154 @@ export default function TriviaHistoryScreen() {
      */
     return (
       <SafeAreaView style={styles.screen}>
-        <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
-          <Skeleton width={96} height={11} radius={6} />
-          <Skeleton
-            width="62%"
-            height={26}
-            radius={9}
-            style={{ marginTop: 12 }}
-          />
-          <Skeleton width="80%" height={12} style={{ marginTop: 10 }} />
+        <GlassBackground>
+          <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
+            <Skeleton width={96} height={11} radius={6} />
+            <Skeleton
+              width="62%"
+              height={26}
+              radius={9}
+              style={{ marginTop: 12 }}
+            />
+            <Skeleton width="80%" height={12} style={{ marginTop: 10 }} />
 
-          <View style={{ marginTop: 26 }}>
-            <SkeletonList count={3} />
+            <View style={{ marginTop: 26 }}>
+              <SkeletonList count={3} />
+            </View>
           </View>
-        </View>
+        </GlassBackground>
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.screen}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor="#6B4E45"
-          />
-        }
-        contentContainerStyle={styles.scrollContent}
-      >
-        <View style={styles.container}>
-          {/* HEADER */}
+      <GlassBackground>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor="#6B4E45"
+            />
+          }
+          contentContainerStyle={styles.scrollContent}
+        >
+          <View style={styles.container}>
+            {/* HEADER */}
 
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              activeOpacity={0.8}
-              onPress={() => router.back()}
-            >
-              <Ionicons name="chevron-back" size={20} color="#6B4E45" />
-            </TouchableOpacity>
+            <View style={styles.header}>
+              <TouchableOpacity
+                style={styles.backButton}
+                activeOpacity={0.8}
+                onPress={() => router.back()}
+              >
+                <Ionicons name="chevron-back" size={20} color="#6B4E45" />
+              </TouchableOpacity>
 
-            <View style={styles.headerText}>
-              <Text style={styles.brand}>BETWEEN US</Text>
+              <View style={styles.headerText}>
+                <Text style={styles.brand}>BETWEEN US</Text>
 
-              <Text style={styles.pageTitle}>Trivia History</Text>
+                <Text style={styles.pageTitle}>Trivia History</Text>
 
-              <Text style={styles.pageSubtitle}>
-                Every round you've both played.
-              </Text>
-            </View>
-          </View>
-
-          {error ? (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          ) : null}
-
-          {/* STATS */}
-
-          {stats && stats.rounds_played > 0 ? (
-            <View style={styles.statsCard}>
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>{stats.rounds_played}</Text>
-                <Text style={styles.statLabel}>
-                  {stats.rounds_played === 1 ? "Round" : "Rounds"}
+                <Text style={styles.pageSubtitle}>
+                  Every round you've both played.
                 </Text>
               </View>
-
-              <View style={styles.statDivider} />
-
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>{stats.best_score}</Text>
-                <Text style={styles.statLabel}>Best score</Text>
-              </View>
-
-              <View style={styles.statDivider} />
-
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>
-                  {stats.accuracy === null ? "—" : `${stats.accuracy}%`}
-                </Text>
-                <Text style={styles.statLabel}>Accuracy</Text>
-              </View>
             </View>
-          ) : null}
 
-          {/* SESSIONS */}
+            {error ? (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
 
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>ROUNDS PLAYED</Text>
+            {/* STATS */}
 
-            <Text style={styles.sectionTitle}>
-              {sessions.length === 0
-                ? "No rounds yet."
-                : `${sessions.length} ${
-                    sessions.length === 1 ? "round" : "rounds"
-                  } so far.`}
-            </Text>
-
-            {sessions.length === 0 ? (
-              <View style={styles.emptyCard}>
-                <View style={styles.emptyIcon}>
-                  <Ionicons
-                    name="help-circle-outline"
-                    size={24}
-                    color="#6B4E45"
-                  />
+            {stats && stats.rounds_played > 0 ? (
+              <View style={styles.statsCard}>
+                <View style={styles.statItem}>
+                  <Text style={styles.statNumber}>{stats.rounds_played}</Text>
+                  <Text style={styles.statLabel}>
+                    {stats.rounds_played === 1 ? "Round" : "Rounds"}
+                  </Text>
                 </View>
 
-                <Text style={styles.emptyTitle}>Nothing here yet.</Text>
+                <View style={styles.statDivider} />
 
-                <Text style={styles.emptyText}>
-                  Play a round of couple trivia and your results will start
-                  showing up here.
-                </Text>
+                <View style={styles.statItem}>
+                  <Text style={styles.statNumber}>{stats.best_score}</Text>
+                  <Text style={styles.statLabel}>Best score</Text>
+                </View>
 
-                <TouchableOpacity
-                  style={styles.emptyButton}
-                  activeOpacity={0.85}
-                  onPress={() => router.push("/trivia")}
-                >
-                  <Text style={styles.emptyButtonText}>Play trivia</Text>
-                </TouchableOpacity>
+                <View style={styles.statDivider} />
+
+                <View style={styles.statItem}>
+                  <Text style={styles.statNumber}>
+                    {stats.accuracy === null ? "—" : `${stats.accuracy}%`}
+                  </Text>
+                  <Text style={styles.statLabel}>Accuracy</Text>
+                </View>
               </View>
-            ) : (
-              sessions.map((session) => (
-                <SessionCard key={session.id} session={session} />
-              ))
-            )}
-          </View>
+            ) : null}
 
-          {sessions.length > 0 ? (
-            <View style={styles.footerCard}>
-              <Text style={styles.footerQuote}>
-                "The point is not to get everything right. It is to keep paying
-                attention to each other."
+            {/* SESSIONS */}
+
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>ROUNDS PLAYED</Text>
+
+              <Text style={styles.sectionTitle}>
+                {sessions.length === 0
+                  ? "No rounds yet."
+                  : `${sessions.length} ${
+                      sessions.length === 1 ? "round" : "rounds"
+                    } so far.`}
               </Text>
+
+              {sessions.length === 0 ? (
+                <View style={styles.emptyCard}>
+                  <View style={styles.emptyIcon}>
+                    <Ionicons
+                      name="help-circle-outline"
+                      size={24}
+                      color="#6B4E45"
+                    />
+                  </View>
+
+                  <Text style={styles.emptyTitle}>Nothing here yet.</Text>
+
+                  <Text style={styles.emptyText}>
+                    Play a round of couple trivia and your results will start
+                    showing up here.
+                  </Text>
+
+                  <TouchableOpacity
+                    style={styles.emptyButton}
+                    activeOpacity={0.85}
+                    onPress={() => router.push("/trivia")}
+                  >
+                    <Text style={styles.emptyButtonText}>Play trivia</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                sessions.map((session) => (
+                  <SessionCard key={session.id} session={session} />
+                ))
+              )}
             </View>
-          ) : null}
-        </View>
-      </ScrollView>
+
+            {sessions.length > 0 ? (
+              <View style={styles.footerCard}>
+                <Text style={styles.footerQuote}>
+                  "The point is not to get everything right. It is to keep
+                  paying attention to each other."
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        </ScrollView>
+      </GlassBackground>
     </SafeAreaView>
   );
 }
@@ -267,9 +272,7 @@ function SessionCard({ session }) {
       <View
         style={[styles.scoreCircle, session.is_you && styles.scoreCircleYou]}
       >
-        <Text
-          style={[styles.scoreText, session.is_you && styles.scoreTextYou]}
-        >
+        <Text style={[styles.scoreText, session.is_you && styles.scoreTextYou]}>
           {session.score}/{total}
         </Text>
       </View>
@@ -289,7 +292,6 @@ function SessionCard({ session }) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F8F5F0",
   },
 
   scrollContent: {
@@ -312,7 +314,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 11,
@@ -345,13 +347,13 @@ const styles = StyleSheet.create({
   },
 
   statsCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 18,
     paddingVertical: 18,
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
     marginBottom: 4,
   },
 
@@ -400,11 +402,11 @@ const styles = StyleSheet.create({
   },
 
   sessionCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 16,
     padding: 15,
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
     marginBottom: 10,
     flexDirection: "row",
     alignItems: "center",
@@ -419,7 +421,7 @@ const styles = StyleSheet.create({
     height: 40,
     paddingHorizontal: 10,
     borderRadius: 12,
-    backgroundColor: "#F1E9E5",
+    backgroundColor: "rgba(255, 255, 255, 0.42)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 13,
@@ -457,11 +459,11 @@ const styles = StyleSheet.create({
   },
 
   emptyCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 20,
     padding: 24,
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
     alignItems: "center",
   },
 
@@ -469,7 +471,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 15,
@@ -494,7 +496,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 11,
     borderRadius: 11,
-    backgroundColor: "#F1E9E5",
+    backgroundColor: "rgba(255, 255, 255, 0.42)",
   },
 
   emptyButtonText: {

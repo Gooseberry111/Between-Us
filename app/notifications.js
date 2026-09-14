@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { GlassBackground } from "../components/Glass";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
@@ -91,106 +92,110 @@ export default function NotificationsScreen() {
      */
     return (
       <SafeAreaView style={styles.screen}>
-        <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
-          <Skeleton width={96} height={11} radius={6} />
-          <Skeleton
-            width="62%"
-            height={26}
-            radius={9}
-            style={{ marginTop: 12 }}
-          />
-          <Skeleton width="80%" height={12} style={{ marginTop: 10 }} />
+        <GlassBackground>
+          <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
+            <Skeleton width={96} height={11} radius={6} />
+            <Skeleton
+              width="62%"
+              height={26}
+              radius={9}
+              style={{ marginTop: 12 }}
+            />
+            <Skeleton width="80%" height={12} style={{ marginTop: 10 }} />
 
-          <View style={{ marginTop: 26 }}>
-            <SkeletonList count={3} />
+            <View style={{ marginTop: 26 }}>
+              <SkeletonList count={3} />
+            </View>
           </View>
-        </View>
+        </GlassBackground>
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.screen}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor="#6B4E45"
-          />
-        }
-        contentContainerStyle={styles.scrollContent}
-      >
-        <View style={styles.container}>
-          {/* HEADER */}
+      <GlassBackground>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor="#6B4E45"
+            />
+          }
+          contentContainerStyle={styles.scrollContent}
+        >
+          <View style={styles.container}>
+            {/* HEADER */}
 
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              activeOpacity={0.8}
-              onPress={() => router.back()}
-            >
-              <Ionicons name="chevron-back" size={20} color="#6B4E45" />
-            </TouchableOpacity>
+            <View style={styles.header}>
+              <TouchableOpacity
+                style={styles.backButton}
+                activeOpacity={0.8}
+                onPress={() => router.back()}
+              >
+                <Ionicons name="chevron-back" size={20} color="#6B4E45" />
+              </TouchableOpacity>
 
-            <View style={styles.headerText}>
-              <Text style={styles.brand}>BETWEEN US</Text>
+              <View style={styles.headerText}>
+                <Text style={styles.brand}>BETWEEN US</Text>
 
-              <Text style={styles.pageTitle}>Notifications</Text>
+                <Text style={styles.pageTitle}>Notifications</Text>
 
-              <Text style={styles.pageSubtitle}>
-                Updates and reminders for your relationship.
-              </Text>
-            </View>
-          </View>
-
-          {error ? (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          ) : null}
-
-          {/* NOTIFICATIONS */}
-
-          <View style={styles.section}>
-            {notifications.length === 0 ? (
-              <View style={styles.emptyCard}>
-                <View style={styles.emptyIcon}>
-                  <Ionicons
-                    name="notifications-outline"
-                    size={23}
-                    color="#6B4E45"
-                  />
-                </View>
-
-                <Text style={styles.emptyTitle}>Nothing new</Text>
-
-                <Text style={styles.emptyText}>
-                  When something important happens, you'll find it here.
+                <Text style={styles.pageSubtitle}>
+                  Updates and reminders for your relationship.
                 </Text>
               </View>
-            ) : (
-              notifications.map((notification) => (
-                <NotificationCard
-                  key={notification.id}
-                  notification={notification}
-                  userId={userId}
-                  onRead={(id) => {
-                    setNotifications((current) => {
-                      const next = current.map((item) =>
-                        item.id === id ? { ...item, is_read: true } : item,
-                      );
-                      if (cacheKey) setCachedData(cacheKey, next);
-                      return next;
-                    });
-                  }}
-                />
-              ))
-            )}
+            </View>
+
+            {error ? (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
+
+            {/* NOTIFICATIONS */}
+
+            <View style={styles.section}>
+              {notifications.length === 0 ? (
+                <View style={styles.emptyCard}>
+                  <View style={styles.emptyIcon}>
+                    <Ionicons
+                      name="notifications-outline"
+                      size={23}
+                      color="#6B4E45"
+                    />
+                  </View>
+
+                  <Text style={styles.emptyTitle}>Nothing new</Text>
+
+                  <Text style={styles.emptyText}>
+                    When something important happens, you'll find it here.
+                  </Text>
+                </View>
+              ) : (
+                notifications.map((notification) => (
+                  <NotificationCard
+                    key={notification.id}
+                    notification={notification}
+                    userId={userId}
+                    onRead={(id) => {
+                      setNotifications((current) => {
+                        const next = current.map((item) =>
+                          item.id === id ? { ...item, is_read: true } : item,
+                        );
+                        if (cacheKey) setCachedData(cacheKey, next);
+                        return next;
+                      });
+                    }}
+                  />
+                ))
+              )}
+            </View>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </GlassBackground>
     </SafeAreaView>
   );
 }
@@ -324,7 +329,6 @@ function NotificationCard({ notification, userId, onRead }) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F8F5F0",
   },
 
   scrollContent: {
@@ -347,7 +351,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 11,
@@ -384,11 +388,11 @@ const styles = StyleSheet.create({
   },
 
   notificationCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 16,
     padding: 15,
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
     marginBottom: 10,
   },
 
@@ -405,14 +409,14 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#F1E9E5",
+    backgroundColor: "rgba(255, 255, 255, 0.42)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
   },
 
   notificationIconUnread: {
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
   },
 
   notificationContent: {
@@ -460,11 +464,11 @@ const styles = StyleSheet.create({
   },
 
   emptyCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 17,
     padding: 24,
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
     alignItems: "center",
   },
 
@@ -472,7 +476,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 13,

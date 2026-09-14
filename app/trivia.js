@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { GlassBackground } from "../components/Glass";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import { clearCachedData } from "../lib/dataCache";
@@ -168,19 +169,21 @@ export default function TriviaScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.screen}>
-        <View style={styles.loadingContainer}>
-          <View style={styles.loadingCircle}>
-            <Text style={styles.loadingHeart}>♡</Text>
+        <GlassBackground>
+          <View style={styles.loadingContainer}>
+            <View style={styles.loadingCircle}>
+              <Text style={styles.loadingHeart}>♡</Text>
+            </View>
+
+            <Text style={styles.loadingTitle}>Getting your questions</Text>
+
+            <ActivityIndicator
+              size="small"
+              color="#6B4E45"
+              style={styles.loadingIndicator}
+            />
           </View>
-
-          <Text style={styles.loadingTitle}>Getting your questions</Text>
-
-          <ActivityIndicator
-            size="small"
-            color="#6B4E45"
-            style={styles.loadingIndicator}
-          />
-        </View>
+        </GlassBackground>
       </SafeAreaView>
     );
   }
@@ -188,26 +191,28 @@ export default function TriviaScreen() {
   if (error) {
     return (
       <SafeAreaView style={styles.screen}>
-        <View style={styles.centerContainer}>
-          <Text style={styles.errorTitle}>Something went wrong</Text>
+        <GlassBackground>
+          <View style={styles.centerContainer}>
+            <Text style={styles.errorTitle}>Something went wrong</Text>
 
-          <Text style={styles.errorText}>{error}</Text>
+            <Text style={styles.errorText}>{error}</Text>
 
-          <TouchableOpacity
-            style={styles.primaryButton}
-            onPress={loadTrivia}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.primaryButtonText}>Try again</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={loadTrivia}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.primaryButtonText}>Try again</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <Text style={styles.backButtonText}>Go back</Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
+              <Text style={styles.backButtonText}>Go back</Text>
+            </TouchableOpacity>
+          </View>
+        </GlassBackground>
       </SafeAreaView>
     );
   }
@@ -215,56 +220,58 @@ export default function TriviaScreen() {
   if (finished) {
     return (
       <SafeAreaView style={styles.screen}>
-        <View style={styles.resultContainer}>
-          <View style={styles.resultCircle}>
-            <Text style={styles.resultHeart}>♡</Text>
-          </View>
+        <GlassBackground>
+          <View style={styles.resultContainer}>
+            <View style={styles.resultCircle}>
+              <Text style={styles.resultHeart}>♡</Text>
+            </View>
 
-          <Text style={styles.resultEyebrow}>TRIVIA COMPLETE</Text>
+            <Text style={styles.resultEyebrow}>TRIVIA COMPLETE</Text>
 
-          <Text style={styles.resultTitle}>
-            You got {score}/{questions.length}
-          </Text>
-
-          <Text style={styles.resultDescription}>
-            {score === questions.length
-              ? `You really know ${partnerName}.`
-              : score === 1
-                ? `You know ${partnerName} pretty well. Keep learning each other.`
-                : `There is always more to discover about ${partnerName}.`}
-          </Text>
-
-          <View style={styles.resultCard}>
-            <Text style={styles.resultCardTitle}>A little reminder</Text>
-
-            <Text style={styles.resultCardText}>
-              The point is not to get everything right. It is to keep paying
-              attention to each other.
+            <Text style={styles.resultTitle}>
+              You got {score}/{questions.length}
             </Text>
+
+            <Text style={styles.resultDescription}>
+              {score === questions.length
+                ? `You really know ${partnerName}.`
+                : score === 1
+                  ? `You know ${partnerName} pretty well. Keep learning each other.`
+                  : `There is always more to discover about ${partnerName}.`}
+            </Text>
+
+            <View style={styles.resultCard}>
+              <Text style={styles.resultCardTitle}>A little reminder</Text>
+
+              <Text style={styles.resultCardText}>
+                The point is not to get everything right. It is to keep paying
+                attention to each other.
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={loadTrivia}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.primaryButtonText}>Play again</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.push("/trivia-history")}
+            >
+              <Text style={styles.backButtonText}>View history</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
+              <Text style={styles.backButtonText}>Back</Text>
+            </TouchableOpacity>
           </View>
-
-          <TouchableOpacity
-            style={styles.primaryButton}
-            onPress={loadTrivia}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.primaryButtonText}>Play again</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.push("/trivia-history")}
-          >
-            <Text style={styles.backButtonText}>View history</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <Text style={styles.backButtonText}>Back</Text>
-          </TouchableOpacity>
-        </View>
+        </GlassBackground>
       </SafeAreaView>
     );
   }
@@ -272,16 +279,18 @@ export default function TriviaScreen() {
   if (!currentQuestion) {
     return (
       <SafeAreaView style={styles.screen}>
-        <View style={styles.centerContainer}>
-          <Text style={styles.errorTitle}>No questions available</Text>
+        <GlassBackground>
+          <View style={styles.centerContainer}>
+            <Text style={styles.errorTitle}>No questions available</Text>
 
-          <TouchableOpacity
-            style={styles.primaryButton}
-            onPress={() => router.back()}
-          >
-            <Text style={styles.primaryButtonText}>Go back</Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={() => router.back()}
+            >
+              <Text style={styles.primaryButtonText}>Go back</Text>
+            </TouchableOpacity>
+          </View>
+        </GlassBackground>
       </SafeAreaView>
     );
   }
@@ -290,194 +299,198 @@ export default function TriviaScreen() {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <View style={styles.container}>
-        {/* HEADER */}
+      <GlassBackground>
+        <View style={styles.container}>
+          {/* HEADER */}
 
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.headerBack}
-            onPress={() => router.back()}
-          >
-            <Text style={styles.headerBackText}>‹</Text>
-          </TouchableOpacity>
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={styles.headerBack}
+              onPress={() => router.back()}
+            >
+              <Text style={styles.headerBackText}>‹</Text>
+            </TouchableOpacity>
 
-          <View style={styles.headerCenter}>
-            <Text style={styles.headerLabel}>COUPLE TRIVIA</Text>
+            <View style={styles.headerCenter}>
+              <Text style={styles.headerLabel}>COUPLE TRIVIA</Text>
 
-            <Text style={styles.headerTitle}>
-              How well do you know {partnerName}?
+              <Text style={styles.headerTitle}>
+                How well do you know {partnerName}?
+              </Text>
+            </View>
+
+            <View style={styles.scoreBadge}>
+              <Text style={styles.scoreText}>{score}</Text>
+            </View>
+          </View>
+
+          {/* PROGRESS */}
+
+          <View style={styles.progressArea}>
+            <View style={styles.progressTrack}>
+              <View
+                style={[
+                  styles.progressFill,
+                  {
+                    width: `${(questionNumber / questions.length) * 100}%`,
+                  },
+                ]}
+              />
+            </View>
+
+            <Text style={styles.progressText}>
+              QUESTION {questionNumber} OF {questions.length}
             </Text>
           </View>
 
-          <View style={styles.scoreBadge}>
-            <Text style={styles.scoreText}>{score}</Text>
-          </View>
-        </View>
+          {/* QUESTION */}
 
-        {/* PROGRESS */}
+          <View style={styles.questionCard}>
+            <View style={styles.questionIcon}>
+              <Text style={styles.questionIconText}>✦</Text>
+            </View>
 
-        <View style={styles.progressArea}>
-          <View style={styles.progressTrack}>
-            <View
-              style={[
-                styles.progressFill,
-                {
-                  width: `${(questionNumber / questions.length) * 100}%`,
-                },
-              ]}
-            />
+            <Text style={styles.questionText}>{currentQuestion.question}</Text>
+
+            <Text style={styles.questionHint}>
+              Choose the answer you think they would give.
+            </Text>
           </View>
 
-          <Text style={styles.progressText}>
-            QUESTION {questionNumber} OF {questions.length}
-          </Text>
-        </View>
+          {/* OPTIONS */}
 
-        {/* QUESTION */}
+          <View style={styles.options}>
+            {Array.isArray(currentQuestion.options) &&
+              currentQuestion.options.map((option, index) => {
+                const isSelected = selectedAnswer === option;
 
-        <View style={styles.questionCard}>
-          <View style={styles.questionIcon}>
-            <Text style={styles.questionIconText}>✦</Text>
-          </View>
+                const correctAnswer = answerResult?.correct_answer;
 
-          <Text style={styles.questionText}>{currentQuestion.question}</Text>
+                const isCorrectAnswer =
+                  Boolean(answerResult) && correctAnswer === option;
 
-          <Text style={styles.questionHint}>
-            Choose the answer you think they would give.
-          </Text>
-        </View>
+                const isWrong =
+                  Boolean(answerResult) && isSelected && !answerResult.correct;
 
-        {/* OPTIONS */}
-
-        <View style={styles.options}>
-          {Array.isArray(currentQuestion.options) &&
-            currentQuestion.options.map((option, index) => {
-              const isSelected = selectedAnswer === option;
-
-              const correctAnswer = answerResult?.correct_answer;
-
-              const isCorrectAnswer =
-                Boolean(answerResult) && correctAnswer === option;
-
-              const isWrong =
-                Boolean(answerResult) && isSelected && !answerResult.correct;
-
-              return (
-                <TouchableOpacity
-                  key={`${option}-${index}`}
-                  style={[
-                    styles.option,
-
-                    isSelected && !answerResult && styles.optionSelected,
-
-                    isCorrectAnswer && styles.optionCorrect,
-
-                    isWrong && styles.optionWrong,
-                  ]}
-                  activeOpacity={0.8}
-                  disabled={Boolean(answerResult)}
-                  onPress={() => setSelectedAnswer(option)}
-                >
-                  <View
+                return (
+                  <TouchableOpacity
+                    key={`${option}-${index}`}
                     style={[
-                      styles.optionCircle,
+                      styles.option,
 
-                      isSelected &&
-                        !answerResult &&
-                        styles.optionCircleSelected,
+                      isSelected && !answerResult && styles.optionSelected,
 
-                      isCorrectAnswer && styles.optionCircleCorrect,
+                      isCorrectAnswer && styles.optionCorrect,
 
-                      isWrong && styles.optionCircleWrong,
+                      isWrong && styles.optionWrong,
                     ]}
+                    activeOpacity={0.8}
+                    disabled={Boolean(answerResult)}
+                    onPress={() => setSelectedAnswer(option)}
                   >
-                    <Text
+                    <View
                       style={[
-                        styles.optionLetter,
+                        styles.optionCircle,
 
-                        (isSelected || isCorrectAnswer) &&
-                          styles.optionLetterSelected,
+                        isSelected &&
+                          !answerResult &&
+                          styles.optionCircleSelected,
+
+                        isCorrectAnswer && styles.optionCircleCorrect,
+
+                        isWrong && styles.optionCircleWrong,
                       ]}
                     >
-                      {String.fromCharCode(65 + index)}
+                      <Text
+                        style={[
+                          styles.optionLetter,
+
+                          (isSelected || isCorrectAnswer) &&
+                            styles.optionLetterSelected,
+                        ]}
+                      >
+                        {String.fromCharCode(65 + index)}
+                      </Text>
+                    </View>
+
+                    <Text
+                      style={[
+                        styles.optionText,
+
+                        isSelected &&
+                          !answerResult &&
+                          styles.optionTextSelected,
+
+                        isCorrectAnswer && styles.optionTextCorrect,
+
+                        isWrong && styles.optionTextWrong,
+                      ]}
+                    >
+                      {option}
                     </Text>
-                  </View>
-
-                  <Text
-                    style={[
-                      styles.optionText,
-
-                      isSelected && !answerResult && styles.optionTextSelected,
-
-                      isCorrectAnswer && styles.optionTextCorrect,
-
-                      isWrong && styles.optionTextWrong,
-                    ]}
-                  >
-                    {option}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-        </View>
-
-        {/* RESULT */}
-
-        {answerResult ? (
-          <View
-            style={[
-              styles.answerMessage,
-              answerResult.correct
-                ? styles.correctMessage
-                : styles.wrongMessage,
-            ]}
-          >
-            <Text style={styles.answerMessageTitle}>
-              {answerResult.correct ? "Correct" : "Not quite"}
-            </Text>
-
-            <Text style={styles.answerMessageText}>
-              {answerResult.correct
-                ? "You know them well."
-                : `The answer was ${answerResult.correct_answer}.`}
-            </Text>
+                  </TouchableOpacity>
+                );
+              })}
           </View>
-        ) : null}
 
-        {/* BUTTON */}
+          {/* RESULT */}
 
-        <View style={styles.bottomArea}>
-          {!answerResult ? (
-            <TouchableOpacity
+          {answerResult ? (
+            <View
               style={[
-                styles.primaryButton,
-                !selectedAnswer && styles.primaryButtonDisabled,
+                styles.answerMessage,
+                answerResult.correct
+                  ? styles.correctMessage
+                  : styles.wrongMessage,
               ]}
-              disabled={!selectedAnswer || submitting}
-              onPress={submitAnswer}
-              activeOpacity={0.85}
             >
-              {submitting ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
-              ) : (
-                <Text style={styles.primaryButtonText}>Check answer</Text>
-              )}
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={nextQuestion}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.primaryButtonText}>
-                {currentIndex === questions.length - 1
-                  ? "See result"
-                  : "Next question"}
+              <Text style={styles.answerMessageTitle}>
+                {answerResult.correct ? "Correct" : "Not quite"}
               </Text>
-            </TouchableOpacity>
-          )}
+
+              <Text style={styles.answerMessageText}>
+                {answerResult.correct
+                  ? "You know them well."
+                  : `The answer was ${answerResult.correct_answer}.`}
+              </Text>
+            </View>
+          ) : null}
+
+          {/* BUTTON */}
+
+          <View style={styles.bottomArea}>
+            {!answerResult ? (
+              <TouchableOpacity
+                style={[
+                  styles.primaryButton,
+                  !selectedAnswer && styles.primaryButtonDisabled,
+                ]}
+                disabled={!selectedAnswer || submitting}
+                onPress={submitAnswer}
+                activeOpacity={0.85}
+              >
+                {submitting ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <Text style={styles.primaryButtonText}>Check answer</Text>
+                )}
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.primaryButton}
+                onPress={nextQuestion}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.primaryButtonText}>
+                  {currentIndex === questions.length - 1
+                    ? "See result"
+                    : "Next question"}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
-      </View>
+      </GlassBackground>
     </SafeAreaView>
   );
 }
@@ -485,7 +498,6 @@ export default function TriviaScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F8F5F0",
   },
 
   container: {
@@ -504,11 +516,11 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
   },
 
   headerBackText: {
@@ -543,7 +555,7 @@ const styles = StyleSheet.create({
     height: 42,
     paddingHorizontal: 10,
     borderRadius: 21,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -624,21 +636,21 @@ const styles = StyleSheet.create({
     minHeight: 57,
     paddingHorizontal: 14,
     borderRadius: 15,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
     flexDirection: "row",
     alignItems: "center",
   },
 
   optionSelected: {
     borderColor: "#6B4E45",
-    backgroundColor: "#F1E9E5",
+    backgroundColor: "rgba(255, 255, 255, 0.42)",
   },
 
   optionCorrect: {
     borderColor: "#6B4E45",
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
   },
 
   optionWrong: {
@@ -650,7 +662,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#F1E9E5",
+    backgroundColor: "rgba(255, 255, 255, 0.42)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
@@ -706,7 +718,7 @@ const styles = StyleSheet.create({
   },
 
   correctMessage: {
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
   },
 
   wrongMessage: {
@@ -760,7 +772,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -827,7 +839,7 @@ const styles = StyleSheet.create({
     width: 74,
     height: 74,
     borderRadius: 37,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -866,9 +878,9 @@ const styles = StyleSheet.create({
     marginTop: 28,
     padding: 18,
     borderRadius: 18,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
   },
 
   resultCardTitle: {

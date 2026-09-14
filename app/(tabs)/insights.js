@@ -8,6 +8,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { GlassBackground } from "../../components/Glass";
 import { getCachedData, setCachedData } from "../../lib/dataCache";
 import { Skeleton, SkeletonList } from "../../components/Skeleton";
 import { useAuth } from "@clerk/expo";
@@ -146,19 +147,21 @@ export default function InsightsScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.screen}>
-        <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
-          <Skeleton width={96} height={11} radius={6} />
-          <Skeleton
-            width="62%"
-            height={26}
-            radius={9}
-            style={{ marginTop: 12 }}
-          />
+        <GlassBackground>
+          <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
+            <Skeleton width={96} height={11} radius={6} />
+            <Skeleton
+              width="62%"
+              height={26}
+              radius={9}
+              style={{ marginTop: 12 }}
+            />
 
-          <View style={{ marginTop: 26 }}>
-            <SkeletonList count={3} />
+            <View style={{ marginTop: 26 }}>
+              <SkeletonList count={3} />
+            </View>
           </View>
-        </View>
+        </GlassBackground>
       </SafeAreaView>
     );
   }
@@ -297,126 +300,103 @@ export default function InsightsScreen() {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor="#6B4E45"
-          />
-        }
-        contentContainerStyle={styles.scrollContent}
-      >
-        <View style={styles.container}>
-          {/* HEADER */}
+      <GlassBackground>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor="#6B4E45"
+            />
+          }
+          contentContainerStyle={styles.scrollContent}
+        >
+          <View style={styles.container}>
+            {/* HEADER */}
 
-          <View style={styles.header}>
-            <View>
-              <Text style={styles.brand}>BETWEEN US</Text>
+            <View style={styles.header}>
+              <View>
+                <Text style={styles.brand}>BETWEEN US</Text>
 
-              <Text style={styles.pageTitle}>Insights</Text>
-            </View>
-
-            <View style={styles.headerIcon}>
-              <Text style={styles.headerIconText}>◌</Text>
-            </View>
-          </View>
-
-          {error ? (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          ) : null}
-
-          {/* HERO */}
-
-          <View style={styles.heroCard}>
-            <View style={styles.heroIcon}>
-              <Text style={styles.heroHeart}>♡</Text>
-            </View>
-
-            <Text style={styles.heroTitle}>
-              Understanding what makes you two work.
-            </Text>
-
-            <Text style={styles.heroText}>
-              Between Us compares the things you both shared to help you
-              understand each other better.
-            </Text>
-          </View>
-
-          {/* RELATIONSHIP */}
-
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>YOUR RELATIONSHIP</Text>
-
-            <View style={styles.connectionCard}>
-              <View style={styles.connectionAvatar}>
-                <Text style={styles.connectionAvatarText}>
-                  {partnerName.charAt(0).toUpperCase()}
-                </Text>
+                <Text style={styles.pageTitle}>Insights</Text>
               </View>
 
-              <View style={styles.connectionInfo}>
-                <Text style={styles.connectionLabel}>CONNECTED WITH</Text>
-
-                <Text style={styles.connectionName}>{partnerName}</Text>
-
-                <Text style={styles.connectionType}>{relationshipType}</Text>
+              <View style={styles.headerIcon}>
+                <Text style={styles.headerIconText}>◌</Text>
               </View>
             </View>
-          </View>
 
-          {!connection ? (
-            <View style={styles.noConnectionCard}>
-              <Text style={styles.noConnectionTitle}>Connect with someone</Text>
+            {error ? (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
 
-              <Text style={styles.noConnectionText}>
-                Once you connect with your partner, you'll be able to see shared
-                insights and discover what makes your relationship unique.
+            {/* HERO */}
+
+            <View style={styles.heroCard}>
+              <View style={styles.heroIcon}>
+                <Text style={styles.heroHeart}>♡</Text>
+              </View>
+
+              <Text style={styles.heroTitle}>
+                Understanding what makes you two work.
+              </Text>
+
+              <Text style={styles.heroText}>
+                Between Us compares the things you both shared to help you
+                understand each other better.
               </Text>
             </View>
-          ) : null}
 
-          {/* YOUR INSIGHTS */}
+            {/* RELATIONSHIP */}
 
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>YOUR INSIGHTS</Text>
-
-            <View style={styles.aboutGrid}>
-              <View style={styles.smallCard}>
-                <Text style={styles.cardEyebrow}>PERSONALITY</Text>
-
-                <Text style={styles.smallCardValue}>
-                  {insights?.personality_type || "Not set"}
-                </Text>
-              </View>
-
-              <View style={styles.smallCard}>
-                <Text style={styles.cardEyebrow}>CONFLICT STYLE</Text>
-
-                <Text style={styles.smallCardValue}>
-                  {insights?.conflict_style || "Not set"}
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          {/* PARTNER */}
-
-          {connection ? (
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>
-                ABOUT {partnerName.toUpperCase()}
-              </Text>
+              <Text style={styles.sectionLabel}>YOUR RELATIONSHIP</Text>
+
+              <View style={styles.connectionCard}>
+                <View style={styles.connectionAvatar}>
+                  <Text style={styles.connectionAvatarText}>
+                    {partnerName.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+
+                <View style={styles.connectionInfo}>
+                  <Text style={styles.connectionLabel}>CONNECTED WITH</Text>
+
+                  <Text style={styles.connectionName}>{partnerName}</Text>
+
+                  <Text style={styles.connectionType}>{relationshipType}</Text>
+                </View>
+              </View>
+            </View>
+
+            {!connection ? (
+              <View style={styles.noConnectionCard}>
+                <Text style={styles.noConnectionTitle}>
+                  Connect with someone
+                </Text>
+
+                <Text style={styles.noConnectionText}>
+                  Once you connect with your partner, you'll be able to see
+                  shared insights and discover what makes your relationship
+                  unique.
+                </Text>
+              </View>
+            ) : null}
+
+            {/* YOUR INSIGHTS */}
+
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>YOUR INSIGHTS</Text>
 
               <View style={styles.aboutGrid}>
                 <View style={styles.smallCard}>
                   <Text style={styles.cardEyebrow}>PERSONALITY</Text>
 
                   <Text style={styles.smallCardValue}>
-                    {partnerInsights?.personality_type || "Not set"}
+                    {insights?.personality_type || "Not set"}
                   </Text>
                 </View>
 
@@ -424,132 +404,125 @@ export default function InsightsScreen() {
                   <Text style={styles.cardEyebrow}>CONFLICT STYLE</Text>
 
                   <Text style={styles.smallCardValue}>
-                    {partnerInsights?.conflict_style || "Not set"}
+                    {insights?.conflict_style || "Not set"}
                   </Text>
                 </View>
               </View>
             </View>
-          ) : null}
 
-          {/* SHARED */}
+            {/* PARTNER */}
 
-          {connection ? (
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>WHAT YOU HAVE IN COMMON</Text>
-
-              <View style={styles.sharedCard}>
-                {sharedLoveLanguages.length > 0 ? (
-                  <InsightRow
-                    title="Shared love language"
-                    value={sharedLoveLanguages.join(", ")}
-                  />
-                ) : null}
-
-                {sharedFocusAreas.length > 0 ? (
-                  <InsightRow
-                    title="Shared focus"
-                    value={sharedFocusAreas.join(", ")}
-                  />
-                ) : null}
-
-                {sharedInterests.length > 0
-                  ? sharedInterests.map((interest, index) => (
-                      <InsightRow
-                        key={`${interest}-${index}`}
-                        title="Shared interest"
-                        value={interest}
-                      />
-                    ))
-                  : null}
-
-                {sharedLoveLanguages.length === 0 &&
-                sharedFocusAreas.length === 0 &&
-                sharedInterests.length === 0 ? (
-                  <Text style={styles.emptyText}>
-                    You are still discovering what you have in common.
-                  </Text>
-                ) : null}
-              </View>
-            </View>
-          ) : null}
-
-          {/* DIFFERENCES */}
-
-          {connection ? (
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>WHERE YOU DIFFER</Text>
-
-              <View style={styles.sharedCard}>
-                {differences.length > 0 ? (
-                  differences.map((difference, index) => (
-                    <View
-                      key={`${difference}-${index}`}
-                      style={[
-                        styles.differenceRow,
-                        index < differences.length - 1 && styles.rowDivider,
-                      ]}
-                    >
-                      <View style={styles.dot} />
-
-                      <Text style={styles.differenceText}>{difference}</Text>
-                    </View>
-                  ))
-                ) : (
-                  <Text style={styles.emptyText}>
-                    You have many similarities so far. Keep answering questions
-                    to discover more about each other.
-                  </Text>
-                )}
-              </View>
-            </View>
-          ) : null}
-
-          {/* LOVE LANGUAGES */}
-
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>YOUR LOVE LANGUAGES</Text>
-
-            <View style={styles.loveCard}>
-              {loveLanguages.length > 0 ? (
-                loveLanguages.map((language, index) => (
-                  <View
-                    style={[
-                      styles.languageRow,
-                      index < loveLanguages.length - 1 && styles.rowDivider,
-                    ]}
-                    key={`${language}-${index}`}
-                  >
-                    <View style={styles.languageNumber}>
-                      <Text style={styles.languageNumberText}>{index + 1}</Text>
-                    </View>
-
-                    <Text style={styles.languageText}>{language}</Text>
-                  </View>
-                ))
-              ) : (
-                <Text style={styles.emptyText}>
-                  Your love languages have not been added yet.
+            {connection ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>
+                  ABOUT {partnerName.toUpperCase()}
                 </Text>
-              )}
-            </View>
-          </View>
 
-          {/* PARTNER LOVE LANGUAGE */}
+                <View style={styles.aboutGrid}>
+                  <View style={styles.smallCard}>
+                    <Text style={styles.cardEyebrow}>PERSONALITY</Text>
 
-          {connection ? (
+                    <Text style={styles.smallCardValue}>
+                      {partnerInsights?.personality_type || "Not set"}
+                    </Text>
+                  </View>
+
+                  <View style={styles.smallCard}>
+                    <Text style={styles.cardEyebrow}>CONFLICT STYLE</Text>
+
+                    <Text style={styles.smallCardValue}>
+                      {partnerInsights?.conflict_style || "Not set"}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            ) : null}
+
+            {/* SHARED */}
+
+            {connection ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>WHAT YOU HAVE IN COMMON</Text>
+
+                <View style={styles.sharedCard}>
+                  {sharedLoveLanguages.length > 0 ? (
+                    <InsightRow
+                      title="Shared love language"
+                      value={sharedLoveLanguages.join(", ")}
+                    />
+                  ) : null}
+
+                  {sharedFocusAreas.length > 0 ? (
+                    <InsightRow
+                      title="Shared focus"
+                      value={sharedFocusAreas.join(", ")}
+                    />
+                  ) : null}
+
+                  {sharedInterests.length > 0
+                    ? sharedInterests.map((interest, index) => (
+                        <InsightRow
+                          key={`${interest}-${index}`}
+                          title="Shared interest"
+                          value={interest}
+                        />
+                      ))
+                    : null}
+
+                  {sharedLoveLanguages.length === 0 &&
+                  sharedFocusAreas.length === 0 &&
+                  sharedInterests.length === 0 ? (
+                    <Text style={styles.emptyText}>
+                      You are still discovering what you have in common.
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+            ) : null}
+
+            {/* DIFFERENCES */}
+
+            {connection ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>WHERE YOU DIFFER</Text>
+
+                <View style={styles.sharedCard}>
+                  {differences.length > 0 ? (
+                    differences.map((difference, index) => (
+                      <View
+                        key={`${difference}-${index}`}
+                        style={[
+                          styles.differenceRow,
+                          index < differences.length - 1 && styles.rowDivider,
+                        ]}
+                      >
+                        <View style={styles.dot} />
+
+                        <Text style={styles.differenceText}>{difference}</Text>
+                      </View>
+                    ))
+                  ) : (
+                    <Text style={styles.emptyText}>
+                      You have many similarities so far. Keep answering
+                      questions to discover more about each other.
+                    </Text>
+                  )}
+                </View>
+              </View>
+            ) : null}
+
+            {/* LOVE LANGUAGES */}
+
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>
-                {partnerName.toUpperCase()}'S LOVE LANGUAGES
-              </Text>
+              <Text style={styles.sectionLabel}>YOUR LOVE LANGUAGES</Text>
 
               <View style={styles.loveCard}>
-                {partnerLoveLanguages.length > 0 ? (
-                  partnerLoveLanguages.map((language, index) => (
+                {loveLanguages.length > 0 ? (
+                  loveLanguages.map((language, index) => (
                     <View
                       style={[
                         styles.languageRow,
-                        index < partnerLoveLanguages.length - 1 &&
-                          styles.rowDivider,
+                        index < loveLanguages.length - 1 && styles.rowDivider,
                       ]}
                       key={`${language}-${index}`}
                     >
@@ -564,154 +537,201 @@ export default function InsightsScreen() {
                   ))
                 ) : (
                   <Text style={styles.emptyText}>
-                    Your partner has not added any love languages yet.
+                    Your love languages have not been added yet.
                   </Text>
                 )}
               </View>
             </View>
-          ) : null}
 
-          {/* PERSONALIZED INSIGHT */}
+            {/* PARTNER LOVE LANGUAGE */}
 
-          {connection ? (
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>A LITTLE INSIGHT</Text>
-
-              <View style={styles.insightCard}>
-                <View style={styles.insightIcon}>
-                  <Text style={styles.insightIconText}>♡</Text>
-                </View>
-
-                <Text style={styles.cardTitle}>What this tells us</Text>
-
-                <Text style={styles.cardDescription}>
-                  {relationshipInsight}
+            {connection ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>
+                  {partnerName.toUpperCase()}'S LOVE LANGUAGES
                 </Text>
+
+                <View style={styles.loveCard}>
+                  {partnerLoveLanguages.length > 0 ? (
+                    partnerLoveLanguages.map((language, index) => (
+                      <View
+                        style={[
+                          styles.languageRow,
+                          index < partnerLoveLanguages.length - 1 &&
+                            styles.rowDivider,
+                        ]}
+                        key={`${language}-${index}`}
+                      >
+                        <View style={styles.languageNumber}>
+                          <Text style={styles.languageNumberText}>
+                            {index + 1}
+                          </Text>
+                        </View>
+
+                        <Text style={styles.languageText}>{language}</Text>
+                      </View>
+                    ))
+                  ) : (
+                    <Text style={styles.emptyText}>
+                      Your partner has not added any love languages yet.
+                    </Text>
+                  )}
+                </View>
               </View>
-            </View>
-          ) : null}
+            ) : null}
 
-          {/* SHARED FOCUS AREAS */}
+            {/* PERSONALIZED INSIGHT */}
 
-          {connection && sharedFocusAreas.length > 0 ? (
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>THINGS TO DO TOGETHER</Text>
+            {connection ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>A LITTLE INSIGHT</Text>
 
-              <View style={styles.goalsCard}>
-                {sharedFocusAreas.map((focusArea, index) => (
-                  <View
-                    style={[
-                      styles.goalRow,
-                      index < sharedFocusAreas.length - 1 && styles.rowDivider,
-                    ]}
-                    key={`${focusArea}-${index}`}
-                  >
-                    <View style={styles.goalIcon}>
-                      <Text style={styles.goalIconText}>+</Text>
-                    </View>
-
-                    <Text style={styles.goalText}>{focusArea}</Text>
+                <View style={styles.insightCard}>
+                  <View style={styles.insightIcon}>
+                    <Text style={styles.insightIconText}>♡</Text>
                   </View>
-                ))}
+
+                  <Text style={styles.cardTitle}>What this tells us</Text>
+
+                  <Text style={styles.cardDescription}>
+                    {relationshipInsight}
+                  </Text>
+                </View>
               </View>
-            </View>
-          ) : null}
+            ) : null}
 
-          {/* FAVORITES */}
+            {/* SHARED FOCUS AREAS */}
 
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>YOUR FAVORITES</Text>
+            {connection && sharedFocusAreas.length > 0 ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>THINGS TO DO TOGETHER</Text>
 
-            <View style={styles.favoritesCard}>
-              <FavoriteRow label="Food" value={preferences?.favorite_food} />
+                <View style={styles.goalsCard}>
+                  {sharedFocusAreas.map((focusArea, index) => (
+                    <View
+                      style={[
+                        styles.goalRow,
+                        index < sharedFocusAreas.length - 1 &&
+                          styles.rowDivider,
+                      ]}
+                      key={`${focusArea}-${index}`}
+                    >
+                      <View style={styles.goalIcon}>
+                        <Text style={styles.goalIconText}>+</Text>
+                      </View>
 
-              <View style={styles.divider} />
+                      <Text style={styles.goalText}>{focusArea}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : null}
 
-              <FavoriteRow label="Snack" value={preferences?.favorite_snack} />
+            {/* FAVORITES */}
 
-              <View style={styles.divider} />
-
-              <FavoriteRow label="Drink" value={preferences?.favorite_drink} />
-
-              <View style={styles.divider} />
-
-              <FavoriteRow label="Color" value={preferences?.favorite_color} />
-
-              <View style={styles.divider} />
-
-              <FavoriteRow label="Music" value={preferences?.music_genre} />
-
-              <View style={styles.divider} />
-
-              <FavoriteRow label="Movies" value={preferences?.movie_genre} />
-            </View>
-          </View>
-
-          {/* PARTNER FAVORITES */}
-
-          {connection ? (
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>
-                {partnerName.toUpperCase()}'S FAVORITES
-              </Text>
+              <Text style={styles.sectionLabel}>YOUR FAVORITES</Text>
 
               <View style={styles.favoritesCard}>
-                <FavoriteRow
-                  label="Food"
-                  value={partnerPreferences?.favorite_food}
-                />
+                <FavoriteRow label="Food" value={preferences?.favorite_food} />
 
                 <View style={styles.divider} />
 
                 <FavoriteRow
                   label="Snack"
-                  value={partnerPreferences?.favorite_snack}
+                  value={preferences?.favorite_snack}
                 />
 
                 <View style={styles.divider} />
 
                 <FavoriteRow
                   label="Drink"
-                  value={partnerPreferences?.favorite_drink}
+                  value={preferences?.favorite_drink}
                 />
 
                 <View style={styles.divider} />
 
                 <FavoriteRow
                   label="Color"
-                  value={partnerPreferences?.favorite_color}
+                  value={preferences?.favorite_color}
                 />
 
                 <View style={styles.divider} />
 
-                <FavoriteRow
-                  label="Music"
-                  value={partnerPreferences?.music_genre}
-                />
+                <FavoriteRow label="Music" value={preferences?.music_genre} />
 
                 <View style={styles.divider} />
 
-                <FavoriteRow
-                  label="Movies"
-                  value={partnerPreferences?.movie_genre}
-                />
+                <FavoriteRow label="Movies" value={preferences?.movie_genre} />
               </View>
             </View>
-          ) : null}
 
-          {/* FOOTER */}
+            {/* PARTNER FAVORITES */}
 
-          <View style={styles.footer}>
-            <Text style={styles.footerHeart}>♡</Text>
+            {connection ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>
+                  {partnerName.toUpperCase()}'S FAVORITES
+                </Text>
 
-            <Text style={styles.footerTitle}>BETWEEN US</Text>
+                <View style={styles.favoritesCard}>
+                  <FavoriteRow
+                    label="Food"
+                    value={partnerPreferences?.favorite_food}
+                  />
 
-            <Text style={styles.footerText}>
-              Understanding each other is part of loving each other.
-            </Text>
+                  <View style={styles.divider} />
+
+                  <FavoriteRow
+                    label="Snack"
+                    value={partnerPreferences?.favorite_snack}
+                  />
+
+                  <View style={styles.divider} />
+
+                  <FavoriteRow
+                    label="Drink"
+                    value={partnerPreferences?.favorite_drink}
+                  />
+
+                  <View style={styles.divider} />
+
+                  <FavoriteRow
+                    label="Color"
+                    value={partnerPreferences?.favorite_color}
+                  />
+
+                  <View style={styles.divider} />
+
+                  <FavoriteRow
+                    label="Music"
+                    value={partnerPreferences?.music_genre}
+                  />
+
+                  <View style={styles.divider} />
+
+                  <FavoriteRow
+                    label="Movies"
+                    value={partnerPreferences?.movie_genre}
+                  />
+                </View>
+              </View>
+            ) : null}
+
+            {/* FOOTER */}
+
+            <View style={styles.footer}>
+              <Text style={styles.footerHeart}>♡</Text>
+
+              <Text style={styles.footerTitle}>BETWEEN US</Text>
+
+              <Text style={styles.footerText}>
+                Understanding each other is part of loving each other.
+              </Text>
+            </View>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </GlassBackground>
     </SafeAreaView>
   );
 }
@@ -751,19 +771,21 @@ function InsightRow({ title, value }) {
 function LoadingScreen() {
   return (
     <SafeAreaView style={styles.screen}>
-      <View style={styles.loadingContainer}>
-        <View style={styles.loadingLogo}>
-          <Text style={styles.loadingHeart}>♡</Text>
+      <GlassBackground>
+        <View style={styles.loadingContainer}>
+          <View style={styles.loadingLogo}>
+            <Text style={styles.loadingHeart}>♡</Text>
+          </View>
+
+          <Text style={styles.loadingTitle}>Between Us</Text>
+
+          <ActivityIndicator
+            size="small"
+            color="#6B4E45"
+            style={styles.loadingIndicator}
+          />
         </View>
-
-        <Text style={styles.loadingTitle}>Between Us</Text>
-
-        <ActivityIndicator
-          size="small"
-          color="#6B4E45"
-          style={styles.loadingIndicator}
-        />
-      </View>
+      </GlassBackground>
     </SafeAreaView>
   );
 }
@@ -777,7 +799,6 @@ function LoadingScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F8F5F0",
   },
 
   scrollContent: {
@@ -816,7 +837,7 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -836,7 +857,7 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 15,
@@ -874,20 +895,20 @@ const styles = StyleSheet.create({
   },
 
   connectionCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 18,
     padding: 17,
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
   },
 
   connectionAvatar: {
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -925,11 +946,11 @@ const styles = StyleSheet.create({
 
   noConnectionCard: {
     marginTop: 18,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 18,
     padding: 18,
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
   },
 
   noConnectionTitle: {
@@ -953,11 +974,11 @@ const styles = StyleSheet.create({
   smallCard: {
     flex: 1,
     minHeight: 105,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
   },
 
   smallCardValue: {
@@ -969,11 +990,11 @@ const styles = StyleSheet.create({
   },
 
   insightCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 18,
     padding: 18,
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
     marginBottom: 10,
   },
 
@@ -981,7 +1002,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#F1E9E5",
+    backgroundColor: "rgba(255, 255, 255, 0.42)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 13,
@@ -1014,11 +1035,11 @@ const styles = StyleSheet.create({
   },
 
   sharedCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 18,
     paddingHorizontal: 17,
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
   },
 
   insightRow: {
@@ -1031,7 +1052,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#F1E9E5",
+    backgroundColor: "rgba(255, 255, 255, 0.42)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1089,11 +1110,11 @@ const styles = StyleSheet.create({
   },
 
   loveCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 18,
     paddingHorizontal: 17,
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
   },
 
   languageRow: {
@@ -1106,7 +1127,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: "#F1E9E5",
+    backgroundColor: "rgba(255, 255, 255, 0.42)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1125,11 +1146,11 @@ const styles = StyleSheet.create({
   },
 
   goalsCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 18,
     paddingHorizontal: 17,
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
   },
 
   goalRow: {
@@ -1142,7 +1163,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#F1E9E5",
+    backgroundColor: "rgba(255, 255, 255, 0.42)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1161,11 +1182,11 @@ const styles = StyleSheet.create({
   },
 
   favoritesCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 18,
     paddingHorizontal: 17,
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
   },
 
   favoriteRow: {
@@ -1254,7 +1275,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     alignItems: "center",
     justifyContent: "center",
   },

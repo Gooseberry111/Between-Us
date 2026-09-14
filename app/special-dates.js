@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { GlassBackground } from "../components/Glass";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
@@ -55,9 +56,7 @@ export default function SpecialDatesScreen() {
     try {
       setError("");
 
-      const response = await fetch(
-        `${API_URL}/users/${userId}/special-dates`,
-      );
+      const response = await fetch(`${API_URL}/users/${userId}/special-dates`);
       const data = await response.json();
 
       console.log("SPECIAL DATES RESPONSE:", data);
@@ -116,19 +115,16 @@ export default function SpecialDatesScreen() {
     try {
       setSaving(true);
 
-      const response = await fetch(
-        `${API_URL}/users/${userId}/special-dates`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            title: title.trim(),
-            event_date: eventDate.trim(),
-          }),
+      const response = await fetch(`${API_URL}/users/${userId}/special-dates`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({
+          title: title.trim(),
+          event_date: eventDate.trim(),
+        }),
+      });
 
       const data = await response.json();
 
@@ -212,214 +208,218 @@ export default function SpecialDatesScreen() {
      */
     return (
       <SafeAreaView style={styles.screen}>
-        <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
-          <Skeleton width={96} height={11} radius={6} />
-          <Skeleton
-            width="62%"
-            height={26}
-            radius={9}
-            style={{ marginTop: 12 }}
-          />
-          <Skeleton width="80%" height={12} style={{ marginTop: 10 }} />
+        <GlassBackground>
+          <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
+            <Skeleton width={96} height={11} radius={6} />
+            <Skeleton
+              width="62%"
+              height={26}
+              radius={9}
+              style={{ marginTop: 12 }}
+            />
+            <Skeleton width="80%" height={12} style={{ marginTop: 10 }} />
 
-          <View style={{ marginTop: 26 }}>
-            <SkeletonList count={3} />
+            <View style={{ marginTop: 26 }}>
+              <SkeletonList count={3} />
+            </View>
           </View>
-        </View>
+        </GlassBackground>
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.screen}>
-      <KeyboardAvoidingView
-        style={styles.keyboardContainer}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor="#6B4E45"
-            />
-          }
-          contentContainerStyle={styles.scrollContent}
+      <GlassBackground>
+        <KeyboardAvoidingView
+          style={styles.keyboardContainer}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
-          <View style={styles.container}>
-            {/* HEADER */}
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                tintColor="#6B4E45"
+              />
+            }
+            contentContainerStyle={styles.scrollContent}
+          >
+            <View style={styles.container}>
+              {/* HEADER */}
 
-            <View style={styles.header}>
-              <TouchableOpacity
-                style={styles.backButton}
-                activeOpacity={0.8}
-                onPress={() => router.back()}
-              >
-                <Ionicons name="chevron-back" size={20} color="#6B4E45" />
-              </TouchableOpacity>
-
-              <View style={styles.headerText}>
-                <Text style={styles.brand}>BETWEEN US</Text>
-
-                <Text style={styles.pageTitle}>Special Dates</Text>
-
-                <Text style={styles.pageSubtitle}>
-                  Birthdays, anniversaries, or anything else worth
-                  remembering. Repeats every year.
-                </Text>
-              </View>
-            </View>
-
-            {error ? (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            ) : null}
-
-            {/* ADD */}
-
-            {!showForm ? (
-              <TouchableOpacity
-                style={styles.addButton}
-                activeOpacity={0.85}
-                onPress={() => setShowForm(true)}
-              >
-                <View style={styles.addIcon}>
-                  <Text style={styles.addIconText}>+</Text>
-                </View>
-
-                <View style={styles.addContent}>
-                  <Text style={styles.addTitle}>Add a special date</Text>
-
-                  <Text style={styles.addSubtitle}>
-                    You'll both get reminded as it comes up.
-                  </Text>
-                </View>
-
-                <Text style={styles.addArrow}>→</Text>
-              </TouchableOpacity>
-            ) : null}
-
-            {/* FORM */}
-
-            {showForm ? (
-              <View style={styles.formCard}>
-                <View style={styles.formHeader}>
-                  <View>
-                    <Text style={styles.formLabel}>NEW SPECIAL DATE</Text>
-
-                    <Text style={styles.formTitle}>
-                      What date do you want to remember?
-                    </Text>
-                  </View>
-
-                  <TouchableOpacity
-                    onPress={resetForm}
-                    style={styles.closeButton}
-                  >
-                    <Text style={styles.closeButtonText}>×</Text>
-                  </TouchableOpacity>
-                </View>
-
-                <Text style={styles.inputLabel}>TITLE</Text>
-
-                <TextInput
-                  value={title}
-                  onChangeText={setTitle}
-                  placeholder="e.g. First date anniversary"
-                  placeholderTextColor="#A59A93"
-                  style={styles.input}
-                />
-
-                <Text style={styles.inputLabel}>DATE</Text>
-
-                <DateInput
-                  value={eventDate}
-                  onChangeText={setEventDate}
-                  style={styles.input}
-                />
-
+              <View style={styles.header}>
                 <TouchableOpacity
-                  style={[
-                    styles.saveButton,
-                    saving && styles.saveButtonDisabled,
-                  ]}
-                  activeOpacity={0.85}
-                  onPress={saveSpecialDate}
-                  disabled={saving}
+                  style={styles.backButton}
+                  activeOpacity={0.8}
+                  onPress={() => router.back()}
                 >
-                  {saving ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <Text style={styles.saveButtonText}>Add date</Text>
-                  )}
+                  <Ionicons name="chevron-back" size={20} color="#6B4E45" />
                 </TouchableOpacity>
+
+                <View style={styles.headerText}>
+                  <Text style={styles.brand}>BETWEEN US</Text>
+
+                  <Text style={styles.pageTitle}>Special Dates</Text>
+
+                  <Text style={styles.pageSubtitle}>
+                    Birthdays, anniversaries, or anything else worth
+                    remembering. Repeats every year.
+                  </Text>
+                </View>
               </View>
-            ) : null}
 
-            {/* SPECIAL DATES */}
+              {error ? (
+                <View style={styles.errorBox}>
+                  <Text style={styles.errorText}>{error}</Text>
+                </View>
+              ) : null}
 
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>DATES THAT MATTER</Text>
+              {/* ADD */}
 
-              <Text style={styles.sectionTitle}>
-                {specialDates.length === 0
-                  ? "Nothing saved yet."
-                  : `${specialDates.length} ${
-                      specialDates.length === 1 ? "date" : "dates"
-                    } saved.`}
-              </Text>
-
-              {specialDates.length === 0 ? (
-                <View style={styles.emptyCard}>
-                  <View style={styles.emptyIcon}>
-                    <Ionicons
-                      name="calendar-outline"
-                      size={24}
-                      color="#6B4E45"
-                    />
+              {!showForm ? (
+                <TouchableOpacity
+                  style={styles.addButton}
+                  activeOpacity={0.85}
+                  onPress={() => setShowForm(true)}
+                >
+                  <View style={styles.addIcon}>
+                    <Text style={styles.addIconText}>+</Text>
                   </View>
 
-                  <Text style={styles.emptyTitle}>Nothing here yet.</Text>
+                  <View style={styles.addContent}>
+                    <Text style={styles.addTitle}>Add a special date</Text>
 
-                  <Text style={styles.emptyText}>
-                    Add birthdays, anniversaries, or any date you don't want
-                    to forget. You'll both be reminded as it approaches.
-                  </Text>
+                    <Text style={styles.addSubtitle}>
+                      You'll both get reminded as it comes up.
+                    </Text>
+                  </View>
+
+                  <Text style={styles.addArrow}>→</Text>
+                </TouchableOpacity>
+              ) : null}
+
+              {/* FORM */}
+
+              {showForm ? (
+                <View style={styles.formCard}>
+                  <View style={styles.formHeader}>
+                    <View>
+                      <Text style={styles.formLabel}>NEW SPECIAL DATE</Text>
+
+                      <Text style={styles.formTitle}>
+                        What date do you want to remember?
+                      </Text>
+                    </View>
+
+                    <TouchableOpacity
+                      onPress={resetForm}
+                      style={styles.closeButton}
+                    >
+                      <Text style={styles.closeButtonText}>×</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <Text style={styles.inputLabel}>TITLE</Text>
+
+                  <TextInput
+                    value={title}
+                    onChangeText={setTitle}
+                    placeholder="e.g. First date anniversary"
+                    placeholderTextColor="#A59A93"
+                    style={styles.input}
+                  />
+
+                  <Text style={styles.inputLabel}>DATE</Text>
+
+                  <DateInput
+                    value={eventDate}
+                    onChangeText={setEventDate}
+                    style={styles.input}
+                  />
 
                   <TouchableOpacity
-                    style={styles.emptyButton}
-                    onPress={() => setShowForm(true)}
+                    style={[
+                      styles.saveButton,
+                      saving && styles.saveButtonDisabled,
+                    ]}
+                    activeOpacity={0.85}
+                    onPress={saveSpecialDate}
+                    disabled={saving}
                   >
-                    <Text style={styles.emptyButtonText}>
-                      Add your first date
-                    </Text>
+                    {saving ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.saveButtonText}>Add date</Text>
+                    )}
                   </TouchableOpacity>
                 </View>
-              ) : (
-                specialDates.map((specialDate) => (
-                  <SpecialDateCard
-                    key={specialDate.id}
-                    specialDate={specialDate}
-                    onDelete={() => deleteSpecialDate(specialDate)}
-                  />
-                ))
-              )}
-            </View>
+              ) : null}
 
-            {specialDates.length > 0 ? (
-              <View style={styles.footerCard}>
-                <Text style={styles.footerQuote}>
-                  "The days you choose to remember are the days that mean the
-                  most."
+              {/* SPECIAL DATES */}
+
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>DATES THAT MATTER</Text>
+
+                <Text style={styles.sectionTitle}>
+                  {specialDates.length === 0
+                    ? "Nothing saved yet."
+                    : `${specialDates.length} ${
+                        specialDates.length === 1 ? "date" : "dates"
+                      } saved.`}
                 </Text>
+
+                {specialDates.length === 0 ? (
+                  <View style={styles.emptyCard}>
+                    <View style={styles.emptyIcon}>
+                      <Ionicons
+                        name="calendar-outline"
+                        size={24}
+                        color="#6B4E45"
+                      />
+                    </View>
+
+                    <Text style={styles.emptyTitle}>Nothing here yet.</Text>
+
+                    <Text style={styles.emptyText}>
+                      Add birthdays, anniversaries, or any date you don't want
+                      to forget. You'll both be reminded as it approaches.
+                    </Text>
+
+                    <TouchableOpacity
+                      style={styles.emptyButton}
+                      onPress={() => setShowForm(true)}
+                    >
+                      <Text style={styles.emptyButtonText}>
+                        Add your first date
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  specialDates.map((specialDate) => (
+                    <SpecialDateCard
+                      key={specialDate.id}
+                      specialDate={specialDate}
+                      onDelete={() => deleteSpecialDate(specialDate)}
+                    />
+                  ))
+                )}
               </View>
-            ) : null}
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+
+              {specialDates.length > 0 ? (
+                <View style={styles.footerCard}>
+                  <Text style={styles.footerQuote}>
+                    "The days you choose to remember are the days that mean the
+                    most."
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </GlassBackground>
     </SafeAreaView>
   );
 }
@@ -454,7 +454,6 @@ function SpecialDateCard({ specialDate, onDelete }) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F8F5F0",
   },
 
   keyboardContainer: {
@@ -481,7 +480,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 11,
@@ -526,7 +525,7 @@ const styles = StyleSheet.create({
     width: 43,
     height: 43,
     borderRadius: 22,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -562,11 +561,11 @@ const styles = StyleSheet.create({
 
   formCard: {
     marginBottom: 16,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 20,
     padding: 19,
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
   },
 
   formHeader: {
@@ -595,7 +594,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "#F1E9E5",
+    backgroundColor: "rgba(255, 255, 255, 0.42)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -616,9 +615,9 @@ const styles = StyleSheet.create({
   input: {
     minHeight: 49,
     borderRadius: 12,
-    backgroundColor: "#F8F5F0",
+    backgroundColor: "rgba(255, 255, 255, 0.32)",
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 14,
@@ -666,11 +665,11 @@ const styles = StyleSheet.create({
   },
 
   dateCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 16,
     padding: 15,
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
     marginBottom: 10,
     flexDirection: "row",
     alignItems: "center",
@@ -680,7 +679,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#F1E9E5",
+    backgroundColor: "rgba(255, 255, 255, 0.42)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
@@ -718,11 +717,11 @@ const styles = StyleSheet.create({
   },
 
   emptyCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 20,
     padding: 24,
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
     alignItems: "center",
   },
 
@@ -730,7 +729,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 15,
@@ -755,7 +754,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 11,
     borderRadius: 11,
-    backgroundColor: "#F1E9E5",
+    backgroundColor: "rgba(255, 255, 255, 0.42)",
   },
 
   emptyButtonText: {

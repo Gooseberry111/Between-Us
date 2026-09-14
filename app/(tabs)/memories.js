@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { GlassBackground } from "../../components/Glass";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
@@ -100,18 +101,20 @@ export default function TimelineScreen() {
         throw new Error(memoriesData?.error || "Unable to load your timeline.");
       }
 
-      const memoryEntries = (Array.isArray(memoriesData) ? memoriesData : []).map(
-        (memory) => ({
-          id: `memory-${memory.id}`,
-          kind: "memory",
-          date: memory.memory_date,
-          title: memory.title,
-          description: memory.description,
-          raw: memory,
-        }),
-      );
+      const memoryEntries = (
+        Array.isArray(memoriesData) ? memoriesData : []
+      ).map((memory) => ({
+        id: `memory-${memory.id}`,
+        kind: "memory",
+        date: memory.memory_date,
+        title: memory.title,
+        description: memory.description,
+        raw: memory,
+      }));
 
-      const dreamEntries = (Array.isArray(dreamsData?.dreams) ? dreamsData.dreams : [])
+      const dreamEntries = (
+        Array.isArray(dreamsData?.dreams) ? dreamsData.dreams : []
+      )
         .filter((dream) => dream.is_completed)
         .map((dream) => ({
           id: `dream-${dream.id}`,
@@ -323,239 +326,243 @@ export default function TimelineScreen() {
      */
     return (
       <SafeAreaView style={styles.screen}>
-        <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
-          <Skeleton width={96} height={11} radius={6} />
-          <Skeleton
-            width="62%"
-            height={26}
-            radius={9}
-            style={{ marginTop: 12 }}
-          />
-          <Skeleton width="80%" height={12} style={{ marginTop: 10 }} />
+        <GlassBackground>
+          <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
+            <Skeleton width={96} height={11} radius={6} />
+            <Skeleton
+              width="62%"
+              height={26}
+              radius={9}
+              style={{ marginTop: 12 }}
+            />
+            <Skeleton width="80%" height={12} style={{ marginTop: 10 }} />
 
-          <View style={{ marginTop: 26 }}>
-            <SkeletonList count={3} />
+            <View style={{ marginTop: 26 }}>
+              <SkeletonList count={3} />
+            </View>
           </View>
-        </View>
+        </GlassBackground>
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.screen}>
-      <KeyboardAvoidingView
-        style={styles.keyboardContainer}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor="#6B4E45"
-            />
-          }
-          contentContainerStyle={styles.scrollContent}
+      <GlassBackground>
+        <KeyboardAvoidingView
+          style={styles.keyboardContainer}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
-          <View style={styles.container}>
-            {/* HEADER */}
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                tintColor="#6B4E45"
+              />
+            }
+            contentContainerStyle={styles.scrollContent}
+          >
+            <View style={styles.container}>
+              {/* HEADER */}
 
-            <View style={styles.header}>
-              <View style={styles.headerText}>
-                <Text style={styles.brand}>BETWEEN US</Text>
+              <View style={styles.header}>
+                <View style={styles.headerText}>
+                  <Text style={styles.brand}>BETWEEN US</Text>
 
-                <Text style={styles.pageTitle}>Timeline</Text>
+                  <Text style={styles.pageTitle}>Timeline</Text>
 
-                <Text style={styles.pageSubtitle}>
-                  Your story together, one moment at a time.
-                </Text>
-              </View>
-
-              <View style={styles.headerIcon}>
-                <Ionicons name="time-outline" size={22} color="#6B4E45" />
-              </View>
-            </View>
-
-            {error ? (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            ) : null}
-
-            {/* ADD BUTTON */}
-
-            {!showForm ? (
-              <TouchableOpacity
-                style={styles.addButton}
-                activeOpacity={0.85}
-                onPress={openCreateForm}
-              >
-                <View style={styles.addIcon}>
-                  <Text style={styles.addIconText}>+</Text>
-                </View>
-
-                <View style={styles.addContent}>
-                  <Text style={styles.addTitle}>Add a memory</Text>
-
-                  <Text style={styles.addSubtitle}>
-                    Save a moment that matters to both of you.
+                  <Text style={styles.pageSubtitle}>
+                    Your story together, one moment at a time.
                   </Text>
                 </View>
 
-                <Text style={styles.addArrow}>→</Text>
-              </TouchableOpacity>
-            ) : null}
-
-            {/* FORM */}
-
-            {showForm ? (
-              <View style={styles.formCard}>
-                <View style={styles.formHeader}>
-                  <View>
-                    <Text style={styles.formLabel}>
-                      {editingMemory ? "EDIT MEMORY" : "NEW MEMORY"}
-                    </Text>
-
-                    <Text style={styles.formTitle}>
-                      {editingMemory
-                        ? "Update this moment."
-                        : "Capture this moment."}
-                    </Text>
-                  </View>
-
-                  <TouchableOpacity
-                    onPress={resetForm}
-                    style={styles.closeButton}
-                  >
-                    <Text style={styles.closeButtonText}>×</Text>
-                  </TouchableOpacity>
+                <View style={styles.headerIcon}>
+                  <Ionicons name="time-outline" size={22} color="#6B4E45" />
                 </View>
+              </View>
 
-                <Text style={styles.inputLabel}>TITLE</Text>
+              {error ? (
+                <View style={styles.errorBox}>
+                  <Text style={styles.errorText}>{error}</Text>
+                </View>
+              ) : null}
 
-                <TextInput
-                  value={title}
-                  onChangeText={setTitle}
-                  placeholder="e.g. Our first date"
-                  placeholderTextColor="#A59A93"
-                  style={styles.input}
-                  returnKeyType="next"
-                />
+              {/* ADD BUTTON */}
 
-                <Text style={styles.inputLabel}>WHEN DID THIS HAPPEN?</Text>
-
-                <DateInput
-                  value={memoryDate}
-                  onChangeText={setMemoryDate}
-                  style={styles.input}
-                />
-
-                <Text style={styles.inputLabel}>DESCRIPTION</Text>
-
-                <TextInput
-                  value={description}
-                  onChangeText={setDescription}
-                  placeholder="What happened?"
-                  placeholderTextColor="#A59A93"
-                  style={[styles.input, styles.descriptionInput]}
-                  multiline
-                  textAlignVertical="top"
-                />
-
+              {!showForm ? (
                 <TouchableOpacity
-                  style={[
-                    styles.saveButton,
-                    saving && styles.saveButtonDisabled,
-                  ]}
+                  style={styles.addButton}
                   activeOpacity={0.85}
-                  onPress={saveMemory}
-                  disabled={saving}
+                  onPress={openCreateForm}
                 >
-                  {saving ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <Text style={styles.saveButtonText}>
-                      {editingMemory ? "Save changes" : "Save memory"}
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            ) : null}
-
-            {/* TIMELINE */}
-
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>YOUR STORY</Text>
-
-              <Text style={styles.sectionTitle}>
-                {entries.length === 0
-                  ? "Nothing here yet."
-                  : `${entries.length} ${
-                      entries.length === 1 ? "moment" : "moments"
-                    } together.`}
-              </Text>
-
-              {entries.length === 0 ? (
-                <View style={styles.emptyCard}>
-                  <View style={styles.emptyIcon}>
-                    <Ionicons name="time-outline" size={24} color="#6B4E45" />
+                  <View style={styles.addIcon}>
+                    <Text style={styles.addIconText}>+</Text>
                   </View>
 
-                  <Text style={styles.emptyTitle}>Nothing here yet.</Text>
+                  <View style={styles.addContent}>
+                    <Text style={styles.addTitle}>Add a memory</Text>
 
-                  <Text style={styles.emptyText}>
-                    Your timeline fills in on its own as you add memories,
-                    complete dreams together, and save special dates. Start
-                    with a memory below.
-                  </Text>
+                    <Text style={styles.addSubtitle}>
+                      Save a moment that matters to both of you.
+                    </Text>
+                  </View>
+
+                  <Text style={styles.addArrow}>→</Text>
+                </TouchableOpacity>
+              ) : null}
+
+              {/* FORM */}
+
+              {showForm ? (
+                <View style={styles.formCard}>
+                  <View style={styles.formHeader}>
+                    <View>
+                      <Text style={styles.formLabel}>
+                        {editingMemory ? "EDIT MEMORY" : "NEW MEMORY"}
+                      </Text>
+
+                      <Text style={styles.formTitle}>
+                        {editingMemory
+                          ? "Update this moment."
+                          : "Capture this moment."}
+                      </Text>
+                    </View>
+
+                    <TouchableOpacity
+                      onPress={resetForm}
+                      style={styles.closeButton}
+                    >
+                      <Text style={styles.closeButtonText}>×</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <Text style={styles.inputLabel}>TITLE</Text>
+
+                  <TextInput
+                    value={title}
+                    onChangeText={setTitle}
+                    placeholder="e.g. Our first date"
+                    placeholderTextColor="#A59A93"
+                    style={styles.input}
+                    returnKeyType="next"
+                  />
+
+                  <Text style={styles.inputLabel}>WHEN DID THIS HAPPEN?</Text>
+
+                  <DateInput
+                    value={memoryDate}
+                    onChangeText={setMemoryDate}
+                    style={styles.input}
+                  />
+
+                  <Text style={styles.inputLabel}>DESCRIPTION</Text>
+
+                  <TextInput
+                    value={description}
+                    onChangeText={setDescription}
+                    placeholder="What happened?"
+                    placeholderTextColor="#A59A93"
+                    style={[styles.input, styles.descriptionInput]}
+                    multiline
+                    textAlignVertical="top"
+                  />
 
                   <TouchableOpacity
-                    style={styles.emptyButton}
-                    onPress={openCreateForm}
+                    style={[
+                      styles.saveButton,
+                      saving && styles.saveButtonDisabled,
+                    ]}
                     activeOpacity={0.85}
+                    onPress={saveMemory}
+                    disabled={saving}
                   >
-                    <Text style={styles.emptyButtonText}>
-                      Add your first memory
-                    </Text>
+                    {saving ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.saveButtonText}>
+                        {editingMemory ? "Save changes" : "Save memory"}
+                      </Text>
+                    )}
                   </TouchableOpacity>
                 </View>
-              ) : (
-                entries.map((entry) => (
-                  <TimelineCard
-                    key={entry.id}
-                    entry={entry}
-                    onEdit={() => openEditForm(entry.raw)}
-                    onDelete={() => deleteMemory(entry)}
-                    onPress={() => {
-                      if (entry.kind === "dream") {
-                        router.push("/(tabs)/dreams");
-                      } else if (entry.kind === "special_date") {
-                        router.push("/special-dates");
-                      }
-                    }}
-                  />
-                ))
-              )}
-            </View>
+              ) : null}
 
-            {/* FOOTER */}
+              {/* TIMELINE */}
 
-            {entries.length > 0 ? (
-              <View style={styles.footerCard}>
-                <Text style={styles.footerQuote}>
-                  "Some moments deserve to be remembered forever."
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>YOUR STORY</Text>
+
+                <Text style={styles.sectionTitle}>
+                  {entries.length === 0
+                    ? "Nothing here yet."
+                    : `${entries.length} ${
+                        entries.length === 1 ? "moment" : "moments"
+                      } together.`}
                 </Text>
 
-                <Text style={styles.footerText}>
-                  Keep building your story, one moment at a time.
-                </Text>
+                {entries.length === 0 ? (
+                  <View style={styles.emptyCard}>
+                    <View style={styles.emptyIcon}>
+                      <Ionicons name="time-outline" size={24} color="#6B4E45" />
+                    </View>
+
+                    <Text style={styles.emptyTitle}>Nothing here yet.</Text>
+
+                    <Text style={styles.emptyText}>
+                      Your timeline fills in on its own as you add memories,
+                      complete dreams together, and save special dates. Start
+                      with a memory below.
+                    </Text>
+
+                    <TouchableOpacity
+                      style={styles.emptyButton}
+                      onPress={openCreateForm}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={styles.emptyButtonText}>
+                        Add your first memory
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  entries.map((entry) => (
+                    <TimelineCard
+                      key={entry.id}
+                      entry={entry}
+                      onEdit={() => openEditForm(entry.raw)}
+                      onDelete={() => deleteMemory(entry)}
+                      onPress={() => {
+                        if (entry.kind === "dream") {
+                          router.push("/(tabs)/dreams");
+                        } else if (entry.kind === "special_date") {
+                          router.push("/special-dates");
+                        }
+                      }}
+                    />
+                  ))
+                )}
               </View>
-            ) : null}
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+
+              {/* FOOTER */}
+
+              {entries.length > 0 ? (
+                <View style={styles.footerCard}>
+                  <Text style={styles.footerQuote}>
+                    "Some moments deserve to be remembered forever."
+                  </Text>
+
+                  <Text style={styles.footerText}>
+                    Keep building your story, one moment at a time.
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </GlassBackground>
     </SafeAreaView>
   );
 }
@@ -654,7 +661,9 @@ function TimelineCard({ entry, onEdit, onDelete, onPress }) {
       ) : (
         <View style={styles.entryLinkRow}>
           <Text style={styles.entryLinkText}>
-            {entry.kind === "dream" ? "View on Dream Board" : "View Special Dates"}
+            {entry.kind === "dream"
+              ? "View on Dream Board"
+              : "View Special Dates"}
           </Text>
 
           <Text style={styles.entryLinkArrow}>→</Text>
@@ -673,7 +682,6 @@ function TimelineCard({ entry, onEdit, onDelete, onPress }) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F8F5F0",
   },
 
   keyboardContainer: {
@@ -732,7 +740,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -753,7 +761,7 @@ const styles = StyleSheet.create({
     width: 43,
     height: 43,
     borderRadius: 22,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -795,11 +803,11 @@ const styles = StyleSheet.create({
 
   formCard: {
     marginTop: 16,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 20,
     padding: 19,
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
   },
 
   formHeader: {
@@ -827,7 +835,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "#F1E9E5",
+    backgroundColor: "rgba(255, 255, 255, 0.42)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -849,9 +857,9 @@ const styles = StyleSheet.create({
   input: {
     minHeight: 49,
     borderRadius: 12,
-    backgroundColor: "#F8F5F0",
+    backgroundColor: "rgba(255, 255, 255, 0.32)",
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 14,
@@ -912,11 +920,11 @@ const styles = StyleSheet.create({
    */
 
   entryCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
     marginBottom: 13,
   },
 
@@ -929,7 +937,7 @@ const styles = StyleSheet.create({
   entryKindBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F1E9E5",
+    backgroundColor: "rgba(255, 255, 255, 0.42)",
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 9,
@@ -944,7 +952,7 @@ const styles = StyleSheet.create({
   },
 
   entryDateContainer: {
-    backgroundColor: "#F8F5F0",
+    backgroundColor: "rgba(255, 255, 255, 0.32)",
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 9,
@@ -993,7 +1001,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "#F1E9E5",
+    backgroundColor: "rgba(255, 255, 255, 0.42)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1018,7 +1026,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     paddingVertical: 8,
     borderRadius: 9,
-    backgroundColor: "#F1E9E5",
+    backgroundColor: "rgba(255, 255, 255, 0.42)",
   },
 
   editButtonText: {
@@ -1063,11 +1071,11 @@ const styles = StyleSheet.create({
    */
 
   emptyCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
     borderRadius: 20,
     padding: 24,
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "rgba(255, 255, 255, 0.65)",
     alignItems: "center",
   },
 
@@ -1075,7 +1083,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 15,
@@ -1100,7 +1108,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 11,
     borderRadius: 11,
-    backgroundColor: "#F1E9E5",
+    backgroundColor: "rgba(255, 255, 255, 0.42)",
   },
 
   emptyButtonText: {
