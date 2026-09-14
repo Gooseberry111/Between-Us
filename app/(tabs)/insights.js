@@ -837,7 +837,7 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(107, 78, 69, 0.09)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -857,7 +857,7 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(107, 78, 69, 0.09)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 15,
@@ -895,20 +895,20 @@ const styles = StyleSheet.create({
   },
 
   connectionCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
     borderRadius: 18,
     padding: 17,
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.85)",
+    borderColor: "rgba(255, 255, 255, 0.9)",
   },
 
   connectionAvatar: {
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(107, 78, 69, 0.09)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -946,11 +946,11 @@ const styles = StyleSheet.create({
 
   noConnectionCard: {
     marginTop: 18,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
     borderRadius: 18,
     padding: 18,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.85)",
+    borderColor: "rgba(255, 255, 255, 0.9)",
   },
 
   noConnectionTitle: {
@@ -974,11 +974,11 @@ const styles = StyleSheet.create({
   smallCard: {
     flex: 1,
     minHeight: 105,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
     borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.85)",
+    borderColor: "rgba(255, 255, 255, 0.9)",
   },
 
   smallCardValue: {
@@ -990,11 +990,11 @@ const styles = StyleSheet.create({
   },
 
   insightCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
     borderRadius: 18,
     padding: 18,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.85)",
+    borderColor: "rgba(255, 255, 255, 0.9)",
     marginBottom: 10,
   },
 
@@ -1002,7 +1002,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 13,
@@ -1035,11 +1035,11 @@ const styles = StyleSheet.create({
   },
 
   sharedCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
     borderRadius: 18,
     paddingHorizontal: 17,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.85)",
+    borderColor: "rgba(255, 255, 255, 0.9)",
   },
 
   insightRow: {
@@ -1052,7 +1052,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1110,11 +1110,11 @@ const styles = StyleSheet.create({
   },
 
   loveCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
     borderRadius: 18,
     paddingHorizontal: 17,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.85)",
+    borderColor: "rgba(255, 255, 255, 0.9)",
   },
 
   languageRow: {
@@ -1127,7 +1127,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1146,11 +1146,11 @@ const styles = StyleSheet.create({
   },
 
   goalsCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
     borderRadius: 18,
     paddingHorizontal: 17,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.85)",
+    borderColor: "rgba(255, 255, 255, 0.9)",
   },
 
   goalRow: {
@@ -1163,7 +1163,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1182,11 +1182,11 @@ const styles = StyleSheet.create({
   },
 
   favoritesCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
     borderRadius: 18,
     paddingHorizontal: 17,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.85)",
+    borderColor: "rgba(255, 255, 255, 0.9)",
   },
 
   favoriteRow: {
@@ -1275,7 +1275,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(107, 78, 69, 0.09)",
     alignItems: "center",
     justifyContent: "center",
   },

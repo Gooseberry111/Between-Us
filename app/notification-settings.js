@@ -358,7 +358,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(107, 78, 69, 0.09)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 11,
@@ -403,11 +403,11 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
     borderRadius: 18,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.85)",
+    borderColor: "rgba(255, 255, 255, 0.9)",
   },
 
   row: {

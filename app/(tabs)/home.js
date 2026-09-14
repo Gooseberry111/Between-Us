@@ -1134,7 +1134,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(107, 78, 69, 0.09)",
     alignItems: "center",
     justifyContent: "center",
     marginLeft: 12,
@@ -1219,7 +1219,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(107, 78, 69, 0.09)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1326,18 +1326,18 @@ const styles = StyleSheet.create({
 
   promptCard: {
     marginTop: 14,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
     borderRadius: 20,
     padding: 19,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.85)",
+    borderColor: "rgba(255, 255, 255, 0.9)",
   },
 
   promptIcon: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(107, 78, 69, 0.09)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 14,
@@ -1376,7 +1376,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 10,
     borderRadius: 11,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
   },
 
   promptButtonText: {
@@ -1390,12 +1390,12 @@ const styles = StyleSheet.create({
    */
 
   snapshotCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
     borderRadius: 20,
     paddingHorizontal: 18,
     paddingVertical: 17,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.85)",
+    borderColor: "rgba(255, 255, 255, 0.9)",
   },
 
   snapshotTitle: {
@@ -1441,11 +1441,11 @@ const styles = StyleSheet.create({
    */
 
   loveCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.85)",
+    borderColor: "rgba(255, 255, 255, 0.9)",
   },
 
   loveCardTitle: {
@@ -1463,7 +1463,7 @@ const styles = StyleSheet.create({
   },
 
   tag: {
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
     borderRadius: 10,
     paddingHorizontal: 11,
     paddingVertical: 8,
@@ -1504,11 +1504,11 @@ const styles = StyleSheet.create({
    */
 
   goalsCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
     borderRadius: 20,
     paddingHorizontal: 17,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.85)",
+    borderColor: "rgba(255, 255, 255, 0.9)",
   },
 
   goalRow: {
@@ -1521,7 +1521,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1555,7 +1555,7 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(107, 78, 69, 0.09)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1590,7 +1590,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 9,
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(107, 78, 69, 0.09)",
   },
 
   triviaButtonText: {
@@ -1614,18 +1614,18 @@ const styles = StyleSheet.create({
 
   quickAction: {
     flex: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
     borderRadius: 18,
     padding: 15,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.85)",
+    borderColor: "rgba(255, 255, 255, 0.9)",
   },
 
   quickIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 12,
@@ -1654,18 +1654,18 @@ const styles = StyleSheet.create({
    */
 
   welcomeCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
     borderRadius: 22,
     padding: 22,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.85)",
+    borderColor: "rgba(255, 255, 255, 0.9)",
   },
 
   welcomeIcon: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(107, 78, 69, 0.09)",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 18,
@@ -1717,20 +1717,20 @@ const styles = StyleSheet.create({
    */
 
   pendingCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
     borderRadius: 18,
     padding: 15,
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.85)",
+    borderColor: "rgba(255, 255, 255, 0.9)",
   },
 
   pendingIcon: {
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(107, 78, 69, 0.09)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1762,7 +1762,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 9,
     borderRadius: 10,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
   },
 
   smallButtonText: {
@@ -1832,7 +1832,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(107, 78, 69, 0.09)",
     alignItems: "center",
     justifyContent: "center",
   },

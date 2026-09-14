@@ -27,21 +27,32 @@ const androidBlur = isAndroid
 export function GlassBackground({ children, style }) {
   return (
     <View style={[styles.fill, style]}>
+      {/*
+       * A single smooth wash, no shapes.
+       *
+       * The earlier version layered big circles behind
+       * the glass, which rendered as visible hard-edged
+       * blobs and made every card pick up a different
+       * tint depending on what sat behind it. That is
+       * what read as inconsistent, so the colour is now
+       * one continuous gradient.
+       */}
       <LinearGradient
-        colors={["#FDF9F6", "#F6EDE7", "#EFE2DE"]}
-        start={{ x: 0.1, y: 0 }}
-        end={{ x: 0.9, y: 1 }}
+        colors={["#FCF8F5", "#F7EFEA", "#F2E8E4", "#EFE6E6"]}
+        locations={[0, 0.42, 0.75, 1]}
+        start={{ x: 0.15, y: 0 }}
+        end={{ x: 0.85, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
 
-      {/*
-       * Diffuse washes of colour. Large, soft and low
-       * opacity so they read as depth behind the glass
-       * rather than as blobs sitting on the page.
-       */}
-      <View pointerEvents="none" style={[styles.wash, styles.washWarm]} />
-      <View pointerEvents="none" style={[styles.wash, styles.washRose]} />
-      <View pointerEvents="none" style={[styles.wash, styles.washCool]} />
+      {/* A barely-there warm lift in the top corner. */}
+      <LinearGradient
+        colors={["rgba(240,206,184,0.35)", "rgba(240,206,184,0)"]}
+        start={{ x: 1, y: 0 }}
+        end={{ x: 0.25, y: 0.45 }}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
 
       {children}
     </View>
@@ -70,11 +81,11 @@ export function GlassCard({
       {/* Specular highlight along the top edge only. */}
       <LinearGradient
         colors={[
-          "rgba(255,255,255,0.5)",
-          "rgba(255,255,255,0.12)",
-          "rgba(255,255,255,0.04)",
+          "rgba(255,255,255,0.92)",
+          "rgba(255,255,255,0.72)",
+          "rgba(255,255,255,0.62)",
         ]}
-        locations={[0, 0.45, 1]}
+        locations={[0, 0.5, 1]}
         start={{ x: 0.2, y: 0 }}
         end={{ x: 0.8, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -205,45 +216,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#FDF9F6",
   },
 
-  wash: {
-    position: "absolute",
-    borderRadius: 999,
-    opacity: 0.38,
-  },
-
-  washWarm: {
-    width: 420,
-    height: 420,
-    top: -160,
-    right: -150,
-    backgroundColor: "#F0CDB8",
-  },
-
-  washRose: {
-    width: 380,
-    height: 380,
-    top: 220,
-    left: -180,
-    backgroundColor: "#E3C6D6",
-  },
-
-  washCool: {
-    width: 440,
-    height: 440,
-    bottom: -200,
-    right: -160,
-    backgroundColor: "#C7D4DE",
-  },
 
   card: {
     overflow: "hidden",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(255,255,255,0.85)",
     shadowColor: "#6B4E45",
-    shadowOpacity: 0.09,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
+    shadowOpacity: 0.07,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 2,
   },
 
   /* A brighter line right at the top lip of the glass. */

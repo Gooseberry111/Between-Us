@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(107, 78, 69, 0.09)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 11,
@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
     width: 45,
     height: 45,
     borderRadius: 23,
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(107, 78, 69, 0.09)",
     justifyContent: "center",
     alignItems: "center",
     marginLeft: 8,
@@ -436,11 +436,11 @@ const styles = StyleSheet.create({
   },
 
   summaryCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
     borderRadius: 18,
     padding: 18,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.85)",
+    borderColor: "rgba(255, 255, 255, 0.9)",
     flexDirection: "row",
     alignItems: "center",
   },
@@ -488,11 +488,11 @@ const styles = StyleSheet.create({
   },
 
   goalCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.85)",
+    borderColor: "rgba(255, 255, 255, 0.9)",
     marginBottom: 13,
   },
 
@@ -506,7 +506,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(107, 78, 69, 0.09)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -521,7 +521,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 9,
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(107, 78, 69, 0.09)",
   },
 
   completedBadgeText: {
@@ -548,7 +548,7 @@ const styles = StyleSheet.create({
 
   dateContainer: {
     marginTop: 14,
-    backgroundColor: "rgba(255, 255, 255, 0.22)",
+    backgroundColor: "rgba(107, 78, 69, 0.07)",
     borderRadius: 11,
     padding: 11,
   },
@@ -569,7 +569,7 @@ const styles = StyleSheet.create({
 
   completedContainer: {
     marginTop: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
     borderRadius: 11,
     padding: 11,
   },
@@ -622,11 +622,11 @@ const styles = StyleSheet.create({
   },
 
   emptyCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
     borderRadius: 20,
     padding: 24,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.85)",
+    borderColor: "rgba(255, 255, 255, 0.9)",
     alignItems: "center",
   },
 
@@ -634,7 +634,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    backgroundColor: "rgba(107, 78, 69, 0.09)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 15,
@@ -666,7 +666,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 11,
     borderRadius: 11,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(255, 255, 255, 0.78)",
   },
 
   backToGoalsText: {
