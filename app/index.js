@@ -1,70 +1,191 @@
+import { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
+  ActivityIndicator,
   SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useAuth } from "@clerk/expo";
+import * as SecureStore from "expo-secure-store";
+import { GlassBackground } from "../components/Glass";
+import { RETURNING_USER_KEY } from "../lib/auth";
+
+/*
+ * ==========================================
+ * WELCOME
+ * ==========================================
+ *
+ * Three different jobs depending on who is looking:
+ *
+ * - Auth still resolving, or already signed in: show
+ *   the brand and nothing else. This screen used to
+ *   flash "Get Started" at signed-in people during the
+ *   moment before the guard redirected them home.
+ * - Been here before: offer to sign in.
+ * - Genuinely new: make the case for the app.
+ */
 
 export default function WelcomeScreen() {
   const router = useRouter();
+  const { isLoaded, isSignedIn } = useAuth();
+
+  /* null while we are still reading the flag. */
+  const [returning, setReturning] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    SecureStore.getItemAsync(RETURNING_USER_KEY)
+      .then((value) => {
+        if (!cancelled) setReturning(value === "1");
+      })
+      .catch(() => {
+        if (!cancelled) setReturning(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /*
+   * Hold the brand until we know enough to show the
+   * right thing. A signed-in user is about to be sent
+   * home by the auth guard, so they should never see
+   * a sign-up pitch on the way.
+   */
+  if (!isLoaded || isSignedIn || returning === null) {
+    return (
+      <SafeAreaView style={styles.screen}>
+        <GlassBackground>
+          <View style={styles.splash}>
+            <View style={styles.logoCircle}>
+              <Text style={styles.logo}>♡</Text>
+            </View>
+
+            <Text style={styles.splashBrand}>BETWEEN US</Text>
+
+            <ActivityIndicator
+              size="small"
+              color="#6B4E45"
+              style={styles.splashSpinner}
+            />
+          </View>
+        </GlassBackground>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.screen}>
-      <View style={styles.container}>
-        {/* TOP */}
-        <View style={styles.top}>
-          <Text style={styles.brand}>BETWEEN US</Text>
+      <GlassBackground>
+        <View style={styles.container}>
+          {/* TOP */}
 
-          <View style={styles.logoCircle}>
-            <Text style={styles.logo}>♡</Text>
+          <View style={styles.top}>
+            <Text style={styles.brand}>BETWEEN US</Text>
+
+            <View style={styles.logoCircle}>
+              <Text style={styles.logo}>♡</Text>
+            </View>
+          </View>
+
+          {/* MAIN */}
+
+          <View style={styles.content}>
+            {returning ? (
+              <>
+                <Text style={styles.eyebrow}>WELCOME BACK</Text>
+
+                <Text style={styles.title}>
+                  Good to see you
+                  {"\n"}
+                  <Text style={styles.titleAccent}>again.</Text>
+                </Text>
+
+                <Text style={styles.description}>
+                  Sign in to pick up where you left off.
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.eyebrow}>FOR THE PEOPLE WHO MATTER</Text>
+
+                <Text style={styles.title}>
+                  Relationships
+                  {"\n"}
+                  worth being
+                  {"\n"}
+                  <Text style={styles.titleAccent}>intentional about.</Text>
+                </Text>
+
+                <Text style={styles.description}>
+                  Between Us helps you understand the people you care about,
+                  remember what matters to them, and build a stronger connection
+                  together.
+                </Text>
+              </>
+            )}
+          </View>
+
+          {/* BOTTOM */}
+
+          <View style={styles.bottom}>
+            {returning ? (
+              <>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={styles.primaryButton}
+                  onPress={() => router.push("/sign-in")}
+                >
+                  <Text style={styles.primaryText}>Sign in</Text>
+
+                  <Text style={styles.primaryArrow}>→</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  style={styles.secondaryButton}
+                  onPress={() => router.push("/sign-up")}
+                >
+                  <Text style={styles.secondaryText}>
+                    Use a different account
+                  </Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={styles.primaryButton}
+                  onPress={() => router.push("/sign-up")}
+                >
+                  <Text style={styles.primaryText}>Get Started</Text>
+
+                  <Text style={styles.primaryArrow}>→</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  style={styles.secondaryButton}
+                  onPress={() => router.push("/sign-in")}
+                >
+                  <Text style={styles.secondaryText}>
+                    I already have an account
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            <Text style={styles.footerText}>
+              A private space for meaningful relationships.
+            </Text>
           </View>
         </View>
-
-        {/* MAIN */}
-        <View style={styles.content}>
-          <Text style={styles.eyebrow}>FOR THE PEOPLE WHO MATTER</Text>
-
-          <Text style={styles.title}>
-            Relationships
-            {"\n"}
-            worth being
-            {"\n"}
-            <Text style={styles.titleAccent}>intentional about.</Text>
-          </Text>
-
-          <Text style={styles.description}>
-            Between Us helps you understand the people you care about, remember
-            what matters to them, and build a stronger connection together.
-          </Text>
-        </View>
-
-        {/* BOTTOM */}
-        <View style={styles.bottom}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={styles.primaryButton}
-            onPress={() => router.push("/sign-up")}
-          >
-            <Text style={styles.primaryText}>Get Started</Text>
-
-            <Text style={styles.primaryArrow}>→</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            activeOpacity={0.7}
-            style={styles.secondaryButton}
-            onPress={() => router.push("/sign-in")}
-          >
-            <Text style={styles.secondaryText}>I already have an account</Text>
-          </TouchableOpacity>
-
-          <Text style={styles.footerText}>
-            A private space for meaningful relationships.
-          </Text>
-        </View>
-      </View>
+      </GlassBackground>
     </SafeAreaView>
   );
 }
@@ -72,7 +193,24 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F8F5F0",
+  },
+
+  splash: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  splashBrand: {
+    marginTop: 16,
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 2.5,
+    color: "#6B4E45",
+  },
+
+  splashSpinner: {
+    marginTop: 18,
   },
 
   container: {
@@ -100,7 +238,9 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255, 255, 255, 0.9)",
     justifyContent: "center",
     alignItems: "center",
   },

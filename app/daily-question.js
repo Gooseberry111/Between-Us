@@ -34,6 +34,8 @@ export default function DailyQuestionScreen() {
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [draft, setDraft] = useState(cached?.your_answer || "");
+  const [editing, setEditing] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
   const [error, setError] = useState("");
 
   /* Entrance animation, replayed when the answer unlocks. */
@@ -134,6 +136,15 @@ export default function DailyQuestionScreen() {
       setData(json);
 
       if (cacheKey) setCachedData(cacheKey, json);
+
+      /*
+       * Saving used to change nothing on screen, because the
+       * answer was already sitting in the box you typed it
+       * into. Drop out of edit mode and say it landed.
+       */
+      setEditing(false);
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 2200);
 
       /* Replay the reveal so unlocking feels like something. */
       runReveal();
@@ -236,35 +247,84 @@ export default function DailyQuestionScreen() {
                   {/* YOUR ANSWER */}
 
                   <GlassCard style={styles.card}>
-                    <Text style={styles.cardLabel}>YOUR ANSWER</Text>
+                    <View style={styles.cardHead}>
+                      <Text style={styles.cardLabel}>YOUR ANSWER</Text>
 
-                    <TextInput
-                      value={draft}
-                      onChangeText={setDraft}
-                      placeholder="Say what you actually think..."
-                      placeholderTextColor="#A59A93"
-                      style={styles.input}
-                      multiline
-                      textAlignVertical="top"
-                    />
+                      {justSaved ? (
+                        <View style={styles.savedPill}>
+                          <Ionicons
+                            name="checkmark"
+                            size={12}
+                            color="#4F7A56"
+                          />
 
-                    <TouchableOpacity
-                      style={[
-                        styles.saveButton,
-                        (!draft.trim() || saving) && styles.saveButtonDisabled,
-                      ]}
-                      activeOpacity={0.85}
-                      onPress={submit}
-                      disabled={!draft.trim() || saving}
-                    >
-                      {saving ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" />
-                      ) : (
-                        <Text style={styles.saveButtonText}>
-                          {answered ? "Update my answer" : "Answer & unlock"}
+                          <Text style={styles.savedPillText}>Saved</Text>
+                        </View>
+                      ) : null}
+                    </View>
+
+                    {answered && !editing ? (
+                      <View>
+                        <Text style={styles.savedAnswer}>
+                          {data?.your_answer}
                         </Text>
-                      )}
-                    </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={styles.editButton}
+                          activeOpacity={0.8}
+                          onPress={() => {
+                            setDraft(data?.your_answer || "");
+                            setEditing(true);
+                          }}
+                        >
+                          <Text style={styles.editButtonText}>Edit answer</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <View>
+                        <TextInput
+                          value={draft}
+                          onChangeText={setDraft}
+                          placeholder="Say what you actually think..."
+                          placeholderTextColor="#A59A93"
+                          style={styles.input}
+                          multiline
+                          textAlignVertical="top"
+                        />
+
+                        <TouchableOpacity
+                          style={[
+                            styles.saveButton,
+                            (!draft.trim() || saving) &&
+                              styles.saveButtonDisabled,
+                          ]}
+                          activeOpacity={0.85}
+                          onPress={submit}
+                          disabled={!draft.trim() || saving}
+                        >
+                          {saving ? (
+                            <ActivityIndicator size="small" color="#FFFFFF" />
+                          ) : (
+                            <Text style={styles.saveButtonText}>
+                              {answered ? "Save changes" : "Answer & unlock"}
+                            </Text>
+                          )}
+                        </TouchableOpacity>
+
+                        {answered ? (
+                          <TouchableOpacity
+                            style={styles.cancelButton}
+                            activeOpacity={0.8}
+                            onPress={() => {
+                              setDraft(data?.your_answer || "");
+                              setEditing(false);
+                            }}
+                          >
+                            <Text style={styles.cancelButtonText}>Cancel</Text>
+                          </TouchableOpacity>
+                        ) : null}
+                      </View>
+                    )}
                   </GlassCard>
 
                   {/* PARTNER ANSWER */}
@@ -424,6 +484,65 @@ const styles = StyleSheet.create({
 
   card: {
     marginBottom: 14,
+  },
+
+  cardHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  savedPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: "rgba(127, 163, 131, 0.18)",
+  },
+
+  savedPillText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#4F7A56",
+  },
+
+  /* Written down rather than left in a text box,
+   * so it actually reads as saved. */
+  savedAnswer: {
+    marginTop: 12,
+    fontSize: 15.5,
+    lineHeight: 23,
+    color: "#302825",
+  },
+
+  editButton: {
+    alignSelf: "flex-start",
+    marginTop: 14,
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: "rgba(107, 78, 69, 0.1)",
+  },
+
+  editButtonText: {
+    fontSize: 11.5,
+    fontWeight: "700",
+    color: "#6B4E45",
+  },
+
+  cancelButton: {
+    alignSelf: "center",
+    marginTop: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+  },
+
+  cancelButtonText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#817771",
   },
 
   cardLabel: {
