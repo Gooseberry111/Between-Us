@@ -491,7 +491,7 @@ export default function HomeScreen() {
             {/* DAILY QUESTION */}
 
             <FadeIn delay={280}>
-              <GlassPanel tone="plum" style={styles.dailyPanel}>
+              <GlassPanel style={styles.dailyPanel}>
                 <View style={styles.dailyTop}>
                   <Text style={styles.dailyLabel}>TODAY'S QUESTION</Text>
 
