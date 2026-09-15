@@ -194,36 +194,47 @@ function AuthGuard() {
       return;
     }
 
-    async function checkProfile() {
+    /*
+     * Only a successful "no profile" answer means onboarding.
+     *
+     * This used to treat any failure the same way -- a rejected
+     * token, a dropped connection -- so an existing user could
+     * be sent back to onboarding, whose save deletes and rewrites
+     * their answers. Failures now retry instead of guessing.
+     */
+    async function checkProfile(attempt = 0) {
       try {
-        console.log("AUTH: checking profile for", userId);
-
-        setProfileStatus("checking");
+        if (attempt === 0) setProfileStatus("checking");
 
         const response = await apiFetch(`/users/${userId}/profile`);
-
         const data = await response.json();
 
-        console.log("AUTH PROFILE:", data);
+        if (cancelled) return;
 
-        if (cancelled) {
+        if (response.ok) {
+          setProfileStatus(data?.exists === true ? "exists" : "missing");
           return;
         }
 
-        setProfileStatus(data?.exists === true ? "exists" : "missing");
+        console.log("AUTH PROFILE CHECK FAILED:", response.status, data?.error);
       } catch (error) {
         console.log("AUTH PROFILE ERROR:", error);
-
-        if (!cancelled) {
-          setProfileStatus("missing");
-        }
       }
+
+      if (cancelled) return;
+
+      /* Back off, capped, and keep trying while signed in. */
+      const delay = Math.min(8000, 1000 * 2 ** attempt);
+      retryTimer = setTimeout(() => checkProfile(attempt + 1), delay);
     }
+
+    let retryTimer = null;
 
     checkProfile();
 
     return () => {
       cancelled = true;
+      if (retryTimer) clearTimeout(retryTimer);
     };
   }, [isLoaded, isSignedIn, userId]);
 

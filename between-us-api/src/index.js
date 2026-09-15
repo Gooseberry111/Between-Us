@@ -63,14 +63,20 @@ function decodeJson(segment) {
  * not actually signed by Clerk.
  */
 async function verifySessionToken(request, env) {
+	/* Log the reason for a rejection, never the token itself. */
+	const reject = (reason, detail) => {
+		console.log('AUTH REJECT:', reason, detail === undefined ? '' : detail);
+		return null;
+	};
+
 	const header = request.headers.get('Authorization') || '';
 
-	if (!header.startsWith('Bearer ')) return null;
+	if (!header.startsWith('Bearer ')) return reject('no bearer header');
 
 	const token = header.slice(7).trim();
 	const parts = token.split('.');
 
-	if (parts.length !== 3) return null;
+	if (parts.length !== 3) return reject('malformed token', parts.length + ' parts');
 
 	try {
 		const [headerPart, payloadPart, signaturePart] = parts;
@@ -79,25 +85,25 @@ async function verifySessionToken(request, env) {
 
 		const issuer = env.CLERK_ISSUER;
 
-		if (!issuer) return null;
+		if (!issuer) return reject('CLERK_ISSUER not configured');
 
 		/*
 		 * A token from somebody else's Clerk instance
 		 * must not be accepted here.
 		 */
-		if (payload.iss && payload.iss !== issuer) return null;
+		if (payload.iss && payload.iss !== issuer) return reject('issuer mismatch', `got ${payload.iss} expected ${issuer}`);
 
 		const now = Math.floor(Date.now() / 1000);
 
 		/* Small tolerance so a request sent right at expiry is not bounced. */
-		if (typeof payload.exp === 'number' && payload.exp + 10 < now) return null;
-		if (typeof payload.nbf === 'number' && payload.nbf > now + 5) return null;
-		if (!payload.sub) return null;
+		if (typeof payload.exp === 'number' && payload.exp + 10 < now) return reject('expired', `${now - payload.exp}s ago`);
+		if (typeof payload.nbf === 'number' && payload.nbf > now + 5) return reject('not yet valid');
+		if (!payload.sub) return reject('no sub claim');
 
 		const jwks = await getJwks(issuer);
 		const jwk = (jwks.keys || []).find((k) => k.kid === tokenHeader.kid);
 
-		if (!jwk) return null;
+		if (!jwk) return reject('unknown signing key', tokenHeader.kid);
 
 		const key = await crypto.subtle.importKey(
 			'jwk',
@@ -114,7 +120,7 @@ async function verifySessionToken(request, env) {
 			new TextEncoder().encode(`${headerPart}.${payloadPart}`),
 		);
 
-		return valid ? payload.sub : null;
+		return valid ? payload.sub : reject('bad signature');
 	} catch (error) {
 		console.log('TOKEN VERIFY ERROR:', error?.message || error);
 

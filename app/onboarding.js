@@ -5,6 +5,10 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -215,97 +219,114 @@ export default function OnboardingScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
-      <View style={styles.container}>
-        {/* HEADER */}
+      {/*
+       * Lift the footer above the keyboard, and let a tap anywhere
+       * outside a field close it, so Continue is always reachable.
+       */}
+      <KeyboardAvoidingView
+        style={styles.fill}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <View style={styles.container}>
+            {/* HEADER */}
 
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.brand}>Between Us</Text>
+            <View style={styles.header}>
+              <View>
+                <Text style={styles.brand}>Between Us</Text>
 
-            <Text style={styles.subtitle}>Let's get to know you</Text>
-          </View>
-
-          <TouchableOpacity
-            onPress={handleSignOut}
-            style={styles.signOutButton}
-            disabled={saving}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.signOutText}>Sign out</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* PROGRESS */}
-
-        <Text style={styles.counter}>
-          {currentQuestion + 1} of {questions.length}
-        </Text>
-
-        <ProgressBar current={currentQuestion} total={questions.length} />
-
-        {/* QUESTION */}
-
-        <View style={styles.questionContainer}>
-          <QuestionCard
-            question={question}
-            value={answers[question.id]}
-            onChange={updateAnswer}
-          />
-
-          {stepError ? <Text style={styles.stepError}>{stepError}</Text> : null}
-        </View>
-
-        {/* ERROR */}
-
-        {error ? (
-          <View style={styles.errorBox}>
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        ) : null}
-
-        {/* FOOTER */}
-
-        <View style={styles.footer}>
-          {currentQuestion > 0 && !saving ? (
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={handleBack}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.backText}>Back</Text>
-            </TouchableOpacity>
-          ) : null}
-
-          <TouchableOpacity
-            style={[
-              styles.nextButton,
-              (!canContinue() || saving) && styles.disabledButton,
-            ]}
-            disabled={!canContinue() || saving}
-            onPress={handleNext}
-            activeOpacity={0.85}
-          >
-            {saving ? (
-              <View style={styles.savingContent}>
-                <ActivityIndicator size="small" color="#FFFFFF" />
-
-                <Text style={styles.nextText}>Saving...</Text>
+                <Text style={styles.subtitle}>Let's get to know you</Text>
               </View>
-            ) : (
-              <Text style={styles.nextText}>
-                {currentQuestion === questions.length - 1
-                  ? "Finish"
-                  : "Continue"}
-              </Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
+
+              <TouchableOpacity
+                onPress={handleSignOut}
+                style={styles.signOutButton}
+                disabled={saving}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.signOutText}>Sign out</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* PROGRESS */}
+
+            <Text style={styles.counter}>
+              {currentQuestion + 1} of {questions.length}
+            </Text>
+
+            <ProgressBar current={currentQuestion} total={questions.length} />
+
+            {/* QUESTION */}
+
+            <View style={styles.questionContainer}>
+              <QuestionCard
+                question={question}
+                value={answers[question.id]}
+                onChange={updateAnswer}
+              />
+
+              {stepError ? (
+                <Text style={styles.stepError}>{stepError}</Text>
+              ) : null}
+            </View>
+
+            {/* ERROR */}
+
+            {error ? (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
+
+            {/* FOOTER */}
+
+            <View style={styles.footer}>
+              {currentQuestion > 0 && !saving ? (
+                <TouchableOpacity
+                  style={styles.backButton}
+                  onPress={handleBack}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.backText}>Back</Text>
+                </TouchableOpacity>
+              ) : null}
+
+              <TouchableOpacity
+                style={[
+                  styles.nextButton,
+                  (!canContinue() || saving) && styles.disabledButton,
+                ]}
+                disabled={!canContinue() || saving}
+                onPress={handleNext}
+                activeOpacity={0.85}
+              >
+                {saving ? (
+                  <View style={styles.savingContent}>
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+
+                    <Text style={styles.nextText}>Saving...</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.nextText}>
+                    {currentQuestion === questions.length - 1
+                      ? "Finish"
+                      : "Continue"}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  fill: {
+    flex: 1,
+  },
+
   stepError: {
     marginTop: 12,
     fontSize: 13,
