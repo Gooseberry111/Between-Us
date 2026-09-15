@@ -6,6 +6,7 @@ import * as SecureStore from "expo-secure-store";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
+import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { RETURNING_USER_KEY } from "../lib/auth";
 import { apiFetch, setTokenProvider } from "../lib/api";
@@ -260,7 +261,11 @@ function AuthGuard() {
       return;
     }
 
-    registerForPushNotificationsAsync(userId);
+    registerForPushNotificationsAsync(userId).catch((error) => {
+      /* Android builds without Firebase set up can't get a push
+       * token. The app works fine without one. */
+      console.log("PUSH REGISTRATION FAILED:", error?.message);
+    });
   }, [isLoaded, isSignedIn, userId]);
 
   /*
@@ -383,6 +388,22 @@ function AuthGuard() {
  */
 
 export default function RootLayout() {
+  /*
+   * Without a key Clerk throws on startup and the app just
+   * closes after the splash. Say what's wrong instead.
+   */
+  if (!publishableKey) {
+    return (
+      <View style={missingKeyStyles.screen}>
+        <Text style={missingKeyStyles.title}>Between Us can't start</Text>
+        <Text style={missingKeyStyles.body}>
+          This build is missing its sign-in configuration. Please install the
+          latest version.
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <SafeAreaProvider>
       <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
@@ -391,3 +412,27 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
+const missingKeyStyles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+    backgroundColor: "#FDFAF5",
+  },
+
+  title: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#332B28",
+  },
+
+  body: {
+    marginTop: 10,
+    fontSize: 15,
+    lineHeight: 21,
+    textAlign: "center",
+    color: "#817771",
+  },
+});
