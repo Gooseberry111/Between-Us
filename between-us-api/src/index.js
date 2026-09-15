@@ -1,5 +1,169 @@
 import { neon } from '@neondatabase/serverless';
 
+/*
+ * ==========================================
+ * AUTHENTICATION
+ * ==========================================
+ *
+ * Every request carries a Clerk session token.
+ * We verify its signature against Clerk's public
+ * JWKS, so identity comes from a signed token
+ * rather than from whatever id the caller typed
+ * into the URL.
+ *
+ * Before this existed, any stranger could list
+ * every user and read or overwrite their data
+ * using nothing but a clerk_id.
+ *
+ * JWKS is public, so this needs no extra secret.
+ */
+
+let jwksCache = null;
+let jwksFetchedAt = 0;
+const JWKS_TTL_MS = 60 * 60 * 1000;
+
+async function getJwks(issuer) {
+	const now = Date.now();
+
+	if (jwksCache && now - jwksFetchedAt < JWKS_TTL_MS) {
+		return jwksCache;
+	}
+
+	const response = await fetch(`${issuer}/.well-known/jwks.json`);
+
+	if (!response.ok) {
+		throw new Error('Unable to fetch signing keys');
+	}
+
+	jwksCache = await response.json();
+	jwksFetchedAt = now;
+
+	return jwksCache;
+}
+
+function base64UrlDecode(input) {
+	const padded = input.replace(/-/g, '+').replace(/_/g, '/');
+	const binary = atob(padded + '='.repeat((4 - (padded.length % 4)) % 4));
+	const bytes = new Uint8Array(binary.length);
+
+	for (let i = 0; i < binary.length; i++) {
+		bytes[i] = binary.charCodeAt(i);
+	}
+
+	return bytes;
+}
+
+function decodeJson(segment) {
+	return JSON.parse(new TextDecoder().decode(base64UrlDecode(segment)));
+}
+
+/*
+ * Returns the Clerk user id the token belongs to,
+ * or null if it is missing, malformed, expired or
+ * not actually signed by Clerk.
+ */
+async function verifySessionToken(request, env) {
+	const header = request.headers.get('Authorization') || '';
+
+	if (!header.startsWith('Bearer ')) return null;
+
+	const token = header.slice(7).trim();
+	const parts = token.split('.');
+
+	if (parts.length !== 3) return null;
+
+	try {
+		const [headerPart, payloadPart, signaturePart] = parts;
+		const tokenHeader = decodeJson(headerPart);
+		const payload = decodeJson(payloadPart);
+
+		const issuer = env.CLERK_ISSUER;
+
+		if (!issuer) return null;
+
+		/*
+		 * A token from somebody else's Clerk instance
+		 * must not be accepted here.
+		 */
+		if (payload.iss && payload.iss !== issuer) return null;
+
+		const now = Math.floor(Date.now() / 1000);
+
+		/* Small tolerance so a request sent right at expiry is not bounced. */
+		if (typeof payload.exp === 'number' && payload.exp + 10 < now) return null;
+		if (typeof payload.nbf === 'number' && payload.nbf > now + 5) return null;
+		if (!payload.sub) return null;
+
+		const jwks = await getJwks(issuer);
+		const jwk = (jwks.keys || []).find((k) => k.kid === tokenHeader.kid);
+
+		if (!jwk) return null;
+
+		const key = await crypto.subtle.importKey(
+			'jwk',
+			{ kty: jwk.kty, n: jwk.n, e: jwk.e, alg: 'RS256', ext: true },
+			{ name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+			false,
+			['verify'],
+		);
+
+		const valid = await crypto.subtle.verify(
+			'RSASSA-PKCS1-v1_5',
+			key,
+			base64UrlDecode(signaturePart),
+			new TextEncoder().encode(`${headerPart}.${payloadPart}`),
+		);
+
+		return valid ? payload.sub : null;
+	} catch (error) {
+		console.log('TOKEN VERIFY ERROR:', error?.message || error);
+
+		return null;
+	}
+}
+
+/*
+ * Open endpoints. Everything else needs a token.
+ */
+const PUBLIC_PATHS = new Set(['/', '/health']);
+
+function unauthorized(message) {
+	return Response.json({ error: message }, { status: 401 });
+}
+
+function forbidden() {
+	return Response.json(
+		{ error: 'You can only access your own account.' },
+		{ status: 403 },
+	);
+}
+
+/*
+ * A real, past calendar date. The previous check only
+ * looked at the YYYY-MM-DD shape, so 2003-13-45 got as
+ * far as the database before being refused.
+ */
+function birthdayProblem(value) {
+	const text = String(value || '').trim();
+
+	if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+		return 'Birthday must be in YYYY-MM-DD format';
+	}
+
+	const [year, month, day] = text.split('-').map(Number);
+	const date = new Date(Date.UTC(year, month - 1, day));
+
+	if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
+		return 'That birthday is not a real date';
+	}
+
+	if (date > new Date() || year < 1900) {
+		return 'That birthday is not valid';
+	}
+
+	return null;
+}
+
 async function sendPushNotification({ pushToken, title, body, data = {} }) {
 	if (!pushToken) {
 		return {
@@ -916,6 +1080,56 @@ export default {
 
 			/*
 			 * ==========================================
+			 * GATE EVERY REQUEST
+			 * ==========================================
+			 */
+
+			if (!PUBLIC_PATHS.has(url.pathname)) {
+				const callerId = await verifySessionToken(request, env);
+
+				if (!callerId) {
+					return unauthorized('Sign in to continue.');
+				}
+
+				/*
+				 * A path naming a user must name the caller.
+				 * This is what stops someone reading another
+				 * person's data by swapping the id in the URL.
+				 */
+				const pathUser = url.pathname.match(/^\/users\/([^/]+)/);
+
+				if (pathUser && pathUser[1] !== callerId) {
+					return forbidden();
+				}
+
+				/* Same rule for ids in the query string. */
+				const queryId = url.searchParams.get('clerk_id');
+
+				if (queryId && queryId !== callerId) {
+					return forbidden();
+				}
+
+				/*
+				 * ...and in the body. Read from a clone so the
+				 * handlers can still consume the original.
+				 */
+				if (request.method === 'POST' || request.method === 'PUT' || request.method === 'PATCH') {
+					try {
+						const peek = await request.clone().json();
+
+						for (const field of ['clerk_id', 'from_clerk_id']) {
+							if (peek?.[field] && peek[field] !== callerId) {
+								return forbidden();
+							}
+						}
+					} catch {
+						/* not JSON, nothing to check */
+					}
+				}
+			}
+
+			/*
+			 * ==========================================
 			 * HEALTH
 			 * ==========================================
 			 */
@@ -946,23 +1160,14 @@ export default {
 
 			/*
 			 * ==========================================
-			 * GET ALL USERS
+			 * GET ALL USERS -- REMOVED
 			 * ==========================================
+			 *
+			 * This handed every user's email and clerk_id to
+			 * anyone who asked, which made it trivial to scrape
+			 * the directory and then read or overwrite those
+			 * accounts. Nothing in the app used it.
 			 */
-
-			if (url.pathname === '/users' && request.method === 'GET') {
-				const users = await sql`
-          SELECT
-            id,
-            clerk_id,
-            email,
-            created_at
-          FROM users
-          ORDER BY created_at DESC
-        `;
-
-				return Response.json(users);
-			}
 
 			/*
 			 * ==========================================
@@ -1187,10 +1392,12 @@ export default {
 
 				const normalizedBirthday = String(birthday).trim();
 
-				if (!/^\d{4}-\d{2}-\d{2}$/.test(normalizedBirthday)) {
+				const onboardingBirthdayProblem = birthdayProblem(normalizedBirthday);
+
+				if (onboardingBirthdayProblem) {
 					return Response.json(
 						{
-							error: 'Birthday must be in YYYY-MM-DD format',
+							error: onboardingBirthdayProblem,
 						},
 						{ status: 400 },
 					);
@@ -1563,8 +1770,16 @@ SET
 			 */
 
 			if (url.pathname === '/search' && request.method === 'GET') {
-				const query = url.searchParams.get('query');
+				const query = (url.searchParams.get('query') || '').trim();
 				const clerkId = url.searchParams.get('clerk_id');
+
+				/*
+				 * A one-letter search would page through the whole
+				 * user base, so ask for at least two characters.
+				 */
+				if (query.length < 2 && clerkId) {
+					return Response.json([]);
+				}
 
 				if (!query || !clerkId) {
 					return Response.json(
@@ -1597,7 +1812,6 @@ SET
           SELECT
             u.id,
             u.clerk_id,
-            u.email,
             p.first_name,
             p.country,
             p.gender,
@@ -1613,7 +1827,11 @@ SET
 
             AND (
               p.first_name ILIKE ${'%' + query + '%'}
-              OR u.email ILIKE ${'%' + query + '%'}
+              /*
+               * Email only on an exact match. Substring matching
+               * let "@gmail" list everyone along with their address.
+               */
+              OR LOWER(u.email) = LOWER(${query})
             )
 
             /*
@@ -3616,10 +3834,12 @@ VALUES (
 				if (body?.birthday !== undefined) {
 					const normalizedBirthday = body.birthday ? String(body.birthday).trim() : '';
 
-					if (normalizedBirthday && !/^\d{4}-\d{2}-\d{2}$/.test(normalizedBirthday)) {
+					const profileBirthdayProblem = normalizedBirthday ? birthdayProblem(normalizedBirthday) : null;
+
+					if (profileBirthdayProblem) {
 						return Response.json(
 							{
-								error: 'Birthday must be in YYYY-MM-DD format',
+								error: profileBirthdayProblem,
 							},
 							{ status: 400 },
 						);
@@ -3889,7 +4109,7 @@ VALUES (
 				if (partner.affection_style) {
 					questionPool.push({
 						id: 'affection_style',
-						question: `How does ${partnerName} prefer to receive affection?`,
+						question: `How does ${partnerName} usually show affection?`,
 						answer: partner.affection_style,
 						options: buildTriviaOptions(partner.affection_style, [
 							'Words',
@@ -4942,6 +5162,22 @@ VALUES (
 				}
 
 				const userId = userResult[0].id;
+
+				/*
+				 * Special dates are shared with a partner, so
+				 * they cannot be added until you have one.
+				 */
+				const linked = await sql`
+          SELECT id
+          FROM connections
+          WHERE (user_one = ${userId} OR user_two = ${userId})
+            AND status = 'accepted'
+          LIMIT 1
+        `;
+
+				if (linked.length === 0) {
+					return Response.json({ error: 'Connect with your partner first.' }, { status: 403 });
+				}
 
 				const result = await sql`
           INSERT INTO special_dates (

@@ -15,6 +15,16 @@
 	"triggers": {
 		"crons": ["0 * * * *"],
 	},
+
+	/*
+	 * Clerk instance that issues our session tokens.
+	 * Public information -- it ships inside the app's
+	 * publishable key -- so it belongs in config, not
+	 * in secrets.
+	 */
+	"vars": {
+		"CLERK_ISSUER": "https://working-ladybug-79.clerk.accounts.dev",
+	},
 	/**
 	 * Smart Placement
 	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
