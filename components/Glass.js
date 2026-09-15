@@ -102,7 +102,21 @@ export function GlassCard({
 /*
  * A dark pane, for anything carrying white text.
  */
-export function GlassPanel({ children, style, radius = 26, padding = 20 }) {
+const PANEL_TONES = {
+  /* The house brown. */
+  brown: ["rgba(94,68,60,0.94)", "rgba(58,40,35,0.9)"],
+  /* A deep plum, so two dark panels can sit together
+   * without reading as the same card repeated. */
+  plum: ["rgba(122,74,92,0.94)", "rgba(74,42,56,0.92)"],
+};
+
+export function GlassPanel({
+  children,
+  style,
+  radius = 26,
+  padding = 20,
+  tone = "brown",
+}) {
   return (
     <View style={[styles.panel, { borderRadius: radius }, style]}>
       <BlurView
@@ -113,7 +127,7 @@ export function GlassPanel({ children, style, radius = 26, padding = 20 }) {
       />
 
       <LinearGradient
-        colors={["rgba(94,68,60,0.94)", "rgba(58,40,35,0.9)"]}
+        colors={PANEL_TONES[tone] || PANEL_TONES.brown}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}

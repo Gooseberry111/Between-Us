@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
+  RefreshControl,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -14,7 +15,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { GlassBackground, GlassCard, GlassPanel } from "../components/Glass";
 import { Skeleton } from "../components/Skeleton";
 import { getCachedData, setCachedData } from "../lib/dataCache";
@@ -31,6 +32,7 @@ export default function DailyQuestionScreen() {
   const [data, setData] = useState(cached ?? null);
   const [loading, setLoading] = useState(!cached);
   const [saving, setSaving] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [draft, setDraft] = useState(cached?.your_answer || "");
   const [error, setError] = useState("");
 
@@ -82,12 +84,24 @@ export default function DailyQuestionScreen() {
       setError(err?.message || "Unable to load today's question.");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [isLoaded, isSignedIn, userId, cacheKey]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  /*
+   * Re-check on focus. Your partner may have answered
+   * since you last looked, and without this the screen
+   * would keep insisting they hadn't.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
 
   useEffect(() => {
     if (!loading) runReveal();
@@ -144,6 +158,16 @@ export default function DailyQuestionScreen() {
           <ScrollView
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => {
+                  setRefreshing(true);
+                  load();
+                }}
+                tintColor="#6B4E45"
+              />
+            }
             contentContainerStyle={styles.scrollContent}
           >
             <View style={styles.container}>
@@ -282,11 +306,12 @@ export default function DailyQuestionScreen() {
                         />
 
                         <Text style={styles.lockedTitle}>
-                          {partnerName} has not answered yet.
+                          {partnerName} hasn't answered yet.
                         </Text>
 
                         <Text style={styles.lockedText}>
-                          It will show up here as soon as they do.
+                          We've let them know yours is in. Pull down to check
+                          again.
                         </Text>
                       </View>
                     )}

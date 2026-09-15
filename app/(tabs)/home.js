@@ -18,7 +18,6 @@ import { Skeleton, SkeletonCard } from "../../components/Skeleton";
 import {
   GlassBackground,
   GlassPanel,
-  GlassPressable,
   FadeIn,
   Card,
 } from "../../components/Glass";
@@ -441,53 +440,58 @@ export default function HomeScreen() {
 
             {error ? <ErrorMessage message={error} /> : null}
 
+            {/* QUICK ACCESS */}
+
+            <QuickActions router={router} />
+
             {/* CONNECTION CARD */}
 
             <FadeIn delay={40}>
-              <GlassPressable
-                style={styles.connectionCard}
-                onPress={() => router.push("/connection")}
-              >
-                <View style={styles.connectionTop}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>
-                      {(partnerName || "?").charAt(0).toUpperCase()}
-                    </Text>
+              <Pressable onPress={() => router.push("/connection")}>
+                <GlassPanel style={styles.connectionCard}>
+                  <View style={styles.connectionTop}>
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarText}>
+                        {(partnerName || "?").charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+
+                    <View style={styles.connectionInfo}>
+                      <Text style={styles.togetherLabel}>YOU & THEM</Text>
+
+                      <Text style={styles.partnerName}>{partnerName}</Text>
+
+                      <Text style={styles.relationshipText}>
+                        {relationshipLabel}
+                      </Text>
+                    </View>
+
+                    <View style={styles.onlineDot} />
                   </View>
 
-                  <View style={styles.connectionInfo}>
-                    <Text style={styles.togetherLabel}>YOU & THEM</Text>
+                  <View style={styles.connectionDivider} />
 
-                    <Text style={styles.partnerName}>{partnerName}</Text>
+                  <View style={styles.connectionBottom}>
+                    <View>
+                      <Text style={styles.connectionSmallLabel}>
+                        YOUR SPACE
+                      </Text>
 
-                    <Text style={styles.relationshipText}>
-                      {relationshipLabel}
-                    </Text>
+                      <Text style={styles.connectionSmallText}>
+                        Keep choosing each other.
+                      </Text>
+                    </View>
+
+                    <Text style={styles.connectionHeart}>♡</Text>
                   </View>
-
-                  <View style={styles.onlineDot} />
-                </View>
-
-                <View style={styles.connectionDivider} />
-
-                <View style={styles.connectionBottom}>
-                  <View>
-                    <Text style={styles.connectionSmallLabel}>YOUR SPACE</Text>
-
-                    <Text style={styles.connectionSmallText}>
-                      Keep choosing each other.
-                    </Text>
-                  </View>
-
-                  <Text style={styles.connectionHeart}>♡</Text>
-                </View>
-              </GlassPressable>
+                </GlassPanel>
+              </Pressable>
             </FadeIn>
 
             {/* DAILY QUESTION */}
 
             <FadeIn delay={120}>
-              <GlassPanel style={styles.dailyPanel}>
+              <GlassPanel tone="plum" style={styles.dailyPanel}>
                 <View style={styles.dailyTop}>
                   <Text style={styles.dailyLabel}>TODAY'S QUESTION</Text>
 
@@ -693,10 +697,6 @@ export default function HomeScreen() {
               </View>
             ) : null}
 
-            {/* QUICK ACTIONS */}
-
-            <QuickActions router={router} />
-
             {/* FOOTER */}
 
             <Card style={styles.footerCard}>
@@ -899,99 +899,37 @@ function Header({ firstName, hasUnreadNotifications }) {
  */
 
 function QuickActions({ router }) {
+  /*
+   * Six shortcuts in a 2x3 grid. Small on purpose:
+   * these are signposts, not content, so they should
+   * not out-shout the cards underneath them.
+   */
+  const items = [
+    { icon: "time-outline", label: "Timeline", route: "/memories" },
+    { icon: "stats-chart-outline", label: "Insights", route: "/insights" },
+    { icon: "heart-outline", label: "Thanks", route: "/appreciations" },
+    { icon: "pulse-outline", label: "Check-in", route: "/check-in" },
+    { icon: "flag-outline", label: "Goals", route: "/goals" },
+    { icon: "calendar-outline", label: "Dates", route: "/special-dates" },
+  ];
+
   return (
-    <View style={styles.section}>
-      <Text style={styles.sectionLabel}>QUICK ACCESS</Text>
+    <View style={styles.quickWrap}>
+      {items.map((item, index) => (
+        <FadeIn key={item.route} delay={index * 35} style={styles.quickCell}>
+          <TouchableOpacity
+            style={styles.quickAction}
+            activeOpacity={0.8}
+            onPress={() => router.push(item.route)}
+          >
+            <View style={styles.quickIcon}>
+              <Ionicons name={item.icon} size={16} color="#6B4E45" />
+            </View>
 
-      <View style={styles.quickActions}>
-        <TouchableOpacity
-          style={styles.quickAction}
-          activeOpacity={0.8}
-          onPress={() => router.push("/memories")}
-        >
-          <View style={styles.quickIcon}>
-            <Text style={styles.quickIconText}>♡</Text>
-          </View>
-
-          <Text style={styles.quickTitle}>Timeline</Text>
-
-          <Text style={styles.quickText}>Your story together</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.quickAction}
-          activeOpacity={0.8}
-          onPress={() => router.push("/insights")}
-        >
-          <View style={styles.quickIcon}>
-            <Text style={styles.quickIconText}>✦</Text>
-          </View>
-
-          <Text style={styles.quickTitle}>Insights</Text>
-
-          <Text style={styles.quickText}>Learn about each other</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={[styles.quickActions, styles.quickActionsSecondRow]}>
-        <TouchableOpacity
-          style={styles.quickAction}
-          activeOpacity={0.8}
-          onPress={() => router.push("/appreciations")}
-        >
-          <View style={styles.quickIcon}>
-            <Text style={styles.quickIconText}>♡</Text>
-          </View>
-
-          <Text style={styles.quickTitle}>Appreciation</Text>
-
-          <Text style={styles.quickText}>Say what you noticed</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.quickAction}
-          activeOpacity={0.8}
-          onPress={() => router.push("/check-in")}
-        >
-          <View style={styles.quickIcon}>
-            <Text style={styles.quickIconText}>◔</Text>
-          </View>
-
-          <Text style={styles.quickTitle}>Check-in</Text>
-
-          <Text style={styles.quickText}>How are we this week?</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={[styles.quickActions, styles.quickActionsSecondRow]}>
-        <TouchableOpacity
-          style={styles.quickAction}
-          activeOpacity={0.8}
-          onPress={() => router.push("/goals")}
-        >
-          <View style={styles.quickIcon}>
-            <Text style={styles.quickIconText}>◆</Text>
-          </View>
-
-          <Text style={styles.quickTitle}>Goals</Text>
-
-          <Text style={styles.quickText}>Track what you're working on</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.quickAction}
-          activeOpacity={0.8}
-          onPress={() => router.push("/special-dates")}
-        >
-          <View style={styles.quickIcon}>
-            <Text style={styles.quickIconText}>◷</Text>
-          </View>
-
-          <Text style={styles.quickTitle}>Special Dates</Text>
-
-          <Text style={styles.quickText}>Never miss a date that matters</Text>
-        </TouchableOpacity>
-      </View>
+            <Text style={styles.quickTitle}>{item.label}</Text>
+          </TouchableOpacity>
+        </FadeIn>
+      ))}
     </View>
   );
 }
@@ -1254,9 +1192,9 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "rgba(107, 78, 69, 0.1)",
+    backgroundColor: "rgba(255, 255, 255, 0.18)",
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255, 255, 255, 0.9)",
+    borderColor: "rgba(255, 255, 255, 0.35)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1264,7 +1202,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#6B4E45",
+    color: "#FFFFFF",
   },
 
   connectionInfo: {
@@ -1276,20 +1214,20 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.5,
-    color: "#9A918A",
+    color: "#DCCBC4",
   },
 
   partnerName: {
     marginTop: 3,
     fontSize: 21,
     fontWeight: "700",
-    color: "#302825",
+    color: "#FFFFFF",
   },
 
   relationshipText: {
     marginTop: 2,
     fontSize: 12,
-    color: "#817771",
+    color: "#DCCBC4",
   },
 
   onlineDot: {
@@ -1301,7 +1239,7 @@ const styles = StyleSheet.create({
 
   connectionDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(107, 78, 69, 0.18)",
+    backgroundColor: "rgba(255, 255, 255, 0.22)",
     marginVertical: 18,
   },
 
@@ -1315,18 +1253,18 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.3,
-    color: "#9A918A",
+    color: "#DCCBC4",
   },
 
   connectionSmallText: {
     marginTop: 4,
     fontSize: 13,
-    color: "#302825",
+    color: "#FFFFFF",
   },
 
   connectionHeart: {
     fontSize: 27,
-    color: "#C4796A",
+    color: "#E9C7BE",
   },
 
   /*
@@ -1644,32 +1582,37 @@ const styles = StyleSheet.create({
    * QUICK ACTIONS
    */
 
-  quickActions: {
+  quickWrap: {
     flexDirection: "row",
-    gap: 12,
+    flexWrap: "wrap",
+    marginHorizontal: -4,
+    marginBottom: 18,
   },
 
-  quickActionsSecondRow: {
-    marginTop: 12,
+  quickCell: {
+    width: "33.333%",
+    paddingHorizontal: 4,
+    paddingBottom: 8,
   },
 
   quickAction: {
-    flex: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 18,
-    padding: 15,
-    borderWidth: 1,
+    backgroundColor: "rgba(255, 255, 255, 0.72)",
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(255, 255, 255, 0.9)",
+    alignItems: "center",
   },
 
   quickIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(107, 78, 69, 0.09)",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
+    marginBottom: 7,
   },
 
   quickIconText: {
@@ -1678,7 +1621,7 @@ const styles = StyleSheet.create({
   },
 
   quickTitle: {
-    fontSize: 15,
+    fontSize: 11,
     fontWeight: "700",
     color: "#302825",
   },
