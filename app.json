@@ -45,6 +45,12 @@
       "barStyle": "dark-content",
       "backgroundColor": "#FDFAF5",
       "translucent": false
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/70fa9f0d-4ccd-4613-9f00-cad1cd0d244a"
     }
   }
 }
