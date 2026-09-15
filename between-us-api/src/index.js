@@ -149,6 +149,8 @@ function forbidden() {
  * looked at the YYYY-MM-DD shape, so 2003-13-45 got as
  * far as the database before being refused.
  */
+const MINIMUM_AGE = 17;
+
 function birthdayProblem(value) {
 	const text = String(value || '').trim();
 
@@ -165,6 +167,17 @@ function birthdayProblem(value) {
 
 	if (date > new Date() || year < 1900) {
 		return 'That birthday is not valid';
+	}
+
+	const today = new Date();
+	let age = today.getUTCFullYear() - year;
+	const beforeBirthday =
+		today.getUTCMonth() < month - 1 || (today.getUTCMonth() === month - 1 && today.getUTCDate() < day);
+
+	if (beforeBirthday) age -= 1;
+
+	if (age < MINIMUM_AGE) {
+		return `You need to be at least ${MINIMUM_AGE} to use Between Us`;
 	}
 
 	return null;
@@ -5935,6 +5948,85 @@ VALUES (
 						rating: r.rating,
 						mine: r.user_id === userId,
 					})),
+				});
+			}
+
+			/*
+			 * ==========================================
+			 * ONBOARDING ANSWERS
+			 * ==========================================
+			 *
+			 * GET /users/:clerkId/onboarding
+			 *
+			 * Returns what someone has already answered, keyed by
+			 * the same ids the onboarding form uses. Resuming must
+			 * start from these: saving onboarding overwrites every
+			 * answer, so a blank form would wipe the earlier ones.
+			 */
+
+			const onboardingAnswersMatch = url.pathname.match(/^\/users\/([^/]+)\/onboarding$/);
+
+			if (onboardingAnswersMatch && request.method === 'GET') {
+				const clerkId = onboardingAnswersMatch[1];
+
+				const rows = await sql`
+          SELECT
+            p.id AS profile_id,
+            p.first_name,
+            p.birthday,
+            p.gender,
+            p.country,
+            p.relationship_status,
+            pr.love_languages,
+            pr.favorite_food,
+            pr.favorite_snack,
+            pr.favorite_drink,
+            pr.favorite_color,
+            pr.movie_genre,
+            pr.music_genre,
+            pr.communication_frequency,
+            pr.affection_style,
+            ri.personality_type,
+            ri.conflict_style,
+            ri.focus_areas
+          FROM users u
+          LEFT JOIN profiles p ON p.user_id = u.id
+          LEFT JOIN preferences pr ON pr.user_id = u.id
+          LEFT JOIN relationship_insights ri ON ri.user_id = u.id
+          WHERE u.clerk_id = ${clerkId}
+          LIMIT 1
+        `;
+
+				const row = rows[0];
+
+				if (!row || !row.profile_id) {
+					return Response.json({ exists: false, answers: {} });
+				}
+
+				const text = (value) => (value == null ? '' : String(value));
+				const list = (value) => (Array.isArray(value) ? value.filter(Boolean) : []);
+
+				return Response.json({
+					exists: true,
+					answers: {
+						firstName: text(row.first_name),
+						birthday: row.birthday ? toIsoDate(row.birthday) : '',
+						gender: text(row.gender),
+						country: text(row.country),
+						relationshipStatus: text(row.relationship_status),
+						personalityType: text(row.personality_type),
+						communicationStyle: text(row.communication_frequency),
+						conflictStyle: text(row.conflict_style),
+						affectionStyle: text(row.affection_style),
+						loveLanguages: list(row.love_languages),
+						favoriteFood: text(row.favorite_food),
+						favoriteSnack: text(row.favorite_snack),
+						favoriteDrink: text(row.favorite_drink),
+						favoriteColor: text(row.favorite_color),
+						musicGenre: text(row.music_genre),
+						movieGenre: text(row.movie_genre),
+						focusAreas: list(row.focus_areas),
+					},
 				});
 			}
 

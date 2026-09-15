@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -19,6 +19,28 @@ import ProgressBar from "../components/onboarding/ProgressBar";
 import QuestionCard from "../components/onboarding/QuestionCard";
 import { apiFetch } from "../lib/api";
 import { birthdayError } from "../lib/validation";
+import { clearCachedData } from "../lib/dataCache";
+import { isAnswered, notifyProfileSaved } from "../lib/profileProgress";
+
+const EMPTY_ANSWERS = {
+  firstName: "",
+  birthday: "",
+  gender: "",
+  country: "",
+  relationshipStatus: "",
+  personalityType: "",
+  communicationStyle: "",
+  conflictStyle: "",
+  affectionStyle: "",
+  loveLanguages: [],
+  favoriteFood: "",
+  favoriteSnack: "",
+  favoriteDrink: "",
+  favoriteColor: "",
+  musicGenre: "",
+  movieGenre: "",
+  focusAreas: [],
+};
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -29,28 +51,59 @@ export default function OnboardingScreen() {
 
   const [currentQuestion, setCurrentQuestion] = useState(0);
 
-  const [answers, setAnswers] = useState({
-    firstName: "",
-    birthday: "",
-    gender: "",
-    country: "",
-    relationshipStatus: "",
-    personalityType: "",
-    communicationStyle: "",
-    conflictStyle: "",
-    affectionStyle: "",
-    loveLanguages: [],
-    favoriteFood: "",
-    favoriteSnack: "",
-    favoriteDrink: "",
-    favoriteColor: "",
-    musicGenre: "",
-    movieGenre: "",
-    focusAreas: [],
-  });
+  const [answers, setAnswers] = useState(EMPTY_ANSWERS);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  /*
+   * "loading" | "ready" | "failed". Someone coming back from
+   * Home already has answers saved, and saving rewrites all of
+   * them -- so the form must never open blank for them. If the
+   * saved answers can't be loaded, there is nothing to save.
+   */
+  const [loadState, setLoadState] = useState("loading");
+  const [resuming, setResuming] = useState(false);
+
+  const loadSavedAnswers = useCallback(async () => {
+    if (!isLoaded || !userId) return;
+
+    setLoadState("loading");
+
+    try {
+      const response = await apiFetch(`/users/${userId}/onboarding`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Unable to load your answers.");
+      }
+
+      if (data?.exists) {
+        const saved = { ...EMPTY_ANSWERS };
+
+        Object.keys(EMPTY_ANSWERS).forEach((key) => {
+          if (isAnswered(data.answers?.[key])) saved[key] = data.answers[key];
+        });
+
+        const firstGap = questions.findIndex(
+          (item) => !isAnswered(saved[item.id]),
+        );
+
+        setAnswers(saved);
+        setResuming(true);
+        setCurrentQuestion(firstGap === -1 ? 0 : firstGap);
+      }
+
+      setLoadState("ready");
+    } catch (loadError) {
+      console.log("ONBOARDING LOAD ERROR:", loadError);
+      setLoadState("failed");
+    }
+  }, [isLoaded, userId]);
+
+  useEffect(() => {
+    loadSavedAnswers();
+  }, [loadSavedAnswers]);
 
   const question = questions[currentQuestion];
 
@@ -74,6 +127,15 @@ export default function OnboardingScreen() {
       ? birthdayError(birthdayValue)
       : null;
 
+  /*
+   * Name and birthday are what the app can't work without
+   * (greetings, birthday reminders, the age check). Everything
+   * after them can wait, so Skip unlocks once both are in.
+   */
+  const hasEssentials =
+    String(answers.firstName || "").trim().length > 0 &&
+    birthdayError(answers.birthday) === null;
+
   const canContinue = () => {
     const value = answers[question.id];
 
@@ -92,8 +154,6 @@ export default function OnboardingScreen() {
     if (!isLoaded || !userId) {
       throw new Error("Your account is not ready yet. Please try again.");
     }
-
-    console.log("SAVING COMPLETE ONBOARDING FOR:", userId);
 
     const response = await apiFetch(`/onboarding`, {
       method: "POST",
@@ -130,8 +190,6 @@ export default function OnboardingScreen() {
 
     const data = await response.json();
 
-    console.log("ONBOARDING SAVE RESPONSE:", data);
-
     if (!response.ok) {
       throw new Error(
         data?.error || "Unable to save your onboarding information.",
@@ -139,6 +197,37 @@ export default function OnboardingScreen() {
     }
 
     return data;
+  };
+
+  const saveAndGoHome = async () => {
+    try {
+      setSaving(true);
+      setError("");
+
+      await saveProfile();
+
+      console.log("ONBOARDING PROFILE SAVED");
+
+      /*
+       * Tell the auth guard first, and give it a beat to
+       * settle, so arriving on Home isn't mistaken for a new
+       * user wandering off onboarding.
+       */
+      notifyProfileSaved();
+      clearCachedData(`home:${userId}`);
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      router.replace("/(tabs)/home");
+    } catch (error) {
+      console.log("ONBOARDING SAVE ERROR:", error);
+
+      setError(
+        error?.message || "Something went wrong while saving your profile.",
+      );
+
+      setSaving(false);
+    }
   };
 
   const handleNext = async () => {
@@ -151,34 +240,13 @@ export default function OnboardingScreen() {
       return;
     }
 
-    try {
-      setSaving(true);
-      setError("");
+    await saveAndGoHome();
+  };
 
-      console.log("ONBOARDING FINISHED");
-      console.log("ONBOARDING ANSWERS:", answers);
+  const handleSkip = async () => {
+    if (saving || !hasEssentials) return;
 
-      await saveProfile();
-
-      console.log("ONBOARDING PROFILE SAVED");
-
-      /*
-       * The database now knows that this user
-       * has completed onboarding.
-       *
-       * Only navigate after the save succeeds.
-       */
-
-      router.replace("/(tabs)/home");
-    } catch (error) {
-      console.log("ONBOARDING SAVE ERROR:", error);
-
-      setError(
-        error?.message || "Something went wrong while saving your profile.",
-      );
-
-      setSaving(false);
-    }
+    await saveAndGoHome();
   };
 
   const handleBack = () => {
@@ -193,11 +261,7 @@ export default function OnboardingScreen() {
     if (saving) return;
 
     try {
-      console.log("SIGNING OUT FROM ONBOARDING...");
-
       await signOut();
-
-      console.log("SIGNED OUT");
 
       router.replace("/");
     } catch (error) {
@@ -205,7 +269,41 @@ export default function OnboardingScreen() {
     }
   };
 
-  if (!isLoaded) {
+  if (isLoaded && loadState === "failed") {
+    return (
+      <SafeAreaView style={styles.screen} edges={["top"]}>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.failedTitle}>
+            We couldn&apos;t load your answers
+          </Text>
+
+          <Text style={styles.loadingText}>
+            Check your connection and try again.
+          </Text>
+
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={loadSavedAnswers}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.nextText}>Try again</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleSignOut}
+            style={styles.differentAccount}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.differentAccountText}>
+              Use a different account
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!isLoaded || loadState === "loading") {
     return (
       <SafeAreaView style={styles.screen} edges={["top"]}>
         <View style={styles.loadingContainer}>
@@ -235,16 +333,22 @@ export default function OnboardingScreen() {
               <View>
                 <Text style={styles.brand}>Between Us</Text>
 
-                <Text style={styles.subtitle}>Let's get to know you</Text>
+                <Text style={styles.subtitle}>
+                  {resuming ? "Finish your profile" : "Let's get to know you"}
+                </Text>
               </View>
 
               <TouchableOpacity
-                onPress={handleSignOut}
-                style={styles.signOutButton}
-                disabled={saving}
+                onPress={handleSkip}
+                style={[
+                  styles.skipButton,
+                  (!hasEssentials || saving) && styles.skipButtonLocked,
+                ]}
+                disabled={!hasEssentials || saving}
                 activeOpacity={0.7}
+                accessibilityLabel="Skip the rest for now"
               >
-                <Text style={styles.signOutText}>Sign out</Text>
+                <Text style={styles.skipText}>Skip</Text>
               </TouchableOpacity>
             </View>
 
@@ -255,6 +359,13 @@ export default function OnboardingScreen() {
             </Text>
 
             <ProgressBar current={currentQuestion} total={questions.length} />
+
+            {!hasEssentials ? (
+              <Text style={styles.skipHint}>
+                Your name and birthday first — then you can skip the rest and
+                finish later.
+              </Text>
+            ) : null}
 
             {/* QUESTION */}
 
@@ -314,6 +425,20 @@ export default function OnboardingScreen() {
                   </Text>
                 )}
               </TouchableOpacity>
+
+              {/* Until Skip unlocks there is no other way out, so
+                  someone signed in with the wrong account can leave. */}
+              {!hasEssentials && !saving ? (
+                <TouchableOpacity
+                  onPress={handleSignOut}
+                  style={styles.differentAccountFooter}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.differentAccountText}>
+                    Not you? Use a different account
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
           </View>
         </TouchableWithoutFeedback>
@@ -365,17 +490,29 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  signOutButton: {
-    paddingHorizontal: 12,
+  skipButton: {
+    paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 10,
+    borderRadius: 999,
     backgroundColor: "#E9DED8",
   },
 
-  signOutText: {
+  skipButtonLocked: {
+    opacity: 0.35,
+  },
+
+  skipText: {
     color: "#6B4E45",
-    fontSize: 13,
-    fontWeight: "600",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+
+  skipHint: {
+    marginTop: -12,
+    marginBottom: 8,
+    fontSize: 12,
+    lineHeight: 17,
+    color: "#9A918A",
   },
 
   counter: {
@@ -443,15 +580,51 @@ const styles = StyleSheet.create({
     gap: 10,
   },
 
+  differentAccount: {
+    marginTop: 18,
+    padding: 8,
+  },
+
+  differentAccountFooter: {
+    marginTop: 14,
+    alignItems: "center",
+    padding: 6,
+  },
+
+  differentAccountText: {
+    color: "#9A918A",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: 24,
   },
 
   loadingText: {
     marginTop: 12,
     fontSize: 14,
     color: "#817771",
+    textAlign: "center",
+  },
+
+  failedTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#332B28",
+    textAlign: "center",
+  },
+
+  retryButton: {
+    marginTop: 20,
+    height: 50,
+    paddingHorizontal: 32,
+    borderRadius: 14,
+    backgroundColor: "#6B4E45",
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

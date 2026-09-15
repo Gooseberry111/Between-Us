@@ -17,6 +17,7 @@ import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import DateInput from "../components/DateInput";
 import { apiFetch } from "../lib/api";
+import { birthdayError } from "../lib/validation";
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -77,11 +78,10 @@ export default function EditProfileScreen() {
       return;
     }
 
-    if (trimmedBirthday && !/^\d{4}-\d{2}-\d{2}$/.test(trimmedBirthday)) {
-      Alert.alert(
-        "Check your birthday",
-        "Please enter a full date, like 1996-05-10.",
-      );
+    const birthdayProblem = trimmedBirthday ? birthdayError(trimmedBirthday) : null;
+
+    if (birthdayProblem) {
+      Alert.alert("Check your birthday", birthdayProblem);
       return;
     }
 

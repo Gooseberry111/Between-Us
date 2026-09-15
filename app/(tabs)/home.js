@@ -23,6 +23,8 @@ import {
   FadeIn,
   Card,
 } from "../../components/Glass";
+import FinishProfileCard from "../../components/FinishProfileCard";
+import { TOTAL_QUESTIONS, countAnswered } from "../../lib/profileProgress";
 
 const DAILY_QUESTION_PREVIEWS = [
   "What is something I did recently that you appreciated but never said out loud?",
@@ -73,6 +75,9 @@ export default function HomeScreen() {
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(
     cached?.hasUnreadNotifications ?? false,
   );
+  const [answeredCount, setAnsweredCount] = useState(
+    cached?.answeredCount ?? null,
+  );
   const [loading, setLoading] = useState(!cached);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -91,12 +96,22 @@ export default function HomeScreen() {
         connectionResponse,
         remindersResponse,
         notificationsResponse,
+        onboardingData,
       ] = await Promise.all([
         apiFetch(`/users/${userId}/profile`),
         apiFetch(`/users/${userId}/connections`),
         apiFetch(`/users/${userId}/reminders`),
         apiFetch(`/users/${userId}/notifications`),
+        /* Only drives the "finish your profile" card, so a
+         * failure here should not take the rest of Home down. */
+        apiFetch(`/users/${userId}/onboarding`)
+          .then((response) => (response.ok ? response.json() : null))
+          .catch(() => null),
       ]);
+
+      if (onboardingData?.exists) {
+        setAnsweredCount(countAnswered(onboardingData.answers));
+      }
 
       const profileData = await profileResponse.json();
       const connectionData = await connectionResponse.json();
@@ -240,9 +255,11 @@ export default function HomeScreen() {
       trivia,
       reminders,
       hasUnreadNotifications,
+      answeredCount,
     });
   }, [
     loading,
+    answeredCount,
     cacheKey,
     profile,
     connection,
@@ -264,6 +281,14 @@ export default function HomeScreen() {
   }
 
   const dailyQuestion = todaysQuestionPreview();
+
+  const finishProfileCard =
+    answeredCount !== null && answeredCount < TOTAL_QUESTIONS ? (
+      <FinishProfileCard
+        answered={answeredCount}
+        onPress={() => router.push("/onboarding")}
+      />
+    ) : null;
 
   const firstName = profile?.first_name?.trim() || "there";
 
@@ -302,6 +327,8 @@ export default function HomeScreen() {
               />
 
               {error ? <ErrorMessage message={error} /> : null}
+
+              {finishProfileCard}
 
               <Card style={styles.welcomeCard}>
                 <View style={styles.welcomeIcon}>
@@ -446,6 +473,10 @@ export default function HomeScreen() {
             />
 
             {error ? <ErrorMessage message={error} /> : null}
+
+            {/* FINISH YOUR PROFILE -- first, until it's done */}
+
+            {finishProfileCard}
 
             {/* CONNECTION CARD */}
 

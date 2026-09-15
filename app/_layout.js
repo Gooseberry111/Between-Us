@@ -9,6 +9,7 @@ import Constants from "expo-constants";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { RETURNING_USER_KEY } from "../lib/auth";
 import { apiFetch, setTokenProvider } from "../lib/api";
+import { onProfileSaved } from "../lib/profileProgress";
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
@@ -239,6 +240,14 @@ function AuthGuard() {
   }, [isLoaded, isSignedIn, userId]);
 
   /*
+   * Onboarding stays reachable for existing users -- Home
+   * sends them back to finish skipped questions -- so a save
+   * has to flip the status here, or the guard would still
+   * treat them as new and return them to question one.
+   */
+  useEffect(() => onProfileSaved(() => setProfileStatus("exists")), []);
+
+  /*
    * ==========================================
    * REGISTER PUSH NOTIFICATIONS
    * ==========================================
@@ -336,8 +345,7 @@ function AuthGuard() {
       if (
         currentRoute === undefined ||
         currentRoute === "sign-in" ||
-        currentRoute === "sign-up" ||
-        currentRoute === "onboarding"
+        currentRoute === "sign-up"
       ) {
         console.log("AUTH: sending existing user to home");
 
