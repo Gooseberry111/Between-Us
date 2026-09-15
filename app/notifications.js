@@ -15,8 +15,7 @@ import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import { getCachedData, setCachedData } from "../lib/dataCache";
 import { Skeleton, SkeletonList } from "../components/Skeleton";
-
-const API_URL = "https://between-us-api.between-us.workers.dev";
+import { apiFetch } from "../lib/api";
 
 export default function NotificationsScreen() {
   const router = useRouter();
@@ -46,7 +45,7 @@ export default function NotificationsScreen() {
     try {
       setError("");
 
-      const response = await fetch(`${API_URL}/users/${userId}/notifications`);
+      const response = await apiFetch(`/users/${userId}/notifications`);
 
       const data = await response.json();
 
@@ -267,8 +266,8 @@ function NotificationCard({ notification, userId, onRead }) {
     }
 
     try {
-      const response = await fetch(
-        `${API_URL}/users/${userId}/notifications/${notification.id}`,
+      const response = await apiFetch(
+        `/users/${userId}/notifications/${notification.id}`,
         {
           method: "PATCH",
         },

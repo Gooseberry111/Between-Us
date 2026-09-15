@@ -78,7 +78,7 @@ export const questions = [
   {
     id: "loveLanguages",
     type: "multi",
-    title: "Select your love languages",
+    title: "How do you most like to receive love?",
     options: [
       "Words of Affirmation",
       "Acts of Service",
@@ -93,6 +93,13 @@ export const questions = [
     type: "text",
     title: "What's your favorite food?",
     placeholder: "Favorite food",
+  },
+
+  {
+    id: "favoriteSnack",
+    type: "text",
+    title: "What's your go-to snack?",
+    placeholder: "Favorite snack",
   },
 
   {
@@ -127,6 +134,7 @@ export const questions = [
       "Drama",
       "Thriller",
       "Documentary",
+      "Other",
     ],
   },
 

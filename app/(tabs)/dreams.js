@@ -13,20 +13,22 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { apiFetch } from "../../lib/api";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Celebration from "../../components/Celebration";
 import { GlassBackground, Card } from "../../components/Glass";
 import { useAuth } from "@clerk/expo";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import DateInput from "../../components/DateInput";
 import { clearCachedData } from "../../lib/dataCache";
 import { Skeleton, SkeletonList } from "../../components/Skeleton";
-
-const API_URL = "https://between-us-api.between-us.workers.dev";
+import ConnectFirst from "../../components/ConnectFirst";
+import { useIsConnected } from "../../lib/connection";
 
 export default function DreamsScreen() {
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
+  const connected = useIsConnected();
 
   const [dreams, setDreams] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -63,7 +65,7 @@ export default function DreamsScreen() {
     try {
       setError("");
 
-      const response = await fetch(`${API_URL}/users/${userId}/dreams`);
+      const response = await apiFetch(`/users/${userId}/dreams`);
       const data = await response.json();
 
       console.log("DREAMS RESPONSE:", data);
@@ -85,9 +87,12 @@ export default function DreamsScreen() {
     }
   }, [isLoaded, isSignedIn, userId]);
 
-  useEffect(() => {
-    loadDreams();
-  }, [loadDreams]);
+  /* Tabs stay mounted; refetch when this one comes back into view. */
+  useFocusEffect(
+    useCallback(() => {
+      loadDreams();
+    }, [loadDreams]),
+  );
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -142,8 +147,8 @@ export default function DreamsScreen() {
       let response;
 
       if (editingDream) {
-        response = await fetch(
-          `${API_URL}/users/${userId}/dreams/${editingDream.id}`,
+        response = await apiFetch(
+          `/users/${userId}/dreams/${editingDream.id}`,
           {
             method: "PUT",
             headers: {
@@ -158,7 +163,7 @@ export default function DreamsScreen() {
           },
         );
       } else {
-        response = await fetch(`${API_URL}/users/${userId}/dreams`, {
+        response = await apiFetch(`/users/${userId}/dreams`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -201,18 +206,15 @@ export default function DreamsScreen() {
     if (!userId) return;
 
     try {
-      const response = await fetch(
-        `${API_URL}/users/${userId}/dreams/${dream.id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            is_completed: true,
-          }),
+      const response = await apiFetch(`/users/${userId}/dreams/${dream.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({
+          is_completed: true,
+        }),
+      });
 
       const data = await response.json();
 
@@ -254,8 +256,8 @@ export default function DreamsScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              const response = await fetch(
-                `${API_URL}/users/${userId}/dreams/${dream.id}`,
+              const response = await apiFetch(
+                `/users/${userId}/dreams/${dream.id}`,
                 {
                   method: "DELETE",
                 },
@@ -285,6 +287,10 @@ export default function DreamsScreen() {
       ],
     );
   };
+
+  if (connected === false) {
+    return <ConnectFirst feature="Dream Board" showBack={false} />;
+  }
 
   if (loading) {
     /*

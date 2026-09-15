@@ -11,12 +11,14 @@ import { GlassBackground, Card } from "../components/Glass";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import { clearCachedData } from "../lib/dataCache";
-
-const API_URL = "https://between-us-api.between-us.workers.dev";
+import { apiFetch } from "../lib/api";
+import ConnectFirst from "../components/ConnectFirst";
+import { useIsConnected } from "../lib/connection";
 
 export default function TriviaScreen() {
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
+  const connected = useIsConnected();
 
   const [questions, setQuestions] = useState([]);
   const [partnerName, setPartnerName] = useState("your person");
@@ -47,7 +49,7 @@ export default function TriviaScreen() {
       setFinished(false);
       hasRecordedSession.current = false;
 
-      const response = await fetch(`${API_URL}/users/${userId}/trivia`);
+      const response = await apiFetch(`/users/${userId}/trivia`);
 
       const data = await response.json();
 
@@ -89,7 +91,7 @@ export default function TriviaScreen() {
 
     hasRecordedSession.current = true;
 
-    fetch(`${API_URL}/users/${userId}/trivia/complete`, {
+    apiFetch(`/users/${userId}/trivia/complete`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -120,7 +122,7 @@ export default function TriviaScreen() {
       setSubmitting(true);
       setError("");
 
-      const response = await fetch(`${API_URL}/users/${userId}/trivia/answer`, {
+      const response = await apiFetch(`/users/${userId}/trivia/answer`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -165,6 +167,10 @@ export default function TriviaScreen() {
     setSelectedAnswer(null);
     setAnswerResult(null);
   };
+
+  if (connected === false) {
+    return <ConnectFirst feature="Couple trivia" showBack={true} />;
+  }
 
   if (loading) {
     return (

@@ -8,10 +8,9 @@ import * as Device from "expo-device";
 import Constants from "expo-constants";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { RETURNING_USER_KEY } from "../lib/auth";
+import { apiFetch, setTokenProvider } from "../lib/api";
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
-
-const API_URL = "https://between-us-api.between-us.workers.dev";
 
 /*
  * ==========================================
@@ -122,7 +121,7 @@ async function registerForPushNotificationsAsync(userId) {
     /*
      * Send the token to our backend.
      */
-    const response = await fetch(`${API_URL}/users/${userId}/push-token`, {
+    const response = await apiFetch(`/users/${userId}/push-token`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -160,7 +159,15 @@ async function registerForPushNotificationsAsync(userId) {
  */
 
 function AuthGuard() {
-  const { isLoaded, isSignedIn, userId } = useAuth();
+  const { isLoaded, isSignedIn, userId, getToken } = useAuth();
+
+  /*
+   * Hand Clerk's token getter to the API client. This is
+   * done during render, not in an effect: React runs child
+   * effects before parent ones, so screens would otherwise
+   * send their first requests with no token and get 401s.
+   */
+  setTokenProvider(getToken);
 
   const router = useRouter();
 
@@ -193,7 +200,7 @@ function AuthGuard() {
 
         setProfileStatus("checking");
 
-        const response = await fetch(`${API_URL}/users/${userId}/profile`);
+        const response = await apiFetch(`/users/${userId}/profile`);
 
         const data = await response.json();
 
@@ -252,7 +259,7 @@ function AuthGuard() {
       return;
     }
 
-    fetch(`${API_URL}/users/${userId}/heartbeat`, {
+    apiFetch(`/users/${userId}/heartbeat`, {
       method: "POST",
     }).catch((error) => {
       console.log("HEARTBEAT ERROR:", error);

@@ -19,12 +19,14 @@ import {
   clearCachedData,
 } from "../lib/dataCache";
 import { Skeleton, SkeletonList } from "../components/Skeleton";
-
-const API_URL = "https://between-us-api.between-us.workers.dev";
+import { apiFetch } from "../lib/api";
+import ConnectFirst from "../components/ConnectFirst";
+import { useIsConnected } from "../lib/connection";
 
 export default function CompletedGoalsScreen() {
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
+  const connected = useIsConnected();
 
   const cacheKey = userId ? `completed-goals:${userId}` : null;
   const cachedGoals = cacheKey ? getCachedData(cacheKey) : undefined;
@@ -50,9 +52,7 @@ export default function CompletedGoalsScreen() {
     try {
       setError("");
 
-      const response = await fetch(
-        `${API_URL}/users/${userId}/relationship-goals`,
-      );
+      const response = await apiFetch(`/users/${userId}/relationship-goals`);
       const data = await response.json();
 
       console.log("COMPLETED GOALS RESPONSE:", data);
@@ -93,8 +93,8 @@ export default function CompletedGoalsScreen() {
     if (!userId) return;
 
     try {
-      const response = await fetch(
-        `${API_URL}/users/${userId}/relationship-goals/${goal.id}`,
+      const response = await apiFetch(
+        `/users/${userId}/relationship-goals/${goal.id}`,
         {
           method: "PUT",
           headers: {
@@ -132,6 +132,10 @@ export default function CompletedGoalsScreen() {
       );
     }
   };
+
+  if (connected === false) {
+    return <ConnectFirst feature="Completed goals" showBack={true} />;
+  }
 
   if (loading) {
     /*

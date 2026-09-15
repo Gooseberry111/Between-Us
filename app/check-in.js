@@ -18,8 +18,9 @@ import { useRouter } from "expo-router";
 import { GlassBackground, GlassPanel, Card, FadeIn } from "../components/Glass";
 import { Skeleton } from "../components/Skeleton";
 import { getCachedData, setCachedData } from "../lib/dataCache";
-
-const API_URL = "https://between-us-api.between-us.workers.dev";
+import { apiFetch } from "../lib/api";
+import ConnectFirst from "../components/ConnectFirst";
+import { useIsConnected } from "../lib/connection";
 
 /*
  * A weekly temperature check.
@@ -41,6 +42,7 @@ const SCALE = [
 export default function CheckInScreen() {
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
+  const connected = useIsConnected();
 
   const cacheKey = userId ? `checkin:${userId}` : null;
   const cached = cacheKey ? getCachedData(cacheKey) : undefined;
@@ -61,7 +63,7 @@ export default function CheckInScreen() {
     try {
       setError("");
 
-      const response = await fetch(`${API_URL}/users/${userId}/checkin`);
+      const response = await apiFetch(`/users/${userId}/checkin`);
       const json = await response.json();
 
       if (!response.ok) {
@@ -91,7 +93,7 @@ export default function CheckInScreen() {
     try {
       setSaving(true);
 
-      const response = await fetch(`${API_URL}/users/${userId}/checkin`, {
+      const response = await apiFetch(`/users/${userId}/checkin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rating, note: note.trim() || null }),
@@ -122,6 +124,10 @@ export default function CheckInScreen() {
     .filter((h) => h.mine)
     .slice(0, 8)
     .reverse();
+
+  if (connected === false) {
+    return <ConnectFirst feature="Check-in" showBack={true} />;
+  }
 
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>

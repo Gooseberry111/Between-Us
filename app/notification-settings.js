@@ -15,8 +15,7 @@ import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import { getCachedData, setCachedData } from "../lib/dataCache";
 import { Skeleton, SkeletonList } from "../components/Skeleton";
-
-const API_URL = "https://between-us-api.between-us.workers.dev";
+import { apiFetch } from "../lib/api";
 
 /*
  * Every notification the scheduled job can send.
@@ -134,8 +133,8 @@ export default function NotificationSettingsScreen() {
     try {
       setError("");
 
-      const response = await fetch(
-        `${API_URL}/users/${userId}/notification-preferences`,
+      const response = await apiFetch(
+        `/users/${userId}/notification-preferences`,
       );
 
       const data = await response.json();
@@ -188,8 +187,8 @@ export default function NotificationSettingsScreen() {
     try {
       setError("");
 
-      const response = await fetch(
-        `${API_URL}/users/${userId}/notification-preferences`,
+      const response = await apiFetch(
+        `/users/${userId}/notification-preferences`,
         {
           method: "PUT",
           headers: {

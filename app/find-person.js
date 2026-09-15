@@ -13,8 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Card } from "../components/Glass";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
-
-const API_URL = "https://between-us-api.between-us.workers.dev";
+import { apiFetch } from "../lib/api";
 
 const relationshipTypes = ["Friendship", "Dating", "Engaged", "Married"];
 
@@ -53,9 +52,7 @@ export default function FindPersonScreen() {
     try {
       setLoadingRequests(true);
 
-      const response = await fetch(
-        `${API_URL}/users/${userId}/connection-requests`,
-      );
+      const response = await apiFetch(`/users/${userId}/connection-requests`);
 
       const data = await response.json();
 
@@ -107,8 +104,8 @@ export default function FindPersonScreen() {
 
       setSearching(true);
 
-      const response = await fetch(
-        `${API_URL}/search?query=${encodeURIComponent(
+      const response = await apiFetch(
+        `/search?query=${encodeURIComponent(
           cleanQuery,
         )}&clerk_id=${encodeURIComponent(userId)}`,
       );
@@ -160,8 +157,8 @@ export default function FindPersonScreen() {
       setProcessingRequest(true);
       setError("");
 
-      const response = await fetch(
-        `${API_URL}/connections/${selectedRequest.id}/accept`,
+      const response = await apiFetch(
+        `/connections/${selectedRequest.id}/accept`,
         {
           method: "POST",
           headers: {
@@ -201,8 +198,8 @@ export default function FindPersonScreen() {
       setProcessingRequest(true);
       setError("");
 
-      const response = await fetch(
-        `${API_URL}/connections/${selectedRequest.id}/reject`,
+      const response = await apiFetch(
+        `/connections/${selectedRequest.id}/reject`,
         {
           method: "POST",
           headers: {
@@ -259,7 +256,7 @@ export default function FindPersonScreen() {
       setError("");
       setSuccess("");
 
-      const response = await fetch(`${API_URL}/connections`, {
+      const response = await apiFetch(`/connections`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -397,7 +394,9 @@ export default function FindPersonScreen() {
         <View style={styles.personInfo}>
           <Text style={styles.personName}>{item.first_name}</Text>
 
-          <Text style={styles.personEmail}>{item.email}</Text>
+          {item.country ? (
+            <Text style={styles.personEmail}>{item.country}</Text>
+          ) : null}
 
           {item.country ? (
             <Text style={styles.personCountry}>{item.country}</Text>
@@ -477,7 +476,7 @@ export default function FindPersonScreen() {
               setError("");
               setSuccess("");
             }}
-            placeholder="Search by name or email"
+            placeholder="Search by name or exact email"
             placeholderTextColor="#AAA09A"
             style={styles.searchInput}
             autoCapitalize="none"
@@ -552,7 +551,7 @@ export default function FindPersonScreen() {
 
                 <Text style={styles.emptyText}>
                   {query
-                    ? "Try searching with a different name or email address."
+                    ? "Try a different name, or their exact email address."
                     : "Find the person you want to connect with and start building something meaningful together."}
                 </Text>
               </View>

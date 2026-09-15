@@ -13,16 +13,17 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { apiFetch } from "../../lib/api";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GlassBackground, Card } from "../../components/Glass";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import DateInput from "../../components/DateInput";
 import { getCachedData, setCachedData } from "../../lib/dataCache";
 import { Skeleton, SkeletonList } from "../../components/Skeleton";
-
-const API_URL = "https://between-us-api.between-us.workers.dev";
+import ConnectFirst from "../../components/ConnectFirst";
+import { useIsConnected } from "../../lib/connection";
 
 /*
  * ==========================================
@@ -48,6 +49,7 @@ function todayIsoDate() {
 export default function TimelineScreen() {
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
+  const connected = useIsConnected();
 
   const cacheKey = userId ? `timeline:${userId}` : null;
   const cachedEntries = cacheKey ? getCachedData(cacheKey) : undefined;
@@ -83,9 +85,9 @@ export default function TimelineScreen() {
 
       const [memoriesResponse, dreamsResponse, specialDatesResponse] =
         await Promise.all([
-          fetch(`${API_URL}/users/${userId}/memories`),
-          fetch(`${API_URL}/users/${userId}/dreams`),
-          fetch(`${API_URL}/users/${userId}/special-dates`),
+          apiFetch(`/users/${userId}/memories`),
+          apiFetch(`/users/${userId}/dreams`),
+          apiFetch(`/users/${userId}/special-dates`),
         ]);
 
       const [memoriesData, dreamsData, specialDatesData] = await Promise.all([
@@ -158,9 +160,12 @@ export default function TimelineScreen() {
     }
   }, [isLoaded, isSignedIn, userId, cacheKey]);
 
-  useEffect(() => {
-    loadTimeline();
-  }, [loadTimeline]);
+  /* Tabs stay mounted; refetch when this one comes back into view. */
+  useFocusEffect(
+    useCallback(() => {
+      loadTimeline();
+    }, [loadTimeline]),
+  );
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -219,8 +224,8 @@ export default function TimelineScreen() {
       let response;
 
       if (editingMemory) {
-        response = await fetch(
-          `${API_URL}/users/${userId}/memories/${editingMemory.id}`,
+        response = await apiFetch(
+          `/users/${userId}/memories/${editingMemory.id}`,
           {
             method: "PUT",
             headers: {
@@ -234,7 +239,7 @@ export default function TimelineScreen() {
           },
         );
       } else {
-        response = await fetch(`${API_URL}/users/${userId}/memories`, {
+        response = await apiFetch(`/users/${userId}/memories`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -285,8 +290,8 @@ export default function TimelineScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              const response = await fetch(
-                `${API_URL}/users/${userId}/memories/${entry.raw.id}`,
+              const response = await apiFetch(
+                `/users/${userId}/memories/${entry.raw.id}`,
                 {
                   method: "DELETE",
                 },
@@ -318,6 +323,10 @@ export default function TimelineScreen() {
       ],
     );
   };
+
+  if (connected === false) {
+    return <ConnectFirst feature="Timeline" showBack={false} />;
+  }
 
   if (loading) {
     /*

@@ -16,8 +16,7 @@ import { Card } from "../components/Glass";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import DateInput from "../components/DateInput";
-
-const API_URL = "https://between-us-api.between-us.workers.dev";
+import { apiFetch } from "../lib/api";
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -39,7 +38,7 @@ export default function EditProfileScreen() {
     try {
       setError("");
 
-      const response = await fetch(`${API_URL}/users/${userId}/profile`);
+      const response = await apiFetch(`/users/${userId}/profile`);
 
       const data = await response.json();
 
@@ -90,7 +89,7 @@ export default function EditProfileScreen() {
       setSaving(true);
       setError("");
 
-      const response = await fetch(`${API_URL}/users/${userId}/profile`, {
+      const response = await apiFetch(`/users/${userId}/profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

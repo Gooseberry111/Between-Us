@@ -9,14 +9,18 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { apiFetch } from "../../lib/api";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GlassBackground, Card } from "../../components/Glass";
-import { getCachedData, setCachedData } from "../../lib/dataCache";
+import {
+  clearCachedData,
+  getCachedData,
+  setCachedData,
+} from "../../lib/dataCache";
+import { connectionCacheKey } from "../../lib/connection";
 import { Skeleton, SkeletonList } from "../../components/Skeleton";
 import { useAuth, useClerk } from "@clerk/expo";
-import { useRouter } from "expo-router";
-
-const API_URL = "https://between-us-api.between-us.workers.dev";
+import { useFocusEffect, useRouter } from "expo-router";
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -43,8 +47,8 @@ export default function ProfileScreen() {
       setError("");
 
       const [profileResponse, connectionResponse] = await Promise.all([
-        fetch(`${API_URL}/users/${userId}/profile`),
-        fetch(`${API_URL}/users/${userId}/connections`),
+        apiFetch(`/users/${userId}/profile`),
+        apiFetch(`/users/${userId}/connections`),
       ]);
 
       const profileData = await profileResponse.json();
@@ -81,9 +85,12 @@ export default function ProfileScreen() {
     }
   }, [isLoaded, isSignedIn, userId]);
 
-  useEffect(() => {
-    loadProfile();
-  }, [loadProfile]);
+  /* Tabs stay mounted; refetch when this one comes back into view. */
+  useFocusEffect(
+    useCallback(() => {
+      loadProfile();
+    }, [loadProfile]),
+  );
 
   useEffect(() => {
     if (loading || !cacheKey) return;
@@ -153,7 +160,7 @@ export default function ProfileScreen() {
       setUnlinking(true);
       setError("");
 
-      const response = await fetch(`${API_URL}/users/${userId}/connection`, {
+      const response = await apiFetch(`/users/${userId}/connection`, {
         method: "DELETE",
       });
 
@@ -166,6 +173,26 @@ export default function ProfileScreen() {
       }
 
       setConnection(null);
+
+      /*
+       * Drop everything cached about the old partner, so no
+       * screen flashes their name or shared data afterwards.
+       */
+      setCachedData(connectionCacheKey(userId), false);
+      [
+        "home",
+        "timeline",
+        "daily-question",
+        "appreciations",
+        "checkin",
+        "goals",
+        "completed-goals",
+        "completed-dreams",
+        "special-dates",
+        "trivia-history",
+        "insights",
+        "connection",
+      ].forEach((prefix) => clearCachedData(`${prefix}:${userId}`));
 
       Alert.alert(
         "Connection ended",

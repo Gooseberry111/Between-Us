@@ -7,13 +7,13 @@ import {
   Text,
   View,
 } from "react-native";
+import { apiFetch } from "../../lib/api";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GlassBackground, Card } from "../../components/Glass";
 import { getCachedData, setCachedData } from "../../lib/dataCache";
 import { Skeleton, SkeletonList } from "../../components/Skeleton";
 import { useAuth } from "@clerk/expo";
-
-const API_URL = "https://between-us-api.between-us.workers.dev";
+import { useFocusEffect } from "expo-router";
 
 export default function InsightsScreen() {
   const { isLoaded, isSignedIn, userId } = useAuth();
@@ -44,9 +44,9 @@ export default function InsightsScreen() {
 
       const [insightsResponse, preferencesResponse, connectionResponse] =
         await Promise.all([
-          fetch(`${API_URL}/users/${userId}/insights`),
-          fetch(`${API_URL}/users/${userId}/preferences`),
-          fetch(`${API_URL}/users/${userId}/connections`),
+          apiFetch(`/users/${userId}/insights`),
+          apiFetch(`/users/${userId}/preferences`),
+          apiFetch(`/users/${userId}/connections`),
         ]);
 
       const insightsData = await insightsResponse.json();
@@ -84,8 +84,8 @@ export default function InsightsScreen() {
 
         const [partnerInsightsResponse, partnerPreferencesResponse] =
           await Promise.all([
-            fetch(`${API_URL}/users/${partnerClerkId}/insights`),
-            fetch(`${API_URL}/users/${partnerClerkId}/preferences`),
+            apiFetch(`/users/${partnerClerkId}/insights`),
+            apiFetch(`/users/${partnerClerkId}/preferences`),
           ]);
 
         const partnerInsightsData = await partnerInsightsResponse.json();
@@ -115,9 +115,12 @@ export default function InsightsScreen() {
     }
   }, [isLoaded, isSignedIn, userId]);
 
-  useEffect(() => {
-    loadInsights();
-  }, [loadInsights]);
+  /* Tabs stay mounted; refetch when this one comes back into view. */
+  useFocusEffect(
+    useCallback(() => {
+      loadInsights();
+    }, [loadInsights]),
+  );
 
   useEffect(() => {
     if (loading || !cacheKey) return;

@@ -13,8 +13,8 @@ import { useClerk, useAuth, useUser } from "@clerk/expo";
 import { questions } from "../components/onboarding/questions";
 import ProgressBar from "../components/onboarding/ProgressBar";
 import QuestionCard from "../components/onboarding/QuestionCard";
-
-const API_URL = "https://between-us-api.between-us.workers.dev";
+import { apiFetch } from "../lib/api";
+import { birthdayError } from "../lib/validation";
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -59,8 +59,23 @@ export default function OnboardingScreen() {
     setError("");
   };
 
+  /*
+   * Birthday is checked on its own step. Nothing saves until
+   * the last question, so a bad date used to surface only
+   * after everything else had been answered.
+   */
+  const birthdayValue = String(answers.birthday || "");
+  const stepError =
+    question.id === "birthday" && birthdayValue.length === 10
+      ? birthdayError(birthdayValue)
+      : null;
+
   const canContinue = () => {
     const value = answers[question.id];
+
+    if (question.id === "birthday") {
+      return birthdayError(value) === null;
+    }
 
     if (Array.isArray(value)) {
       return value.length > 0;
@@ -76,7 +91,7 @@ export default function OnboardingScreen() {
 
     console.log("SAVING COMPLETE ONBOARDING FOR:", userId);
 
-    const response = await fetch(`${API_URL}/onboarding`, {
+    const response = await apiFetch(`/onboarding`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -236,6 +251,8 @@ export default function OnboardingScreen() {
             value={answers[question.id]}
             onChange={updateAnswer}
           />
+
+          {stepError ? <Text style={styles.stepError}>{stepError}</Text> : null}
         </View>
 
         {/* ERROR */}
@@ -289,6 +306,14 @@ export default function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
+  stepError: {
+    marginTop: 12,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: "600",
+    color: "#8A4A3D",
+  },
+
   screen: {
     flex: 1,
     backgroundColor: "#F8F5F0",

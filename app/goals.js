@@ -26,12 +26,14 @@ import {
   clearCachedData,
 } from "../lib/dataCache";
 import { Skeleton, SkeletonList } from "../components/Skeleton";
-
-const API_URL = "https://between-us-api.between-us.workers.dev";
+import { apiFetch } from "../lib/api";
+import ConnectFirst from "../components/ConnectFirst";
+import { useIsConnected } from "../lib/connection";
 
 export default function GoalsScreen() {
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
+  const connected = useIsConnected();
 
   const cacheKey = userId ? `goals:${userId}` : null;
   const cachedGoals = cacheKey ? getCachedData(cacheKey) : undefined;
@@ -68,9 +70,7 @@ export default function GoalsScreen() {
     try {
       setError("");
 
-      const response = await fetch(
-        `${API_URL}/users/${userId}/relationship-goals`,
-      );
+      const response = await apiFetch(`/users/${userId}/relationship-goals`);
       const data = await response.json();
 
       console.log("GOALS RESPONSE:", data);
@@ -156,8 +156,8 @@ export default function GoalsScreen() {
       let response;
 
       if (editingGoal) {
-        response = await fetch(
-          `${API_URL}/users/${userId}/relationship-goals/${editingGoal.id}`,
+        response = await apiFetch(
+          `/users/${userId}/relationship-goals/${editingGoal.id}`,
           {
             method: "PUT",
             headers: {
@@ -171,20 +171,17 @@ export default function GoalsScreen() {
           },
         );
       } else {
-        response = await fetch(
-          `${API_URL}/users/${userId}/relationship-goals`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              title: title.trim(),
-              description: description.trim(),
-              target_date: targetDate.trim() || null,
-            }),
+        response = await apiFetch(`/users/${userId}/relationship-goals`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
           },
-        );
+          body: JSON.stringify({
+            title: title.trim(),
+            description: description.trim(),
+            target_date: targetDate.trim() || null,
+          }),
+        });
       }
 
       const data = await response.json();
@@ -216,8 +213,8 @@ export default function GoalsScreen() {
     if (!userId) return;
 
     try {
-      const response = await fetch(
-        `${API_URL}/users/${userId}/relationship-goals/${goal.id}`,
+      const response = await apiFetch(
+        `/users/${userId}/relationship-goals/${goal.id}`,
         {
           method: "PUT",
           headers: {
@@ -272,8 +269,8 @@ export default function GoalsScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              const response = await fetch(
-                `${API_URL}/users/${userId}/relationship-goals/${goal.id}`,
+              const response = await apiFetch(
+                `/users/${userId}/relationship-goals/${goal.id}`,
                 {
                   method: "DELETE",
                 },
@@ -305,6 +302,10 @@ export default function GoalsScreen() {
       ],
     );
   };
+
+  if (connected === false) {
+    return <ConnectFirst feature="Goals" showBack={true} />;
+  }
 
   if (loading) {
     /*

@@ -15,12 +15,14 @@ import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import { getCachedData, setCachedData } from "../lib/dataCache";
 import { Skeleton, SkeletonList } from "../components/Skeleton";
-
-const API_URL = "https://between-us-api.between-us.workers.dev";
+import { apiFetch } from "../lib/api";
+import ConnectFirst from "../components/ConnectFirst";
+import { useIsConnected } from "../lib/connection";
 
 export default function TriviaHistoryScreen() {
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
+  const connected = useIsConnected();
 
   const cacheKey = userId ? `trivia-history:${userId}` : null;
   const cached = cacheKey ? getCachedData(cacheKey) : undefined;
@@ -48,7 +50,7 @@ export default function TriviaHistoryScreen() {
     try {
       setError("");
 
-      const response = await fetch(`${API_URL}/users/${userId}/trivia/history`);
+      const response = await apiFetch(`/users/${userId}/trivia/history`);
 
       const data = await response.json();
 
@@ -89,6 +91,10 @@ export default function TriviaHistoryScreen() {
     setRefreshing(true);
     loadHistory();
   };
+
+  if (connected === false) {
+    return <ConnectFirst feature="Trivia history" showBack={true} />;
+  }
 
   if (loading) {
     /*

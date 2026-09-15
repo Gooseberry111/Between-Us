@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -9,9 +10,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { apiFetch } from "../../lib/api";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@clerk/expo";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { getCachedData, setCachedData } from "../../lib/dataCache";
 import { Skeleton, SkeletonCard } from "../../components/Skeleton";
@@ -21,8 +23,6 @@ import {
   FadeIn,
   Card,
 } from "../../components/Glass";
-
-const API_URL = "https://between-us-api.between-us.workers.dev";
 
 const DAILY_QUESTION_PREVIEWS = [
   "What is something I did recently that you appreciated but never said out loud?",
@@ -92,10 +92,10 @@ export default function HomeScreen() {
         remindersResponse,
         notificationsResponse,
       ] = await Promise.all([
-        fetch(`${API_URL}/users/${userId}/profile`),
-        fetch(`${API_URL}/users/${userId}/connections`),
-        fetch(`${API_URL}/users/${userId}/reminders`),
-        fetch(`${API_URL}/users/${userId}/notifications`),
+        apiFetch(`/users/${userId}/profile`),
+        apiFetch(`/users/${userId}/connections`),
+        apiFetch(`/users/${userId}/reminders`),
+        apiFetch(`/users/${userId}/notifications`),
       ]);
 
       const profileData = await profileResponse.json();
@@ -177,9 +177,9 @@ export default function HomeScreen() {
           partnerPreferencesResponse,
           triviaResponse,
         ] = await Promise.all([
-          fetch(`${API_URL}/users/${partnerClerkId}/insights`),
-          fetch(`${API_URL}/users/${partnerClerkId}/preferences`),
-          fetch(`${API_URL}/users/${userId}/trivia`),
+          apiFetch(`/users/${partnerClerkId}/insights`),
+          apiFetch(`/users/${partnerClerkId}/preferences`),
+          apiFetch(`/users/${userId}/trivia`),
         ]);
 
         const partnerInsightsData = await partnerInsightsResponse.json();
@@ -214,9 +214,16 @@ export default function HomeScreen() {
     }
   }, [isLoaded, isSignedIn, userId]);
 
-  useEffect(() => {
-    loadHome();
-  }, [loadHome]);
+  /*
+   * Tabs stay mounted, so a mount-only fetch kept showing
+   * the old partner after unlinking in Profile. Refetch
+   * whenever Home comes back into view.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      loadHome();
+    }, [loadHome]),
+  );
 
   /*
    * Keep the cache in step with whatever is on screen.
@@ -353,7 +360,7 @@ export default function HomeScreen() {
                 </View>
               ) : null}
 
-              <QuickActions router={router} />
+              <QuickActions router={router} locked />
             </View>
           </ScrollView>
         </GlassBackground>
@@ -898,7 +905,7 @@ function Header({ firstName, hasUnreadNotifications }) {
  * ==========================================
  */
 
-function QuickActions({ router }) {
+function QuickActions({ router, locked = false }) {
   /*
    * Six shortcuts in a 2x3 grid. Small on purpose:
    * these are signposts, not content, so they should
@@ -922,12 +929,34 @@ function QuickActions({ router }) {
           style={styles.quickCell}
         >
           <TouchableOpacity
-            style={styles.quickAction}
+            style={[styles.quickAction, locked && styles.quickActionLocked]}
             activeOpacity={0.8}
-            onPress={() => router.push(item.route)}
+            onPress={() => {
+              if (!locked) {
+                router.push(item.route);
+                return;
+              }
+
+              /* Every shortcut here is a shared feature. */
+              Alert.alert(
+                "Connect first",
+                `${item.label} is something you share with your partner, so it unlocks once you're linked.`,
+                [
+                  { text: "Not now", style: "cancel" },
+                  {
+                    text: "Find someone",
+                    onPress: () => router.push("/find-person"),
+                  },
+                ],
+              );
+            }}
           >
             <View style={styles.quickIcon}>
-              <Ionicons name={item.icon} size={16} color="#6B4E45" />
+              <Ionicons
+                name={locked ? "lock-closed" : item.icon}
+                size={locked ? 14 : 16}
+                color="#6B4E45"
+              />
             </View>
 
             <Text style={styles.quickTitle}>{item.label}</Text>
@@ -1609,6 +1638,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
+  quickActionLocked: {
+    opacity: 0.55,
+  },
+
   quickIcon: {
     width: 30,
     height: 30,
@@ -1647,6 +1680,10 @@ const styles = StyleSheet.create({
     padding: 22,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.9)",
+    /* Without this the quick access grid sat flush against
+     * it -- the connected layout only looked fine because
+     * the partner card above the grid had its own margin. */
+    marginBottom: 20,
   },
 
   welcomeIcon: {

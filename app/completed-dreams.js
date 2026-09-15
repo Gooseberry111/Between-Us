@@ -15,12 +15,14 @@ import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import { getCachedData, setCachedData } from "../lib/dataCache";
 import { Skeleton, SkeletonList } from "../components/Skeleton";
-
-const API_URL = "https://between-us-api.between-us.workers.dev";
+import { apiFetch } from "../lib/api";
+import ConnectFirst from "../components/ConnectFirst";
+import { useIsConnected } from "../lib/connection";
 
 export default function CompletedDreamsScreen() {
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
+  const connected = useIsConnected();
 
   const cacheKey = userId ? `completed-dreams:${userId}` : null;
   const cachedDreams = cacheKey ? getCachedData(cacheKey) : undefined;
@@ -46,7 +48,7 @@ export default function CompletedDreamsScreen() {
     try {
       setError("");
 
-      const response = await fetch(`${API_URL}/users/${userId}/dreams`);
+      const response = await apiFetch(`/users/${userId}/dreams`);
       const data = await response.json();
 
       console.log("COMPLETED DREAMS RESPONSE:", data);
@@ -87,18 +89,15 @@ export default function CompletedDreamsScreen() {
     if (!userId) return;
 
     try {
-      const response = await fetch(
-        `${API_URL}/users/${userId}/dreams/${dream.id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            is_completed: false,
-          }),
+      const response = await apiFetch(`/users/${userId}/dreams/${dream.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({
+          is_completed: false,
+        }),
+      });
 
       const data = await response.json();
 
@@ -122,6 +121,10 @@ export default function CompletedDreamsScreen() {
       );
     }
   };
+
+  if (connected === false) {
+    return <ConnectFirst feature="Completed dreams" showBack={true} />;
+  }
 
   if (loading) {
     /*

@@ -19,8 +19,9 @@ import { useRouter } from "expo-router";
 import { GlassBackground, GlassPanel, Card, FadeIn } from "../components/Glass";
 import { Skeleton, SkeletonList } from "../components/Skeleton";
 import { getCachedData, setCachedData } from "../lib/dataCache";
-
-const API_URL = "https://between-us-api.between-us.workers.dev";
+import { apiFetch } from "../lib/api";
+import ConnectFirst from "../components/ConnectFirst";
+import { useIsConnected } from "../lib/connection";
 
 /*
  * Saying thank you out loud is the single cheapest
@@ -33,6 +34,7 @@ const API_URL = "https://between-us-api.between-us.workers.dev";
 export default function AppreciationsScreen() {
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
+  const connected = useIsConnected();
 
   const cacheKey = userId ? `appreciations:${userId}` : null;
   const cached = cacheKey ? getCachedData(cacheKey) : undefined;
@@ -53,7 +55,7 @@ export default function AppreciationsScreen() {
     try {
       setError("");
 
-      const response = await fetch(`${API_URL}/users/${userId}/appreciations`);
+      const response = await apiFetch(`/users/${userId}/appreciations`);
       const json = await response.json();
 
       if (!response.ok) {
@@ -86,7 +88,7 @@ export default function AppreciationsScreen() {
     try {
       setSending(true);
 
-      const response = await fetch(`${API_URL}/users/${userId}/appreciations`, {
+      const response = await apiFetch(`/users/${userId}/appreciations`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message }),
@@ -124,8 +126,8 @@ export default function AppreciationsScreen() {
         style: "destructive",
         onPress: async () => {
           try {
-            const response = await fetch(
-              `${API_URL}/users/${userId}/appreciations/${note.id}`,
+            const response = await apiFetch(
+              `/users/${userId}/appreciations/${note.id}`,
               { method: "DELETE" },
             );
 
@@ -151,6 +153,10 @@ export default function AppreciationsScreen() {
       },
     ]);
   };
+
+  if (connected === false) {
+    return <ConnectFirst feature="Appreciation" showBack={true} />;
+  }
 
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>

@@ -19,12 +19,14 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { GlassBackground, GlassCard, GlassPanel } from "../components/Glass";
 import { Skeleton } from "../components/Skeleton";
 import { getCachedData, setCachedData } from "../lib/dataCache";
-
-const API_URL = "https://between-us-api.between-us.workers.dev";
+import { apiFetch } from "../lib/api";
+import ConnectFirst from "../components/ConnectFirst";
+import { useIsConnected } from "../lib/connection";
 
 export default function DailyQuestionScreen() {
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
+  const connected = useIsConnected();
 
   const cacheKey = userId ? `daily-question:${userId}` : null;
   const cached = cacheKey ? getCachedData(cacheKey) : undefined;
@@ -70,7 +72,7 @@ export default function DailyQuestionScreen() {
     try {
       setError("");
 
-      const response = await fetch(`${API_URL}/users/${userId}/daily-question`);
+      const response = await apiFetch(`/users/${userId}/daily-question`);
       const json = await response.json();
 
       if (!response.ok) {
@@ -118,14 +120,11 @@ export default function DailyQuestionScreen() {
       setSaving(true);
       setError("");
 
-      const response = await fetch(
-        `${API_URL}/users/${userId}/daily-question`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ answer }),
-        },
-      );
+      const response = await apiFetch(`/users/${userId}/daily-question`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answer }),
+      });
 
       const json = await response.json();
 
@@ -158,6 +157,10 @@ export default function DailyQuestionScreen() {
 
   const answered = Boolean(data?.your_answer);
   const partnerName = data?.partner_name || "Your partner";
+
+  if (connected === false) {
+    return <ConnectFirst feature="Daily question" showBack={true} />;
+  }
 
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>

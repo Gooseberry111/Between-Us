@@ -35,3 +35,4 @@ CREATE UNIQUE INDEX IF NOT EXISTS daily_answers_user_date_idx
 
 CREATE INDEX IF NOT EXISTS daily_answers_connection_date_idx
 	ON daily_answers (connection_id, question_date DESC);
+0

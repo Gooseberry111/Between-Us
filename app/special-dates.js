@@ -21,12 +21,14 @@ import { useRouter } from "expo-router";
 import DateInput from "../components/DateInput";
 import { getCachedData, setCachedData } from "../lib/dataCache";
 import { Skeleton, SkeletonList } from "../components/Skeleton";
-
-const API_URL = "https://between-us-api.between-us.workers.dev";
+import { apiFetch } from "../lib/api";
+import ConnectFirst from "../components/ConnectFirst";
+import { useIsConnected } from "../lib/connection";
 
 export default function SpecialDatesScreen() {
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
+  const connected = useIsConnected();
 
   const cacheKey = userId ? `special-dates:${userId}` : null;
   const cachedSpecialDates = cacheKey ? getCachedData(cacheKey) : undefined;
@@ -57,7 +59,7 @@ export default function SpecialDatesScreen() {
     try {
       setError("");
 
-      const response = await fetch(`${API_URL}/users/${userId}/special-dates`);
+      const response = await apiFetch(`/users/${userId}/special-dates`);
       const data = await response.json();
 
       console.log("SPECIAL DATES RESPONSE:", data);
@@ -116,7 +118,7 @@ export default function SpecialDatesScreen() {
     try {
       setSaving(true);
 
-      const response = await fetch(`${API_URL}/users/${userId}/special-dates`, {
+      const response = await apiFetch(`/users/${userId}/special-dates`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -163,8 +165,8 @@ export default function SpecialDatesScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              const response = await fetch(
-                `${API_URL}/users/${userId}/special-dates/${specialDate.id}`,
+              const response = await apiFetch(
+                `/users/${userId}/special-dates/${specialDate.id}`,
                 {
                   method: "DELETE",
                 },
@@ -200,6 +202,10 @@ export default function SpecialDatesScreen() {
       ],
     );
   };
+
+  if (connected === false) {
+    return <ConnectFirst feature="Special Dates" showBack={true} />;
+  }
 
   if (loading) {
     /*

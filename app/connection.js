@@ -11,8 +11,7 @@ import { Card } from "../components/Glass";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import { getCachedData, setCachedData } from "../lib/dataCache";
-
-const API_URL = "https://between-us-api.between-us.workers.dev";
+import { apiFetch } from "../lib/api";
 
 export default function ConnectionScreen() {
   const router = useRouter();
@@ -41,7 +40,7 @@ export default function ConnectionScreen() {
       try {
         setError("");
 
-        const response = await fetch(`${API_URL}/users/${userId}/connections`);
+        const response = await apiFetch(`/users/${userId}/connections`);
 
         const data = await response.json();
 
