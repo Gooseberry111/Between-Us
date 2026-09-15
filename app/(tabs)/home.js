@@ -440,10 +440,6 @@ export default function HomeScreen() {
 
             {error ? <ErrorMessage message={error} /> : null}
 
-            {/* QUICK ACCESS */}
-
-            <QuickActions router={router} />
-
             {/* CONNECTION CARD */}
 
             <FadeIn delay={40}>
@@ -488,9 +484,13 @@ export default function HomeScreen() {
               </Pressable>
             </FadeIn>
 
+            {/* QUICK ACCESS */}
+
+            <QuickActions router={router} />
+
             {/* DAILY QUESTION */}
 
-            <FadeIn delay={120}>
+            <FadeIn delay={280}>
               <GlassPanel tone="plum" style={styles.dailyPanel}>
                 <View style={styles.dailyTop}>
                   <Text style={styles.dailyLabel}>TODAY'S QUESTION</Text>
@@ -916,7 +916,11 @@ function QuickActions({ router }) {
   return (
     <View style={styles.quickWrap}>
       {items.map((item, index) => (
-        <FadeIn key={item.route} delay={index * 35} style={styles.quickCell}>
+        <FadeIn
+          key={item.route}
+          delay={90 + index * 30}
+          style={styles.quickCell}
+        >
           <TouchableOpacity
             style={styles.quickAction}
             activeOpacity={0.8}
