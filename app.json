@@ -14,9 +14,8 @@
     "android": {
       "package": "com.betweenus.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#FDFAF5",
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       }
     },
@@ -24,7 +23,16 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#FDFAF5"
+        }
+      ]
     ],
     "extra": {
       "router": {},
@@ -32,6 +40,11 @@
         "projectId": "70fa9f0d-4ccd-4613-9f00-cad1cd0d244a"
       }
     },
-    "owner": "gooseberry111"
+    "owner": "gooseberry111",
+    "androidStatusBar": {
+      "barStyle": "dark-content",
+      "backgroundColor": "#FDFAF5",
+      "translucent": false
+    }
   }
 }

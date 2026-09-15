@@ -6,6 +6,7 @@ import * as SecureStore from "expo-secure-store";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { RETURNING_USER_KEY } from "../lib/auth";
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
@@ -357,8 +358,10 @@ function AuthGuard() {
 
 export default function RootLayout() {
   return (
-    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-      <AuthGuard />
-    </ClerkProvider>
+    <SafeAreaProvider>
+      <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+        <AuthGuard />
+      </ClerkProvider>
+    </SafeAreaProvider>
   );
 }

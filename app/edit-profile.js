@@ -4,7 +4,6 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Card } from "../components/Glass";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
@@ -130,7 +130,7 @@ export default function EditProfileScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.screen}>
+      <SafeAreaView style={styles.screen} edges={["top"]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color="#6B4E45" />
 
@@ -141,7 +141,7 @@ export default function EditProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={["top"]}>
       <KeyboardAvoidingView
         style={styles.keyboard}
         behavior={Platform.OS === "ios" ? "padding" : "height"}

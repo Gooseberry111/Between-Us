@@ -3,13 +3,13 @@ import {
   ActivityIndicator,
   Alert,
   RefreshControl,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { GlassBackground, Card } from "../../components/Glass";
 import { getCachedData, setCachedData } from "../../lib/dataCache";
 import { Skeleton, SkeletonList } from "../../components/Skeleton";
@@ -190,7 +190,7 @@ export default function ProfileScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.screen}>
+      <SafeAreaView style={styles.screen} edges={["top"]}>
         <GlassBackground>
           <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
             <Skeleton width={96} height={11} radius={6} />
@@ -232,7 +232,7 @@ export default function ProfileScreen() {
   const partnerInitial = partnerFirstName.charAt(0).toUpperCase() || "♡";
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={["top"]}>
       <GlassBackground>
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -554,7 +554,7 @@ function InfoRow({ label, value }) {
 
 function LoadingScreen() {
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={["top"]}>
       <GlassBackground>
         <View style={styles.loadingContainer}>
           <View style={styles.loadingLogo}>

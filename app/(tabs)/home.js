@@ -3,13 +3,13 @@ import {
   ActivityIndicator,
   Pressable,
   RefreshControl,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -275,7 +275,7 @@ export default function HomeScreen() {
 
   if (!connection) {
     return (
-      <SafeAreaView style={styles.screen}>
+      <SafeAreaView style={styles.screen} edges={["top"]}>
         <GlassBackground>
           <ScrollView
             showsVerticalScrollIndicator={false}
@@ -419,7 +419,7 @@ export default function HomeScreen() {
    */
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={["top"]}>
       <GlassBackground>
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -1003,7 +1003,7 @@ function ErrorMessage({ message }) {
 
 function HomeSkeleton() {
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={["top"]}>
       <GlassBackground>
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -1033,7 +1033,7 @@ function HomeSkeleton() {
 
 function LoadingScreen() {
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={["top"]}>
       <GlassBackground>
         <View style={styles.loadingContainer}>
           <View style={styles.loadingLogo}>

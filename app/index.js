@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  SafeAreaView,
+  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAuth } from "@clerk/expo";
 import * as SecureStore from "expo-secure-store";
@@ -59,14 +60,14 @@ export default function WelcomeScreen() {
    */
   if (!isLoaded || isSignedIn || returning === null) {
     return (
-      <SafeAreaView style={styles.screen}>
+      <SafeAreaView style={styles.screen} edges={["top"]}>
         <GlassBackground>
           <View style={styles.splash}>
-            <View style={styles.logoCircle}>
-              <Text style={styles.logo}>♡</Text>
-            </View>
-
-            <Text style={styles.splashBrand}>BETWEEN US</Text>
+            <Image
+              source={require("../assets/logo.png")}
+              style={styles.splashLogo}
+              resizeMode="contain"
+            />
 
             <ActivityIndicator
               size="small"
@@ -80,7 +81,7 @@ export default function WelcomeScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={["top"]}>
       <GlassBackground>
         <View style={styles.container}>
           {/* TOP */}
@@ -88,9 +89,11 @@ export default function WelcomeScreen() {
           <View style={styles.top}>
             <Text style={styles.brand}>BETWEEN US</Text>
 
-            <View style={styles.logoCircle}>
-              <Text style={styles.logo}>♡</Text>
-            </View>
+            <Image
+              source={require("../assets/icon.png")}
+              style={styles.headerMark}
+              resizeMode="contain"
+            />
           </View>
 
           {/* MAIN */}
@@ -201,12 +204,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  splashBrand: {
-    marginTop: 16,
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 2.5,
-    color: "#6B4E45",
+  splashLogo: {
+    width: 260,
+    height: 260,
   },
 
   splashSpinner: {
@@ -234,21 +234,10 @@ const styles = StyleSheet.create({
     color: "#6B4E45",
   },
 
-  logoCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "rgba(255, 255, 255, 0.7)",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  logo: {
-    fontSize: 25,
-    color: "#6B4E45",
-    marginTop: -2,
+  headerMark: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
   },
 
   content: {

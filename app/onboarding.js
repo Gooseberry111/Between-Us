@@ -4,9 +4,9 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   ActivityIndicator,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useClerk, useAuth, useUser } from "@clerk/expo";
 
@@ -188,7 +188,7 @@ export default function OnboardingScreen() {
 
   if (!isLoaded) {
     return (
-      <SafeAreaView style={styles.screen}>
+      <SafeAreaView style={styles.screen} edges={["top"]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color="#6B4E45" />
 
@@ -199,7 +199,7 @@ export default function OnboardingScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={["top"]}>
       <View style={styles.container}>
         {/* HEADER */}
 

@@ -5,7 +5,6 @@ import {
   RefreshControl,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -160,7 +160,7 @@ export default function DailyQuestionScreen() {
   const partnerName = data?.partner_name || "Your partner";
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={["top"]}>
       <GlassBackground>
         <KeyboardAvoidingView
           style={styles.fill}

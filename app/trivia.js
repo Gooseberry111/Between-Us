@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { GlassBackground, Card } from "../components/Glass";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
@@ -168,7 +168,7 @@ export default function TriviaScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.screen}>
+      <SafeAreaView style={styles.screen} edges={["top"]}>
         <GlassBackground>
           <View style={styles.loadingContainer}>
             <View style={styles.loadingCircle}>
@@ -190,7 +190,7 @@ export default function TriviaScreen() {
 
   if (error) {
     return (
-      <SafeAreaView style={styles.screen}>
+      <SafeAreaView style={styles.screen} edges={["top"]}>
         <GlassBackground>
           <View style={styles.centerContainer}>
             <Text style={styles.errorTitle}>Something went wrong</Text>
@@ -219,7 +219,7 @@ export default function TriviaScreen() {
 
   if (finished) {
     return (
-      <SafeAreaView style={styles.screen}>
+      <SafeAreaView style={styles.screen} edges={["top"]}>
         <GlassBackground>
           <View style={styles.resultContainer}>
             <View style={styles.resultCircle}>
@@ -278,7 +278,7 @@ export default function TriviaScreen() {
 
   if (!currentQuestion) {
     return (
-      <SafeAreaView style={styles.screen}>
+      <SafeAreaView style={styles.screen} edges={["top"]}>
         <GlassBackground>
           <View style={styles.centerContainer}>
             <Text style={styles.errorTitle}>No questions available</Text>
@@ -298,7 +298,7 @@ export default function TriviaScreen() {
   const questionNumber = currentIndex + 1;
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={["top"]}>
       <GlassBackground>
         <View style={styles.container}>
           {/* HEADER */}

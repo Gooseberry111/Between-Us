@@ -6,7 +6,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   RefreshControl,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { GlassBackground, Card } from "../components/Glass";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
@@ -208,7 +208,7 @@ export default function SpecialDatesScreen() {
      * in, instead of blocking on a spinner.
      */
     return (
-      <SafeAreaView style={styles.screen}>
+      <SafeAreaView style={styles.screen} edges={["top"]}>
         <GlassBackground>
           <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
             <Skeleton width={96} height={11} radius={6} />
@@ -230,7 +230,7 @@ export default function SpecialDatesScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={["top"]}>
       <GlassBackground>
         <KeyboardAvoidingView
           style={styles.keyboardContainer}

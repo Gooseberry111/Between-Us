@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Card } from "../components/Glass";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
@@ -76,7 +76,7 @@ export default function ConnectionScreen() {
 
   if (!isLoaded || loading) {
     return (
-      <SafeAreaView style={styles.screen}>
+      <SafeAreaView style={styles.screen} edges={["top"]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color="#6B4E45" />
 
@@ -94,7 +94,7 @@ export default function ConnectionScreen() {
     relationship.charAt(0).toUpperCase() + relationship.slice(1);
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={["top"]}>
       <View style={styles.container}>
         <TouchableOpacity
           style={styles.backButton}

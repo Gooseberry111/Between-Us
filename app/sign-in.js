@@ -5,12 +5,12 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
   ScrollView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useSignIn, useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
@@ -279,7 +279,7 @@ export default function SignInScreen() {
 
   if (!isLoaded) {
     return (
-      <SafeAreaView style={styles.screen}>
+      <SafeAreaView style={styles.screen} edges={["top"]}>
         <View style={styles.initialLoading}>
           <View style={styles.loadingLogo}>
             <Text style={styles.loadingLogoText}>♡</Text>
@@ -306,7 +306,7 @@ export default function SignInScreen() {
    */
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={["top"]}>
       <KeyboardAvoidingView
         style={styles.keyboard}
         behavior={Platform.OS === "ios" ? "padding" : undefined}

@@ -3,13 +3,13 @@ import {
   ActivityIndicator,
   Alert,
   RefreshControl,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { GlassBackground, Card } from "../components/Glass";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
@@ -130,7 +130,7 @@ export default function CompletedDreamsScreen() {
      * in, instead of blocking on a spinner.
      */
     return (
-      <SafeAreaView style={styles.screen}>
+      <SafeAreaView style={styles.screen} edges={["top"]}>
         <GlassBackground>
           <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
             <Skeleton width={96} height={11} radius={6} />
@@ -152,7 +152,7 @@ export default function CompletedDreamsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={["top"]}>
       <GlassBackground>
         <ScrollView
           showsVerticalScrollIndicator={false}
