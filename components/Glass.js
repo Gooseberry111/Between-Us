@@ -21,7 +21,7 @@ const isAndroid = Platform.OS === "android";
 
 /* Android blur is experimental and renders flat without this. */
 const androidBlur = isAndroid
-  ? { experimentalBlurMethod: "dimezisBlurView", blurReductionFactor: 4 }
+  ? { blurMethod: "dimezisBlurView", blurReductionFactor: 4 }
   : {};
 
 export function GlassBackground({ children, style }) {

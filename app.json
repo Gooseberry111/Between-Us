@@ -41,11 +41,13 @@
               "exclude": [
                 "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
               ]
-            },
-            "newArchEnabled": false
+            }
           }
         }
-      ]
+      ],
+      "expo-secure-store",
+      "expo-status-bar",
+      "expo-font"
     ],
     "extra": {
       "router": {},

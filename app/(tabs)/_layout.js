@@ -13,7 +13,7 @@ import { Platform, StyleSheet, View } from "react-native";
 
 const androidBlur =
   Platform.OS === "android"
-    ? { experimentalBlurMethod: "dimezisBlurView", blurReductionFactor: 4 }
+    ? { blurMethod: "dimezisBlurView", blurReductionFactor: 4 }
     : {};
 
 function TabBarBackground() {
