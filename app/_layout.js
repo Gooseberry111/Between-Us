@@ -23,14 +23,25 @@ const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
  * This controls how notifications behave while
  * the app is open.
  */
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+/*
+ * Called once the app is running rather than while its code
+ * is being loaded: anything that throws at import time kills
+ * the app before there is any screen to show an error on.
+ */
+function configureNotifications() {
+  try {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+      }),
+    });
+  } catch (error) {
+    console.log("NOTIFICATION SETUP FAILED:", error?.message);
+  }
+}
 
 /*
  * ==========================================
@@ -389,6 +400,10 @@ function AuthGuard() {
  */
 
 export default function RootLayout() {
+  useEffect(() => {
+    configureNotifications();
+  }, []);
+
   /*
    * Without a key Clerk throws on startup and the app just
    * closes after the splash. Say what's wrong instead.

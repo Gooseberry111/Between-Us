@@ -41,7 +41,8 @@
               "exclude": [
                 "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
               ]
-            }
+            },
+            "newArchEnabled": false
           }
         }
       ]
