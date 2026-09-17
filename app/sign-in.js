@@ -28,6 +28,92 @@ export default function SignInScreen() {
   const [error, setError] = useState("");
 
   /*
+   * Signing in from a phone Clerk has not seen before can
+   * need a code from email before it trusts the device.
+   * Without this the sign-in simply stopped, saying
+   * verification was required and offering no way to do it.
+   */
+  const [verifying, setVerifying] = useState(false);
+  const [code, setCode] = useState("");
+  const [notice, setNotice] = useState("");
+
+  const startDeviceVerification = async () => {
+    const sent = await signIn.mfa.sendEmailCode();
+
+    if (sent?.error) {
+      throw new Error(
+        sent.error.message || "We couldn't send a verification code.",
+      );
+    }
+
+    setVerifying(true);
+    setCode("");
+    setNotice("We've emailed you a code to confirm this is you.");
+    setError("");
+    setLoading(false);
+  };
+
+  const handleVerifyDevice = async () => {
+    if (loading) return;
+
+    if (code.trim().length < 4) {
+      setError("Enter the code from your email.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+      setNotice("");
+
+      const verified = await signIn.mfa.verifyEmailCode({ code: code.trim() });
+
+      if (verified?.error) {
+        throw new Error(
+          verified.error.message || "That code didn't work. Try again.",
+        );
+      }
+
+      const finalizeResult = await signIn.finalize();
+
+      if (finalizeResult?.error) {
+        throw new Error(
+          finalizeResult.error.message || "Unable to complete sign in.",
+        );
+      }
+
+      /* The auth guard routes from here. */
+    } catch (err) {
+      console.log("DEVICE VERIFY ERROR:", err);
+
+      setError(
+        err?.errors?.[0]?.message ||
+          err?.message ||
+          "That code didn't work. Try again.",
+      );
+
+      setLoading(false);
+    }
+  };
+
+  const handleResendDeviceCode = async () => {
+    if (loading) return;
+
+    try {
+      setLoading(true);
+
+      await startDeviceVerification();
+
+      setNotice("A new code is on its way.");
+    } catch (err) {
+      console.log("DEVICE CODE RESEND ERROR:", err);
+
+      setError(err?.message || "We couldn't send a new code.");
+      setLoading(false);
+    }
+  };
+
+  /*
    * ==========================================
    * SIGN IN
    * ==========================================
@@ -183,9 +269,7 @@ export default function SignInScreen() {
       if (signIn.status === "needs_second_factor") {
         console.log("SIGN IN REQUIRES MFA");
 
-        setError("Additional verification is required for this account.");
-
-        setLoading(false);
+        await startDeviceVerification();
 
         return;
       }
@@ -199,9 +283,7 @@ export default function SignInScreen() {
       if (signIn.status === "needs_client_trust") {
         console.log("SIGN IN REQUIRES CLIENT TRUST");
 
-        setError("Additional verification is required for this device.");
-
-        setLoading(false);
+        await startDeviceVerification();
 
         return;
       }
@@ -348,85 +430,152 @@ export default function SignInScreen() {
 
             {/* FORM */}
 
-            <View style={styles.form}>
-              {/* EMAIL */}
+            {verifying ? (
+              <View style={styles.form}>
+                <View style={styles.field}>
+                  <Text style={styles.label}>Code from your email</Text>
 
-              <View style={styles.field}>
-                <Text style={styles.label}>Email</Text>
-
-                <TextInput
-                  value={email}
-                  onChangeText={(value) => {
-                    setEmail(value);
-                    setError("");
-                  }}
-                  placeholder="Enter your email"
-                  placeholderTextColor="#AAA09A"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  autoComplete="email"
-                  editable={!loading}
-                  style={styles.input}
-                  returnKeyType="next"
-                />
-              </View>
-
-              {/* PASSWORD */}
-
-              <View style={styles.field}>
-                <Text style={styles.label}>Password</Text>
-
-                <TextInput
-                  value={password}
-                  onChangeText={(value) => {
-                    setPassword(value);
-                    setError("");
-                  }}
-                  placeholder="Enter your password"
-                  placeholderTextColor="#AAA09A"
-                  secureTextEntry
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  autoComplete="password"
-                  editable={!loading}
-                  style={styles.input}
-                  returnKeyType="done"
-                  onSubmitEditing={handleSignIn}
-                />
-              </View>
-
-              {/* ERROR */}
-
-              {error ? (
-                <View style={styles.errorBox}>
-                  <Text style={styles.errorText}>{error}</Text>
+                  <TextInput
+                    value={code}
+                    onChangeText={(value) => {
+                      setCode(value);
+                      setError("");
+                    }}
+                    placeholder="Enter the code"
+                    placeholderTextColor="#AAA09A"
+                    keyboardType="number-pad"
+                    editable={!loading}
+                    style={styles.input}
+                    returnKeyType="done"
+                    onSubmitEditing={handleVerifyDevice}
+                  />
                 </View>
-              ) : null}
 
-              {/* SIGN IN BUTTON */}
+                {notice ? (
+                  <Text style={styles.noticeText}>{notice}</Text>
+                ) : null}
 
-              <TouchableOpacity
-                activeOpacity={0.85}
-                style={[styles.signInButton, loading && styles.disabledButton]}
-                onPress={handleSignIn}
-                disabled={loading}
-              >
-                {loading ? (
-                  <View style={styles.loadingButton}>
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-
-                    <Text style={styles.signInText}>Signing in...</Text>
+                {error ? (
+                  <View style={styles.errorBox}>
+                    <Text style={styles.errorText}>{error}</Text>
                   </View>
-                ) : (
-                  <>
-                    <Text style={styles.signInText}>Sign In</Text>
+                ) : null}
 
-                    <Text style={styles.arrow}>→</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </View>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={[
+                    styles.signInButton,
+                    loading && styles.disabledButton,
+                  ]}
+                  onPress={handleVerifyDevice}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.signInText}>Confirm it's me</Text>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={handleResendDeviceCode}
+                  disabled={loading}
+                >
+                  <Text style={styles.linkAction}>Send me a new code</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.form}>
+                {/* EMAIL */}
+
+                <View style={styles.field}>
+                  <Text style={styles.label}>Email</Text>
+
+                  <TextInput
+                    value={email}
+                    onChangeText={(value) => {
+                      setEmail(value);
+                      setError("");
+                    }}
+                    placeholder="Enter your email"
+                    placeholderTextColor="#AAA09A"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    autoComplete="email"
+                    editable={!loading}
+                    style={styles.input}
+                    returnKeyType="next"
+                  />
+                </View>
+
+                {/* PASSWORD */}
+
+                <View style={styles.field}>
+                  <Text style={styles.label}>Password</Text>
+
+                  <TextInput
+                    value={password}
+                    onChangeText={(value) => {
+                      setPassword(value);
+                      setError("");
+                    }}
+                    placeholder="Enter your password"
+                    placeholderTextColor="#AAA09A"
+                    secureTextEntry
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    autoComplete="password"
+                    editable={!loading}
+                    style={styles.input}
+                    returnKeyType="done"
+                    onSubmitEditing={handleSignIn}
+                  />
+                </View>
+
+                {/* ERROR */}
+
+                {error ? (
+                  <View style={styles.errorBox}>
+                    <Text style={styles.errorText}>{error}</Text>
+                  </View>
+                ) : null}
+
+                {/* SIGN IN BUTTON */}
+
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={[
+                    styles.signInButton,
+                    loading && styles.disabledButton,
+                  ]}
+                  onPress={handleSignIn}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <View style={styles.loadingButton}>
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+
+                      <Text style={styles.signInText}>Signing in...</Text>
+                    </View>
+                  ) : (
+                    <>
+                      <Text style={styles.signInText}>Sign In</Text>
+
+                      <Text style={styles.arrow}>→</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => router.push("/forgot-password")}
+                  disabled={loading}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.linkAction}>Forgot your password?</Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             {/* FOOTER */}
 
@@ -455,6 +604,21 @@ export default function SignInScreen() {
  */
 
 const styles = StyleSheet.create({
+  linkAction: {
+    textAlign: "center",
+    color: "#6B4E45",
+    fontSize: 14,
+    fontWeight: "600",
+    marginTop: 18,
+  },
+
+  noticeText: {
+    color: "#4F6F52",
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: 12,
+  },
+
   screen: {
     flex: 1,
     backgroundColor: "#F8F5F0",
