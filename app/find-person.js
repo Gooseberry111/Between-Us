@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -10,12 +10,100 @@ import {
   Keyboard,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Card } from "../components/Glass";
+import { Ionicons } from "@expo/vector-icons";
+import { Card, FadeIn, GlassBackground } from "../components/Glass";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import { apiFetch } from "../lib/api";
 
 const relationshipTypes = ["Friendship", "Dating", "Engaged", "Married"];
+
+/* The API ignores anything shorter, to stop a single
+ * letter listing everybody. */
+const MIN_QUERY_LENGTH = 2;
+
+const SEARCH_TIPS = [
+  {
+    icon: "search-outline",
+    title: "Their first name is enough",
+    text: "Type a few letters and matches appear as you go.",
+  },
+  {
+    icon: "mail-outline",
+    title: "Or use their email",
+    text: "An exact email address finds one person and no one else.",
+  },
+  {
+    icon: "heart-outline",
+    title: "Then send a request",
+    text: "Pick how you know each other. Nothing is shared until they accept.",
+  },
+];
+
+function SearchEmptyState({ query, searching }) {
+  const trimmed = query.trim();
+
+  if (searching) {
+    return (
+      <View style={styles.searchingState}>
+        <ActivityIndicator size="small" color="#6B4E45" />
+
+        <Text style={styles.searchingText}>Looking...</Text>
+      </View>
+    );
+  }
+
+  if (trimmed.length === 1) {
+    return (
+      <View style={styles.emptyState}>
+        <Text style={styles.emptyTitle}>Keep going</Text>
+
+        <Text style={styles.emptyText}>
+          One more letter and the matches start showing up.
+        </Text>
+      </View>
+    );
+  }
+
+  if (trimmed.length >= MIN_QUERY_LENGTH) {
+    return (
+      <View style={styles.emptyState}>
+        <View style={styles.emptyIcon}>
+          <Ionicons name="person-outline" size={26} color="#6B4E45" />
+        </View>
+
+        <Text style={styles.emptyTitle}>No one called "{trimmed}"</Text>
+
+        <Text style={styles.emptyText}>
+          Check the spelling, try their email address, or ask them to create
+          their account first. People already connected to someone else don't
+          show up here.
+        </Text>
+      </View>
+    );
+  }
+
+  /* Nothing typed yet: say what this page is for. */
+  return (
+    <View style={styles.tips}>
+      {SEARCH_TIPS.map((tip, index) => (
+        <FadeIn key={tip.title} delay={60 + index * 70}>
+          <Card style={styles.tipCard}>
+            <View style={styles.tipIcon}>
+              <Ionicons name={tip.icon} size={18} color="#6B4E45" />
+            </View>
+
+            <View style={styles.tipTextWrap}>
+              <Text style={styles.tipTitle}>{tip.title}</Text>
+
+              <Text style={styles.tipText}>{tip.text}</Text>
+            </View>
+          </Card>
+        </FadeIn>
+      ))}
+    </View>
+  );
+}
 
 export default function FindPersonScreen() {
   const router = useRouter();
@@ -83,52 +171,80 @@ export default function FindPersonScreen() {
    * ==========================================
    */
 
-  const searchPeople = async () => {
-    const cleanQuery = query.trim();
+  /*
+   * Results arrive as you type. Each keystroke cancels the
+   * one before it, and a counter makes sure a slow early
+   * reply can't overwrite the results for what you have
+   * typed since.
+   */
+  const searchToken = useRef(0);
 
-    setError("");
-    setSuccess("");
+  const runSearch = useCallback(
+    async (rawQuery) => {
+      const cleanQuery = rawQuery.trim();
+      const token = ++searchToken.current;
 
-    if (!cleanQuery) {
-      setResults([]);
-      return;
-    }
-
-    if (!isLoaded || !isSignedIn || !userId) {
-      setError("Your account is not ready yet.");
-      return;
-    }
-
-    try {
-      Keyboard.dismiss();
-
-      setSearching(true);
-
-      const response = await apiFetch(
-        `/search?query=${encodeURIComponent(
-          cleanQuery,
-        )}&clerk_id=${encodeURIComponent(userId)}`,
-      );
-
-      const data = await response.json();
-
-      console.log("SEARCH RESPONSE:", data);
-
-      if (!response.ok) {
-        throw new Error(data?.error || "Unable to search.");
+      if (cleanQuery.length < MIN_QUERY_LENGTH) {
+        setResults([]);
+        setSearching(false);
+        return;
       }
 
-      setResults(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.log("SEARCH ERROR:", err);
+      if (!isLoaded || !isSignedIn || !userId) {
+        setError("Your account is not ready yet.");
+        return;
+      }
 
+      try {
+        setSearching(true);
+
+        const response = await apiFetch(
+          `/search?query=${encodeURIComponent(
+            cleanQuery,
+          )}&clerk_id=${encodeURIComponent(userId)}`,
+        );
+
+        const data = await response.json();
+
+        if (token !== searchToken.current) return;
+
+        if (!response.ok) {
+          throw new Error(data?.error || "Unable to search.");
+        }
+
+        setResults(Array.isArray(data) ? data : []);
+        setError("");
+      } catch (err) {
+        console.log("SEARCH ERROR:", err);
+
+        if (token !== searchToken.current) return;
+
+        setResults([]);
+        setError(err?.message || "Something went wrong while searching.");
+      } finally {
+        if (token === searchToken.current) setSearching(false);
+      }
+    },
+    [isLoaded, isSignedIn, userId],
+  );
+
+  /* Wait for a pause in typing so one search runs, not eight. */
+  useEffect(() => {
+    const trimmed = query.trim();
+
+    if (trimmed.length < MIN_QUERY_LENGTH) {
+      searchToken.current += 1;
       setResults([]);
-
-      setError(err?.message || "Something went wrong while searching.");
-    } finally {
       setSearching(false);
+      return;
     }
-  };
+
+    setSearching(true);
+
+    const timer = setTimeout(() => runSearch(trimmed), 280);
+
+    return () => clearTimeout(timer);
+  }, [query, runSearch]);
 
   /*
    * ==========================================
@@ -395,10 +511,6 @@ export default function FindPersonScreen() {
           <Text style={styles.personName}>{item.first_name}</Text>
 
           {item.country ? (
-            <Text style={styles.personEmail}>{item.country}</Text>
-          ) : null}
-
-          {item.country ? (
             <Text style={styles.personCountry}>{item.country}</Text>
           ) : null}
         </View>
@@ -416,149 +528,140 @@ export default function FindPersonScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
-      <View style={styles.container}>
-        {/* HEADER */}
+      <GlassBackground>
+        <View style={styles.container}>
+          {/* HEADER */}
 
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.backArrow}>←</Text>
-          </TouchableOpacity>
-
-          <View style={styles.headerText}>
-            <Text style={styles.eyebrow}>BETWEEN US</Text>
-
-            <Text style={styles.title}>Find your person.</Text>
-
-            <Text style={styles.subtitle}>
-              Search for someone you want to build a connection with.
-            </Text>
-          </View>
-        </View>
-
-        {/* CONNECTION REQUESTS */}
-
-        {!loadingRequests && requests.length > 0 ? (
-          <View style={styles.requestsSection}>
-            <Text style={styles.requestsTitle}>CONNECTION REQUESTS</Text>
-
-            <FlatList
-              data={requests}
-              keyExtractor={(item) => item.id}
-              renderItem={renderRequest}
-              scrollEnabled={false}
-            />
-          </View>
-        ) : null}
-
-        {/* REQUEST LOADING */}
-
-        {loadingRequests ? (
-          <View style={styles.requestLoading}>
-            <ActivityIndicator size="small" color="#6B4E45" />
-
-            <Text style={styles.requestLoadingText}>
-              Checking for connection requests...
-            </Text>
-          </View>
-        ) : null}
-
-        {/* SEARCH */}
-
-        <View style={styles.searchContainer}>
-          <TextInput
-            value={query}
-            onChangeText={(value) => {
-              setQuery(value);
-              setError("");
-              setSuccess("");
-            }}
-            placeholder="Search by name or exact email"
-            placeholderTextColor="#AAA09A"
-            style={styles.searchInput}
-            autoCapitalize="none"
-            autoCorrect={false}
-            returnKeyType="search"
-            onSubmitEditing={searchPeople}
-          />
-
-          {query.length > 0 ? (
-            <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
-              <Text style={styles.clearText}>×</Text>
+          <View style={styles.header}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={styles.backButton}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.backArrow}>←</Text>
             </TouchableOpacity>
+
+            <View style={styles.headerText}>
+              <Text style={styles.eyebrow}>BETWEEN US</Text>
+
+              <Text style={styles.title}>Find your person.</Text>
+
+              <Text style={styles.subtitle}>
+                Search for someone you want to build a connection with.
+              </Text>
+            </View>
+          </View>
+
+          {/* CONNECTION REQUESTS */}
+
+          {!loadingRequests && requests.length > 0 ? (
+            <View style={styles.requestsSection}>
+              <Text style={styles.requestsTitle}>CONNECTION REQUESTS</Text>
+
+              <FlatList
+                data={requests}
+                keyExtractor={(item) => item.id}
+                renderItem={renderRequest}
+                scrollEnabled={false}
+              />
+            </View>
           ) : null}
 
-          <TouchableOpacity
-            style={styles.searchButton}
-            onPress={searchPeople}
-            disabled={searching}
-            activeOpacity={0.8}
-          >
+          {/* REQUEST LOADING */}
+
+          {loadingRequests ? (
+            <View style={styles.requestLoading}>
+              <ActivityIndicator size="small" color="#6B4E45" />
+
+              <Text style={styles.requestLoadingText}>
+                Checking for connection requests...
+              </Text>
+            </View>
+          ) : null}
+
+          {/* SEARCH */}
+
+          <View style={styles.searchContainer}>
+            <Ionicons
+              name="search"
+              size={18}
+              color="#9A8F88"
+              style={styles.searchIcon}
+            />
+
+            <TextInput
+              value={query}
+              onChangeText={(value) => {
+                setQuery(value);
+                setError("");
+                setSuccess("");
+              }}
+              placeholder="Start typing a name, or paste their email"
+              placeholderTextColor="#AAA09A"
+              style={styles.searchInput}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="search"
+              onSubmitEditing={Keyboard.dismiss}
+            />
+
             {searching ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Text style={styles.searchButtonText}>Search</Text>
-            )}
-          </TouchableOpacity>
+              <ActivityIndicator
+                size="small"
+                color="#6B4E45"
+                style={styles.searchSpinner}
+              />
+            ) : null}
+
+            {query.length > 0 && !searching ? (
+              <TouchableOpacity
+                onPress={clearSearch}
+                style={styles.clearButton}
+              >
+                <Ionicons name="close-circle" size={18} color="#B9AFA8" />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
+          {/* ERROR */}
+
+          {error ? (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : null}
+
+          {/* SUCCESS */}
+
+          {success ? (
+            <View style={styles.successBox}>
+              <Text style={styles.successText}>{success}</Text>
+            </View>
+          ) : null}
+
+          {/* RESULTS */}
+
+          <FlatList
+            data={results}
+            keyExtractor={(item) => item.clerk_id}
+            renderItem={renderPerson}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={[
+              styles.results,
+              results.length === 0 && styles.emptyResults,
+            ]}
+            ListHeaderComponent={
+              results.length > 0 ? (
+                <Text style={styles.resultsTitle}>People</Text>
+              ) : null
+            }
+            ListEmptyComponent={
+              <SearchEmptyState query={query} searching={searching} />
+            }
+          />
         </View>
-
-        {/* ERROR */}
-
-        {error ? (
-          <View style={styles.errorBox}>
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        ) : null}
-
-        {/* SUCCESS */}
-
-        {success ? (
-          <View style={styles.successBox}>
-            <Text style={styles.successText}>{success}</Text>
-          </View>
-        ) : null}
-
-        {/* RESULTS */}
-
-        <FlatList
-          data={results}
-          keyExtractor={(item) => item.clerk_id}
-          renderItem={renderPerson}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={[
-            styles.results,
-            results.length === 0 && styles.emptyResults,
-          ]}
-          ListHeaderComponent={
-            results.length > 0 ? (
-              <Text style={styles.resultsTitle}>People</Text>
-            ) : null
-          }
-          ListEmptyComponent={
-            !searching ? (
-              <View style={styles.emptyState}>
-                <View style={styles.emptyIcon}>
-                  <Text style={styles.emptyHeart}>♡</Text>
-                </View>
-
-                <Text style={styles.emptyTitle}>
-                  {query ? "No one found" : "Start with a name"}
-                </Text>
-
-                <Text style={styles.emptyText}>
-                  {query
-                    ? "Try a different name, or their exact email address."
-                    : "Find the person you want to connect with and start building something meaningful together."}
-                </Text>
-              </View>
-            ) : null
-          }
-        />
-      </View>
+      </GlassBackground>
 
       {/* RELATIONSHIP MODAL */}
       {/* CONNECTION REQUEST DETAILS */}
@@ -923,53 +1026,86 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 25,
+    marginTop: 22,
     height: 54,
+    borderRadius: 16,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E8E1DC",
+    paddingHorizontal: 14,
+    shadowColor: "#6B4E45",
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+
+  searchIcon: {
+    marginRight: 8,
   },
 
   searchInput: {
     flex: 1,
     height: 54,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E8E1DC",
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingRight: 42,
-    fontSize: 14,
+    fontSize: 15,
     color: "#302825",
   },
 
-  clearButton: {
-    position: "absolute",
-    right: 82,
-    width: 30,
-    height: 40,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  clearText: {
-    fontSize: 25,
-    color: "#AAA09A",
-    lineHeight: 28,
-  },
-
-  searchButton: {
-    height: 54,
-    paddingHorizontal: 17,
-    borderRadius: 14,
-    backgroundColor: "#6B4E45",
-    justifyContent: "center",
-    alignItems: "center",
+  searchSpinner: {
     marginLeft: 8,
-    minWidth: 78,
   },
 
-  searchButtonText: {
-    color: "#FFFFFF",
+  clearButton: {
+    marginLeft: 8,
+    padding: 4,
+  },
+
+  searchingState: {
+    alignItems: "center",
+    paddingTop: 30,
+  },
+
+  searchingText: {
+    marginTop: 10,
     fontSize: 13,
+    color: "#817771",
+  },
+
+  tips: {
+    paddingTop: 6,
+  },
+
+  tipCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+
+  tipIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "#EFE5E0",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 13,
+  },
+
+  tipTextWrap: {
+    flex: 1,
+  },
+
+  tipTitle: {
+    fontSize: 15,
     fontWeight: "700",
+    color: "#302825",
+  },
+
+  tipText: {
+    marginTop: 4,
+    fontSize: 13,
+    lineHeight: 19,
+    color: "#817771",
   },
 
   /*
