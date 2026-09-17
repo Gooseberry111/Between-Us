@@ -1333,10 +1333,48 @@ export default {
 
 				const userId = userResult[0].id;
 
+				/*
+				 * Everything this person left behind, oldest
+				 * dependency last. Most of these tables cascade
+				 * from users, but not all of them were created
+				 * that way, and a half-deleted account is worse
+				 * than a slow one. Anything shared with a partner
+				 * (memories, dreams, goals) goes with the
+				 * connection: it was never one person's alone,
+				 * and leaving it would leave them looking at a
+				 * ghost.
+				 */
+				const connectionIds = (
+					await sql`
+            SELECT id
+            FROM connections
+            WHERE user_one = ${userId} OR user_two = ${userId}
+          `
+				).map((row) => row.id);
+
+				if (connectionIds.length > 0) {
+					await sql`DELETE FROM memories WHERE connection_id = ANY(${connectionIds})`;
+					await sql`DELETE FROM dreams WHERE connection_id = ANY(${connectionIds})`;
+					await sql`DELETE FROM relationship_goals WHERE connection_id = ANY(${connectionIds})`;
+					await sql`DELETE FROM daily_answers WHERE connection_id = ANY(${connectionIds})`;
+					await sql`DELETE FROM appreciations WHERE connection_id = ANY(${connectionIds})`;
+					await sql`DELETE FROM checkins WHERE connection_id = ANY(${connectionIds})`;
+					await sql`DELETE FROM trivia_sessions WHERE connection_id = ANY(${connectionIds})`;
+				}
+
+				await sql`DELETE FROM notifications WHERE user_id = ${userId}`;
+				await sql`DELETE FROM special_dates WHERE user_id = ${userId}`;
+				await sql`DELETE FROM relationship_insights WHERE user_id = ${userId}`;
+				await sql`DELETE FROM preferences WHERE user_id = ${userId}`;
+				await sql`DELETE FROM profiles WHERE user_id = ${userId}`;
+				await sql`DELETE FROM connections WHERE user_one = ${userId} OR user_two = ${userId}`;
+
 				await sql`
           DELETE FROM users
           WHERE id = ${userId}
         `;
+
+				console.log('ACCOUNT DELETED:', clerkId);
 
 				return Response.json({
 					message: 'User account deleted successfully',

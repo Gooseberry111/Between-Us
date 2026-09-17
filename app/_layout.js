@@ -12,6 +12,7 @@ import { RETURNING_USER_KEY } from "../lib/auth";
 import { apiFetch, setTokenProvider } from "../lib/api";
 import { onProfileSaved } from "../lib/profileProgress";
 import ErrorCatcher from "../components/ErrorCatcher";
+import OfflineBanner from "../components/OfflineBanner";
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
@@ -425,6 +426,8 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
           <AuthGuard />
+
+          <OfflineBanner />
         </ClerkProvider>
       </SafeAreaProvider>
     </ErrorCatcher>

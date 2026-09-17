@@ -381,7 +381,21 @@ export default function SignUpScreen() {
           </TouchableOpacity>
 
           <Text style={styles.terms}>
-            By creating an account, you agree to our Terms and Privacy Policy.
+            By creating an account, you agree to our{" "}
+            <Text
+              style={styles.termsLink}
+              onPress={() => router.push("/terms")}
+            >
+              Terms
+            </Text>{" "}
+            and{" "}
+            <Text
+              style={styles.termsLink}
+              onPress={() => router.push("/privacy")}
+            >
+              Privacy Policy
+            </Text>
+            .
           </Text>
 
           <View style={styles.dividerRow}>
@@ -515,6 +529,12 @@ const styles = StyleSheet.create({
     color: "#6B4E45",
     fontSize: 16,
     fontWeight: "700",
+  },
+
+  termsLink: {
+    color: "#6B4E45",
+    fontWeight: "700",
+    textDecorationLine: "underline",
   },
 
   terms: {

@@ -19,12 +19,15 @@ import {
 } from "../../lib/dataCache";
 import { connectionCacheKey } from "../../lib/connection";
 import { Skeleton, SkeletonList } from "../../components/Skeleton";
-import { useAuth, useClerk } from "@clerk/expo";
+import { useAuth, useClerk, useUser } from "@clerk/expo";
+import { RETURNING_USER_KEY } from "../../lib/auth";
+import * as SecureStore from "expo-secure-store";
 import { useFocusEffect, useRouter } from "expo-router";
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { signOut } = useClerk();
+  const { user } = useUser();
   const { isLoaded, isSignedIn, userId } = useAuth();
 
   const cacheKey = userId ? `profile-tab:${userId}` : null;
@@ -35,6 +38,7 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(!cached);
   const [refreshing, setRefreshing] = useState(false);
   const [unlinking, setUnlinking] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
 
   const loadProfile = useCallback(async () => {
@@ -207,12 +211,98 @@ export default function ProfileScreen() {
     }
   };
 
+  /*
+   * ==========================================
+   * DELETE ACCOUNT
+   * ==========================================
+   *
+   * Two questions, not one: the first explains what
+   * goes, the second is the point of no return. The
+   * server clears the data, then Clerk drops the
+   * sign-in itself, so nothing is left that could log
+   * back in to an empty account.
+   */
+  const performDelete = async () => {
+    try {
+      setDeleting(true);
+
+      const response = await apiFetch(`/users/${userId}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok && response.status !== 404) {
+        throw new Error(data?.error || "Unable to delete your account.");
+      }
+
+      if (cacheKey) clearCachedData(cacheKey);
+      if (userId) {
+        clearCachedData(`home:${userId}`);
+        clearCachedData(connectionCacheKey(userId));
+      }
+
+      /* Next launch should greet them as a new person. */
+      try {
+        await SecureStore.deleteItemAsync(RETURNING_USER_KEY);
+      } catch (storeError) {
+        console.log("CLEAR RETURNING USER FAILED:", storeError?.message);
+      }
+
+      try {
+        await user?.delete();
+      } catch (clerkError) {
+        /* The data is already gone; don't strand them on this
+         * screen if Clerk refuses to remove the login. */
+        console.log("CLERK DELETE FAILED:", clerkError?.message);
+
+        await signOut();
+      }
+
+      router.replace("/");
+    } catch (err) {
+      console.log("DELETE ACCOUNT ERROR:", err);
+
+      setDeleting(false);
+
+      Alert.alert(
+        "We couldn't delete your account",
+        err?.message || "Please check your connection and try again.",
+      );
+    }
+  };
+
   const handleDeleteAccount = () => {
-    Alert.alert("Delete account", "Account deletion is not connected yet.", [
-      {
-        text: "OK",
-      },
-    ]);
+    if (deleting) return;
+
+    Alert.alert(
+      "Delete your account?",
+      connection
+        ? `This removes your profile, your answers, and everything you and ${
+            connection?.other_first_name?.trim() || "your partner"
+          } have saved together: memories, dreams, goals and check-ins. It cannot be undone.`
+        : "This removes your profile, your answers and everything you have saved. It cannot be undone.",
+      [
+        { text: "Keep my account", style: "cancel" },
+        {
+          text: "Continue",
+          style: "destructive",
+          onPress: () =>
+            Alert.alert(
+              "Last chance",
+              "Once this is done, nothing can be recovered.",
+              [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Delete forever",
+                  style: "destructive",
+                  onPress: performDelete,
+                },
+              ],
+            ),
+        },
+      ],
+    );
   };
 
   if (loading) {
@@ -525,17 +615,43 @@ export default function ProfileScreen() {
 
             {/* DELETE ACCOUNT */}
 
+            <View style={styles.section}>
+              <TouchableOpacity
+                style={styles.legalRow}
+                activeOpacity={0.7}
+                onPress={() => router.push("/terms")}
+              >
+                <Text style={styles.legalText}>Terms of Use</Text>
+                <Text style={styles.settingArrow}>›</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.legalRow}
+                activeOpacity={0.7}
+                onPress={() => router.push("/privacy")}
+              >
+                <Text style={styles.legalText}>Privacy Policy</Text>
+                <Text style={styles.settingArrow}>›</Text>
+              </TouchableOpacity>
+            </View>
+
             <View style={styles.dangerSection}>
               <TouchableOpacity
-                style={styles.deleteButton}
+                style={[styles.deleteButton, deleting && styles.deleteBusy]}
                 activeOpacity={0.8}
+                disabled={deleting}
                 onPress={handleDeleteAccount}
               >
-                <Text style={styles.deleteText}>Delete Account</Text>
+                {deleting ? (
+                  <ActivityIndicator size="small" color="#B54A4A" />
+                ) : (
+                  <Text style={styles.deleteText}>Delete Account</Text>
+                )}
               </TouchableOpacity>
 
               <Text style={styles.deleteWarning}>
-                Account deletion permanently removes your Between Us data.
+                This permanently removes your profile, your answers and
+                everything saved in your shared space.
               </Text>
             </View>
 
@@ -608,6 +724,23 @@ function LoadingScreen() {
  */
 
 const styles = StyleSheet.create({
+  legalRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 14,
+  },
+
+  legalText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#453B37",
+  },
+
+  deleteBusy: {
+    opacity: 0.6,
+  },
+
   screen: {
     flex: 1,
   },
