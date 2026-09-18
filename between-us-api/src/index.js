@@ -1865,6 +1865,13 @@ SET
 
 				const currentUserId = currentUser[0].id;
 
+				/*
+				 * A pending request no longer hides someone: until
+				 * they accept, they are still a person you can find,
+				 * now labelled with where the request stands. Only an
+				 * accepted connection takes someone out of search --
+				 * theirs or yours.
+				 */
 				const results = await sql`
           SELECT
             u.id,
@@ -1872,12 +1879,27 @@ SET
             p.first_name,
             p.country,
             p.gender,
-            p.relationship_status
+            p.relationship_status,
+
+            pending.id AS pending_request_id,
+            pending.requester_id AS pending_requester_id
 
           FROM users u
 
           INNER JOIN profiles p
             ON p.user_id = u.id
+
+          LEFT JOIN LATERAL (
+            SELECT c.id, c.requester_id
+            FROM connections c
+            WHERE
+              c.status = 'pending'
+              AND (
+                (c.user_one = ${currentUserId} AND c.user_two = u.id)
+                OR (c.user_one = u.id AND c.user_two = ${currentUserId})
+              )
+            LIMIT 1
+          ) pending ON true
 
           WHERE
             u.id != ${currentUserId}
@@ -1892,37 +1914,14 @@ SET
             )
 
             /*
-             * Don't show someone who already has
-             * an accepted connection.
+             * Anyone already linked -- to you or to someone
+             * else -- is out of the running.
              */
             AND NOT EXISTS (
               SELECT 1
               FROM connections c
               WHERE
-                (
-                  c.user_one = ${currentUserId}
-                  AND c.user_two = u.id
-                )
-                OR
-                (
-                  c.user_one = u.id
-                  AND c.user_two = ${currentUserId}
-                )
-                AND c.status = 'accepted'
-            )
-
-            /*
-             * Don't show someone already connected
-             * to somebody else.
-             */
-            AND NOT EXISTS (
-              SELECT 1
-              FROM connections c
-              WHERE
-                (
-                  c.user_one = u.id
-                  OR c.user_two = u.id
-                )
+                (c.user_one = u.id OR c.user_two = u.id)
                 AND c.status = 'accepted'
             )
 
@@ -1931,7 +1930,16 @@ SET
           LIMIT 20
         `;
 
-				return Response.json(results);
+				return Response.json(
+					results.map((row) => ({
+						...row,
+						request_state: !row.pending_request_id
+							? 'none'
+							: row.pending_requester_id === currentUserId
+								? 'sent'
+								: 'received',
+					})),
+				);
 			}
 
 			/*
@@ -2400,9 +2408,66 @@ VALUES (
 					);
 				}
 
+				const accepted = result[0];
+				const partnerId = accepted.requester_id === userId ? accepted.recipient_id : accepted.requester_id;
+
+				/*
+				 * Both of them are now spoken for, so every other
+				 * request either of them is part of comes off the
+				 * table. Whoever was waiting hears about it rather
+				 * than watching a request sit there forever.
+				 */
+				const abandoned = await sql`
+          DELETE FROM connections
+          WHERE
+            id != ${accepted.id}
+            AND status = 'pending'
+            AND (
+              user_one IN (${userId}, ${partnerId})
+              OR user_two IN (${userId}, ${partnerId})
+            )
+          RETURNING id, requester_id, recipient_id
+        `;
+
+				if (abandoned.length > 0) {
+					const acceptedNames = await sql`
+            SELECT user_id, first_name
+            FROM profiles
+            WHERE user_id IN (${userId}, ${partnerId})
+          `;
+
+					const nameFor = (id) => acceptedNames.find((row) => row.user_id === id)?.first_name || 'Someone';
+
+					for (const row of abandoned) {
+						/* Tell whoever is still waiting, on either side. */
+						const waitingId = [row.requester_id, row.recipient_id].find((id) => id !== userId && id !== partnerId);
+
+						if (!waitingId) continue;
+
+						const otherId = row.requester_id === waitingId ? row.recipient_id : row.requester_id;
+
+						await sql`
+              INSERT INTO notifications (
+                user_id,
+                type,
+                title,
+                message
+              )
+              VALUES (
+                ${waitingId},
+                'connection_closed',
+                'Request closed',
+                ${`${nameFor(otherId)} has connected with someone else, so your request has been closed.`}
+              )
+            `;
+					}
+
+					console.log('AUTO-CLOSED PENDING REQUESTS:', abandoned.length);
+				}
+
 				return Response.json({
 					message: 'Connection accepted',
-					connection: result[0],
+					connection: accepted,
 				});
 			}
 
@@ -2626,10 +2691,37 @@ VALUES (
           )
         `;
 
+				/*
+				 * Everything the two of them made together goes with
+				 * the link. Leaving it behind meant the next person
+				 * you connect with inherits the last one's special
+				 * dates and memories, which is nobody's idea of a
+				 * fresh start.
+				 */
+				await sql`DELETE FROM memories WHERE connection_id = ${connection.id}`;
+				await sql`DELETE FROM dreams WHERE connection_id = ${connection.id}`;
+				await sql`DELETE FROM relationship_goals WHERE connection_id = ${connection.id}`;
+				await sql`DELETE FROM daily_answers WHERE connection_id = ${connection.id}`;
+				await sql`DELETE FROM appreciations WHERE connection_id = ${connection.id}`;
+				await sql`DELETE FROM checkins WHERE connection_id = ${connection.id}`;
+				await sql`DELETE FROM trivia_sessions WHERE connection_id = ${connection.id}`;
+
+				/*
+				 * Special dates hang off the person rather than the
+				 * connection, so clear both sides' -- they were saved
+				 * for a relationship that has ended.
+				 */
+				await sql`
+          DELETE FROM special_dates
+          WHERE user_id IN (${userId}, ${partnerId})
+        `;
+
 				await sql`
           DELETE FROM connections
           WHERE id = ${connection.id}
         `;
+
+				console.log('CONNECTION ENDED AND SHARED DATA CLEARED:', connection.id);
 
 				return Response.json({
 					message: 'Connection ended successfully',
@@ -4973,6 +5065,44 @@ VALUES (
 				return Response.json({
 					notifications,
 				});
+			}
+
+			/*
+			 * ==========================================
+			 * MARK EVERY NOTIFICATION AS READ
+			 * ==========================================
+			 *
+			 * POST /users/:clerkId/notifications/read-all
+			 *
+			 * Opening the list counts as having seen it, so
+			 * the bell stops nagging without anyone having to
+			 * tap each card in turn.
+			 */
+
+			const readAllMatch = url.pathname.match(/^\/users\/([^/]+)\/notifications\/read-all$/);
+
+			if (readAllMatch && request.method === 'POST') {
+				const clerkId = readAllMatch[1];
+
+				const userResult = await sql`
+          SELECT id
+          FROM users
+          WHERE clerk_id = ${clerkId}
+          LIMIT 1
+        `;
+
+				if (userResult.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				await sql`
+          UPDATE notifications
+          SET is_read = true
+          WHERE user_id = ${userResult[0].id}
+            AND is_read = false
+        `;
+
+				return Response.json({ message: 'All notifications marked as read' });
 			}
 
 			/*

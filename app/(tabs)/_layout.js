@@ -11,20 +11,28 @@ import { Platform, StyleSheet, View } from "react-native";
  * bar with rounded corners.
  */
 
-const androidBlur =
-  Platform.OS === "android"
-    ? { blurMethod: "dimezisBlurView", blurReductionFactor: 4 }
-    : {};
-
 function TabBarBackground() {
+  /*
+   * Android's blur is a different thing entirely: it samples
+   * only what the system hands it, so the bar came out clear
+   * rather than frosted and the icons collided with whatever
+   * scrolled underneath. A near-solid pane reads as glass
+   * there -- light, edged, slightly warm -- without pretending
+   * to a blur the platform won't give us.
+   */
+  if (Platform.OS === "android") {
+    return (
+      <View style={styles.barWrapper}>
+        <View style={styles.barSolid} />
+
+        <View style={styles.barHairline} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.barWrapper}>
-      <BlurView
-        intensity={70}
-        tint="light"
-        {...androidBlur}
-        style={StyleSheet.absoluteFill}
-      />
+      <BlurView intensity={70} tint="light" style={StyleSheet.absoluteFill} />
 
       {/* Faint wash so icons stay legible over busy content. */}
       <View style={styles.barTint} />
@@ -109,13 +117,21 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.32)",
   },
 
+  barSolid: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#FBF6F1",
+  },
+
   barHairline: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(255,255,255,0.9)",
+    backgroundColor:
+      Platform.OS === "android"
+        ? "rgba(107,78,69,0.16)"
+        : "rgba(255,255,255,0.9)",
   },
 
   icon: {

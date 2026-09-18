@@ -13,7 +13,11 @@ import { GlassBackground, Card } from "../components/Glass";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
-import { getCachedData, setCachedData } from "../lib/dataCache";
+import {
+  clearCachedData,
+  getCachedData,
+  setCachedData,
+} from "../lib/dataCache";
 import { Skeleton, SkeletonList } from "../components/Skeleton";
 import { apiFetch } from "../lib/api";
 
@@ -62,6 +66,33 @@ export default function NotificationsScreen() {
       setNotifications(nextNotifications);
 
       if (cacheKey) setCachedData(cacheKey, nextNotifications);
+
+      /*
+       * Opening this screen means they have been seen. Mark
+       * them read on the server, then locally, so the bell
+       * clears without anyone tapping each card in turn.
+       */
+      if (nextNotifications.some((item) => item.is_read === false)) {
+        try {
+          await apiFetch(`/users/${userId}/notifications/read-all`, {
+            method: "POST",
+          });
+
+          const readNotifications = nextNotifications.map((item) => ({
+            ...item,
+            is_read: true,
+          }));
+
+          setNotifications(readNotifications);
+
+          if (cacheKey) setCachedData(cacheKey, readNotifications);
+
+          /* Home reads this cache for the dot on the bell. */
+          clearCachedData(`home:${userId}`);
+        } catch (readError) {
+          console.log("MARK ALL READ FAILED:", readError?.message);
+        }
+      }
     } catch (err) {
       console.log("NOTIFICATIONS LOAD ERROR:", err);
 

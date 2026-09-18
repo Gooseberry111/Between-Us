@@ -40,7 +40,7 @@ const SEARCH_TIPS = [
   },
 ];
 
-function SearchEmptyState({ query, searching }) {
+function SearchEmptyState({ query, searching, hasRequests }) {
   const trimmed = query.trim();
 
   if (searching) {
@@ -82,6 +82,10 @@ function SearchEmptyState({ query, searching }) {
       </View>
     );
   }
+
+  /* Requests above already fill the page and say more
+     than any explainer would. */
+  if (hasRequests) return null;
 
   /* Nothing typed yet: say what this page is for. */
   return (
@@ -392,8 +396,17 @@ export default function FindPersonScreen() {
         throw new Error(data?.error || "Unable to send connection request.");
       }
 
+      /*
+       * They stay in the list, now marked. Removing them made
+       * it look as though the request had failed, or as though
+       * the person had vanished.
+       */
       setResults((prev) =>
-        prev.filter((person) => person.clerk_id !== selectedPerson.clerk_id),
+        prev.map((person) =>
+          person.clerk_id === selectedPerson.clerk_id
+            ? { ...person, request_state: "sent" }
+            : person,
+        ),
       );
 
       setSuccess(`Connection request sent to ${selectedPerson.first_name}.`);
@@ -493,12 +506,30 @@ export default function FindPersonScreen() {
 
   const renderPerson = ({ item }) => {
     const isSending = sendingId === item.clerk_id;
+    const sent = item.request_state === "sent";
+    const received = item.request_state === "received";
+
+    /* Someone who has asked you can be answered right here. */
+    const theirRequest = received
+      ? requests.find((request) => request.requester_clerk_id === item.clerk_id)
+      : null;
+
+    const onPress = () => {
+      if (sent) return;
+
+      if (theirRequest) {
+        viewRequest(theirRequest);
+        return;
+      }
+
+      selectPerson(item);
+    };
 
     return (
       <TouchableOpacity
-        style={styles.personCard}
-        activeOpacity={0.8}
-        onPress={() => selectPerson(item)}
+        style={[styles.personCard, sent && styles.personCardMuted]}
+        activeOpacity={sent ? 1 : 0.8}
+        onPress={onPress}
         disabled={isSending}
       >
         <View style={styles.avatar}>
@@ -515,7 +546,21 @@ export default function FindPersonScreen() {
           ) : null}
         </View>
 
-        <Text style={styles.personArrow}>›</Text>
+        {sent ? (
+          <View style={styles.statePill}>
+            <Ionicons name="time-outline" size={12} color="#7A6A62" />
+            <Text style={styles.statePillText}>Requested</Text>
+          </View>
+        ) : received ? (
+          <View style={[styles.statePill, styles.statePillActive]}>
+            <Ionicons name="mail-open-outline" size={12} color="#FFFFFF" />
+            <Text style={[styles.statePillText, styles.statePillTextActive]}>
+              Asked you
+            </Text>
+          </View>
+        ) : (
+          <Text style={styles.personArrow}>›</Text>
+        )}
       </TouchableOpacity>
     );
   };
@@ -551,33 +596,6 @@ export default function FindPersonScreen() {
               </Text>
             </View>
           </View>
-
-          {/* CONNECTION REQUESTS */}
-
-          {!loadingRequests && requests.length > 0 ? (
-            <View style={styles.requestsSection}>
-              <Text style={styles.requestsTitle}>CONNECTION REQUESTS</Text>
-
-              <FlatList
-                data={requests}
-                keyExtractor={(item) => item.id}
-                renderItem={renderRequest}
-                scrollEnabled={false}
-              />
-            </View>
-          ) : null}
-
-          {/* REQUEST LOADING */}
-
-          {loadingRequests ? (
-            <View style={styles.requestLoading}>
-              <ActivityIndicator size="small" color="#6B4E45" />
-
-              <Text style={styles.requestLoadingText}>
-                Checking for connection requests...
-              </Text>
-            </View>
-          ) : null}
 
           {/* SEARCH */}
 
@@ -639,6 +657,36 @@ export default function FindPersonScreen() {
             </View>
           ) : null}
 
+          {/* CONNECTION REQUESTS -- under the search field, where
+              someone looking for a person will actually see them. */}
+
+          {!loadingRequests && requests.length > 0 ? (
+            <View style={styles.requestsSection}>
+              <Text style={styles.requestsTitle}>
+                {requests.length === 1
+                  ? "1 PERSON WANTS TO CONNECT"
+                  : `${requests.length} PEOPLE WANT TO CONNECT`}
+              </Text>
+
+              <FlatList
+                data={requests}
+                keyExtractor={(item) => item.id}
+                renderItem={renderRequest}
+                scrollEnabled={false}
+              />
+            </View>
+          ) : null}
+
+          {loadingRequests ? (
+            <View style={styles.requestLoading}>
+              <ActivityIndicator size="small" color="#6B4E45" />
+
+              <Text style={styles.requestLoadingText}>
+                Checking for requests...
+              </Text>
+            </View>
+          ) : null}
+
           {/* RESULTS */}
 
           <FlatList
@@ -649,7 +697,7 @@ export default function FindPersonScreen() {
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={[
               styles.results,
-              results.length === 0 && styles.emptyResults,
+              results.length === 0 && styles.emptyResultsTop,
             ]}
             ListHeaderComponent={
               results.length > 0 ? (
@@ -657,7 +705,11 @@ export default function FindPersonScreen() {
               ) : null
             }
             ListEmptyComponent={
-              <SearchEmptyState query={query} searching={searching} />
+              <SearchEmptyState
+                query={query}
+                searching={searching}
+                hasRequests={requests.length > 0}
+              />
             }
           />
         </View>
@@ -1072,7 +1124,7 @@ const styles = StyleSheet.create({
   },
 
   tips: {
-    paddingTop: 6,
+    paddingTop: 2,
   },
 
   tipCard: {
@@ -1145,13 +1197,41 @@ const styles = StyleSheet.create({
    */
 
   results: {
-    paddingTop: 24,
+    paddingTop: 18,
     paddingBottom: 30,
   },
 
-  emptyResults: {
+  emptyResultsTop: {
     flexGrow: 1,
-    justifyContent: "center",
+    justifyContent: "flex-start",
+  },
+
+  personCardMuted: {
+    opacity: 0.72,
+  },
+
+  statePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "#EDE5E0",
+  },
+
+  statePillActive: {
+    backgroundColor: "#6B4E45",
+  },
+
+  statePillText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#7A6A62",
+  },
+
+  statePillTextActive: {
+    color: "#FFFFFF",
   },
 
   resultsTitle: {

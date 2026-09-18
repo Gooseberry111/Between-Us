@@ -185,7 +185,7 @@ export default function CompletedGoalsScreen() {
             <View style={styles.header}>
               <TouchableOpacity
                 style={styles.backButton}
-                onPress={() => router.push("/goals")}
+                onPress={() => router.back()}
               >
                 <Text style={styles.backButtonText}>←</Text>
               </TouchableOpacity>

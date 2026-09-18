@@ -174,7 +174,7 @@ export default function CompletedDreamsScreen() {
             <View style={styles.header}>
               <TouchableOpacity
                 style={styles.backButton}
-                onPress={() => router.push("/(tabs)/dreams")}
+                onPress={() => router.back()}
               >
                 <Text style={styles.backButtonText}>←</Text>
               </TouchableOpacity>

@@ -358,35 +358,6 @@ export default function HomeScreen() {
                 </TouchableOpacity>
               </Card>
 
-              {pendingRequests.length > 0 ? (
-                <View style={styles.section}>
-                  <Text style={styles.sectionLabel}>CONNECTION REQUEST</Text>
-
-                  <Card style={styles.pendingCard}>
-                    <View style={styles.pendingIcon}>
-                      <Text style={styles.pendingHeart}>♡</Text>
-                    </View>
-
-                    <View style={styles.pendingContent}>
-                      <Text style={styles.pendingTitle}>
-                        Someone wants to connect
-                      </Text>
-
-                      <Text style={styles.pendingText}>
-                        Open your connections to review the request.
-                      </Text>
-                    </View>
-
-                    <TouchableOpacity
-                      onPress={() => router.push("/find-person")}
-                      style={styles.smallButton}
-                    >
-                      <Text style={styles.smallButtonText}>View</Text>
-                    </TouchableOpacity>
-                  </Card>
-                </View>
-              ) : null}
-
               <QuickActions router={router} locked />
             </View>
           </ScrollView>
