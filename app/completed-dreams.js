@@ -174,7 +174,14 @@ export default function CompletedDreamsScreen() {
             <View style={styles.header}>
               <TouchableOpacity
                 style={styles.backButton}
-                onPress={() => router.back()}
+                onPress={() =>
+                  /*
+                   * Straight back to the dream board, not wherever
+                   * the tab stack thinks it left off. Dreams is a
+                   * tab, so a plain back() surfaces on Home.
+                   */
+                  router.replace("/(tabs)/dreams")
+                }
               >
                 <Text style={styles.backButtonText}>←</Text>
               </TouchableOpacity>
@@ -246,7 +253,14 @@ export default function CompletedDreamsScreen() {
 
                   <TouchableOpacity
                     style={styles.backToDreamsButton}
-                    onPress={() => router.back()}
+                    onPress={() =>
+                      /*
+                       * Straight back to the dream board, not wherever
+                       * the tab stack thinks it left off. Dreams is a
+                       * tab, so a plain back() surfaces on Home.
+                       */
+                      router.replace("/(tabs)/dreams")
+                    }
                     activeOpacity={0.85}
                   >
                     <Text style={styles.backToDreamsText}>Back to dreams</Text>
