@@ -4362,11 +4362,15 @@ VALUES (
 				}
 
 				/*
-				 * Pick 2 random questions.
+				 * Five questions a round, or as many as the
+				 * partner's profile can actually support -- the
+				 * pool only holds what they have filled in.
 				 */
+				const QUESTIONS_PER_ROUND = 5;
+
 				const shuffledQuestions = [...questionPool].sort(() => Math.random() - 0.5);
 
-				const selectedQuestions = shuffledQuestions.slice(0, 2).map((item, index) => ({
+				const selectedQuestions = shuffledQuestions.slice(0, QUESTIONS_PER_ROUND).map((item, index) => ({
 					question_number: index + 1,
 					id: item.id,
 					question: item.question,

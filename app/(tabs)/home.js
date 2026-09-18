@@ -24,6 +24,7 @@ import {
   Card,
 } from "../../components/Glass";
 import FinishProfileCard from "../../components/FinishProfileCard";
+import { Celebrate, PASTELS, Squish, StatTile } from "../../components/Playful";
 import { TOTAL_QUESTIONS, countAnswered } from "../../lib/profileProgress";
 
 const DAILY_QUESTION_PREVIEWS = [
@@ -78,6 +79,8 @@ export default function HomeScreen() {
   const [answeredCount, setAnsweredCount] = useState(
     cached?.answeredCount ?? null,
   );
+  const [daily, setDaily] = useState(cached?.daily ?? null);
+  const [memoryCount, setMemoryCount] = useState(cached?.memoryCount ?? null);
   const [loading, setLoading] = useState(!cached);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -191,11 +194,32 @@ export default function HomeScreen() {
           partnerInsightsResponse,
           partnerPreferencesResponse,
           triviaResponse,
+          dailyData,
+          memoriesData,
         ] = await Promise.all([
           apiFetch(`/users/${partnerClerkId}/insights`),
           apiFetch(`/users/${partnerClerkId}/preferences`),
           apiFetch(`/users/${userId}/trivia`),
+          /* The real question of the day, and the streak that
+           * comes with it -- Home used to show a guess from a
+           * local list, which could differ from the actual one. */
+          apiFetch(`/users/${userId}/daily-question`)
+            .then((response) => (response.ok ? response.json() : null))
+            .catch(() => null),
+          apiFetch(`/users/${userId}/memories`)
+            .then((response) => (response.ok ? response.json() : null))
+            .catch(() => null),
         ]);
+
+        setDaily(dailyData);
+
+        setMemoryCount(
+          Array.isArray(memoriesData?.memories)
+            ? memoriesData.memories.length
+            : Array.isArray(memoriesData)
+              ? memoriesData.length
+              : null,
+        );
 
         const partnerInsightsData = await partnerInsightsResponse.json();
 
@@ -218,6 +242,8 @@ export default function HomeScreen() {
         setPartnerInsights(null);
         setPartnerPreferences(null);
         setTrivia(null);
+        setDaily(null);
+        setMemoryCount(null);
       }
     } catch (err) {
       console.log("HOME LOAD ERROR:", err);
@@ -256,6 +282,8 @@ export default function HomeScreen() {
       reminders,
       hasUnreadNotifications,
       answeredCount,
+      daily,
+      memoryCount,
     });
   }, [
     loading,
@@ -269,6 +297,8 @@ export default function HomeScreen() {
     trivia,
     reminders,
     hasUnreadNotifications,
+    daily,
+    memoryCount,
   ]);
 
   const handleRefresh = () => {
@@ -280,7 +310,24 @@ export default function HomeScreen() {
     return <HomeSkeleton />;
   }
 
-  const dailyQuestion = todaysQuestionPreview();
+  const dailyQuestion = daily?.question || todaysQuestionPreview();
+
+  const streak = Number(daily?.streak || 0);
+
+  const answeredToday = Boolean(daily?.your_answer);
+
+  /*
+   * Days since the two of you linked. A real number beats
+   * any amount of decoration.
+   */
+  const daysTogether = connection?.connected_at
+    ? Math.max(
+        1,
+        Math.floor(
+          (Date.now() - new Date(connection.connected_at).getTime()) / 86400000,
+        ) + 1,
+      )
+    : null;
 
   const finishProfileCard =
     answeredCount !== null && answeredCount < TOTAL_QUESTIONS ? (
@@ -493,6 +540,38 @@ export default function HomeScreen() {
               </Pressable>
             </FadeIn>
 
+            {/* THE NUMBERS THAT MEAN SOMETHING */}
+
+            <FadeIn delay={90}>
+              <View style={styles.statRow}>
+                {daysTogether ? (
+                  <StatTile
+                    value={daysTogether}
+                    label={
+                      daysTogether === 1 ? "day together" : "days together"
+                    }
+                    tone="blush"
+                  />
+                ) : null}
+
+                {memoryCount !== null ? (
+                  <StatTile
+                    value={memoryCount}
+                    label={memoryCount === 1 ? "memory" : "memories"}
+                    tone="sky"
+                  />
+                ) : null}
+
+                {streak > 0 ? (
+                  <StatTile
+                    value={streak}
+                    label={streak === 1 ? "day streak" : "day streak"}
+                    tone="sage"
+                  />
+                ) : null}
+              </View>
+            </FadeIn>
+
             {/* QUICK ACCESS */}
 
             <QuickActions router={router} />
@@ -500,27 +579,37 @@ export default function HomeScreen() {
             {/* DAILY QUESTION */}
 
             <FadeIn delay={280}>
-              <GlassPanel style={styles.dailyPanel}>
-                <View style={styles.dailyTop}>
-                  <Text style={styles.dailyLabel}>TODAY'S QUESTION</Text>
+              <Squish onPress={() => router.push("/daily-question")}>
+                <View style={styles.dailyCard}>
+                  <View style={styles.dailyTop}>
+                    <Text style={styles.dailyLabel}>TODAY'S QUESTION</Text>
 
-                  <Ionicons name="arrow-forward" size={16} color="#F0E4DE" />
-                </View>
+                    {answeredToday ? (
+                      <Celebrate tone="sage">
+                        {daily?.partner_answered
+                          ? "Both answered"
+                          : "You've answered"}
+                      </Celebrate>
+                    ) : null}
+                  </View>
 
-                <Text style={styles.dailyText} numberOfLines={3}>
-                  {dailyQuestion}
-                </Text>
-
-                <TouchableOpacity
-                  style={styles.dailyButton}
-                  activeOpacity={0.85}
-                  onPress={() => router.push("/daily-question")}
-                >
-                  <Text style={styles.dailyButtonText}>
-                    Answer & unlock {partnerName}'s
+                  <Text style={styles.dailyText} numberOfLines={4}>
+                    {dailyQuestion}
                   </Text>
-                </TouchableOpacity>
-              </GlassPanel>
+
+                  <View style={styles.dailyButton}>
+                    <Text style={styles.dailyButtonText}>
+                      {answeredToday
+                        ? daily?.partner_answered
+                          ? `See what ${partnerName} said`
+                          : `Waiting on ${partnerName}`
+                        : `Answer & unlock ${partnerName}'s`}
+                    </Text>
+
+                    <Ionicons name="arrow-forward" size={15} color="#8A6B32" />
+                  </View>
+                </View>
+              </Squish>
             </FadeIn>
 
             {/* TODAY */}
@@ -878,12 +967,27 @@ function getTodayPrompt({
 function Header({ firstName, hasUnreadNotifications }) {
   const router = useRouter();
 
+  const hour = new Date().getHours();
+
+  const timeOfDay =
+    hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+
+  const timeEmoji =
+    hour < 12
+      ? "\u2600\ufe0f"
+      : hour < 18
+        ? "\ud83c\udf24\ufe0f"
+        : "\ud83c\udf19";
+
   return (
     <View style={styles.header}>
       <View style={styles.headerText}>
-        <Text style={styles.brand}>BETWEEN US</Text>
+        <Text style={styles.brand}>{timeEmoji} BETWEEN US</Text>
 
-        <Text style={styles.greeting}>Good to see you, {firstName}.</Text>
+        <Text style={styles.greeting}>
+          {timeOfDay},{"\n"}
+          <Text style={styles.greetingName}>{firstName}.</Text>
+        </Text>
       </View>
 
       <TouchableOpacity
@@ -914,12 +1018,37 @@ function QuickActions({ router, locked = false }) {
    * not out-shout the cards underneath them.
    */
   const items = [
-    { icon: "time-outline", label: "Timeline", route: "/memories" },
-    { icon: "stats-chart-outline", label: "Insights", route: "/insights" },
-    { icon: "heart-outline", label: "Thanks", route: "/appreciations" },
-    { icon: "pulse-outline", label: "Check-in", route: "/check-in" },
-    { icon: "flag-outline", label: "Goals", route: "/goals" },
-    { icon: "calendar-outline", label: "Dates", route: "/special-dates" },
+    {
+      icon: "time-outline",
+      label: "Timeline",
+      route: "/memories",
+      tone: "sky",
+    },
+    {
+      icon: "stats-chart-outline",
+      label: "Insights",
+      route: "/insights",
+      tone: "lilac",
+    },
+    {
+      icon: "heart-outline",
+      label: "Thanks",
+      route: "/appreciations",
+      tone: "blush",
+    },
+    {
+      icon: "pulse-outline",
+      label: "Check-in",
+      route: "/check-in",
+      tone: "sage",
+    },
+    { icon: "flag-outline", label: "Goals", route: "/goals", tone: "butter" },
+    {
+      icon: "calendar-outline",
+      label: "Dates",
+      route: "/special-dates",
+      tone: "clay",
+    },
   ];
 
   return (
@@ -930,9 +1059,8 @@ function QuickActions({ router, locked = false }) {
           delay={90 + index * 30}
           style={styles.quickCell}
         >
-          <TouchableOpacity
+          <Squish
             style={[styles.quickAction, locked && styles.quickActionLocked]}
-            activeOpacity={0.8}
             onPress={() => {
               if (!locked) {
                 router.push(item.route);
@@ -953,16 +1081,27 @@ function QuickActions({ router, locked = false }) {
               );
             }}
           >
-            <View style={styles.quickIcon}>
+            <View
+              style={[
+                styles.quickIcon,
+                {
+                  backgroundColor: locked
+                    ? "#EDE6E1"
+                    : (PASTELS[item.tone] || PASTELS.clay).bg,
+                },
+              ]}
+            >
               <Ionicons
                 name={locked ? "lock-closed" : item.icon}
-                size={locked ? 14 : 16}
-                color="#6B4E45"
+                size={locked ? 14 : 17}
+                color={
+                  locked ? "#9A8F88" : (PASTELS[item.tone] || PASTELS.clay).ink
+                }
               />
             </View>
 
             <Text style={styles.quickTitle}>{item.label}</Text>
-          </TouchableOpacity>
+          </Squish>
         </FadeIn>
       ))}
     </View>
@@ -1133,11 +1272,24 @@ const styles = StyleSheet.create({
   },
 
   greeting: {
-    marginTop: 8,
-    fontSize: 24,
-    lineHeight: 30,
+    marginTop: 10,
+    fontSize: 27,
+    lineHeight: 33,
     fontWeight: "700",
+    color: "#7A6A62",
+    letterSpacing: -0.3,
+  },
+
+  greetingName: {
     color: "#302825",
+    fontWeight: "800",
+  },
+
+  /* The row of numbers under the partner card. */
+  statRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 18,
   },
 
   notificationButton: {
@@ -1177,45 +1329,55 @@ const styles = StyleSheet.create({
   },
 
   dailyTop: {
+    minHeight: 26,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
 
+  dailyCard: {
+    backgroundColor: "#F8E8C8",
+    borderRadius: 28,
+    padding: 20,
+    marginBottom: 20,
+  },
+
   dailyLabel: {
-    fontSize: 9,
+    fontSize: 9.5,
     fontWeight: "800",
     letterSpacing: 1.6,
-    color: "#DCCBC4",
+    color: "#A88A4E",
   },
 
   dailyText: {
-    marginTop: 12,
-    fontSize: 19,
-    lineHeight: 27,
-    fontWeight: "700",
-    color: "#FFFFFF",
+    marginTop: 14,
+    fontSize: 20,
+    lineHeight: 28,
+    fontWeight: "800",
+    color: "#5C4726",
+    letterSpacing: -0.2,
   },
 
   dailyButton: {
-    marginTop: 16,
-    height: 44,
-    borderRadius: 14,
+    marginTop: 18,
+    height: 46,
+    borderRadius: 16,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.16)",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.4)",
+    gap: 8,
+    backgroundColor: "#FFFFFF",
   },
 
   dailyButtonText: {
-    fontSize: 12.5,
+    fontSize: 13,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: "#8A6B32",
   },
 
   connectionCard: {
-    marginBottom: 18,
+    marginBottom: 14,
+    borderRadius: 28,
   },
 
   connectionTop: {
@@ -1631,12 +1793,12 @@ const styles = StyleSheet.create({
   },
 
   quickAction: {
-    backgroundColor: "rgba(255, 255, 255, 0.72)",
-    borderRadius: 16,
-    paddingVertical: 12,
+    backgroundColor: "rgba(255, 255, 255, 0.82)",
+    borderRadius: 22,
+    paddingVertical: 14,
     paddingHorizontal: 8,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255, 255, 255, 0.9)",
+    borderColor: "rgba(255, 255, 255, 0.95)",
     alignItems: "center",
   },
 
@@ -1645,13 +1807,12 @@ const styles = StyleSheet.create({
   },
 
   quickIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 7,
+    marginBottom: 8,
   },
 
   quickIconText: {
