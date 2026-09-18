@@ -86,11 +86,13 @@ const styles = StyleSheet.create({
   },
 
   backArrow: {
+    fontFamily: "Nunito_400Regular",
     fontSize: 24,
     color: "#D9456B",
   },
 
   title: {
+    fontFamily: "Fraunces_700Bold",
     marginTop: 4,
     fontSize: 28,
     fontWeight: "800",
@@ -98,6 +100,7 @@ const styles = StyleSheet.create({
   },
 
   updated: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 6,
     fontSize: 12,
     color: "#9C8F97",
@@ -109,6 +112,7 @@ const styles = StyleSheet.create({
   },
 
   intro: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 16,
     fontSize: 15,
     lineHeight: 23,
@@ -120,6 +124,7 @@ const styles = StyleSheet.create({
   },
 
   heading: {
+    fontFamily: "Nunito_700Bold",
     fontSize: 17,
     fontWeight: "700",
     color: "#2E2430",
@@ -127,6 +132,7 @@ const styles = StyleSheet.create({
   },
 
   paragraph: {
+    fontFamily: "Nunito_400Regular",
     fontSize: 14,
     lineHeight: 22,
     color: "#5E544F",
@@ -134,6 +140,7 @@ const styles = StyleSheet.create({
   },
 
   footer: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 34,
     fontSize: 13,
     lineHeight: 20,

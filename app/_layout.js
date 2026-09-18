@@ -5,6 +5,17 @@ import { useEffect, useState } from "react";
 import * as SecureStore from "expo-secure-store";
 import * as Notifications from "expo-notifications";
 import * as SplashScreen from "expo-splash-screen";
+import { useFonts } from "expo-font";
+import {
+  Fraunces_600SemiBold,
+  Fraunces_700Bold,
+} from "@expo-google-fonts/fraunces";
+import {
+  Nunito_400Regular,
+  Nunito_600SemiBold,
+  Nunito_700Bold,
+  Nunito_800ExtraBold,
+} from "@expo-google-fonts/nunito";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
 import { StyleSheet, Text, View } from "react-native";
@@ -414,6 +425,22 @@ function AuthGuard() {
  */
 
 export default function RootLayout() {
+  /*
+   * Fraunces for the headings -- a soft serif with a bit of
+   * character -- and Nunito for everything else, because it
+   * is round and warm without being childish. The system
+   * font was the last thing still making this look like a
+   * form rather than something someone made.
+   */
+  const [fontsLoaded] = useFonts({
+    Fraunces_600SemiBold,
+    Fraunces_700Bold,
+    Nunito_400Regular,
+    Nunito_600SemiBold,
+    Nunito_700Bold,
+    Nunito_800ExtraBold,
+  });
+
   useEffect(() => {
     configureNotifications();
   }, []);
@@ -422,6 +449,12 @@ export default function RootLayout() {
    * Without a key Clerk throws on startup and the app just
    * closes after the splash. Say what's wrong instead.
    */
+  /* Hold the launch screen rather than flashing system type
+     for a frame and then reflowing every screen. */
+  if (!fontsLoaded) {
+    return null;
+  }
+
   if (!publishableKey) {
     return (
       <View style={missingKeyStyles.screen}>
@@ -457,12 +490,14 @@ const missingKeyStyles = StyleSheet.create({
   },
 
   title: {
+    fontFamily: "Fraunces_700Bold",
     fontSize: 20,
     fontWeight: "700",
     color: "#2E2430",
   },
 
   body: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 10,
     fontSize: 15,
     lineHeight: 21,

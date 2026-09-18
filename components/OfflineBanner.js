@@ -63,6 +63,7 @@ const styles = StyleSheet.create({
   },
 
   text: {
+    fontFamily: "Nunito_600SemiBold",
     color: "#F6EBE5",
     fontSize: 13,
     fontWeight: "600",

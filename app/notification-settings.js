@@ -368,6 +368,7 @@ const styles = StyleSheet.create({
   },
 
   brand: {
+    fontFamily: "Nunito_800ExtraBold",
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 2,
@@ -375,6 +376,7 @@ const styles = StyleSheet.create({
   },
 
   pageTitle: {
+    fontFamily: "Fraunces_700Bold",
     marginTop: 5,
     fontSize: 26,
     lineHeight: 31,
@@ -383,6 +385,7 @@ const styles = StyleSheet.create({
   },
 
   pageSubtitle: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 4,
     fontSize: 11,
     lineHeight: 17,
@@ -394,6 +397,7 @@ const styles = StyleSheet.create({
   },
 
   sectionLabel: {
+    fontFamily: "Nunito_800ExtraBold",
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.7,
@@ -421,12 +425,14 @@ const styles = StyleSheet.create({
   },
 
   rowTitle: {
+    fontFamily: "Nunito_700Bold",
     fontSize: 14,
     fontWeight: "700",
     color: "#2E2430",
   },
 
   rowDescription: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 4,
     fontSize: 11,
     lineHeight: 16,
@@ -446,6 +452,7 @@ const styles = StyleSheet.create({
   },
 
   noteText: {
+    fontFamily: "Nunito_400Regular",
     fontSize: 11,
     lineHeight: 17,
     color: "#6F625C",
@@ -460,6 +467,7 @@ const styles = StyleSheet.create({
   },
 
   errorText: {
+    fontFamily: "Nunito_400Regular",
     fontSize: 12,
     lineHeight: 17,
     color: "#C2405F",
@@ -472,6 +480,7 @@ const styles = StyleSheet.create({
   },
 
   loadingText: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 12,
     fontSize: 12,
     color: "#6B5F68",

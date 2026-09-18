@@ -114,6 +114,7 @@ const styles = StyleSheet.create({
   },
 
   doneText: {
+    fontFamily: "Nunito_700Bold",
     fontSize: 16,
     fontWeight: "700",
     color: "#D9456B",

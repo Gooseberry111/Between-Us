@@ -429,6 +429,7 @@ const styles = StyleSheet.create({
   },
 
   brand: {
+    fontFamily: "Nunito_800ExtraBold",
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 2,
@@ -436,6 +437,7 @@ const styles = StyleSheet.create({
   },
 
   pageTitle: {
+    fontFamily: "Fraunces_700Bold",
     marginTop: 5,
     fontSize: 26,
     lineHeight: 31,
@@ -456,11 +458,13 @@ const styles = StyleSheet.create({
   },
 
   streakFlame: {
+    fontFamily: "Nunito_400Regular",
     fontSize: 13,
     color: "#D9456B",
   },
 
   streakText: {
+    fontFamily: "Nunito_800ExtraBold",
     fontSize: 13,
     fontWeight: "800",
     color: "#D9456B",
@@ -471,6 +475,7 @@ const styles = StyleSheet.create({
   },
 
   questionLabel: {
+    fontFamily: "Nunito_800ExtraBold",
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.6,
@@ -478,6 +483,7 @@ const styles = StyleSheet.create({
   },
 
   questionText: {
+    fontFamily: "Fraunces_700Bold",
     marginTop: 12,
     fontSize: 22,
     lineHeight: 30,
@@ -506,6 +512,7 @@ const styles = StyleSheet.create({
   },
 
   savedPillText: {
+    fontFamily: "Nunito_800ExtraBold",
     fontSize: 10,
     fontWeight: "800",
     color: "#4F7A56",
@@ -514,6 +521,7 @@ const styles = StyleSheet.create({
   /* Written down rather than left in a text box,
    * so it actually reads as saved. */
   savedAnswer: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 12,
     fontSize: 15.5,
     lineHeight: 23,
@@ -530,6 +538,7 @@ const styles = StyleSheet.create({
   },
 
   editButtonText: {
+    fontFamily: "Nunito_700Bold",
     fontSize: 11.5,
     fontWeight: "700",
     color: "#D9456B",
@@ -543,12 +552,14 @@ const styles = StyleSheet.create({
   },
 
   cancelButtonText: {
+    fontFamily: "Nunito_700Bold",
     fontSize: 12,
     fontWeight: "700",
     color: "#6B5F68",
   },
 
   cardLabel: {
+    fontFamily: "Nunito_800ExtraBold",
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.5,
@@ -556,6 +567,7 @@ const styles = StyleSheet.create({
   },
 
   input: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 12,
     minHeight: 110,
     borderRadius: 14,
@@ -583,6 +595,7 @@ const styles = StyleSheet.create({
   },
 
   saveButtonText: {
+    fontFamily: "Nunito_800ExtraBold",
     color: "#FFFFFF",
     fontSize: 14,
     fontWeight: "800",
@@ -595,6 +608,7 @@ const styles = StyleSheet.create({
   },
 
   lockedTitle: {
+    fontFamily: "Nunito_700Bold",
     marginTop: 10,
     fontSize: 14,
     fontWeight: "700",
@@ -603,6 +617,7 @@ const styles = StyleSheet.create({
   },
 
   lockedText: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 6,
     fontSize: 12,
     lineHeight: 18,
@@ -612,6 +627,7 @@ const styles = StyleSheet.create({
   },
 
   answerText: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 12,
     fontSize: 15,
     lineHeight: 23,
@@ -627,6 +643,7 @@ const styles = StyleSheet.create({
   },
 
   errorText: {
+    fontFamily: "Nunito_400Regular",
     fontSize: 12,
     lineHeight: 17,
     color: "#C2405F",

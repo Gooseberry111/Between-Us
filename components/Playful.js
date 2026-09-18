@@ -178,17 +178,20 @@ const styles = StyleSheet.create({
   },
 
   statValue: {
+    fontFamily: "Fraunces_700Bold",
     fontSize: 26,
     fontWeight: "800",
     letterSpacing: -0.5,
   },
 
   statSuffix: {
+    fontFamily: "Nunito_700Bold",
     fontSize: 14,
     fontWeight: "700",
   },
 
   statLabel: {
+    fontFamily: "Nunito_700Bold",
     marginTop: 2,
     fontSize: 11,
     fontWeight: "700",
@@ -203,6 +206,7 @@ const styles = StyleSheet.create({
   },
 
   badgeText: {
+    fontFamily: "Nunito_800ExtraBold",
     fontSize: 12,
     fontWeight: "800",
     letterSpacing: 0.2,
@@ -224,10 +228,12 @@ const styles = StyleSheet.create({
   },
 
   emptyEmoji: {
+    fontFamily: "Nunito_400Regular",
     fontSize: 38,
   },
 
   emptyTitle: {
+    fontFamily: "Nunito_800ExtraBold",
     fontSize: 19,
     fontWeight: "800",
     color: "#2E2430",
@@ -235,6 +241,7 @@ const styles = StyleSheet.create({
   },
 
   emptyText: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 7,
     fontSize: 14,
     lineHeight: 21,

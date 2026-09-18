@@ -182,12 +182,14 @@ const styles = StyleSheet.create({
   },
 
   tick: {
+    fontFamily: "Fraunces_700Bold",
     fontSize: 30,
     fontWeight: "800",
     color: "#7FA383",
   },
 
   title: {
+    fontFamily: "Nunito_800ExtraBold",
     marginTop: 12,
     fontSize: 19,
     fontWeight: "800",
@@ -196,6 +198,7 @@ const styles = StyleSheet.create({
   },
 
   message: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 7,
     fontSize: 13,
     lineHeight: 19,

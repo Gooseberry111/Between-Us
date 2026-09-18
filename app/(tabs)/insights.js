@@ -835,6 +835,7 @@ const styles = StyleSheet.create({
   },
 
   brand: {
+    fontFamily: "Nunito_800ExtraBold",
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 2.2,
@@ -842,6 +843,7 @@ const styles = StyleSheet.create({
   },
 
   pageTitle: {
+    fontFamily: "Fraunces_700Bold",
     marginTop: 7,
     fontSize: 28,
     lineHeight: 34,
@@ -859,6 +861,7 @@ const styles = StyleSheet.create({
   },
 
   headerIconText: {
+    fontFamily: "Nunito_400Regular",
     fontSize: 25,
     color: "#D9456B",
   },
@@ -880,11 +883,13 @@ const styles = StyleSheet.create({
   },
 
   heroHeart: {
+    fontFamily: "Nunito_400Regular",
     fontSize: 27,
     color: "#FFFFFF",
   },
 
   heroTitle: {
+    fontFamily: "Fraunces_700Bold",
     fontSize: 21,
     lineHeight: 27,
     fontWeight: "700",
@@ -892,6 +897,7 @@ const styles = StyleSheet.create({
   },
 
   heroText: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 9,
     fontSize: 13,
     lineHeight: 20,
@@ -919,12 +925,14 @@ const styles = StyleSheet.create({
   },
 
   editChipText: {
+    fontFamily: "Nunito_800ExtraBold",
     fontSize: 12,
     fontWeight: "800",
     color: "#D9456B",
   },
 
   sectionLabel: {
+    fontFamily: "Nunito_800ExtraBold",
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.7,
@@ -952,6 +960,7 @@ const styles = StyleSheet.create({
   },
 
   connectionAvatarText: {
+    fontFamily: "Fraunces_700Bold",
     fontSize: 20,
     fontWeight: "700",
     color: "#D9456B",
@@ -963,6 +972,7 @@ const styles = StyleSheet.create({
   },
 
   connectionLabel: {
+    fontFamily: "Nunito_800ExtraBold",
     fontSize: 8,
     fontWeight: "800",
     letterSpacing: 1.4,
@@ -970,6 +980,7 @@ const styles = StyleSheet.create({
   },
 
   connectionName: {
+    fontFamily: "Nunito_700Bold",
     marginTop: 3,
     fontSize: 17,
     fontWeight: "700",
@@ -977,6 +988,7 @@ const styles = StyleSheet.create({
   },
 
   connectionType: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 2,
     fontSize: 11,
     color: "#6B5F68",
@@ -992,12 +1004,14 @@ const styles = StyleSheet.create({
   },
 
   noConnectionTitle: {
+    fontFamily: "Nunito_700Bold",
     fontSize: 16,
     fontWeight: "700",
     color: "#2E2430",
   },
 
   noConnectionText: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 7,
     fontSize: 12,
     lineHeight: 18,
@@ -1020,6 +1034,7 @@ const styles = StyleSheet.create({
   },
 
   smallCardValue: {
+    fontFamily: "Nunito_700Bold",
     marginTop: 12,
     fontSize: 15,
     lineHeight: 20,
@@ -1047,11 +1062,13 @@ const styles = StyleSheet.create({
   },
 
   insightIconText: {
+    fontFamily: "Nunito_400Regular",
     fontSize: 20,
     color: "#D9456B",
   },
 
   cardEyebrow: {
+    fontFamily: "Nunito_800ExtraBold",
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.3,
@@ -1059,6 +1076,7 @@ const styles = StyleSheet.create({
   },
 
   cardTitle: {
+    fontFamily: "Nunito_700Bold",
     marginTop: 7,
     fontSize: 18,
     fontWeight: "700",
@@ -1066,6 +1084,7 @@ const styles = StyleSheet.create({
   },
 
   cardDescription: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 7,
     fontSize: 12,
     lineHeight: 18,
@@ -1096,6 +1115,7 @@ const styles = StyleSheet.create({
   },
 
   insightBulletText: {
+    fontFamily: "Nunito_800ExtraBold",
     fontSize: 13,
     fontWeight: "800",
     color: "#D9456B",
@@ -1107,6 +1127,7 @@ const styles = StyleSheet.create({
   },
 
   insightRowTitle: {
+    fontFamily: "Nunito_800ExtraBold",
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1,
@@ -1114,6 +1135,7 @@ const styles = StyleSheet.create({
   },
 
   insightRowValue: {
+    fontFamily: "Nunito_600SemiBold",
     marginTop: 4,
     fontSize: 14,
     lineHeight: 19,
@@ -1140,6 +1162,7 @@ const styles = StyleSheet.create({
   },
 
   differenceText: {
+    fontFamily: "Nunito_400Regular",
     flex: 1,
     marginLeft: 13,
     fontSize: 13,
@@ -1171,12 +1194,14 @@ const styles = StyleSheet.create({
   },
 
   languageNumberText: {
+    fontFamily: "Nunito_800ExtraBold",
     fontSize: 11,
     fontWeight: "800",
     color: "#D9456B",
   },
 
   languageText: {
+    fontFamily: "Nunito_600SemiBold",
     marginLeft: 12,
     fontSize: 14,
     fontWeight: "600",
@@ -1207,12 +1232,14 @@ const styles = StyleSheet.create({
   },
 
   goalIconText: {
+    fontFamily: "Nunito_400Regular",
     fontSize: 18,
     fontWeight: "500",
     color: "#D9456B",
   },
 
   goalText: {
+    fontFamily: "Nunito_600SemiBold",
     marginLeft: 12,
     fontSize: 14,
     fontWeight: "600",
@@ -1235,12 +1262,14 @@ const styles = StyleSheet.create({
   },
 
   favoriteLabel: {
+    fontFamily: "Nunito_700Bold",
     fontSize: 11,
     fontWeight: "700",
     color: "#9C8F97",
   },
 
   favoriteValue: {
+    fontFamily: "Nunito_600SemiBold",
     flex: 1,
     marginLeft: 15,
     textAlign: "right",
@@ -1255,6 +1284,7 @@ const styles = StyleSheet.create({
   },
 
   emptyText: {
+    fontFamily: "Nunito_400Regular",
     paddingVertical: 20,
     fontSize: 12,
     lineHeight: 18,
@@ -1270,6 +1300,7 @@ const styles = StyleSheet.create({
   },
 
   errorText: {
+    fontFamily: "Nunito_400Regular",
     fontSize: 12,
     lineHeight: 17,
     color: "#C2405F",
@@ -1283,11 +1314,13 @@ const styles = StyleSheet.create({
   },
 
   footerHeart: {
+    fontFamily: "Nunito_400Regular",
     fontSize: 25,
     color: "#D9456B",
   },
 
   footerTitle: {
+    fontFamily: "Nunito_800ExtraBold",
     marginTop: 8,
     fontSize: 9,
     fontWeight: "800",
@@ -1296,6 +1329,7 @@ const styles = StyleSheet.create({
   },
 
   footerText: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 6,
     textAlign: "center",
     fontSize: 10,
@@ -1319,11 +1353,13 @@ const styles = StyleSheet.create({
   },
 
   loadingHeart: {
+    fontFamily: "Nunito_400Regular",
     fontSize: 29,
     color: "#D9456B",
   },
 
   loadingTitle: {
+    fontFamily: "Fraunces_700Bold",
     marginTop: 14,
     fontSize: 21,
     fontWeight: "700",

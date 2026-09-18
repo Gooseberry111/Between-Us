@@ -1,47 +1,15 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
 import { Platform, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PASTELS } from "../../components/Playful";
 
 /*
- * The bar floats over the content rather than sitting
- * on an opaque strip, so whatever you are scrolling
- * passes underneath it.
+ * The bar is a solid surface the screen ends at. It used to
+ * be glass, which meant content slid visibly behind the icons
+ * as you scrolled and fought with the labels.
  */
-
-function TabBarBackground({ bottomInset }) {
-  /*
-   * Android's blur samples only what the system hands it, so
-   * a true frosted pane isn't available there: the bar came
-   * out see-through and collided with whatever scrolled
-   * beneath. A near-solid pane with a tinted edge reads as
-   * glass on Android; iOS keeps the real blur.
-   *
-   * The pane runs under the phone's own navigation -- the
-   * gesture pill or the three-button row -- so the tabs never
-   * sit on bare content down there.
-   */
-  return (
-    <View style={[styles.barWrapper, { paddingBottom: bottomInset }]}>
-      {/*
-       * Opaque, not translucent. A see-through bar meant the
-       * content scrolling underneath showed as ghosts behind
-       * the icons; on iOS the blur stays as a faint lift under
-       * a nearly solid pane.
-       */}
-      {Platform.OS === "ios" ? (
-        <BlurView intensity={25} tint="light" style={StyleSheet.absoluteFill} />
-      ) : null}
-
-      <View style={styles.barSolid} />
-
-      <View style={styles.barHairline} />
-    </View>
-  );
-}
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
@@ -60,19 +28,34 @@ export default function TabsLayout() {
         tabBarActiveTintColor: "#8C4F5E",
         tabBarInactiveTintColor: "#A79B94",
 
-        tabBarBackground: () => <TabBarBackground bottomInset={bottomInset} />,
-
+        /*
+         * A solid bar, not a glass one.
+         *
+         * Anything translucent here showed the content
+         * scrolling underneath -- text sliding behind the
+         * icons, colours fighting the labels. The bar is now
+         * an opaque surface the screen ends at, running the
+         * whole way down under the phone's own navigation
+         * buttons so nothing shows between them either.
+         */
         tabBarStyle: {
           position: "absolute",
           left: 0,
           right: 0,
           bottom: 0,
-          borderTopWidth: 0,
-          backgroundColor: "transparent",
-          elevation: 0,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: "rgba(217,69,107,0.16)",
+          backgroundColor: "#FFFFFF",
           height: 62 + bottomInset,
           paddingTop: 8,
           paddingBottom: bottomInset + 4,
+
+          /* Lifts it off the content instead of blending in. */
+          elevation: 18,
+          shadowColor: "#5B2B43",
+          shadowOpacity: 0.12,
+          shadowRadius: 14,
+          shadowOffset: { width: 0, height: -4 },
         },
 
         tabBarLabelStyle: {
@@ -115,30 +98,6 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-  barWrapper: {
-    ...StyleSheet.absoluteFillObject,
-    overflow: "hidden",
-  },
-
-  barTintIOS: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255,253,251,0.58)",
-  },
-
-  barSolid: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255,246,248,0.97)",
-  },
-
-  barHairline: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(217,69,107,0.18)",
-  },
-
   icon: {
     width: 34,
     height: 30,

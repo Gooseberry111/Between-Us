@@ -496,6 +496,7 @@ const styles = StyleSheet.create({
   },
 
   brand: {
+    fontFamily: "Nunito_800ExtraBold",
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 2,
@@ -503,6 +504,7 @@ const styles = StyleSheet.create({
   },
 
   pageTitle: {
+    fontFamily: "Fraunces_700Bold",
     marginTop: 5,
     fontSize: 26,
     lineHeight: 31,
@@ -511,6 +513,7 @@ const styles = StyleSheet.create({
   },
 
   pageSubtitle: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 4,
     fontSize: 11,
     lineHeight: 17,
@@ -537,6 +540,7 @@ const styles = StyleSheet.create({
   },
 
   addIconText: {
+    fontFamily: "Nunito_400Regular",
     fontSize: 24,
     lineHeight: 27,
     color: "#FFFFFF",
@@ -548,12 +552,14 @@ const styles = StyleSheet.create({
   },
 
   addTitle: {
+    fontFamily: "Nunito_700Bold",
     fontSize: 15,
     fontWeight: "700",
     color: "#2E2430",
   },
 
   addSubtitle: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 3,
     fontSize: 11,
     lineHeight: 16,
@@ -561,6 +567,7 @@ const styles = StyleSheet.create({
   },
 
   addArrow: {
+    fontFamily: "Nunito_400Regular",
     fontSize: 20,
     color: "#D9456B",
     marginLeft: 8,
@@ -583,6 +590,7 @@ const styles = StyleSheet.create({
   },
 
   formLabel: {
+    fontFamily: "Nunito_800ExtraBold",
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.6,
@@ -590,6 +598,7 @@ const styles = StyleSheet.create({
   },
 
   formTitle: {
+    fontFamily: "Nunito_700Bold",
     marginTop: 5,
     fontSize: 19,
     fontWeight: "700",
@@ -607,11 +616,13 @@ const styles = StyleSheet.create({
   },
 
   closeButtonText: {
+    fontFamily: "Nunito_400Regular",
     fontSize: 22,
     color: "#D9456B",
   },
 
   inputLabel: {
+    fontFamily: "Nunito_800ExtraBold",
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.5,
@@ -620,6 +631,7 @@ const styles = StyleSheet.create({
   },
 
   input: {
+    fontFamily: "Nunito_400Regular",
     minHeight: 49,
     borderRadius: 12,
     backgroundColor: "rgba(217, 69, 107, 0.07)",
@@ -646,6 +658,7 @@ const styles = StyleSheet.create({
   },
 
   saveButtonText: {
+    fontFamily: "Nunito_700Bold",
     color: "#FFFFFF",
     fontSize: 14,
     fontWeight: "700",
@@ -656,6 +669,7 @@ const styles = StyleSheet.create({
   },
 
   sectionLabel: {
+    fontFamily: "Nunito_800ExtraBold",
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.7,
@@ -664,6 +678,7 @@ const styles = StyleSheet.create({
   },
 
   sectionTitle: {
+    fontFamily: "Nunito_700Bold",
     fontSize: 18,
     lineHeight: 24,
     fontWeight: "700",
@@ -697,12 +712,14 @@ const styles = StyleSheet.create({
   },
 
   dateCardTitle: {
+    fontFamily: "Nunito_700Bold",
     fontSize: 14,
     fontWeight: "700",
     color: "#2E2430",
   },
 
   dateCardDate: {
+    fontFamily: "Nunito_600SemiBold",
     marginTop: 4,
     fontSize: 11,
     fontWeight: "600",
@@ -718,6 +735,7 @@ const styles = StyleSheet.create({
   },
 
   deleteButtonText: {
+    fontFamily: "Nunito_700Bold",
     fontSize: 11,
     fontWeight: "700",
     color: "#C2405F",
@@ -743,12 +761,14 @@ const styles = StyleSheet.create({
   },
 
   emptyTitle: {
+    fontFamily: "Nunito_700Bold",
     fontSize: 18,
     fontWeight: "700",
     color: "#2E2430",
   },
 
   emptyText: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 8,
     fontSize: 13,
     lineHeight: 20,
@@ -765,6 +785,7 @@ const styles = StyleSheet.create({
   },
 
   emptyButtonText: {
+    fontFamily: "Nunito_700Bold",
     fontSize: 12,
     fontWeight: "700",
     color: "#D9456B",
@@ -779,6 +800,7 @@ const styles = StyleSheet.create({
   },
 
   footerQuote: {
+    fontFamily: "Nunito_600SemiBold",
     textAlign: "center",
     fontSize: 14,
     lineHeight: 21,
@@ -795,6 +817,7 @@ const styles = StyleSheet.create({
   },
 
   errorText: {
+    fontFamily: "Nunito_400Regular",
     fontSize: 12,
     lineHeight: 17,
     color: "#C2405F",
@@ -807,6 +830,7 @@ const styles = StyleSheet.create({
   },
 
   loadingText: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 12,
     fontSize: 12,
     color: "#6B5F68",

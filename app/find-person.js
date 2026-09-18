@@ -925,6 +925,7 @@ const styles = StyleSheet.create({
   },
 
   loadingText: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 10,
     fontSize: 14,
     color: "#6B5F68",
@@ -950,6 +951,7 @@ const styles = StyleSheet.create({
   },
 
   backArrow: {
+    fontFamily: "Nunito_400Regular",
     fontSize: 21,
     color: "#D9456B",
     marginTop: -2,
@@ -960,6 +962,7 @@ const styles = StyleSheet.create({
   },
 
   eyebrow: {
+    fontFamily: "Nunito_700Bold",
     fontSize: 10,
     fontWeight: "700",
     letterSpacing: 1.8,
@@ -968,6 +971,7 @@ const styles = StyleSheet.create({
   },
 
   title: {
+    fontFamily: "Fraunces_700Bold",
     fontSize: 29,
     lineHeight: 34,
     fontWeight: "700",
@@ -975,6 +979,7 @@ const styles = StyleSheet.create({
   },
 
   subtitle: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 8,
     fontSize: 13,
     lineHeight: 19,
@@ -991,6 +996,7 @@ const styles = StyleSheet.create({
   },
 
   requestsTitle: {
+    fontFamily: "Nunito_800ExtraBold",
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.7,
@@ -1018,6 +1024,7 @@ const styles = StyleSheet.create({
   },
 
   requestAvatarText: {
+    fontFamily: "Nunito_700Bold",
     fontSize: 18,
     fontWeight: "700",
     color: "#D9456B",
@@ -1029,18 +1036,21 @@ const styles = StyleSheet.create({
   },
 
   requestName: {
+    fontFamily: "Nunito_700Bold",
     fontSize: 16,
     fontWeight: "700",
     color: "#2E2430",
   },
 
   requestText: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 3,
     fontSize: 12,
     color: "#6B5F68",
   },
 
   requestRelationship: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 3,
     fontSize: 11,
     color: "#B9A7B1",
@@ -1054,6 +1064,7 @@ const styles = StyleSheet.create({
   },
 
   requestViewButtonText: {
+    fontFamily: "Nunito_700Bold",
     color: "#D9456B",
     fontSize: 12,
     fontWeight: "700",
@@ -1066,6 +1077,7 @@ const styles = StyleSheet.create({
   },
 
   requestLoadingText: {
+    fontFamily: "Nunito_400Regular",
     marginLeft: 8,
     fontSize: 12,
     color: "#6B5F68",
@@ -1097,6 +1109,7 @@ const styles = StyleSheet.create({
   },
 
   searchInput: {
+    fontFamily: "Nunito_400Regular",
     flex: 1,
     height: 54,
     fontSize: 15,
@@ -1118,6 +1131,7 @@ const styles = StyleSheet.create({
   },
 
   searchingText: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 10,
     fontSize: 13,
     color: "#6B5F68",
@@ -1148,12 +1162,14 @@ const styles = StyleSheet.create({
   },
 
   tipTitle: {
+    fontFamily: "Nunito_700Bold",
     fontSize: 15,
     fontWeight: "700",
     color: "#2E2430",
   },
 
   tipText: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 4,
     fontSize: 13,
     lineHeight: 19,
@@ -1173,6 +1189,7 @@ const styles = StyleSheet.create({
   },
 
   errorText: {
+    fontFamily: "Nunito_400Regular",
     color: "#C2405F",
     fontSize: 13,
     lineHeight: 18,
@@ -1187,6 +1204,7 @@ const styles = StyleSheet.create({
   },
 
   successText: {
+    fontFamily: "Nunito_400Regular",
     color: "#4F6B54",
     fontSize: 13,
     lineHeight: 18,
@@ -1225,6 +1243,7 @@ const styles = StyleSheet.create({
   },
 
   statePillText: {
+    fontFamily: "Nunito_700Bold",
     fontSize: 11,
     fontWeight: "700",
     color: "#7A6A62",
@@ -1235,6 +1254,7 @@ const styles = StyleSheet.create({
   },
 
   resultsTitle: {
+    fontFamily: "Nunito_700Bold",
     fontSize: 13,
     fontWeight: "700",
     color: "#6B5F68",
@@ -1262,6 +1282,7 @@ const styles = StyleSheet.create({
   },
 
   avatarText: {
+    fontFamily: "Nunito_700Bold",
     fontSize: 18,
     fontWeight: "700",
     color: "#D9456B",
@@ -1273,24 +1294,28 @@ const styles = StyleSheet.create({
   },
 
   personName: {
+    fontFamily: "Nunito_700Bold",
     fontSize: 16,
     fontWeight: "700",
     color: "#2E2430",
   },
 
   personEmail: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 3,
     fontSize: 12,
     color: "#6B5F68",
   },
 
   personCountry: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 3,
     fontSize: 11,
     color: "#B9A7B1",
   },
 
   personArrow: {
+    fontFamily: "Nunito_400Regular",
     fontSize: 26,
     color: "#9C8F97",
     marginLeft: 8,
@@ -1316,11 +1341,13 @@ const styles = StyleSheet.create({
   },
 
   emptyHeart: {
+    fontFamily: "Nunito_400Regular",
     fontSize: 34,
     color: "#D9456B",
   },
 
   emptyTitle: {
+    fontFamily: "Fraunces_700Bold",
     fontSize: 20,
     fontWeight: "700",
     color: "#2E2430",
@@ -1328,6 +1355,7 @@ const styles = StyleSheet.create({
   },
 
   emptyText: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 8,
     fontSize: 13,
     lineHeight: 20,
@@ -1354,11 +1382,13 @@ const styles = StyleSheet.create({
   },
 
   detailLabel: {
+    fontFamily: "Nunito_400Regular",
     fontSize: 13,
     color: "#6B5F68",
   },
 
   detailValue: {
+    fontFamily: "Nunito_600SemiBold",
     fontSize: 13,
     fontWeight: "600",
     color: "#2E2430",
@@ -1384,6 +1414,7 @@ const styles = StyleSheet.create({
   },
 
   rejectButtonText: {
+    fontFamily: "Nunito_700Bold",
     fontSize: 14,
     fontWeight: "700",
     color: "#D9456B",
@@ -1399,6 +1430,7 @@ const styles = StyleSheet.create({
   },
 
   acceptButtonText: {
+    fontFamily: "Nunito_700Bold",
     fontSize: 14,
     fontWeight: "700",
     color: "#FFFFFF",
@@ -1449,6 +1481,7 @@ const styles = StyleSheet.create({
   },
 
   modalCloseText: {
+    fontFamily: "Nunito_400Regular",
     fontSize: 23,
     color: "#D9456B",
     lineHeight: 25,
@@ -1466,12 +1499,14 @@ const styles = StyleSheet.create({
   },
 
   modalAvatarText: {
+    fontFamily: "Fraunces_700Bold",
     fontSize: 24,
     fontWeight: "700",
     color: "#D9456B",
   },
 
   modalTitle: {
+    fontFamily: "Fraunces_700Bold",
     marginTop: 15,
     fontSize: 22,
     lineHeight: 27,
@@ -1481,6 +1516,7 @@ const styles = StyleSheet.create({
   },
 
   modalSubtitle: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 7,
     fontSize: 13,
     lineHeight: 19,
@@ -1489,6 +1525,7 @@ const styles = StyleSheet.create({
   },
 
   relationshipLabel: {
+    fontFamily: "Nunito_700Bold",
     marginTop: 23,
     marginBottom: 10,
     fontSize: 13,
@@ -1517,6 +1554,7 @@ const styles = StyleSheet.create({
   },
 
   relationshipText: {
+    fontFamily: "Nunito_600SemiBold",
     fontSize: 13,
     fontWeight: "600",
     color: "#6B5F68",
@@ -1546,6 +1584,7 @@ const styles = StyleSheet.create({
   },
 
   connectText: {
+    fontFamily: "Nunito_700Bold",
     color: "#FFFFFF",
     fontSize: 14,
     fontWeight: "700",

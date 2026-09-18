@@ -605,6 +605,7 @@ export default function SignInScreen() {
 
 const styles = StyleSheet.create({
   linkAction: {
+    fontFamily: "Nunito_600SemiBold",
     textAlign: "center",
     color: "#D9456B",
     fontSize: 14,
@@ -613,6 +614,7 @@ const styles = StyleSheet.create({
   },
 
   noticeText: {
+    fontFamily: "Nunito_400Regular",
     color: "#4F6F52",
     fontSize: 13,
     lineHeight: 19,
@@ -652,12 +654,14 @@ const styles = StyleSheet.create({
   },
 
   backArrow: {
+    fontFamily: "Nunito_400Regular",
     fontSize: 21,
     color: "#D9456B",
     marginRight: 7,
   },
 
   backText: {
+    fontFamily: "Nunito_600SemiBold",
     fontSize: 14,
     fontWeight: "600",
     color: "#D9456B",
@@ -672,6 +676,7 @@ const styles = StyleSheet.create({
   },
 
   eyebrow: {
+    fontFamily: "Nunito_700Bold",
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 1.8,
@@ -680,6 +685,7 @@ const styles = StyleSheet.create({
   },
 
   title: {
+    fontFamily: "Fraunces_700Bold",
     fontSize: 38,
     lineHeight: 44,
     fontWeight: "700",
@@ -691,6 +697,7 @@ const styles = StyleSheet.create({
   },
 
   description: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 15,
     maxWidth: 330,
     fontSize: 15,
@@ -711,6 +718,7 @@ const styles = StyleSheet.create({
   },
 
   label: {
+    fontFamily: "Nunito_600SemiBold",
     fontSize: 13,
     fontWeight: "600",
     color: "#5F554F",
@@ -718,6 +726,7 @@ const styles = StyleSheet.create({
   },
 
   input: {
+    fontFamily: "Nunito_400Regular",
     height: 54,
     borderRadius: 14,
     backgroundColor: "#FFFFFF",
@@ -741,6 +750,7 @@ const styles = StyleSheet.create({
   },
 
   errorText: {
+    fontFamily: "Nunito_400Regular",
     color: "#C2405F",
     fontSize: 13,
     lineHeight: 18,
@@ -774,12 +784,14 @@ const styles = StyleSheet.create({
   },
 
   signInText: {
+    fontFamily: "Nunito_700Bold",
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
   },
 
   arrow: {
+    fontFamily: "Nunito_400Regular",
     color: "#FFFFFF",
     fontSize: 21,
     fontWeight: "500",
@@ -797,12 +809,14 @@ const styles = StyleSheet.create({
   },
 
   footerText: {
+    fontFamily: "Nunito_400Regular",
     color: "#6B5F68",
     fontSize: 14,
     marginRight: 5,
   },
 
   createText: {
+    fontFamily: "Nunito_700Bold",
     color: "#D9456B",
     fontSize: 14,
     fontWeight: "700",
@@ -830,17 +844,20 @@ const styles = StyleSheet.create({
   },
 
   loadingLogoText: {
+    fontFamily: "Nunito_400Regular",
     fontSize: 30,
     color: "#D9456B",
   },
 
   loadingTitle: {
+    fontFamily: "Fraunces_700Bold",
     fontSize: 22,
     fontWeight: "700",
     color: "#2E2430",
   },
 
   loadingText: {
+    fontFamily: "Nunito_400Regular",
     marginTop: 7,
     fontSize: 14,
     color: "#6B5F68",
