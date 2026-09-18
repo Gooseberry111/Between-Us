@@ -5,6 +5,16 @@ import { useEffect, useState } from "react";
 import * as SecureStore from "expo-secure-store";
 import * as Notifications from "expo-notifications";
 import * as SplashScreen from "expo-splash-screen";
+import * as Device from "expo-device";
+import Constants from "expo-constants";
+import { StyleSheet, Text, View } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { RETURNING_USER_KEY } from "../lib/auth";
+import { apiFetch, setTokenProvider } from "../lib/api";
+import { onProfileSaved } from "../lib/profileProgress";
+import ErrorCatcher from "../components/ErrorCatcher";
+import OfflineBanner from "../components/OfflineBanner";
+
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 /*
