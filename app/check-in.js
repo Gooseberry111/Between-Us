@@ -54,6 +54,13 @@ export default function CheckInScreen() {
   const [note, setNote] = useState(cached?.your_checkin?.note ?? "");
   const [error, setError] = useState("");
 
+  /*
+   * Saving looked identical to not saving: same panel, same
+   * button, nothing moved. The answer was going in, but there
+   * was no way to know that, so it read as broken.
+   */
+  const [justSaved, setJustSaved] = useState(false);
+
   const load = useCallback(async () => {
     if (!isLoaded || !isSignedIn || !userId) {
       setLoading(false);
@@ -108,6 +115,10 @@ export default function CheckInScreen() {
       setData(json);
 
       if (cacheKey) setCachedData(cacheKey, json);
+
+      setJustSaved(true);
+
+      setTimeout(() => setJustSaved(false), 2600);
     } catch (err) {
       console.log("CHECKIN SAVE ERROR:", err);
       Alert.alert("Something went wrong", err?.message || "Unable to save.");
@@ -240,12 +251,30 @@ export default function CheckInScreen() {
                     >
                       {saving ? (
                         <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : justSaved ? (
+                        <View style={styles.savedRow}>
+                          <Ionicons
+                            name="checkmark-circle"
+                            size={17}
+                            color="#FFFFFF"
+                          />
+
+                          <Text style={styles.saveButtonText}>Saved</Text>
+                        </View>
                       ) : (
                         <Text style={styles.saveButtonText}>
                           {mineDone ? "Update this week" : "Save this week"}
                         </Text>
                       )}
                     </TouchableOpacity>
+
+                    {mineDone ? (
+                      <Text style={styles.savedNote}>
+                        {data?.partner_checkin
+                          ? `You both checked in this week. ${partnerName} said ${data.partner_checkin.rating}/5.`
+                          : `Saved. ${partnerName} hasn't checked in yet this week.`}
+                      </Text>
+                    ) : null}
                   </GlassPanel>
 
                   {/* PARTNER */}
@@ -428,6 +457,20 @@ const styles = StyleSheet.create({
   },
 
   saveButtonDisabled: { opacity: 0.45 },
+
+  savedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+
+  savedNote: {
+    marginTop: 12,
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: "rgba(255,255,255,0.75)",
+    textAlign: "center",
+  },
 
   saveButtonText: {
     fontSize: 13,
