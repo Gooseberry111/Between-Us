@@ -328,7 +328,8 @@ const styles = StyleSheet.create({
   },
 
   headerText: {
-    fontFamily: "Nunito_800ExtraBold", flex: 1 },
+    flex: 1,
+  },
 
   brand: {
     fontSize: 9,
@@ -338,7 +339,6 @@ const styles = StyleSheet.create({
   },
 
   pageTitle: {
-    fontFamily: "Fraunces_700Bold",
     marginTop: 5,
     fontSize: 26,
     lineHeight: 31,
@@ -347,7 +347,8 @@ const styles = StyleSheet.create({
   },
 
   composer: {
-    fontFamily: "Nunito_800ExtraBold", marginBottom: 8 },
+    marginBottom: 8,
+  },
 
   composerLabel: {
     fontSize: 9,
@@ -357,7 +358,6 @@ const styles = StyleSheet.create({
   },
 
   composerTitle: {
-    fontFamily: "Fraunces_700Bold",
     marginTop: 10,
     fontSize: 18,
     lineHeight: 25,
@@ -366,7 +366,6 @@ const styles = StyleSheet.create({
   },
 
   input: {
-    fontFamily: "Nunito_400Regular",
     marginTop: 14,
     minHeight: 84,
     borderRadius: 14,
@@ -392,7 +391,8 @@ const styles = StyleSheet.create({
   },
 
   sendButtonDisabled: {
-    fontFamily: "Nunito_800ExtraBold", opacity: 0.45 },
+    opacity: 0.45,
+  },
 
   sendButtonText: {
     fontSize: 13,
@@ -401,7 +401,8 @@ const styles = StyleSheet.create({
   },
 
   section: {
-    fontFamily: "Nunito_800ExtraBold", marginTop: 28 },
+    marginTop: 28,
+  },
 
   sectionLabel: {
     fontSize: 10,
@@ -437,7 +438,6 @@ const styles = StyleSheet.create({
   },
 
   noteBadgeText: {
-    fontFamily: "Nunito_800ExtraBold",
     fontSize: 8.5,
     fontWeight: "800",
     letterSpacing: 0.8,
@@ -445,14 +445,12 @@ const styles = StyleSheet.create({
   },
 
   noteDate: {
-    fontFamily: "Nunito_600SemiBold",
     fontSize: 10,
     fontWeight: "600",
     color: "#9C8F97",
   },
 
   noteText: {
-    fontFamily: "Nunito_400Regular",
     marginTop: 12,
     fontSize: 14.5,
     lineHeight: 21,
@@ -469,7 +467,6 @@ const styles = StyleSheet.create({
   },
 
   deleteButtonText: {
-    fontFamily: "Nunito_700Bold",
     fontSize: 11,
     fontWeight: "700",
     color: "#C2405F",
@@ -484,14 +481,12 @@ const styles = StyleSheet.create({
   },
 
   emptyTitle: {
-    fontFamily: "Fraunces_700Bold",
     fontSize: 16,
     fontWeight: "700",
     color: "#2E2430",
   },
 
   emptyText: {
-    fontFamily: "Nunito_400Regular",
     marginTop: 7,
     fontSize: 13,
     lineHeight: 19,

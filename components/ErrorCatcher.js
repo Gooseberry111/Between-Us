@@ -76,14 +76,12 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontFamily: "Fraunces_700Bold",
     fontSize: 20,
     fontWeight: "700",
     color: "#2E2430",
   },
 
   subtitle: {
-    fontFamily: "Nunito_400Regular",
     marginTop: 6,
     fontSize: 14,
     color: "#6B5F68",
@@ -100,7 +98,6 @@ const styles = StyleSheet.create({
   },
 
   message: {
-    fontFamily: "Nunito_700Bold",
     fontSize: 13,
     lineHeight: 19,
     fontWeight: "700",
@@ -108,7 +105,6 @@ const styles = StyleSheet.create({
   },
 
   stack: {
-    fontFamily: "Nunito_400Regular",
     marginTop: 10,
     fontSize: 11,
     lineHeight: 16,

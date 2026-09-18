@@ -108,7 +108,6 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    fontFamily: "Nunito_800ExtraBold",
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.6,
@@ -116,7 +115,6 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontFamily: "Fraunces_700Bold",
     marginTop: 8,
     fontSize: 22,
     lineHeight: 29,
@@ -125,7 +123,6 @@ const styles = StyleSheet.create({
   },
 
   body: {
-    fontFamily: "Nunito_400Regular",
     marginTop: 10,
     fontSize: 13.5,
     lineHeight: 20,
@@ -144,7 +141,6 @@ const styles = StyleSheet.create({
   },
 
   buttonText: {
-    fontFamily: "Nunito_800ExtraBold",
     fontSize: 14,
     fontWeight: "800",
     color: "#D9456B",

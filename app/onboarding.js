@@ -457,7 +457,6 @@ const styles = StyleSheet.create({
   },
 
   stepError: {
-    fontFamily: "Nunito_600SemiBold",
     marginTop: 12,
     fontSize: 13,
     lineHeight: 18,
@@ -484,14 +483,12 @@ const styles = StyleSheet.create({
   },
 
   brand: {
-    fontFamily: "Fraunces_700Bold",
     fontSize: 22,
     fontWeight: "700",
     color: "#2E2430",
   },
 
   subtitle: {
-    fontFamily: "Nunito_400Regular",
     fontSize: 13,
     color: "#9C8F97",
     marginTop: 4,
@@ -509,14 +506,12 @@ const styles = StyleSheet.create({
   },
 
   skipText: {
-    fontFamily: "Nunito_700Bold",
     color: "#D9456B",
     fontSize: 14,
     fontWeight: "700",
   },
 
   skipHint: {
-    fontFamily: "Nunito_400Regular",
     marginTop: -12,
     marginBottom: 8,
     fontSize: 12,
@@ -525,7 +520,6 @@ const styles = StyleSheet.create({
   },
 
   counter: {
-    fontFamily: "Nunito_400Regular",
     color: "#6B5F68",
     marginTop: 22,
     marginBottom: 12,
@@ -546,7 +540,6 @@ const styles = StyleSheet.create({
   },
 
   errorText: {
-    fontFamily: "Nunito_400Regular",
     color: "#C2405F",
     fontSize: 13,
     lineHeight: 18,
@@ -562,7 +555,6 @@ const styles = StyleSheet.create({
   },
 
   backText: {
-    fontFamily: "Nunito_600SemiBold",
     color: "#D9456B",
     fontWeight: "600",
     fontSize: 15,
@@ -581,7 +573,6 @@ const styles = StyleSheet.create({
   },
 
   nextText: {
-    fontFamily: "Fraunces_700Bold",
     color: "#FFFFFF",
     fontWeight: "700",
     fontSize: 16,
@@ -605,7 +596,6 @@ const styles = StyleSheet.create({
   },
 
   differentAccountText: {
-    fontFamily: "Nunito_600SemiBold",
     color: "#9C8F97",
     fontSize: 13,
     fontWeight: "600",
@@ -619,7 +609,6 @@ const styles = StyleSheet.create({
   },
 
   loadingText: {
-    fontFamily: "Nunito_400Regular",
     marginTop: 12,
     fontSize: 14,
     color: "#6B5F68",
@@ -627,7 +616,6 @@ const styles = StyleSheet.create({
   },
 
   failedTitle: {
-    fontFamily: "Fraunces_700Bold",
     fontSize: 18,
     fontWeight: "700",
     color: "#2E2430",

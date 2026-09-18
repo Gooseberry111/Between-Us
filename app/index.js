@@ -215,7 +215,6 @@ const styles = StyleSheet.create({
   },
 
   brand: {
-    fontFamily: "Nunito_700Bold",
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 2.5,
@@ -233,7 +232,6 @@ const styles = StyleSheet.create({
   },
 
   eyebrow: {
-    fontFamily: "Nunito_700Bold",
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 1.8,
@@ -242,7 +240,6 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontFamily: "Fraunces_700Bold",
     fontSize: 42,
     lineHeight: 47,
     fontWeight: "700",
@@ -255,7 +252,6 @@ const styles = StyleSheet.create({
   },
 
   description: {
-    fontFamily: "Nunito_400Regular",
     marginTop: 22,
     fontSize: 15,
     lineHeight: 23,
@@ -278,14 +274,12 @@ const styles = StyleSheet.create({
   },
 
   primaryText: {
-    fontFamily: "Fraunces_700Bold",
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
   },
 
   primaryArrow: {
-    fontFamily: "Nunito_400Regular",
     color: "#FFFFFF",
     fontSize: 22,
   },
@@ -298,14 +292,12 @@ const styles = StyleSheet.create({
   },
 
   secondaryText: {
-    fontFamily: "Nunito_600SemiBold",
     color: "#D9456B",
     fontSize: 15,
     fontWeight: "600",
   },
 
   footerText: {
-    fontFamily: "Nunito_400Regular",
     textAlign: "center",
     color: "#B9A7B1",
     fontSize: 11,

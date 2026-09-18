@@ -196,7 +196,6 @@ const styles = StyleSheet.create({
   },
 
   otherLabel: {
-    fontFamily: "Nunito_800ExtraBold",
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 1.2,
@@ -204,14 +203,12 @@ const styles = StyleSheet.create({
   },
 
   otherInput: {
-    fontFamily: "Nunito_400Regular",
     fontSize: 15,
     color: "#2E2430",
     paddingVertical: 8,
   },
 
   subtitle: {
-    fontFamily: "Nunito_400Regular",
     marginTop: 8,
     fontSize: 13.5,
     lineHeight: 20,
@@ -219,7 +216,6 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontFamily: "Fraunces_700Bold",
     fontSize: 30,
     fontWeight: "700",
     color: "#2E2430",
@@ -228,7 +224,6 @@ const styles = StyleSheet.create({
   },
 
   input: {
-    fontFamily: "Nunito_400Regular",
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "#F2DDE5",

@@ -30,13 +30,11 @@ const styles = StyleSheet.create({
   },
 
   text: {
-    fontFamily: "Nunito_400Regular",
     color: "#4A3B45",
     fontSize: 15,
   },
 
   selectedText: {
-    fontFamily: "Nunito_600SemiBold",
     color: "#D9456B",
     fontWeight: "600",
   },

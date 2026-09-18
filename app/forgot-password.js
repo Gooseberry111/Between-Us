@@ -309,14 +309,12 @@ const styles = StyleSheet.create({
   },
 
   logoText: {
-    fontFamily: "Fraunces_700Bold",
     color: "#FFFFFF",
     fontSize: 25,
     fontWeight: "700",
   },
 
   brand: {
-    fontFamily: "Fraunces_700Bold",
     fontSize: 20,
     fontWeight: "700",
     color: "#2E2430",
@@ -328,7 +326,6 @@ const styles = StyleSheet.create({
   },
 
   eyebrow: {
-    fontFamily: "Nunito_700Bold",
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 2,
@@ -337,7 +334,6 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontFamily: "Fraunces_700Bold",
     fontSize: 30,
     fontWeight: "700",
     color: "#2E2430",
@@ -345,7 +341,6 @@ const styles = StyleSheet.create({
   },
 
   subtitle: {
-    fontFamily: "Nunito_400Regular",
     fontSize: 15,
     lineHeight: 23,
     color: "#766D67",
@@ -353,7 +348,6 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    fontFamily: "Nunito_600SemiBold",
     fontSize: 14,
     fontWeight: "600",
     color: "#4A3B45",
@@ -361,7 +355,6 @@ const styles = StyleSheet.create({
   },
 
   input: {
-    fontFamily: "Nunito_400Regular",
     height: 54,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
@@ -374,7 +367,6 @@ const styles = StyleSheet.create({
   },
 
   notice: {
-    fontFamily: "Nunito_400Regular",
     color: "#4F6F52",
     fontSize: 13,
     lineHeight: 19,
@@ -382,7 +374,6 @@ const styles = StyleSheet.create({
   },
 
   error: {
-    fontFamily: "Nunito_400Regular",
     color: "#C2405F",
     fontSize: 13,
     lineHeight: 19,
@@ -403,14 +394,12 @@ const styles = StyleSheet.create({
   },
 
   buttonText: {
-    fontFamily: "Fraunces_700Bold",
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
   },
 
   secondaryAction: {
-    fontFamily: "Nunito_600SemiBold",
     textAlign: "center",
     color: "#D9456B",
     fontSize: 14,

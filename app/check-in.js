@@ -359,7 +359,8 @@ const styles = StyleSheet.create({
   },
 
   headerText: {
-    fontFamily: "Nunito_800ExtraBold", flex: 1 },
+    flex: 1,
+  },
 
   brand: {
     fontSize: 9,
@@ -369,7 +370,6 @@ const styles = StyleSheet.create({
   },
 
   pageTitle: {
-    fontFamily: "Fraunces_700Bold",
     marginTop: 5,
     fontSize: 26,
     lineHeight: 31,
@@ -378,7 +378,8 @@ const styles = StyleSheet.create({
   },
 
   panel: {
-    fontFamily: "Nunito_800ExtraBold", marginBottom: 14 },
+    marginBottom: 14,
+  },
 
   panelLabel: {
     fontSize: 9,
@@ -388,7 +389,6 @@ const styles = StyleSheet.create({
   },
 
   panelTitle: {
-    fontFamily: "Fraunces_700Bold",
     marginTop: 10,
     fontSize: 19,
     lineHeight: 26,
@@ -418,14 +418,14 @@ const styles = StyleSheet.create({
   },
 
   scaleValue: {
-    fontFamily: "Nunito_800ExtraBold",
     fontSize: 15,
     fontWeight: "800",
     color: "#FFFFFF",
   },
 
   scaleValueActive: {
-    fontFamily: "Nunito_700Bold", color: "#D9456B" },
+    color: "#D9456B",
+  },
 
   scaleLabel: {
     marginTop: 3,
@@ -436,7 +436,8 @@ const styles = StyleSheet.create({
   },
 
   scaleLabelActive: {
-    fontFamily: "Nunito_400Regular", color: "#8A6B60" },
+    color: "#8A6B60",
+  },
 
   input: {
     marginTop: 16,
@@ -472,7 +473,6 @@ const styles = StyleSheet.create({
   },
 
   savedNote: {
-    fontFamily: "Nunito_400Regular",
     marginTop: 12,
     fontSize: 12.5,
     lineHeight: 18,
@@ -481,7 +481,6 @@ const styles = StyleSheet.create({
   },
 
   saveButtonText: {
-    fontFamily: "Nunito_800ExtraBold",
     fontSize: 13,
     fontWeight: "800",
     color: "#FFFFFF",
@@ -496,7 +495,6 @@ const styles = StyleSheet.create({
   },
 
   cardLabel: {
-    fontFamily: "Nunito_800ExtraBold",
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.5,
@@ -504,7 +502,6 @@ const styles = StyleSheet.create({
   },
 
   partnerRating: {
-    fontFamily: "Fraunces_700Bold",
     marginTop: 10,
     fontSize: 30,
     fontWeight: "800",
@@ -512,14 +509,12 @@ const styles = StyleSheet.create({
   },
 
   partnerOutOf: {
-    fontFamily: "Nunito_700Bold",
     fontSize: 15,
     fontWeight: "700",
     color: "#9C8F97",
   },
 
   partnerNote: {
-    fontFamily: "Nunito_400Regular",
     marginTop: 8,
     fontSize: 14,
     lineHeight: 21,
@@ -527,7 +522,6 @@ const styles = StyleSheet.create({
   },
 
   waitingText: {
-    fontFamily: "Nunito_400Regular",
     marginTop: 10,
     fontSize: 13,
     lineHeight: 19,
@@ -554,7 +548,6 @@ const styles = StyleSheet.create({
   },
 
   trendValue: {
-    fontFamily: "Nunito_700Bold",
     marginTop: 6,
     fontSize: 10,
     fontWeight: "700",

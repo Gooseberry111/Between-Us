@@ -82,7 +82,6 @@ const styles = StyleSheet.create({
   },
 
   pillText: {
-    fontFamily: "Nunito_800ExtraBold",
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1,
@@ -90,14 +89,12 @@ const styles = StyleSheet.create({
   },
 
   percent: {
-    fontFamily: "Nunito_700Bold",
     fontSize: 13,
     fontWeight: "700",
     color: "#F3DDE5",
   },
 
   title: {
-    fontFamily: "Fraunces_700Bold",
     marginTop: 14,
     fontSize: 22,
     fontWeight: "800",
@@ -105,7 +102,6 @@ const styles = StyleSheet.create({
   },
 
   body: {
-    fontFamily: "Nunito_400Regular",
     marginTop: 6,
     fontSize: 14,
     lineHeight: 20,
@@ -138,7 +134,6 @@ const styles = StyleSheet.create({
   },
 
   buttonText: {
-    fontFamily: "Nunito_700Bold",
     fontSize: 15,
     fontWeight: "700",
     color: "#5A3444",
