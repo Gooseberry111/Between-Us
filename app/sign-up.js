@@ -271,7 +271,7 @@ export default function SignUpScreen() {
             <TextInput
               style={styles.input}
               placeholder="Enter verification code"
-              placeholderTextColor="#9A938C"
+              placeholderTextColor="#9C8F97"
               keyboardType="number-pad"
               value={code}
               onChangeText={setCode}
@@ -346,7 +346,7 @@ export default function SignUpScreen() {
           <TextInput
             style={styles.input}
             placeholder="you@example.com"
-            placeholderTextColor="#9A938C"
+            placeholderTextColor="#9C8F97"
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="email-address"
@@ -359,7 +359,7 @@ export default function SignUpScreen() {
           <TextInput
             style={styles.input}
             placeholder="Create a password"
-            placeholderTextColor="#9A938C"
+            placeholderTextColor="#9C8F97"
             secureTextEntry
             value={password}
             onChangeText={setPassword}
@@ -418,7 +418,7 @@ export default function SignUpScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F8F5F0",
+    backgroundColor: "#FFF8F5",
   },
 
   scrollContent: {
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "#6B4E45",
+    backgroundColor: "#D9456B",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 10,
@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
   brand: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#332B28",
+    color: "#2E2430",
     letterSpacing: 0.3,
   },
 
@@ -464,14 +464,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 2,
-    color: "#A47767",
+    color: "#D9456B",
     marginBottom: 10,
   },
 
   title: {
     fontSize: 32,
     fontWeight: "700",
-    color: "#2E2724",
+    color: "#2E2430",
     marginBottom: 12,
   },
 
@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#453B37",
+    color: "#4A3B45",
     marginBottom: 8,
   },
 
@@ -493,17 +493,17 @@ const styles = StyleSheet.create({
     height: 54,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#E4DDD6",
+    borderColor: "#F2DDE5",
     borderRadius: 14,
     paddingHorizontal: 16,
     fontSize: 16,
-    color: "#2E2724",
+    color: "#2E2430",
     marginBottom: 18,
   },
 
   button: {
     height: 54,
-    backgroundColor: "#6B4E45",
+    backgroundColor: "#D9456B",
     borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
@@ -519,20 +519,20 @@ const styles = StyleSheet.create({
   outlineButton: {
     height: 52,
     borderWidth: 1.5,
-    borderColor: "#6B4E45",
+    borderColor: "#D9456B",
     borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
   },
 
   outlineButtonText: {
-    color: "#6B4E45",
+    color: "#D9456B",
     fontSize: 16,
     fontWeight: "700",
   },
 
   termsLink: {
-    color: "#6B4E45",
+    color: "#D9456B",
     fontWeight: "700",
     textDecorationLine: "underline",
   },
@@ -540,7 +540,7 @@ const styles = StyleSheet.create({
   terms: {
     fontSize: 12,
     lineHeight: 18,
-    color: "#9A938C",
+    color: "#9C8F97",
     textAlign: "center",
     marginTop: 16,
   },
@@ -554,17 +554,17 @@ const styles = StyleSheet.create({
   divider: {
     flex: 1,
     height: 1,
-    backgroundColor: "#E4DDD6",
+    backgroundColor: "#F2DDE5",
   },
 
   dividerText: {
     fontSize: 12,
-    color: "#9A938C",
+    color: "#9C8F97",
     marginHorizontal: 10,
   },
 
   error: {
-    color: "#B54A4A",
+    color: "#C2405F",
     fontSize: 13,
     marginBottom: 12,
   },
@@ -582,7 +582,7 @@ const styles = StyleSheet.create({
 
   secondaryAction: {
     textAlign: "center",
-    color: "#6B4E45",
+    color: "#D9456B",
     fontSize: 14,
     fontWeight: "600",
     marginTop: 20,
@@ -591,7 +591,7 @@ const styles = StyleSheet.create({
   emailText: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#453B37",
+    color: "#4A3B45",
     marginBottom: 24,
   },
 });

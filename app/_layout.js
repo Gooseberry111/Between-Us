@@ -106,7 +106,7 @@ async function registerForPushNotificationsAsync(userId) {
         name: "default",
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
-        lightColor: "#6B4E45",
+        lightColor: "#D9456B",
       });
     }
 
@@ -453,13 +453,13 @@ const missingKeyStyles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 32,
-    backgroundColor: "#FDFAF5",
+    backgroundColor: "#FFF8F5",
   },
 
   title: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#332B28",
+    color: "#2E2430",
   },
 
   body: {
@@ -467,6 +467,6 @@ const missingKeyStyles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 21,
     textAlign: "center",
-    color: "#817771",
+    color: "#6B5F68",
   },
 });

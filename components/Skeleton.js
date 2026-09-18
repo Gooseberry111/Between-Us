@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "#F6E6EC",
   },
 
   title: {

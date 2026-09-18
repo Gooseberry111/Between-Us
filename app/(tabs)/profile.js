@@ -357,7 +357,7 @@ export default function ProfileScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              tintColor="#6B4E45"
+              tintColor="#D9456B"
             />
           }
           contentContainerStyle={styles.scrollContent}
@@ -478,7 +478,7 @@ export default function ProfileScreen() {
                     disabled={unlinking}
                   >
                     {unlinking ? (
-                      <ActivityIndicator size="small" color="#9A5548" />
+                      <ActivityIndicator size="small" color="#B8345A" />
                     ) : (
                       <Text style={styles.unlinkText}>Unlink Partner</Text>
                     )}
@@ -663,7 +663,7 @@ export default function ProfileScreen() {
                 onPress={handleDeleteAccount}
               >
                 {deleting ? (
-                  <ActivityIndicator size="small" color="#B54A4A" />
+                  <ActivityIndicator size="small" color="#C2405F" />
                 ) : (
                   <Text style={styles.deleteText}>Delete Account</Text>
                 )}
@@ -728,7 +728,7 @@ function LoadingScreen() {
 
           <ActivityIndicator
             size="small"
-            color="#6B4E45"
+            color="#D9456B"
             style={styles.loadingIndicator}
           />
         </View>
@@ -754,7 +754,7 @@ const styles = StyleSheet.create({
   legalText: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#453B37",
+    color: "#4A3B45",
   },
 
   deleteBusy: {
@@ -790,7 +790,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 2.2,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   pageTitle: {
@@ -798,21 +798,21 @@ const styles = StyleSheet.create({
     fontSize: 28,
     lineHeight: 34,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   headerIcon: {
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    backgroundColor: "rgba(217, 69, 107, 0.09)",
     alignItems: "center",
     justifyContent: "center",
   },
 
   headerHeart: {
     fontSize: 27,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   /*
@@ -820,7 +820,7 @@ const styles = StyleSheet.create({
    */
 
   profileCard: {
-    backgroundColor: "#6B4E45",
+    backgroundColor: "#D9456B",
     borderRadius: 22,
     padding: 20,
     flexDirection: "row",
@@ -856,7 +856,7 @@ const styles = StyleSheet.create({
   profileEmail: {
     marginTop: 4,
     fontSize: 12,
-    color: "#DCCBC4",
+    color: "#EBC9D5",
   },
 
   profileBadge: {
@@ -872,7 +872,7 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: "800",
     letterSpacing: 1,
-    color: "#F8F5F0",
+    color: "#FFF8F5",
   },
 
   /*
@@ -894,7 +894,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.7,
-    color: "#9A918A",
+    color: "#9C8F97",
     marginBottom: 9,
   },
 
@@ -907,13 +907,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     paddingVertical: 6,
     borderRadius: 9,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    backgroundColor: "rgba(217, 69, 107, 0.09)",
   },
 
   editButtonText: {
     fontSize: 10,
     fontWeight: "700",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   /*
@@ -937,7 +937,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "700",
     letterSpacing: 1,
-    color: "#9A918A",
+    color: "#9C8F97",
     textTransform: "uppercase",
   },
 
@@ -945,12 +945,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 14,
     fontWeight: "600",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   divider: {
     height: 1,
-    backgroundColor: "#EEE8E3",
+    backgroundColor: "#FAECF1",
   },
 
   /*
@@ -971,7 +971,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    backgroundColor: "rgba(217, 69, 107, 0.09)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -979,7 +979,7 @@ const styles = StyleSheet.create({
   partnerAvatarText: {
     fontSize: 20,
     fontWeight: "800",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   partnerInfo: {
@@ -991,27 +991,27 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: "800",
     letterSpacing: 1.4,
-    color: "#9A918A",
+    color: "#9C8F97",
   },
 
   partnerName: {
     marginTop: 3,
     fontSize: 18,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   partnerRelationship: {
     marginTop: 3,
     fontSize: 11,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   connectedDot: {
     width: 9,
     height: 9,
     borderRadius: 5,
-    backgroundColor: "#6B4E45",
+    backgroundColor: "#D9456B",
   },
 
   /*
@@ -1036,7 +1036,7 @@ const styles = StyleSheet.create({
   unlinkText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#9A5548",
+    color: "#B8345A",
   },
 
   unlinkWarning: {
@@ -1045,7 +1045,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 10,
     lineHeight: 15,
-    color: "#9A918A",
+    color: "#9C8F97",
   },
 
   /*
@@ -1073,7 +1073,7 @@ const styles = StyleSheet.create({
 
   noConnectionIconText: {
     fontSize: 22,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   noConnectionInfo: {
@@ -1084,20 +1084,20 @@ const styles = StyleSheet.create({
   noConnectionTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   noConnectionDescription: {
     marginTop: 4,
     fontSize: 11,
     lineHeight: 16,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   noConnectionArrow: {
     marginLeft: 8,
     fontSize: 27,
-    color: "#9A918A",
+    color: "#9C8F97",
   },
 
   /*
@@ -1128,7 +1128,7 @@ const styles = StyleSheet.create({
 
   settingIconText: {
     fontSize: 18,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   settingContent: {
@@ -1139,20 +1139,20 @@ const styles = StyleSheet.create({
   settingTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   settingDescription: {
     marginTop: 3,
     fontSize: 11,
     lineHeight: 16,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   settingArrow: {
     marginLeft: 8,
     fontSize: 26,
-    color: "#9A918A",
+    color: "#9C8F97",
   },
 
   /*
@@ -1162,7 +1162,7 @@ const styles = StyleSheet.create({
   signOutButton: {
     height: 53,
     borderRadius: 14,
-    backgroundColor: "#6B4E45",
+    backgroundColor: "#D9456B",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1190,7 +1190,7 @@ const styles = StyleSheet.create({
   deleteText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#9A5548",
+    color: "#B8345A",
   },
 
   deleteWarning: {
@@ -1198,7 +1198,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 10,
     lineHeight: 15,
-    color: "#9A918A",
+    color: "#9C8F97",
   },
 
   /*
@@ -1206,7 +1206,7 @@ const styles = StyleSheet.create({
    */
 
   errorBox: {
-    backgroundColor: "#F3E3DF",
+    backgroundColor: "#F9E3EA",
     paddingHorizontal: 14,
     paddingVertical: 11,
     borderRadius: 12,
@@ -1216,7 +1216,7 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 12,
     lineHeight: 17,
-    color: "#8A4A3D",
+    color: "#C2405F",
   },
 
   /*
@@ -1232,7 +1232,7 @@ const styles = StyleSheet.create({
 
   footerHeart: {
     fontSize: 25,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   footerText: {
@@ -1240,14 +1240,14 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 2,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   footerSubtext: {
     marginTop: 6,
     textAlign: "center",
     fontSize: 10,
-    color: "#9A918A",
+    color: "#9C8F97",
   },
 
   /*
@@ -1264,21 +1264,21 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    backgroundColor: "rgba(217, 69, 107, 0.09)",
     alignItems: "center",
     justifyContent: "center",
   },
 
   loadingHeart: {
     fontSize: 29,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   loadingTitle: {
     marginTop: 14,
     fontSize: 21,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   loadingIndicator: {

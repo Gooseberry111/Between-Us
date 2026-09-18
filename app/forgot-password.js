@@ -209,7 +209,7 @@ export default function ForgotPasswordScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="you@example.com"
-                placeholderTextColor="#9A938C"
+                placeholderTextColor="#9C8F97"
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="email-address"
@@ -224,7 +224,7 @@ export default function ForgotPasswordScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="Enter the code"
-                placeholderTextColor="#9A938C"
+                placeholderTextColor="#9C8F97"
                 keyboardType="number-pad"
                 value={code}
                 onChangeText={setCode}
@@ -235,7 +235,7 @@ export default function ForgotPasswordScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="At least 8 characters"
-                placeholderTextColor="#9A938C"
+                placeholderTextColor="#9C8F97"
                 secureTextEntry
                 value={password}
                 onChangeText={setPassword}
@@ -283,7 +283,7 @@ export default function ForgotPasswordScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F8F5F0",
+    backgroundColor: "#FFF8F5",
   },
 
   scrollContent: {
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "#6B4E45",
+    backgroundColor: "#D9456B",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 10,
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
   brand: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#332B28",
+    color: "#2E2430",
     letterSpacing: 0.3,
   },
 
@@ -329,14 +329,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 2,
-    color: "#A47767",
+    color: "#D9456B",
     marginBottom: 10,
   },
 
   title: {
     fontSize: 30,
     fontWeight: "700",
-    color: "#2E2724",
+    color: "#2E2430",
     marginBottom: 12,
   },
 
@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#453B37",
+    color: "#4A3B45",
     marginBottom: 8,
   },
 
@@ -358,11 +358,11 @@ const styles = StyleSheet.create({
     height: 54,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#E4DDD6",
+    borderColor: "#F2DDE5",
     borderRadius: 14,
     paddingHorizontal: 16,
     fontSize: 16,
-    color: "#2E2724",
+    color: "#2E2430",
     marginBottom: 18,
   },
 
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
   },
 
   error: {
-    color: "#B54A4A",
+    color: "#C2405F",
     fontSize: 13,
     lineHeight: 19,
     marginBottom: 12,
@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
 
   button: {
     height: 54,
-    backgroundColor: "#6B4E45",
+    backgroundColor: "#D9456B",
     borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
 
   secondaryAction: {
     textAlign: "center",
-    color: "#6B4E45",
+    color: "#D9456B",
     fontSize: 14,
     fontWeight: "600",
     marginTop: 20,

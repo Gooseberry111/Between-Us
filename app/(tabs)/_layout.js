@@ -26,19 +26,17 @@ function TabBarBackground({ bottomInset }) {
    */
   return (
     <View style={[styles.barWrapper, { paddingBottom: bottomInset }]}>
+      {/*
+       * Opaque, not translucent. A see-through bar meant the
+       * content scrolling underneath showed as ghosts behind
+       * the icons; on iOS the blur stays as a faint lift under
+       * a nearly solid pane.
+       */}
       {Platform.OS === "ios" ? (
-        <>
-          <BlurView
-            intensity={60}
-            tint="light"
-            style={StyleSheet.absoluteFill}
-          />
+        <BlurView intensity={25} tint="light" style={StyleSheet.absoluteFill} />
+      ) : null}
 
-          <View style={styles.barTintIOS} />
-        </>
-      ) : (
-        <View style={styles.barSolid} />
-      )}
+      <View style={styles.barSolid} />
 
       <View style={styles.barHairline} />
     </View>
@@ -129,7 +127,7 @@ const styles = StyleSheet.create({
 
   barSolid: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#FDF8F4",
+    backgroundColor: "rgba(255,246,248,0.97)",
   },
 
   barHairline: {
@@ -138,7 +136,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(140,79,94,0.18)",
+    backgroundColor: "rgba(217,69,107,0.18)",
   },
 
   icon: {

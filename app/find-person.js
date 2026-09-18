@@ -46,7 +46,7 @@ function SearchEmptyState({ query, searching, hasRequests }) {
   if (searching) {
     return (
       <View style={styles.searchingState}>
-        <ActivityIndicator size="small" color="#6B4E45" />
+        <ActivityIndicator size="small" color="#D9456B" />
 
         <Text style={styles.searchingText}>Looking...</Text>
       </View>
@@ -69,7 +69,7 @@ function SearchEmptyState({ query, searching, hasRequests }) {
     return (
       <View style={styles.emptyState}>
         <View style={styles.emptyIcon}>
-          <Ionicons name="person-outline" size={26} color="#6B4E45" />
+          <Ionicons name="person-outline" size={26} color="#D9456B" />
         </View>
 
         <Text style={styles.emptyTitle}>No one called "{trimmed}"</Text>
@@ -94,7 +94,7 @@ function SearchEmptyState({ query, searching, hasRequests }) {
         <FadeIn key={tip.title} delay={60 + index * 70}>
           <Card style={styles.tipCard}>
             <View style={styles.tipIcon}>
-              <Ionicons name={tip.icon} size={18} color="#6B4E45" />
+              <Ionicons name={tip.icon} size={18} color="#D9456B" />
             </View>
 
             <View style={styles.tipTextWrap}>
@@ -449,7 +449,7 @@ export default function FindPersonScreen() {
     return (
       <SafeAreaView style={styles.screen} edges={["top"]}>
         <View style={styles.loadingScreen}>
-          <ActivityIndicator size="small" color="#6B4E45" />
+          <ActivityIndicator size="small" color="#D9456B" />
 
           <Text style={styles.loadingText}>Preparing...</Text>
         </View>
@@ -615,7 +615,7 @@ export default function FindPersonScreen() {
                 setSuccess("");
               }}
               placeholder="Start typing a name, or paste their email"
-              placeholderTextColor="#AAA09A"
+              placeholderTextColor="#B9A7B1"
               style={styles.searchInput}
               autoCapitalize="none"
               autoCorrect={false}
@@ -626,7 +626,7 @@ export default function FindPersonScreen() {
             {searching ? (
               <ActivityIndicator
                 size="small"
-                color="#6B4E45"
+                color="#D9456B"
                 style={styles.searchSpinner}
               />
             ) : null}
@@ -679,7 +679,7 @@ export default function FindPersonScreen() {
 
           {loadingRequests ? (
             <View style={styles.requestLoading}>
-              <ActivityIndicator size="small" color="#6B4E45" />
+              <ActivityIndicator size="small" color="#D9456B" />
 
               <Text style={styles.requestLoadingText}>
                 Checking for requests...
@@ -791,7 +791,7 @@ export default function FindPersonScreen() {
                 disabled={processingRequest}
               >
                 {processingRequest ? (
-                  <ActivityIndicator size="small" color="#6B4E45" />
+                  <ActivityIndicator size="small" color="#D9456B" />
                 ) : (
                   <Text style={styles.rejectButtonText}>Reject</Text>
                 )}
@@ -909,7 +909,7 @@ export default function FindPersonScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F8F5F0",
+    backgroundColor: "#FFF8F5",
   },
 
   container: {
@@ -927,7 +927,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 14,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   /*
@@ -943,7 +943,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "#F5DCE4",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 14,
@@ -951,7 +951,7 @@ const styles = StyleSheet.create({
 
   backArrow: {
     fontSize: 21,
-    color: "#6B4E45",
+    color: "#D9456B",
     marginTop: -2,
   },
 
@@ -963,7 +963,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "700",
     letterSpacing: 1.8,
-    color: "#9A918A",
+    color: "#9C8F97",
     marginBottom: 6,
   },
 
@@ -971,14 +971,14 @@ const styles = StyleSheet.create({
     fontSize: 29,
     lineHeight: 34,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   subtitle: {
     marginTop: 8,
     fontSize: 13,
     lineHeight: 19,
-    color: "#817771",
+    color: "#6B5F68",
     maxWidth: 310,
   },
 
@@ -994,7 +994,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.7,
-    color: "#9A918A",
+    color: "#9C8F97",
     marginBottom: 10,
   },
 
@@ -1005,14 +1005,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#EDE7E2",
+    borderColor: "#FAECF1",
   },
 
   requestAvatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "#F5DCE4",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1020,7 +1020,7 @@ const styles = StyleSheet.create({
   requestAvatarText: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   requestInfo: {
@@ -1031,19 +1031,19 @@ const styles = StyleSheet.create({
   requestName: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   requestText: {
     marginTop: 3,
     fontSize: 12,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   requestRelationship: {
     marginTop: 3,
     fontSize: 11,
-    color: "#AAA09A",
+    color: "#B9A7B1",
   },
 
   requestViewButton: {
@@ -1054,7 +1054,7 @@ const styles = StyleSheet.create({
   },
 
   requestViewButtonText: {
-    color: "#6B4E45",
+    color: "#D9456B",
     fontSize: 12,
     fontWeight: "700",
   },
@@ -1068,7 +1068,7 @@ const styles = StyleSheet.create({
   requestLoadingText: {
     marginLeft: 8,
     fontSize: 12,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   /*
@@ -1083,9 +1083,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#E8E1DC",
+    borderColor: "#F3DFE7",
     paddingHorizontal: 14,
-    shadowColor: "#6B4E45",
+    shadowColor: "#D9456B",
     shadowOpacity: 0.06,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
@@ -1100,7 +1100,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 54,
     fontSize: 15,
-    color: "#302825",
+    color: "#2E2430",
   },
 
   searchSpinner: {
@@ -1120,7 +1120,7 @@ const styles = StyleSheet.create({
   searchingText: {
     marginTop: 10,
     fontSize: 13,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   tips: {
@@ -1137,7 +1137,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#EFE5E0",
+    backgroundColor: "#F9E3EA",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 13,
@@ -1150,14 +1150,14 @@ const styles = StyleSheet.create({
   tipTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   tipText: {
     marginTop: 4,
     fontSize: 13,
     lineHeight: 19,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   /*
@@ -1165,7 +1165,7 @@ const styles = StyleSheet.create({
    */
 
   errorBox: {
-    backgroundColor: "#F3E3DF",
+    backgroundColor: "#F9E3EA",
     borderRadius: 12,
     paddingHorizontal: 13,
     paddingVertical: 11,
@@ -1173,7 +1173,7 @@ const styles = StyleSheet.create({
   },
 
   errorText: {
-    color: "#8A4A3D",
+    color: "#C2405F",
     fontSize: 13,
     lineHeight: 18,
   },
@@ -1217,11 +1217,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: "#EDE5E0",
+    backgroundColor: "#F9E3EA",
   },
 
   statePillActive: {
-    backgroundColor: "#6B4E45",
+    backgroundColor: "#D9456B",
   },
 
   statePillText: {
@@ -1237,7 +1237,7 @@ const styles = StyleSheet.create({
   resultsTitle: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#6B625C",
+    color: "#6B5F68",
     marginBottom: 12,
   },
 
@@ -1249,14 +1249,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: "#EDE7E2",
+    borderColor: "#FAECF1",
   },
 
   avatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "#F5DCE4",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1264,7 +1264,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   personInfo: {
@@ -1275,24 +1275,24 @@ const styles = StyleSheet.create({
   personName: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   personEmail: {
     marginTop: 3,
     fontSize: 12,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   personCountry: {
     marginTop: 3,
     fontSize: 11,
-    color: "#AAA09A",
+    color: "#B9A7B1",
   },
 
   personArrow: {
     fontSize: 26,
-    color: "#9A918A",
+    color: "#9C8F97",
     marginLeft: 8,
   },
 
@@ -1309,7 +1309,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "#F5DCE4",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 17,
@@ -1317,13 +1317,13 @@ const styles = StyleSheet.create({
 
   emptyHeart: {
     fontSize: 34,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   emptyTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
     textAlign: "center",
   },
 
@@ -1331,7 +1331,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 13,
     lineHeight: 20,
-    color: "#817771",
+    color: "#6B5F68",
     textAlign: "center",
   },
   requestDetails: {
@@ -1341,7 +1341,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 6,
     borderWidth: 1,
-    borderColor: "#EDE7E2",
+    borderColor: "#FAECF1",
   },
 
   detailRow: {
@@ -1355,13 +1355,13 @@ const styles = StyleSheet.create({
 
   detailLabel: {
     fontSize: 13,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   detailValue: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#302825",
+    color: "#2E2430",
     maxWidth: 180,
     textAlign: "right",
   },
@@ -1386,14 +1386,14 @@ const styles = StyleSheet.create({
   rejectButtonText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   acceptButton: {
     flex: 1,
     height: 52,
     borderRadius: 14,
-    backgroundColor: "#6B4E45",
+    backgroundColor: "#D9456B",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1418,7 +1418,7 @@ const styles = StyleSheet.create({
   },
 
   modal: {
-    backgroundColor: "#F8F5F0",
+    backgroundColor: "#FFF8F5",
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 24,
@@ -1442,7 +1442,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "#F5DCE4",
     justifyContent: "center",
     alignItems: "center",
     zIndex: 2,
@@ -1450,7 +1450,7 @@ const styles = StyleSheet.create({
 
   modalCloseText: {
     fontSize: 23,
-    color: "#6B4E45",
+    color: "#D9456B",
     lineHeight: 25,
   },
 
@@ -1458,7 +1458,7 @@ const styles = StyleSheet.create({
     width: 66,
     height: 66,
     borderRadius: 33,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "#F5DCE4",
     justifyContent: "center",
     alignItems: "center",
     alignSelf: "center",
@@ -1468,7 +1468,7 @@ const styles = StyleSheet.create({
   modalAvatarText: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   modalTitle: {
@@ -1476,7 +1476,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     lineHeight: 27,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
     textAlign: "center",
   },
 
@@ -1484,7 +1484,7 @@ const styles = StyleSheet.create({
     marginTop: 7,
     fontSize: 13,
     lineHeight: 19,
-    color: "#817771",
+    color: "#6B5F68",
     textAlign: "center",
   },
 
@@ -1508,18 +1508,18 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#E8E1DC",
+    borderColor: "#F3DFE7",
   },
 
   relationshipSelected: {
-    backgroundColor: "#6B4E45",
-    borderColor: "#6B4E45",
+    backgroundColor: "#D9456B",
+    borderColor: "#D9456B",
   },
 
   relationshipText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#6B625C",
+    color: "#6B5F68",
   },
 
   relationshipSelectedText: {
@@ -1529,7 +1529,7 @@ const styles = StyleSheet.create({
   connectButton: {
     height: 55,
     borderRadius: 14,
-    backgroundColor: "#6B4E45",
+    backgroundColor: "#D9456B",
     justifyContent: "center",
     alignItems: "center",
     marginTop: 22,

@@ -268,7 +268,7 @@ export default function NotificationSettingsScreen() {
                 activeOpacity={0.8}
                 onPress={() => router.back()}
               >
-                <Ionicons name="chevron-back" size={20} color="#6B4E45" />
+                <Ionicons name="chevron-back" size={20} color="#D9456B" />
               </TouchableOpacity>
 
               <View style={styles.headerText}>
@@ -309,7 +309,7 @@ export default function NotificationSettingsScreen() {
                         <Switch
                           value={preferences[item.type] !== false}
                           onValueChange={(value) => toggle(item.type, value)}
-                          trackColor={{ false: "#DDD4CE", true: "#6B4E45" }}
+                          trackColor={{ false: "#DDD4CE", true: "#D9456B" }}
                           thumbColor="#FFFFFF"
                         />
                       </View>
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    backgroundColor: "rgba(217, 69, 107, 0.09)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 11,
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 2,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   pageTitle: {
@@ -379,14 +379,14 @@ const styles = StyleSheet.create({
     fontSize: 26,
     lineHeight: 31,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   pageSubtitle: {
     marginTop: 4,
     fontSize: 11,
     lineHeight: 17,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   section: {
@@ -397,7 +397,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.7,
-    color: "#9A918A",
+    color: "#9C8F97",
     marginBottom: 9,
   },
 
@@ -423,26 +423,26 @@ const styles = StyleSheet.create({
   rowTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   rowDescription: {
     marginTop: 4,
     fontSize: 11,
     lineHeight: 16,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   divider: {
     height: 1,
-    backgroundColor: "#EEE8E3",
+    backgroundColor: "#FAECF1",
   },
 
   noteCard: {
     marginTop: 22,
     padding: 17,
     borderRadius: 16,
-    backgroundColor: "#EFE7E2",
+    backgroundColor: "#FBEEF2",
   },
 
   noteText: {
@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
   },
 
   errorBox: {
-    backgroundColor: "#F3E3DF",
+    backgroundColor: "#F9E3EA",
     paddingHorizontal: 14,
     paddingVertical: 11,
     borderRadius: 12,
@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 12,
     lineHeight: 17,
-    color: "#8A4A3D",
+    color: "#C2405F",
   },
 
   loadingContainer: {
@@ -474,6 +474,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 12,
-    color: "#817771",
+    color: "#6B5F68",
   },
 });

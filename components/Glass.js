@@ -38,18 +38,19 @@ export function GlassBackground({ children, style }) {
        * one continuous gradient.
        */}
       <LinearGradient
-        colors={["#FCF8F5", "#F7EFEA", "#F2E8E4", "#EFE6E6"]}
-        locations={[0, 0.42, 0.75, 1]}
+        colors={["#FFF8F5", "#FDEDF1", "#F9E7F0", "#F3E6F4"]}
+        locations={[0, 0.4, 0.74, 1]}
         start={{ x: 0.15, y: 0 }}
         end={{ x: 0.85, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
 
-      {/* A barely-there warm lift in the top corner. */}
+      {/* A rose lift in the top corner, so the ground is never
+          flat and the screen has somewhere to look. */}
       <LinearGradient
-        colors={["rgba(240,206,184,0.35)", "rgba(240,206,184,0)"]}
+        colors={["rgba(217,69,107,0.14)", "rgba(217,69,107,0)"]}
         start={{ x: 1, y: 0 }}
-        end={{ x: 0.25, y: 0.45 }}
+        end={{ x: 0.2, y: 0.5 }}
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
@@ -103,11 +104,11 @@ export function GlassCard({
  * A dark pane, for anything carrying white text.
  */
 const PANEL_TONES = {
-  /* The house brown. */
-  brown: ["rgba(94,68,60,0.94)", "rgba(58,40,35,0.9)"],
+  /* The house colour: a deep rose-plum. */
+  brown: ["rgba(168,44,86,0.95)", "rgba(92,28,58,0.93)"],
   /* A deep plum, so two dark panels can sit together
    * without reading as the same card repeated. */
-  plum: ["rgba(122,74,92,0.94)", "rgba(74,42,56,0.92)"],
+  plum: ["rgba(90,58,120,0.94)", "rgba(52,32,72,0.92)"],
 };
 
 export function GlassPanel({
@@ -176,7 +177,7 @@ export function Card({ children, style, dark = false, ...rest }) {
       <LinearGradient
         colors={
           dark
-            ? ["rgba(94,68,60,0.94)", "rgba(58,40,35,0.9)"]
+            ? ["rgba(122,48,80,0.94)", "rgba(62,28,46,0.9)"]
             : [
                 "rgba(255,255,255,0.9)",
                 "rgba(255,255,255,0.7)",
@@ -305,7 +306,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(255,255,255,0.85)",
-    shadowColor: "#6B4E45",
+    shadowColor: "#D9456B",
     shadowOpacity: 0.07,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 5 },

@@ -179,7 +179,7 @@ export default function DailyQuestionScreen() {
                   setRefreshing(true);
                   load();
                 }}
-                tintColor="#6B4E45"
+                tintColor="#D9456B"
               />
             }
             contentContainerStyle={styles.scrollContent}
@@ -193,7 +193,7 @@ export default function DailyQuestionScreen() {
                   activeOpacity={0.8}
                   onPress={() => router.back()}
                 >
-                  <Ionicons name="chevron-back" size={20} color="#6B4E45" />
+                  <Ionicons name="chevron-back" size={20} color="#D9456B" />
                 </TouchableOpacity>
 
                 <View style={styles.headerText}>
@@ -289,7 +289,7 @@ export default function DailyQuestionScreen() {
                           value={draft}
                           onChangeText={setDraft}
                           placeholder="Say what you actually think..."
-                          placeholderTextColor="#A59A93"
+                          placeholderTextColor="#B9A7B1"
                           style={styles.input}
                           multiline
                           textAlignVertical="top"
@@ -342,7 +342,7 @@ export default function DailyQuestionScreen() {
                         <Ionicons
                           name="lock-closed-outline"
                           size={22}
-                          color="#6B4E45"
+                          color="#D9456B"
                         />
 
                         <Text style={styles.lockedTitle}>
@@ -365,7 +365,7 @@ export default function DailyQuestionScreen() {
                         <Ionicons
                           name="time-outline"
                           size={22}
-                          color="#6B4E45"
+                          color="#D9456B"
                         />
 
                         <Text style={styles.lockedTitle}>
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    backgroundColor: "rgba(217, 69, 107, 0.09)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 11,
@@ -432,7 +432,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 2,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   pageTitle: {
@@ -440,7 +440,7 @@ const styles = StyleSheet.create({
     fontSize: 26,
     lineHeight: 31,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   streakPill: {
@@ -457,13 +457,13 @@ const styles = StyleSheet.create({
 
   streakFlame: {
     fontSize: 13,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   streakText: {
     fontSize: 13,
     fontWeight: "800",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   questionPanel: {
@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.6,
-    color: "#DCCBC4",
+    color: "#EBC9D5",
   },
 
   questionText: {
@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 15.5,
     lineHeight: 23,
-    color: "#302825",
+    color: "#2E2430",
   },
 
   editButton: {
@@ -526,13 +526,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 13,
     paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: "rgba(107, 78, 69, 0.1)",
+    backgroundColor: "rgba(217, 69, 107, 0.1)",
   },
 
   editButtonText: {
     fontSize: 11.5,
     fontWeight: "700",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   cancelButton: {
@@ -545,14 +545,14 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   cardLabel: {
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.5,
-    color: "#9A918A",
+    color: "#9C8F97",
   },
 
   input: {
@@ -566,14 +566,14 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 14,
     lineHeight: 20,
-    color: "#302825",
+    color: "#2E2430",
   },
 
   saveButton: {
     marginTop: 14,
     height: 50,
     borderRadius: 14,
-    backgroundColor: "#6B4E45",
+    backgroundColor: "#D9456B",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -598,7 +598,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 14,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
     textAlign: "center",
   },
 
@@ -606,7 +606,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 12,
     lineHeight: 18,
-    color: "#817771",
+    color: "#6B5F68",
     textAlign: "center",
     maxWidth: 260,
   },
@@ -615,7 +615,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 15,
     lineHeight: 23,
-    color: "#302825",
+    color: "#2E2430",
   },
 
   errorBox: {
@@ -629,6 +629,6 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 12,
     lineHeight: 17,
-    color: "#8A4A3D",
+    color: "#C2405F",
   },
 });

@@ -133,7 +133,7 @@ export default function TriviaHistoryScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              tintColor="#6B4E45"
+              tintColor="#D9456B"
             />
           }
           contentContainerStyle={styles.scrollContent}
@@ -147,7 +147,7 @@ export default function TriviaHistoryScreen() {
                 activeOpacity={0.8}
                 onPress={() => router.back()}
               >
-                <Ionicons name="chevron-back" size={20} color="#6B4E45" />
+                <Ionicons name="chevron-back" size={20} color="#D9456B" />
               </TouchableOpacity>
 
               <View style={styles.headerText}>
@@ -215,7 +215,7 @@ export default function TriviaHistoryScreen() {
                     <Ionicons
                       name="help-circle-outline"
                       size={24}
-                      color="#6B4E45"
+                      color="#D9456B"
                     />
                   </View>
 
@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    backgroundColor: "rgba(217, 69, 107, 0.09)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 11,
@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 2,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   pageTitle: {
@@ -342,14 +342,14 @@ const styles = StyleSheet.create({
     fontSize: 26,
     lineHeight: 31,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   pageSubtitle: {
     marginTop: 4,
     fontSize: 11,
     lineHeight: 17,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   statsCard: {
@@ -371,20 +371,20 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   statLabel: {
     marginTop: 4,
     fontSize: 9,
     fontWeight: "600",
-    color: "#9A918A",
+    color: "#9C8F97",
   },
 
   statDivider: {
     width: 1,
     height: 30,
-    backgroundColor: "#EAE3DE",
+    backgroundColor: "#F6E6EC",
   },
 
   section: {
@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.7,
-    color: "#9A918A",
+    color: "#9C8F97",
     marginBottom: 7,
   },
 
@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 24,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
     marginBottom: 13,
   },
 
@@ -434,13 +434,13 @@ const styles = StyleSheet.create({
   },
 
   scoreCircleYou: {
-    backgroundColor: "#6B4E45",
+    backgroundColor: "#D9456B",
   },
 
   scoreText: {
     fontSize: 14,
     fontWeight: "800",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   scoreTextYou: {
@@ -454,14 +454,14 @@ const styles = StyleSheet.create({
   sessionPlayer: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   sessionDate: {
     marginTop: 4,
     fontSize: 10,
     fontWeight: "600",
-    color: "#9A918A",
+    color: "#9C8F97",
   },
 
   emptyCard: {
@@ -477,7 +477,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    backgroundColor: "rgba(217, 69, 107, 0.09)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 15,
@@ -486,14 +486,14 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   emptyText: {
     marginTop: 8,
     fontSize: 13,
     lineHeight: 20,
-    color: "#817771",
+    color: "#6B5F68",
     textAlign: "center",
   },
 
@@ -508,14 +508,14 @@ const styles = StyleSheet.create({
   emptyButtonText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   footerCard: {
     marginTop: 17,
     padding: 20,
     borderRadius: 18,
-    backgroundColor: "#EFE7E2",
+    backgroundColor: "#FBEEF2",
     alignItems: "center",
   },
 
@@ -524,11 +524,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     fontWeight: "600",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   errorBox: {
-    backgroundColor: "#F3E3DF",
+    backgroundColor: "#F9E3EA",
     paddingHorizontal: 14,
     paddingVertical: 11,
     borderRadius: 12,
@@ -538,7 +538,7 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 12,
     lineHeight: 17,
-    color: "#8A4A3D",
+    color: "#C2405F",
   },
 
   loadingContainer: {
@@ -550,6 +550,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 12,
-    color: "#817771",
+    color: "#6B5F68",
   },
 });

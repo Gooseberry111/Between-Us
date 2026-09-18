@@ -159,7 +159,7 @@ export default function CheckInScreen() {
                   activeOpacity={0.8}
                   onPress={() => router.back()}
                 >
-                  <Ionicons name="chevron-back" size={20} color="#6B4E45" />
+                  <Ionicons name="chevron-back" size={20} color="#D9456B" />
                 </TouchableOpacity>
 
                 <View style={styles.headerText}>
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 2,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   pageTitle: {
@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
     fontSize: 26,
     lineHeight: 31,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   panel: { marginBottom: 14 },
@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.6,
-    color: "#DCCBC4",
+    color: "#EBC9D5",
   },
 
   panelTitle: {
@@ -419,7 +419,7 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
 
-  scaleValueActive: { color: "#6B4E45" },
+  scaleValueActive: { color: "#D9456B" },
 
   scaleLabel: {
     marginTop: 3,
@@ -490,20 +490,20 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.5,
-    color: "#9A918A",
+    color: "#9C8F97",
   },
 
   partnerRating: {
     marginTop: 10,
     fontSize: 30,
     fontWeight: "800",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   partnerOutOf: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#9A918A",
+    color: "#9C8F97",
   },
 
   partnerNote: {
@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 13,
     lineHeight: 19,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   trendRow: {
@@ -535,7 +535,7 @@ const styles = StyleSheet.create({
   trendBar: {
     width: "100%",
     borderRadius: 7,
-    backgroundColor: "#6B4E45",
+    backgroundColor: "#D9456B",
     opacity: 0.75,
   },
 
@@ -543,7 +543,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 10,
     fontWeight: "700",
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   errorBox: {
@@ -554,5 +554,5 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
 
-  errorText: { fontSize: 12, lineHeight: 17, color: "#8A4A3D" },
+  errorText: { fontSize: 12, lineHeight: 17, color: "#C2405F" },
 });

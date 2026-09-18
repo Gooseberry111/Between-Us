@@ -1691,12 +1691,15 @@ export default {
 			if (profileMatch && request.method === 'GET') {
 				const clerkId = profileMatch[1];
 
+				await ensureSchema(sql);
+
 				const result = await sql`
           SELECT
   p.id,
   p.user_id,
   p.first_name,
   p.last_name,
+  p.nickname,
   p.birthday,
   p.gender,
   p.country,

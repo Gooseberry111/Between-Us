@@ -1,17 +1,63 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, TextInput, StyleSheet } from "react-native";
 import OptionButton from "./OptionButton";
 import DateInput from "../DateInput";
 
 export default function QuestionCard({ question, value, onChange }) {
+  /*
+   * "Other" is only useful if you can say what the other
+   * thing is. Choosing it opens a field, and whatever is
+   * typed becomes the answer -- stored exactly like any
+   * chosen option, so everything downstream (trivia,
+   * insights, your partner's view) treats it the same.
+   */
+  const [writingOther, setWritingOther] = useState(false);
+  const [otherText, setOtherText] = useState("");
+
   if (!question) return null;
 
+  const options = question.options || [];
+
+  const isOtherOption = (option) => /^other/i.test(String(option).trim());
+
+  const values = Array.isArray(value) ? value : value ? [value] : [];
+
+  /* A value nobody offered must have been written in. */
+  const customValue = values.find(
+    (item) => item && !options.some((option) => option === item),
+  );
+
   const isSelected = (option) => {
+    if (isOtherOption(option)) {
+      return writingOther || Boolean(customValue);
+    }
+
     if (Array.isArray(value)) {
       return value.includes(option);
     }
 
     return value === option;
+  };
+
+  const openOther = () => {
+    setOtherText(customValue || "");
+    setWritingOther(true);
+  };
+
+  const saveOther = (text) => {
+    setOtherText(text);
+
+    const trimmed = text.trim();
+
+    if (question.type === "multi") {
+      const kept = values.filter((item) => options.includes(item));
+
+      onChange(trimmed ? [...kept, trimmed] : kept);
+
+      return;
+    }
+
+    onChange(trimmed);
   };
 
   const handleMultiSelect = (option) => {
@@ -36,7 +82,7 @@ export default function QuestionCard({ question, value, onChange }) {
         <TextInput
           style={styles.input}
           placeholder={question.placeholder}
-          placeholderTextColor="#9A938C"
+          placeholderTextColor="#9C8F97"
           value={value || ""}
           onChangeText={onChange}
         />
@@ -46,36 +92,122 @@ export default function QuestionCard({ question, value, onChange }) {
         <DateInput
           style={styles.input}
           placeholder={question.placeholder}
-          placeholderTextColor="#9A938C"
+          placeholderTextColor="#9C8F97"
           value={value || ""}
           onChangeText={onChange}
         />
       )}
 
       {question.type === "single" &&
-        question.options.map((option) => (
-          <OptionButton
-            key={option}
-            label={option}
-            selected={isSelected(option)}
-            onPress={() => onChange(option)}
-          />
-        ))}
+        options.map((option) =>
+          isOtherOption(option) ? (
+            <OtherOption
+              key={option}
+              label={option}
+              selected={isSelected(option)}
+              open={writingOther || Boolean(customValue)}
+              text={writingOther ? otherText : customValue || ""}
+              placeholder={question.otherPlaceholder || "Type your answer"}
+              onOpen={openOther}
+              onChangeText={saveOther}
+            />
+          ) : (
+            <OptionButton
+              key={option}
+              label={option}
+              selected={isSelected(option)}
+              onPress={() => {
+                setWritingOther(false);
+                onChange(option);
+              }}
+            />
+          ),
+        )}
 
       {question.type === "multi" &&
-        question.options.map((option) => (
-          <OptionButton
-            key={option}
-            label={option}
-            selected={isSelected(option)}
-            onPress={() => handleMultiSelect(option)}
-          />
-        ))}
+        options.map((option) =>
+          isOtherOption(option) ? (
+            <OtherOption
+              key={option}
+              label={option}
+              selected={isSelected(option)}
+              open={writingOther || Boolean(customValue)}
+              text={writingOther ? otherText : customValue || ""}
+              placeholder={question.otherPlaceholder || "Type your answer"}
+              onOpen={openOther}
+              onChangeText={saveOther}
+            />
+          ) : (
+            <OptionButton
+              key={option}
+              label={option}
+              selected={isSelected(option)}
+              onPress={() => handleMultiSelect(option)}
+            />
+          ),
+        )}
+    </View>
+  );
+}
+
+/*
+ * The "Other" row: a normal option until it is chosen,
+ * then a field that looks like the answer it becomes.
+ */
+function OtherOption({
+  label,
+  selected,
+  open,
+  text,
+  placeholder,
+  onOpen,
+  onChangeText,
+}) {
+  if (!open) {
+    return <OptionButton label={label} selected={selected} onPress={onOpen} />;
+  }
+
+  return (
+    <View style={styles.otherWrap}>
+      <Text style={styles.otherLabel}>{label}</Text>
+
+      <TextInput
+        style={styles.otherInput}
+        placeholder={placeholder}
+        placeholderTextColor="#9C8F97"
+        value={text}
+        onChangeText={onChangeText}
+        autoFocus
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  otherWrap: {
+    borderWidth: 1.5,
+    borderColor: "#D9456B",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 6,
+    marginBottom: 10,
+  },
+
+  otherLabel: {
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1.2,
+    color: "#D9456B",
+  },
+
+  otherInput: {
+    fontSize: 15,
+    color: "#2E2430",
+    paddingVertical: 8,
+  },
+
   subtitle: {
     marginTop: 8,
     fontSize: 13.5,
@@ -86,7 +218,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 30,
     fontWeight: "700",
-    color: "#2E2724",
+    color: "#2E2430",
     marginBottom: 24,
     lineHeight: 38,
   },
@@ -94,11 +226,11 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#E4DDD6",
+    borderColor: "#F2DDE5",
     borderRadius: 14,
     paddingHorizontal: 16,
     height: 56,
     fontSize: 16,
-    color: "#2E2724",
+    color: "#2E2430",
   },
 });

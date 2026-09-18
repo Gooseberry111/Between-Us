@@ -356,7 +356,7 @@ export default function GoalsScreen() {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={handleRefresh}
-                tintColor="#6B4E45"
+                tintColor="#D9456B"
               />
             }
             contentContainerStyle={styles.scrollContent}
@@ -370,7 +370,7 @@ export default function GoalsScreen() {
                   activeOpacity={0.8}
                   onPress={() => router.back()}
                 >
-                  <Ionicons name="chevron-back" size={20} color="#6B4E45" />
+                  <Ionicons name="chevron-back" size={20} color="#D9456B" />
                 </TouchableOpacity>
 
                 <View style={styles.headerText}>
@@ -465,7 +465,7 @@ export default function GoalsScreen() {
                     value={title}
                     onChangeText={setTitle}
                     placeholder="e.g. Communicate better during arguments"
-                    placeholderTextColor="#A59A93"
+                    placeholderTextColor="#B9A7B1"
                     style={styles.input}
                   />
 
@@ -475,7 +475,7 @@ export default function GoalsScreen() {
                     value={description}
                     onChangeText={setDescription}
                     placeholder="Tell us more about this goal..."
-                    placeholderTextColor="#A59A93"
+                    placeholderTextColor="#B9A7B1"
                     style={[styles.input, styles.descriptionInput]}
                     multiline
                     textAlignVertical="top"
@@ -665,7 +665,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    backgroundColor: "rgba(217, 69, 107, 0.09)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 11,
@@ -679,7 +679,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 2,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   pageTitle: {
@@ -687,14 +687,14 @@ const styles = StyleSheet.create({
     fontSize: 26,
     lineHeight: 31,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   pageSubtitle: {
     marginTop: 4,
     fontSize: 11,
     lineHeight: 17,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   completedLink: {
@@ -712,7 +712,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    backgroundColor: "rgba(217, 69, 107, 0.09)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -720,7 +720,7 @@ const styles = StyleSheet.create({
   completedLinkIconText: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   completedLinkContent: {
@@ -731,19 +731,19 @@ const styles = StyleSheet.create({
   completedLinkTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   completedLinkSubtitle: {
     marginTop: 3,
     fontSize: 11,
     lineHeight: 16,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   completedLinkArrow: {
     fontSize: 20,
-    color: "#6B4E45",
+    color: "#D9456B",
     marginLeft: 8,
   },
 
@@ -761,7 +761,7 @@ const styles = StyleSheet.create({
     width: 43,
     height: 43,
     borderRadius: 22,
-    backgroundColor: "#6B4E45",
+    backgroundColor: "#D9456B",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -780,19 +780,19 @@ const styles = StyleSheet.create({
   addTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   addSubtitle: {
     marginTop: 3,
     fontSize: 11,
     lineHeight: 16,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   addArrow: {
     fontSize: 20,
-    color: "#6B4E45",
+    color: "#D9456B",
     marginLeft: 8,
   },
 
@@ -816,14 +816,14 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.6,
-    color: "#9A918A",
+    color: "#9C8F97",
   },
 
   formTitle: {
     marginTop: 5,
     fontSize: 19,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
     maxWidth: 260,
   },
 
@@ -838,27 +838,27 @@ const styles = StyleSheet.create({
 
   closeButtonText: {
     fontSize: 22,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   inputLabel: {
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.5,
-    color: "#9A918A",
+    color: "#9C8F97",
     marginBottom: 7,
   },
 
   input: {
     minHeight: 49,
     borderRadius: 12,
-    backgroundColor: "rgba(107, 78, 69, 0.07)",
+    backgroundColor: "rgba(217, 69, 107, 0.07)",
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.9)",
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 14,
-    color: "#302825",
+    color: "#2E2430",
     marginBottom: 16,
   },
 
@@ -869,7 +869,7 @@ const styles = StyleSheet.create({
   saveButton: {
     height: 50,
     borderRadius: 13,
-    backgroundColor: "#6B4E45",
+    backgroundColor: "#D9456B",
     alignItems: "center",
     justifyContent: "center",
     marginTop: 4,
@@ -893,7 +893,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.7,
-    color: "#9A918A",
+    color: "#9C8F97",
     marginBottom: 7,
   },
 
@@ -901,7 +901,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 24,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
     marginBottom: 13,
   },
 
@@ -924,7 +924,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    backgroundColor: "rgba(217, 69, 107, 0.09)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -932,7 +932,7 @@ const styles = StyleSheet.create({
   goalNumberText: {
     fontSize: 10,
     fontWeight: "800",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   goalTitle: {
@@ -940,19 +940,19 @@ const styles = StyleSheet.create({
     fontSize: 20,
     lineHeight: 25,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   goalDescription: {
     marginTop: 8,
     fontSize: 13,
     lineHeight: 20,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   dateContainer: {
     marginTop: 14,
-    backgroundColor: "rgba(107, 78, 69, 0.07)",
+    backgroundColor: "rgba(217, 69, 107, 0.07)",
     borderRadius: 11,
     padding: 11,
   },
@@ -961,19 +961,19 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: "800",
     letterSpacing: 1.2,
-    color: "#9A918A",
+    color: "#9C8F97",
   },
 
   dateText: {
     marginTop: 3,
     fontSize: 12,
     fontWeight: "600",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   goalDivider: {
     height: 1,
-    backgroundColor: "#EAE3DE",
+    backgroundColor: "#F6E6EC",
     marginVertical: 16,
   },
 
@@ -1000,7 +1000,7 @@ const styles = StyleSheet.create({
   completeText: {
     marginLeft: 8,
     fontSize: 10,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   goalActions: {
@@ -1018,20 +1018,20 @@ const styles = StyleSheet.create({
   editButtonText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   deleteButton: {
     paddingHorizontal: 11,
     paddingVertical: 8,
     borderRadius: 9,
-    backgroundColor: "#F5E8E5",
+    backgroundColor: "#FBEDF1",
   },
 
   deleteButtonText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#8A4A3D",
+    color: "#C2405F",
   },
 
   emptyCard: {
@@ -1047,7 +1047,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    backgroundColor: "rgba(217, 69, 107, 0.09)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 15,
@@ -1055,20 +1055,20 @@ const styles = StyleSheet.create({
 
   emptyIconText: {
     fontSize: 25,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   emptyTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   emptyText: {
     marginTop: 8,
     fontSize: 13,
     lineHeight: 20,
-    color: "#817771",
+    color: "#6B5F68",
     textAlign: "center",
   },
 
@@ -1083,14 +1083,14 @@ const styles = StyleSheet.create({
   emptyButtonText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   footerCard: {
     marginTop: 17,
     padding: 20,
     borderRadius: 18,
-    backgroundColor: "#EFE7E2",
+    backgroundColor: "#FBEEF2",
     alignItems: "center",
   },
 
@@ -1099,7 +1099,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 21,
     fontWeight: "600",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   footerText: {
@@ -1107,11 +1107,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 11,
     lineHeight: 17,
-    color: "#8D837C",
+    color: "#6B5F68",
   },
 
   errorBox: {
-    backgroundColor: "#F3E3DF",
+    backgroundColor: "#F9E3EA",
     paddingHorizontal: 14,
     paddingVertical: 11,
     borderRadius: 12,
@@ -1121,7 +1121,7 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 12,
     lineHeight: 17,
-    color: "#8A4A3D",
+    color: "#C2405F",
   },
 
   loadingContainer: {
@@ -1133,6 +1133,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 12,
-    color: "#817771",
+    color: "#6B5F68",
   },
 });

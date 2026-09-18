@@ -71,7 +71,7 @@ export default function DateInput({
           }
         }}
         placeholder={placeholder || "YYYY-MM-DD"}
-        placeholderTextColor={placeholderTextColor || "#A59A93"}
+        placeholderTextColor={placeholderTextColor || "#B9A7B1"}
         keyboardType="number-pad"
         returnKeyType="done"
         maxLength={10}
@@ -103,9 +103,9 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: "#F4EFEB",
+    backgroundColor: "#FBEDF1",
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#D9CFC9",
+    borderTopColor: "#F0D8E1",
   },
 
   doneButton: {
@@ -116,6 +116,6 @@ const styles = StyleSheet.create({
   doneText: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 });

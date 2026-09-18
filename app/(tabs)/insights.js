@@ -5,6 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { apiFetch } from "../../lib/api";
@@ -13,9 +14,11 @@ import { GlassBackground, Card } from "../../components/Glass";
 import { getCachedData, setCachedData } from "../../lib/dataCache";
 import { Skeleton, SkeletonList } from "../../components/Skeleton";
 import { useAuth } from "@clerk/expo";
-import { useFocusEffect } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect, useRouter } from "expo-router";
 
 export default function InsightsScreen() {
+  const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
 
   const cacheKey = userId ? `insights:${userId}` : null;
@@ -307,7 +310,7 @@ export default function InsightsScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              tintColor="#6B4E45"
+              tintColor="#D9456B"
             />
           }
           contentContainerStyle={styles.scrollContent}
@@ -389,7 +392,20 @@ export default function InsightsScreen() {
             {/* YOUR INSIGHTS */}
 
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>YOUR INSIGHTS</Text>
+              <View style={styles.sectionHead}>
+                <Text style={styles.sectionLabel}>YOUR INSIGHTS</Text>
+
+                {/* People change. This is where they say so. */}
+                <TouchableOpacity
+                  onPress={() => router.push("/onboarding")}
+                  activeOpacity={0.7}
+                  style={styles.editChip}
+                >
+                  <Ionicons name="create-outline" size={13} color="#D9456B" />
+
+                  <Text style={styles.editChipText}>Edit</Text>
+                </TouchableOpacity>
+              </View>
 
               <View style={styles.aboutGrid}>
                 <Card style={styles.smallCard}>
@@ -781,7 +797,7 @@ function LoadingScreen() {
 
           <ActivityIndicator
             size="small"
-            color="#6B4E45"
+            color="#D9456B"
             style={styles.loadingIndicator}
           />
         </View>
@@ -822,7 +838,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 2.2,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   pageTitle: {
@@ -830,25 +846,25 @@ const styles = StyleSheet.create({
     fontSize: 28,
     lineHeight: 34,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   headerIcon: {
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    backgroundColor: "rgba(217, 69, 107, 0.09)",
     alignItems: "center",
     justifyContent: "center",
   },
 
   headerIconText: {
     fontSize: 25,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   heroCard: {
-    backgroundColor: "#6B4E45",
+    backgroundColor: "#D9456B",
     borderRadius: 22,
     padding: 20,
   },
@@ -879,18 +895,40 @@ const styles = StyleSheet.create({
     marginTop: 9,
     fontSize: 13,
     lineHeight: 20,
-    color: "#DCCBC4",
+    color: "#EBC9D5",
   },
 
   section: {
     marginTop: 28,
   },
 
+  sectionHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  editChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "#F9E3EA",
+  },
+
+  editChipText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#D9456B",
+  },
+
   sectionLabel: {
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.7,
-    color: "#9A918A",
+    color: "#9C8F97",
     marginBottom: 9,
   },
 
@@ -908,7 +946,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    backgroundColor: "rgba(217, 69, 107, 0.09)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -916,7 +954,7 @@ const styles = StyleSheet.create({
   connectionAvatarText: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   connectionInfo: {
@@ -928,20 +966,20 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: "800",
     letterSpacing: 1.4,
-    color: "#9A918A",
+    color: "#9C8F97",
   },
 
   connectionName: {
     marginTop: 3,
     fontSize: 17,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   connectionType: {
     marginTop: 2,
     fontSize: 11,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   noConnectionCard: {
@@ -956,14 +994,14 @@ const styles = StyleSheet.create({
   noConnectionTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   noConnectionText: {
     marginTop: 7,
     fontSize: 12,
     lineHeight: 18,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   aboutGrid: {
@@ -986,7 +1024,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 20,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   insightCard: {
@@ -1010,28 +1048,28 @@ const styles = StyleSheet.create({
 
   insightIconText: {
     fontSize: 20,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   cardEyebrow: {
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.3,
-    color: "#9A918A",
+    color: "#9C8F97",
   },
 
   cardTitle: {
     marginTop: 7,
     fontSize: 18,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   cardDescription: {
     marginTop: 7,
     fontSize: 12,
     lineHeight: 18,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   sharedCard: {
@@ -1060,7 +1098,7 @@ const styles = StyleSheet.create({
   insightBulletText: {
     fontSize: 13,
     fontWeight: "800",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   insightRowContent: {
@@ -1072,7 +1110,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1,
-    color: "#9A918A",
+    color: "#9C8F97",
   },
 
   insightRowValue: {
@@ -1080,7 +1118,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 19,
     fontWeight: "600",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   differenceRow: {
@@ -1091,14 +1129,14 @@ const styles = StyleSheet.create({
 
   rowDivider: {
     borderBottomWidth: 1,
-    borderBottomColor: "#EEE8E3",
+    borderBottomColor: "#FAECF1",
   },
 
   dot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#6B4E45",
+    backgroundColor: "#D9456B",
   },
 
   differenceText: {
@@ -1106,7 +1144,7 @@ const styles = StyleSheet.create({
     marginLeft: 13,
     fontSize: 13,
     lineHeight: 19,
-    color: "#302825",
+    color: "#2E2430",
   },
 
   loveCard: {
@@ -1135,14 +1173,14 @@ const styles = StyleSheet.create({
   languageNumberText: {
     fontSize: 11,
     fontWeight: "800",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   languageText: {
     marginLeft: 12,
     fontSize: 14,
     fontWeight: "600",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   goalsCard: {
@@ -1171,14 +1209,14 @@ const styles = StyleSheet.create({
   goalIconText: {
     fontSize: 18,
     fontWeight: "500",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   goalText: {
     marginLeft: 12,
     fontSize: 14,
     fontWeight: "600",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   favoritesCard: {
@@ -1199,7 +1237,7 @@ const styles = StyleSheet.create({
   favoriteLabel: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#9A918A",
+    color: "#9C8F97",
   },
 
   favoriteValue: {
@@ -1208,23 +1246,23 @@ const styles = StyleSheet.create({
     textAlign: "right",
     fontSize: 13,
     fontWeight: "600",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   divider: {
     height: 1,
-    backgroundColor: "#EEE8E3",
+    backgroundColor: "#FAECF1",
   },
 
   emptyText: {
     paddingVertical: 20,
     fontSize: 12,
     lineHeight: 18,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   errorBox: {
-    backgroundColor: "#F3E3DF",
+    backgroundColor: "#F9E3EA",
     paddingHorizontal: 14,
     paddingVertical: 11,
     borderRadius: 12,
@@ -1234,7 +1272,7 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 12,
     lineHeight: 17,
-    color: "#8A4A3D",
+    color: "#C2405F",
   },
 
   footer: {
@@ -1246,7 +1284,7 @@ const styles = StyleSheet.create({
 
   footerHeart: {
     fontSize: 25,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   footerTitle: {
@@ -1254,7 +1292,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 2,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   footerText: {
@@ -1262,7 +1300,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 10,
     lineHeight: 15,
-    color: "#9A918A",
+    color: "#9C8F97",
   },
 
   loadingContainer: {
@@ -1275,21 +1313,21 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    backgroundColor: "rgba(217, 69, 107, 0.09)",
     alignItems: "center",
     justifyContent: "center",
   },
 
   loadingHeart: {
     fontSize: 29,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   loadingTitle: {
     marginTop: 14,
     fontSize: 21,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   loadingIndicator: {

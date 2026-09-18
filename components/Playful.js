@@ -19,7 +19,7 @@ export const PASTELS = {
   butter: { bg: "#F8E8C8", ink: "#8A6B32", soft: "#FCF6E9" },
   sky: { bg: "#DCE7F2", ink: "#4A6280", soft: "#F1F5FA" },
   lilac: { bg: "#E6DFEF", ink: "#63537C", soft: "#F5F2F9" },
-  clay: { bg: "#F0E0D6", ink: "#8A5E45", soft: "#FAF3EE" },
+  clay: { bg: "#F0E0D6", ink: "#B8345A", soft: "#FAF3EE" },
 };
 
 /*
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 19,
     fontWeight: "800",
-    color: "#2E2724",
+    color: "#2E2430",
     textAlign: "center",
   },
 

@@ -249,7 +249,7 @@ export default function SpecialDatesScreen() {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={handleRefresh}
-                tintColor="#6B4E45"
+                tintColor="#D9456B"
               />
             }
             contentContainerStyle={styles.scrollContent}
@@ -263,7 +263,7 @@ export default function SpecialDatesScreen() {
                   activeOpacity={0.8}
                   onPress={() => router.back()}
                 >
-                  <Ionicons name="chevron-back" size={20} color="#6B4E45" />
+                  <Ionicons name="chevron-back" size={20} color="#D9456B" />
                 </TouchableOpacity>
 
                 <View style={styles.headerText}>
@@ -333,7 +333,7 @@ export default function SpecialDatesScreen() {
                     value={title}
                     onChangeText={setTitle}
                     placeholder="e.g. First date anniversary"
-                    placeholderTextColor="#A59A93"
+                    placeholderTextColor="#B9A7B1"
                     style={styles.input}
                   />
 
@@ -382,7 +382,7 @@ export default function SpecialDatesScreen() {
                       <Ionicons
                         name="calendar-outline"
                         size={24}
-                        color="#6B4E45"
+                        color="#D9456B"
                       />
                     </View>
 
@@ -440,7 +440,7 @@ function SpecialDateCard({ specialDate, onDelete }) {
   return (
     <Card style={styles.dateCard}>
       <View style={styles.dateCardIcon}>
-        <Ionicons name="calendar-outline" size={19} color="#6B4E45" />
+        <Ionicons name="calendar-outline" size={19} color="#D9456B" />
       </View>
 
       <View style={styles.dateCardContent}>
@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    backgroundColor: "rgba(217, 69, 107, 0.09)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 11,
@@ -499,7 +499,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 2,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   pageTitle: {
@@ -507,14 +507,14 @@ const styles = StyleSheet.create({
     fontSize: 26,
     lineHeight: 31,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   pageSubtitle: {
     marginTop: 4,
     fontSize: 11,
     lineHeight: 17,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   addButton: {
@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
     width: 43,
     height: 43,
     borderRadius: 22,
-    backgroundColor: "#6B4E45",
+    backgroundColor: "#D9456B",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -550,19 +550,19 @@ const styles = StyleSheet.create({
   addTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   addSubtitle: {
     marginTop: 3,
     fontSize: 11,
     lineHeight: 16,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   addArrow: {
     fontSize: 20,
-    color: "#6B4E45",
+    color: "#D9456B",
     marginLeft: 8,
   },
 
@@ -586,14 +586,14 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.6,
-    color: "#9A918A",
+    color: "#9C8F97",
   },
 
   formTitle: {
     marginTop: 5,
     fontSize: 19,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
     maxWidth: 260,
   },
 
@@ -608,34 +608,34 @@ const styles = StyleSheet.create({
 
   closeButtonText: {
     fontSize: 22,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   inputLabel: {
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.5,
-    color: "#9A918A",
+    color: "#9C8F97",
     marginBottom: 7,
   },
 
   input: {
     minHeight: 49,
     borderRadius: 12,
-    backgroundColor: "rgba(107, 78, 69, 0.07)",
+    backgroundColor: "rgba(217, 69, 107, 0.07)",
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.9)",
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 14,
-    color: "#302825",
+    color: "#2E2430",
     marginBottom: 16,
   },
 
   saveButton: {
     height: 50,
     borderRadius: 13,
-    backgroundColor: "#6B4E45",
+    backgroundColor: "#D9456B",
     alignItems: "center",
     justifyContent: "center",
     marginTop: 4,
@@ -659,7 +659,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.7,
-    color: "#9A918A",
+    color: "#9C8F97",
     marginBottom: 7,
   },
 
@@ -667,7 +667,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 24,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
     marginBottom: 13,
   },
 
@@ -699,28 +699,28 @@ const styles = StyleSheet.create({
   dateCardTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   dateCardDate: {
     marginTop: 4,
     fontSize: 11,
     fontWeight: "600",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   deleteButton: {
     paddingHorizontal: 11,
     paddingVertical: 8,
     borderRadius: 9,
-    backgroundColor: "#F5E8E5",
+    backgroundColor: "#FBEDF1",
     marginLeft: 10,
   },
 
   deleteButtonText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#8A4A3D",
+    color: "#C2405F",
   },
 
   emptyCard: {
@@ -736,7 +736,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    backgroundColor: "rgba(217, 69, 107, 0.09)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 15,
@@ -745,14 +745,14 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   emptyText: {
     marginTop: 8,
     fontSize: 13,
     lineHeight: 20,
-    color: "#817771",
+    color: "#6B5F68",
     textAlign: "center",
   },
 
@@ -767,14 +767,14 @@ const styles = StyleSheet.create({
   emptyButtonText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   footerCard: {
     marginTop: 17,
     padding: 20,
     borderRadius: 18,
-    backgroundColor: "#EFE7E2",
+    backgroundColor: "#FBEEF2",
     alignItems: "center",
   },
 
@@ -783,11 +783,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 21,
     fontWeight: "600",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   errorBox: {
-    backgroundColor: "#F3E3DF",
+    backgroundColor: "#F9E3EA",
     paddingHorizontal: 14,
     paddingVertical: 11,
     borderRadius: 12,
@@ -797,7 +797,7 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 12,
     lineHeight: 17,
-    color: "#8A4A3D",
+    color: "#C2405F",
   },
 
   loadingContainer: {
@@ -809,6 +809,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 12,
-    color: "#817771",
+    color: "#6B5F68",
   },
 });

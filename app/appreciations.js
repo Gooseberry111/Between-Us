@@ -175,7 +175,7 @@ export default function AppreciationsScreen() {
                   setRefreshing(true);
                   load();
                 }}
-                tintColor="#6B4E45"
+                tintColor="#D9456B"
               />
             }
             contentContainerStyle={styles.scrollContent}
@@ -187,7 +187,7 @@ export default function AppreciationsScreen() {
                   activeOpacity={0.8}
                   onPress={() => router.back()}
                 >
-                  <Ionicons name="chevron-back" size={20} color="#6B4E45" />
+                  <Ionicons name="chevron-back" size={20} color="#D9456B" />
                 </TouchableOpacity>
 
                 <View style={styles.headerText}>
@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 2,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   pageTitle: {
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
     fontSize: 26,
     lineHeight: 31,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   composer: { marginBottom: 8 },
@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.6,
-    color: "#DCCBC4",
+    color: "#EBC9D5",
   },
 
   composerTitle: {
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.7,
-    color: "#9A918A",
+    color: "#9C8F97",
     marginBottom: 12,
   },
 
@@ -422,7 +422,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 8,
-    backgroundColor: "rgba(107, 78, 69, 0.1)",
+    backgroundColor: "rgba(217, 69, 107, 0.1)",
   },
 
   noteBadgeMine: {
@@ -433,20 +433,20 @@ const styles = StyleSheet.create({
     fontSize: 8.5,
     fontWeight: "800",
     letterSpacing: 0.8,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   noteDate: {
     fontSize: 10,
     fontWeight: "600",
-    color: "#9A918A",
+    color: "#9C8F97",
   },
 
   noteText: {
     marginTop: 12,
     fontSize: 14.5,
     lineHeight: 21,
-    color: "#302825",
+    color: "#2E2430",
   },
 
   deleteButton: {
@@ -461,7 +461,7 @@ const styles = StyleSheet.create({
   deleteButtonText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#8A4A3D",
+    color: "#C2405F",
   },
 
   emptyCard: {
@@ -475,14 +475,14 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   emptyText: {
     marginTop: 7,
     fontSize: 13,
     lineHeight: 19,
-    color: "#817771",
+    color: "#6B5F68",
     textAlign: "center",
   },
 
@@ -494,5 +494,5 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
 
-  errorText: { fontSize: 12, lineHeight: 17, color: "#8A4A3D" },
+  errorText: { fontSize: 12, lineHeight: 17, color: "#C2405F" },
 });

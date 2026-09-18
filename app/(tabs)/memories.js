@@ -370,7 +370,7 @@ export default function TimelineScreen() {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={handleRefresh}
-                tintColor="#6B4E45"
+                tintColor="#D9456B"
               />
             }
             contentContainerStyle={styles.scrollContent}
@@ -390,7 +390,7 @@ export default function TimelineScreen() {
                 </View>
 
                 <View style={styles.headerIcon}>
-                  <Ionicons name="time-outline" size={22} color="#6B4E45" />
+                  <Ionicons name="time-outline" size={22} color="#D9456B" />
                 </View>
               </View>
 
@@ -453,7 +453,7 @@ export default function TimelineScreen() {
                     value={title}
                     onChangeText={setTitle}
                     placeholder="e.g. Our first date"
-                    placeholderTextColor="#A59A93"
+                    placeholderTextColor="#B9A7B1"
                     style={styles.input}
                     returnKeyType="next"
                   />
@@ -472,7 +472,7 @@ export default function TimelineScreen() {
                     value={description}
                     onChangeText={setDescription}
                     placeholder="What happened?"
-                    placeholderTextColor="#A59A93"
+                    placeholderTextColor="#B9A7B1"
                     style={[styles.input, styles.descriptionInput]}
                     multiline
                     textAlignVertical="top"
@@ -514,7 +514,7 @@ export default function TimelineScreen() {
                 {entries.length === 0 ? (
                   <Card style={styles.emptyCard}>
                     <View style={styles.emptyIcon}>
-                      <Ionicons name="time-outline" size={24} color="#6B4E45" />
+                      <Ionicons name="time-outline" size={24} color="#D9456B" />
                     </View>
 
                     <Text style={styles.emptyTitle}>Nothing here yet.</Text>
@@ -618,7 +618,7 @@ function TimelineCard({ entry, onEdit, onDelete, onPress }) {
     >
       <View style={styles.entryTop}>
         <View style={styles.entryKindBadge}>
-          <Ionicons name={meta.icon} size={13} color="#6B4E45" />
+          <Ionicons name={meta.icon} size={13} color="#D9456B" />
 
           <Text style={styles.entryKindText}>{meta.label}</Text>
         </View>
@@ -725,7 +725,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 2.2,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   pageTitle: {
@@ -733,14 +733,14 @@ const styles = StyleSheet.create({
     fontSize: 29,
     lineHeight: 35,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   pageSubtitle: {
     marginTop: 5,
     fontSize: 13,
     lineHeight: 19,
-    color: "#817771",
+    color: "#6B5F68",
     maxWidth: 280,
   },
 
@@ -748,7 +748,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    backgroundColor: "rgba(217, 69, 107, 0.09)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -771,7 +771,7 @@ const styles = StyleSheet.create({
     width: 43,
     height: 43,
     borderRadius: 22,
-    backgroundColor: "#6B4E45",
+    backgroundColor: "#D9456B",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -790,19 +790,19 @@ const styles = StyleSheet.create({
   addTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   addSubtitle: {
     marginTop: 3,
     fontSize: 11,
     lineHeight: 16,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   addArrow: {
     fontSize: 20,
-    color: "#6B4E45",
+    color: "#D9456B",
     marginLeft: 8,
   },
 
@@ -830,14 +830,14 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.6,
-    color: "#9A918A",
+    color: "#9C8F97",
   },
 
   formTitle: {
     marginTop: 5,
     fontSize: 19,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   closeButton: {
@@ -852,27 +852,27 @@ const styles = StyleSheet.create({
   closeButtonText: {
     fontSize: 22,
     lineHeight: 24,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   inputLabel: {
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.5,
-    color: "#9A918A",
+    color: "#9C8F97",
     marginBottom: 7,
   },
 
   input: {
     minHeight: 49,
     borderRadius: 12,
-    backgroundColor: "rgba(107, 78, 69, 0.07)",
+    backgroundColor: "rgba(217, 69, 107, 0.07)",
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.9)",
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 14,
-    color: "#302825",
+    color: "#2E2430",
     marginBottom: 16,
   },
 
@@ -884,7 +884,7 @@ const styles = StyleSheet.create({
   saveButton: {
     height: 50,
     borderRadius: 13,
-    backgroundColor: "#6B4E45",
+    backgroundColor: "#D9456B",
     alignItems: "center",
     justifyContent: "center",
     marginTop: 12,
@@ -912,7 +912,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.7,
-    color: "#9A918A",
+    color: "#9C8F97",
     marginBottom: 7,
   },
 
@@ -920,7 +920,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 24,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
     marginBottom: 13,
   },
 
@@ -957,11 +957,11 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 0.6,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   entryDateContainer: {
-    backgroundColor: "rgba(107, 78, 69, 0.07)",
+    backgroundColor: "rgba(217, 69, 107, 0.07)",
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 9,
@@ -970,7 +970,7 @@ const styles = StyleSheet.create({
   entryDate: {
     fontSize: 10,
     fontWeight: "600",
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   entryTitle: {
@@ -978,19 +978,19 @@ const styles = StyleSheet.create({
     fontSize: 20,
     lineHeight: 25,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   entryDescription: {
     marginTop: 8,
     fontSize: 13,
     lineHeight: 20,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   entryDivider: {
     height: 1,
-    backgroundColor: "#EAE3DE",
+    backgroundColor: "#F6E6EC",
     marginVertical: 16,
   },
 
@@ -1017,13 +1017,13 @@ const styles = StyleSheet.create({
 
   miniHeartText: {
     fontSize: 16,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   entryCreatedText: {
     marginLeft: 8,
     fontSize: 10,
-    color: "#9A918A",
+    color: "#9C8F97",
   },
 
   entryActions: {
@@ -1041,20 +1041,20 @@ const styles = StyleSheet.create({
   editButtonText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   deleteButton: {
     paddingHorizontal: 11,
     paddingVertical: 8,
     borderRadius: 9,
-    backgroundColor: "#F5E8E5",
+    backgroundColor: "#FBEDF1",
   },
 
   deleteButtonText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#8A4A3D",
+    color: "#C2405F",
   },
 
   entryLinkRow: {
@@ -1067,12 +1067,12 @@ const styles = StyleSheet.create({
   entryLinkText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   entryLinkArrow: {
     fontSize: 15,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   /*
@@ -1092,7 +1092,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    backgroundColor: "rgba(217, 69, 107, 0.09)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 15,
@@ -1101,14 +1101,14 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   emptyText: {
     marginTop: 8,
     fontSize: 13,
     lineHeight: 20,
-    color: "#817771",
+    color: "#6B5F68",
     textAlign: "center",
   },
 
@@ -1123,7 +1123,7 @@ const styles = StyleSheet.create({
   emptyButtonText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   /*
@@ -1134,7 +1134,7 @@ const styles = StyleSheet.create({
     marginTop: 17,
     padding: 20,
     borderRadius: 18,
-    backgroundColor: "#EFE7E2",
+    backgroundColor: "#FBEEF2",
     alignItems: "center",
   },
 
@@ -1143,7 +1143,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 21,
     fontWeight: "600",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   footerText: {
@@ -1151,7 +1151,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 11,
     lineHeight: 17,
-    color: "#8D837C",
+    color: "#6B5F68",
   },
 
   /*
@@ -1159,7 +1159,7 @@ const styles = StyleSheet.create({
    */
 
   errorBox: {
-    backgroundColor: "#F3E3DF",
+    backgroundColor: "#F9E3EA",
     paddingHorizontal: 14,
     paddingVertical: 11,
     borderRadius: 12,
@@ -1169,7 +1169,7 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 12,
     lineHeight: 17,
-    color: "#8A4A3D",
+    color: "#C2405F",
   },
 
   /*
@@ -1185,6 +1185,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 12,
-    color: "#817771",
+    color: "#6B5F68",
   },
 });

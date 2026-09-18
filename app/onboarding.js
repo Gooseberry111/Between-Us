@@ -311,7 +311,7 @@ export default function OnboardingScreen() {
     return (
       <SafeAreaView style={styles.screen} edges={["top"]}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color="#6B4E45" />
+          <ActivityIndicator size="small" color="#D9456B" />
 
           <Text style={styles.loadingText}>Preparing your profile...</Text>
         </View>
@@ -461,12 +461,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     fontWeight: "600",
-    color: "#8A4A3D",
+    color: "#C2405F",
   },
 
   screen: {
     flex: 1,
-    backgroundColor: "#F8F5F0",
+    backgroundColor: "#FFF8F5",
   },
 
   container: {
@@ -485,12 +485,12 @@ const styles = StyleSheet.create({
   brand: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#332B28",
+    color: "#2E2430",
   },
 
   subtitle: {
     fontSize: 13,
-    color: "#9A918A",
+    color: "#9C8F97",
     marginTop: 4,
   },
 
@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "#F5DCE4",
   },
 
   skipButtonLocked: {
@@ -506,7 +506,7 @@ const styles = StyleSheet.create({
   },
 
   skipText: {
-    color: "#6B4E45",
+    color: "#D9456B",
     fontSize: 14,
     fontWeight: "700",
   },
@@ -516,11 +516,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     fontSize: 12,
     lineHeight: 17,
-    color: "#9A918A",
+    color: "#9C8F97",
   },
 
   counter: {
-    color: "#8D837C",
+    color: "#6B5F68",
     marginTop: 22,
     marginBottom: 12,
     fontSize: 14,
@@ -532,7 +532,7 @@ const styles = StyleSheet.create({
   },
 
   errorBox: {
-    backgroundColor: "#F3E3DF",
+    backgroundColor: "#F9E3EA",
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderRadius: 12,
@@ -540,7 +540,7 @@ const styles = StyleSheet.create({
   },
 
   errorText: {
-    color: "#8A4A3D",
+    color: "#C2405F",
     fontSize: 13,
     lineHeight: 18,
   },
@@ -555,7 +555,7 @@ const styles = StyleSheet.create({
   },
 
   backText: {
-    color: "#6B4E45",
+    color: "#D9456B",
     fontWeight: "600",
     fontSize: 15,
   },
@@ -563,7 +563,7 @@ const styles = StyleSheet.create({
   nextButton: {
     height: 56,
     borderRadius: 14,
-    backgroundColor: "#6B4E45",
+    backgroundColor: "#D9456B",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -596,7 +596,7 @@ const styles = StyleSheet.create({
   },
 
   differentAccountText: {
-    color: "#9A918A",
+    color: "#9C8F97",
     fontSize: 13,
     fontWeight: "600",
   },
@@ -611,14 +611,14 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: "#817771",
+    color: "#6B5F68",
     textAlign: "center",
   },
 
   failedTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#332B28",
+    color: "#2E2430",
     textAlign: "center",
   },
 
@@ -627,7 +627,7 @@ const styles = StyleSheet.create({
     height: 50,
     paddingHorizontal: 32,
     borderRadius: 14,
-    backgroundColor: "#6B4E45",
+    backgroundColor: "#D9456B",
     justifyContent: "center",
     alignItems: "center",
   },

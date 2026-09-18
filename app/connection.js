@@ -77,7 +77,7 @@ export default function ConnectionScreen() {
     return (
       <SafeAreaView style={styles.screen} edges={["top"]}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color="#6B4E45" />
+          <ActivityIndicator size="small" color="#D9456B" />
 
           <Text style={styles.loadingText}>Loading your space...</Text>
         </View>
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "#F6E6EC",
   },
 
   featureIcon: {
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
 
   featureIconText: {
     fontSize: 21,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   featureContent: {
@@ -245,19 +245,19 @@ const styles = StyleSheet.create({
   featureTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   featureText: {
     marginTop: 3,
     fontSize: 11,
     lineHeight: 16,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   featureArrow: {
     fontSize: 25,
-    color: "#9A918A",
+    color: "#9C8F97",
     marginLeft: 8,
   },
 
@@ -265,11 +265,11 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: "800",
     letterSpacing: 1,
-    color: "#9A918A",
+    color: "#9C8F97",
   },
   screen: {
     flex: 1,
-    backgroundColor: "#F8F5F0",
+    backgroundColor: "#FFF8F5",
   },
 
   container: {
@@ -286,14 +286,14 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 13,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "#F5DCE4",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 35,
@@ -301,14 +301,14 @@ const styles = StyleSheet.create({
 
   backText: {
     fontSize: 22,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   eyebrow: {
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.8,
-    color: "#9A918A",
+    color: "#9C8F97",
   },
 
   title: {
@@ -316,19 +316,19 @@ const styles = StyleSheet.create({
     fontSize: 29,
     lineHeight: 35,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   subtitle: {
     marginTop: 9,
     fontSize: 14,
     lineHeight: 21,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   profileCard: {
     marginTop: 28,
-    backgroundColor: "#6B4E45",
+    backgroundColor: "#D9456B",
     borderRadius: 20,
     padding: 18,
     flexDirection: "row",
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "#E9DED8",
+    backgroundColor: "#F5DCE4",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
   relationship: {
     marginTop: 3,
     fontSize: 12,
-    color: "#DCCBC4",
+    color: "#EBC9D5",
   },
 
   connectedDot: {
@@ -380,12 +380,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 21,
     borderWidth: 1,
-    borderColor: "#EAE3DE",
+    borderColor: "#F6E6EC",
   },
 
   cardIcon: {
     fontSize: 29,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   cardTitle: {
@@ -393,18 +393,18 @@ const styles = StyleSheet.create({
     fontSize: 20,
     lineHeight: 26,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   cardText: {
     marginTop: 8,
     fontSize: 13,
     lineHeight: 20,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   errorBox: {
-    backgroundColor: "#F3E3DF",
+    backgroundColor: "#F9E3EA",
     paddingHorizontal: 14,
     paddingVertical: 11,
     borderRadius: 12,
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 12,
     lineHeight: 17,
-    color: "#8A4A3D",
+    color: "#C2405F",
   },
 
   emptyState: {
@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 21,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   emptyText: {
@@ -435,6 +435,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 13,
     lineHeight: 20,
-    color: "#817771",
+    color: "#6B5F68",
   },
 });

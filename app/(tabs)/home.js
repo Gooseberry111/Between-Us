@@ -368,7 +368,7 @@ export default function HomeScreen() {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={handleRefresh}
-                tintColor="#6B4E45"
+                tintColor="#D9456B"
               />
             }
             contentContainerStyle={styles.scrollContent}
@@ -485,7 +485,7 @@ export default function HomeScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              tintColor="#6B4E45"
+              tintColor="#D9456B"
             />
           }
           contentContainerStyle={styles.scrollContent}
@@ -512,7 +512,7 @@ export default function HomeScreen() {
                   {/* The two of you, overlapping, because that is
                       the whole idea of the app. */}
                   <View style={styles.pairRow}>
-                    <View style={styles.pairSide}>
+                    <View style={styles.pairSideLeft}>
                       <View style={[styles.pairAvatar, styles.pairAvatarMine]}>
                         <Text style={styles.pairAvatarText}>
                           {(myName || "?").charAt(0).toUpperCase()}
@@ -528,7 +528,7 @@ export default function HomeScreen() {
                       <Text style={styles.pairHeart}>♡</Text>
                     </View>
 
-                    <View style={styles.pairSide}>
+                    <View style={styles.pairSideRight}>
                       <View
                         style={[styles.pairAvatar, styles.pairAvatarTheirs]}
                       >
@@ -929,7 +929,7 @@ function Header({ firstName, hasUnreadNotifications }) {
         activeOpacity={0.8}
         onPress={() => router.push("/notifications")}
       >
-        <Ionicons name="notifications-outline" size={21} color="#6B4E45" />
+        <Ionicons name="notifications-outline" size={21} color="#D9456B" />
 
         {hasUnreadNotifications ? (
           <View style={styles.notificationUnreadDot} />
@@ -1148,7 +1148,7 @@ function LoadingScreen() {
 
           <ActivityIndicator
             size="small"
-            color="#6B4E45"
+            color="#D9456B"
             style={styles.loadingIndicator}
           />
         </View>
@@ -1216,7 +1216,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 2.2,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   greeting: {
@@ -1229,7 +1229,7 @@ const styles = StyleSheet.create({
   },
 
   greetingName: {
-    color: "#302825",
+    color: "#2E2430",
     fontWeight: "800",
   },
 
@@ -1244,7 +1244,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    backgroundColor: "rgba(217, 69, 107, 0.09)",
     alignItems: "center",
     justifyContent: "center",
     marginLeft: 12,
@@ -1260,7 +1260,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: "#B34A3C",
     borderWidth: 1.5,
-    borderColor: "#E9DED8",
+    borderColor: "#F5DCE4",
   },
 
   /*
@@ -1332,19 +1332,28 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 16,
-    marginBottom: 4,
+    marginTop: 18,
+    marginBottom: 6,
   },
 
-  pairSide: {
-    flex: 1,
+  /* The two circles overlap, with the heart sitting in the
+     join, so the card says "linked" before any word does. */
+  pairSideLeft: {
     alignItems: "center",
+    marginRight: -16,
+    zIndex: 1,
+  },
+
+  pairSideRight: {
+    alignItems: "center",
+    marginLeft: -16,
+    zIndex: 1,
   },
 
   pairAvatar: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
@@ -1362,24 +1371,24 @@ const styles = StyleSheet.create({
   pairAvatarText: {
     fontSize: 22,
     fontWeight: "800",
-    color: "#5A3C34",
+    color: "#7A2E4A",
   },
 
   /* The knot in the middle: the two circles lean into it. */
   pairKnot: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "rgba(255,255,255,0.22)",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
-    marginHorizontal: -14,
-    zIndex: 2,
+    marginBottom: 26,
+    zIndex: 3,
   },
 
   pairHeart: {
-    fontSize: 17,
-    color: "#FFFFFF",
+    fontSize: 18,
+    color: "#D9456B",
   },
 
   pairName: {
@@ -1422,7 +1431,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.5,
-    color: "#DCCBC4",
+    color: "#EBC9D5",
   },
 
   partnerName: {
@@ -1435,7 +1444,7 @@ const styles = StyleSheet.create({
   relationshipText: {
     marginTop: 2,
     fontSize: 12,
-    color: "#DCCBC4",
+    color: "#EBC9D5",
   },
 
   onlineDot: {
@@ -1461,7 +1470,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.3,
-    color: "#DCCBC4",
+    color: "#EBC9D5",
   },
 
   connectionSmallText: {
@@ -1492,7 +1501,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.7,
-    color: "#9A918A",
+    color: "#9C8F97",
     marginBottom: 8,
   },
 
@@ -1500,7 +1509,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 24,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   /*
@@ -1520,7 +1529,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    backgroundColor: "rgba(217, 69, 107, 0.09)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 14,
@@ -1528,14 +1537,14 @@ const styles = StyleSheet.create({
 
   promptIconText: {
     fontSize: 18,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   promptEyebrow: {
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.3,
-    color: "#9A918A",
+    color: "#9C8F97",
     marginBottom: 6,
   },
 
@@ -1543,14 +1552,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 24,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   promptDescription: {
     marginTop: 9,
     fontSize: 13,
     lineHeight: 19,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   promptButton: {
@@ -1563,7 +1572,7 @@ const styles = StyleSheet.create({
   },
 
   promptButtonText: {
-    color: "#6B4E45",
+    color: "#D9456B",
     fontSize: 13,
     fontWeight: "700",
   },
@@ -1584,7 +1593,7 @@ const styles = StyleSheet.create({
   snapshotTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
     marginBottom: 4,
   },
 
@@ -1594,13 +1603,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     borderTopWidth: 1,
-    borderTopColor: "#EEE8E3",
+    borderTopColor: "#FAECF1",
   },
 
   snapshotLabel: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#9A918A",
+    color: "#9C8F97",
   },
 
   snapshotValue: {
@@ -1609,14 +1618,14 @@ const styles = StyleSheet.create({
     textAlign: "right",
     fontSize: 13,
     fontWeight: "600",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   emptySnapshot: {
     marginTop: 10,
     fontSize: 12,
     lineHeight: 18,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   /*
@@ -1634,7 +1643,7 @@ const styles = StyleSheet.create({
   loveCardTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
     marginBottom: 13,
   },
 
@@ -1655,13 +1664,13 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   infoRow: {
     minHeight: 48,
     borderTopWidth: 1,
-    borderTopColor: "#EEE8E3",
+    borderTopColor: "#FAECF1",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -1670,7 +1679,7 @@ const styles = StyleSheet.create({
   infoLabel: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#9A918A",
+    color: "#9C8F97",
   },
 
   infoValue: {
@@ -1679,7 +1688,7 @@ const styles = StyleSheet.create({
     textAlign: "right",
     fontSize: 12,
     fontWeight: "600",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   /*
@@ -1711,14 +1720,14 @@ const styles = StyleSheet.create({
 
   goalIconText: {
     fontSize: 15,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   goalText: {
     marginLeft: 12,
     fontSize: 14,
     fontWeight: "600",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   /*
@@ -1766,7 +1775,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
     fontSize: 12,
     lineHeight: 17,
-    color: "#DCCBC4",
+    color: "#EBC9D5",
   },
 
   triviaButton: {
@@ -1827,21 +1836,21 @@ const styles = StyleSheet.create({
   },
 
   quickIconText: {
-    color: "#6B4E45",
+    color: "#D9456B",
     fontSize: 17,
   },
 
   quickTitle: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   quickText: {
     marginTop: 4,
     fontSize: 11,
     lineHeight: 16,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   /*
@@ -1864,7 +1873,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    backgroundColor: "rgba(217, 69, 107, 0.09)",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 18,
@@ -1872,28 +1881,28 @@ const styles = StyleSheet.create({
 
   heart: {
     fontSize: 28,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   welcomeTitle: {
     fontSize: 25,
     lineHeight: 31,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   welcomeDescription: {
     marginTop: 13,
     fontSize: 14,
     lineHeight: 21,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   primaryButton: {
     height: 54,
     marginTop: 20,
     borderRadius: 14,
-    backgroundColor: "#6B4E45",
+    backgroundColor: "#D9456B",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -1929,13 +1938,13 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    backgroundColor: "rgba(217, 69, 107, 0.09)",
     alignItems: "center",
     justifyContent: "center",
   },
 
   pendingHeart: {
-    color: "#6B4E45",
+    color: "#D9456B",
     fontSize: 22,
   },
 
@@ -1947,14 +1956,14 @@ const styles = StyleSheet.create({
   pendingTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   pendingText: {
     marginTop: 3,
     fontSize: 11,
     lineHeight: 16,
-    color: "#817771",
+    color: "#6B5F68",
   },
 
   smallButton: {
@@ -1965,7 +1974,7 @@ const styles = StyleSheet.create({
   },
 
   smallButtonText: {
-    color: "#6B4E45",
+    color: "#D9456B",
     fontSize: 12,
     fontWeight: "700",
   },
@@ -1979,7 +1988,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     padding: 20,
     borderRadius: 18,
-    backgroundColor: "#EFE7E2",
+    backgroundColor: "#FBEEF2",
     alignItems: "center",
   },
 
@@ -1988,7 +1997,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
     fontWeight: "600",
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   footerSubtext: {
@@ -1996,7 +2005,7 @@ const styles = StyleSheet.create({
     marginTop: 7,
     fontSize: 11,
     lineHeight: 17,
-    color: "#8D837C",
+    color: "#6B5F68",
   },
 
   /*
@@ -2004,7 +2013,7 @@ const styles = StyleSheet.create({
    */
 
   errorBox: {
-    backgroundColor: "#F3E3DF",
+    backgroundColor: "#F9E3EA",
     paddingHorizontal: 14,
     paddingVertical: 11,
     borderRadius: 12,
@@ -2014,7 +2023,7 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 12,
     lineHeight: 17,
-    color: "#8A4A3D",
+    color: "#C2405F",
   },
 
   /*
@@ -2031,21 +2040,21 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "rgba(107, 78, 69, 0.09)",
+    backgroundColor: "rgba(217, 69, 107, 0.09)",
     alignItems: "center",
     justifyContent: "center",
   },
 
   loadingHeart: {
     fontSize: 29,
-    color: "#6B4E45",
+    color: "#D9456B",
   },
 
   loadingTitle: {
     marginTop: 14,
     fontSize: 21,
     fontWeight: "700",
-    color: "#302825",
+    color: "#2E2430",
   },
 
   loadingIndicator: {
