@@ -809,7 +809,7 @@ const styles = StyleSheet.create({
   },
 
   completedLinkIconText: {
-    fontFamily: "Nunito_700Bold",
+    fontFamily: "Fraunces_700Bold",
     fontSize: 17,
     fontWeight: "700",
     color: "#D9456B",
@@ -920,7 +920,7 @@ const styles = StyleSheet.create({
   },
 
   formTitle: {
-    fontFamily: "Nunito_700Bold",
+    fontFamily: "Fraunces_700Bold",
     marginTop: 5,
     fontSize: 19,
     fontWeight: "700",
@@ -1034,7 +1034,7 @@ const styles = StyleSheet.create({
   },
 
   sectionTitle: {
-    fontFamily: "Nunito_700Bold",
+    fontFamily: "Fraunces_700Bold",
     fontSize: 18,
     lineHeight: 24,
     fontWeight: "700",
@@ -1219,7 +1219,7 @@ const styles = StyleSheet.create({
   },
 
   emptyTitle: {
-    fontFamily: "Nunito_700Bold",
+    fontFamily: "Fraunces_700Bold",
     fontSize: 18,
     fontWeight: "700",
     color: "#2E2430",

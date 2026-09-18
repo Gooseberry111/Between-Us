@@ -803,7 +803,7 @@ const styles = StyleSheet.create({
   },
 
   loadingTitle: {
-    fontFamily: "Nunito_700Bold",
+    fontFamily: "Fraunces_700Bold",
     marginTop: 15,
     fontSize: 17,
     fontWeight: "700",

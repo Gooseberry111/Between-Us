@@ -581,7 +581,7 @@ const styles = StyleSheet.create({
   },
 
   nextText: {
-    fontFamily: "Nunito_700Bold",
+    fontFamily: "Fraunces_700Bold",
     color: "#FFFFFF",
     fontWeight: "700",
     fontSize: 16,
@@ -627,7 +627,7 @@ const styles = StyleSheet.create({
   },
 
   failedTitle: {
-    fontFamily: "Nunito_700Bold",
+    fontFamily: "Fraunces_700Bold",
     fontSize: 18,
     fontWeight: "700",
     color: "#2E2430",

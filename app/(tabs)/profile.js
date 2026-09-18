@@ -1009,7 +1009,7 @@ const styles = StyleSheet.create({
   },
 
   partnerName: {
-    fontFamily: "Nunito_700Bold",
+    fontFamily: "Fraunces_700Bold",
     marginTop: 3,
     fontSize: 18,
     fontWeight: "700",

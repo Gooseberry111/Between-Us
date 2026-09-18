@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
   },
 
   emptyTitle: {
-    fontFamily: "Nunito_800ExtraBold",
+    fontFamily: "Fraunces_700Bold",
     fontSize: 19,
     fontWeight: "800",
     color: "#2E2430",

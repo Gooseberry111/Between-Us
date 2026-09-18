@@ -27,10 +27,20 @@ export default function InsightsScreen() {
   const [insights, setInsights] = useState(cached?.insights ?? null);
   const [preferences, setPreferences] = useState(cached?.preferences ?? null);
 
-  const [partnerInsights, setPartnerInsights] = useState(null);
-  const [partnerPreferences, setPartnerPreferences] = useState(null);
+  /*
+   * Seeded from the session cache, same as your own answers.
+   * Leaving these null meant coming back to this screen showed
+   * an empty partner section for a beat, then everything
+   * jumped in as the requests landed.
+   */
+  const [partnerInsights, setPartnerInsights] = useState(
+    cached?.partnerInsights ?? null,
+  );
+  const [partnerPreferences, setPartnerPreferences] = useState(
+    cached?.partnerPreferences ?? null,
+  );
 
-  const [connection, setConnection] = useState(null);
+  const [connection, setConnection] = useState(cached?.connection ?? null);
 
   const [loading, setLoading] = useState(!cached);
   const [refreshing, setRefreshing] = useState(false);
@@ -980,7 +990,7 @@ const styles = StyleSheet.create({
   },
 
   connectionName: {
-    fontFamily: "Nunito_700Bold",
+    fontFamily: "Fraunces_700Bold",
     marginTop: 3,
     fontSize: 17,
     fontWeight: "700",
@@ -1004,7 +1014,7 @@ const styles = StyleSheet.create({
   },
 
   noConnectionTitle: {
-    fontFamily: "Nunito_700Bold",
+    fontFamily: "Fraunces_700Bold",
     fontSize: 16,
     fontWeight: "700",
     color: "#2E2430",
@@ -1076,7 +1086,7 @@ const styles = StyleSheet.create({
   },
 
   cardTitle: {
-    fontFamily: "Nunito_700Bold",
+    fontFamily: "Fraunces_700Bold",
     marginTop: 7,
     fontSize: 18,
     fontWeight: "700",

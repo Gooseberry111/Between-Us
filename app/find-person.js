@@ -1024,7 +1024,7 @@ const styles = StyleSheet.create({
   },
 
   requestAvatarText: {
-    fontFamily: "Nunito_700Bold",
+    fontFamily: "Fraunces_700Bold",
     fontSize: 18,
     fontWeight: "700",
     color: "#D9456B",
@@ -1036,7 +1036,7 @@ const styles = StyleSheet.create({
   },
 
   requestName: {
-    fontFamily: "Nunito_700Bold",
+    fontFamily: "Fraunces_700Bold",
     fontSize: 16,
     fontWeight: "700",
     color: "#2E2430",
@@ -1282,7 +1282,7 @@ const styles = StyleSheet.create({
   },
 
   avatarText: {
-    fontFamily: "Nunito_700Bold",
+    fontFamily: "Fraunces_700Bold",
     fontSize: 18,
     fontWeight: "700",
     color: "#D9456B",
@@ -1294,7 +1294,7 @@ const styles = StyleSheet.create({
   },
 
   personName: {
-    fontFamily: "Nunito_700Bold",
+    fontFamily: "Fraunces_700Bold",
     fontSize: 16,
     fontWeight: "700",
     color: "#2E2430",

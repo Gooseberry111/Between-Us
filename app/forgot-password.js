@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
   },
 
   buttonText: {
-    fontFamily: "Nunito_700Bold",
+    fontFamily: "Fraunces_700Bold",
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",

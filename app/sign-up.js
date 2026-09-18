@@ -518,7 +518,7 @@ const styles = StyleSheet.create({
   },
 
   buttonText: {
-    fontFamily: "Nunito_700Bold",
+    fontFamily: "Fraunces_700Bold",
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
@@ -534,7 +534,7 @@ const styles = StyleSheet.create({
   },
 
   outlineButtonText: {
-    fontFamily: "Nunito_700Bold",
+    fontFamily: "Fraunces_700Bold",
     color: "#D9456B",
     fontSize: 16,
     fontWeight: "700",

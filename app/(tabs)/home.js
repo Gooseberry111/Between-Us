@@ -1221,19 +1221,18 @@ const styles = StyleSheet.create({
   },
 
   greeting: {
-    fontFamily: "Fraunces_700Bold",
+    fontFamily: "DancingScript_600SemiBold",
     marginTop: 10,
-    fontSize: 27,
-    lineHeight: 33,
-    fontWeight: "700",
-    color: "#7A6A62",
-    letterSpacing: -0.3,
+    fontSize: 34,
+    lineHeight: 40,
+    color: "#9C8F97",
+    letterSpacing: 0,
   },
 
   greetingName: {
-    fontFamily: "Nunito_800ExtraBold",
-    color: "#2E2430",
-    fontWeight: "800",
+    fontFamily: "DancingScript_700Bold",
+    fontSize: 38,
+    color: "#D9456B",
   },
 
   /* The row of numbers under the partner card. */
@@ -1400,10 +1399,9 @@ const styles = StyleSheet.create({
   },
 
   pairName: {
-    fontFamily: "Nunito_800ExtraBold",
+    fontFamily: "DancingScript_700Bold",
     marginTop: 9,
-    fontSize: 14,
-    fontWeight: "800",
+    fontSize: 20,
     color: "#FFFFFF",
     maxWidth: 110,
     textAlign: "center",
@@ -1523,7 +1521,7 @@ const styles = StyleSheet.create({
   },
 
   sectionTitle: {
-    fontFamily: "Nunito_700Bold",
+    fontFamily: "Fraunces_700Bold",
     fontSize: 18,
     lineHeight: 24,
     fontWeight: "700",
@@ -1569,7 +1567,7 @@ const styles = StyleSheet.create({
   },
 
   promptTitle: {
-    fontFamily: "Nunito_700Bold",
+    fontFamily: "Fraunces_700Bold",
     fontSize: 18,
     lineHeight: 24,
     fontWeight: "700",
@@ -1614,7 +1612,7 @@ const styles = StyleSheet.create({
   },
 
   snapshotTitle: {
-    fontFamily: "Nunito_700Bold",
+    fontFamily: "Fraunces_700Bold",
     fontSize: 16,
     fontWeight: "700",
     color: "#2E2430",
@@ -1668,7 +1666,7 @@ const styles = StyleSheet.create({
   },
 
   loveCardTitle: {
-    fontFamily: "Nunito_700Bold",
+    fontFamily: "Fraunces_700Bold",
     fontSize: 16,
     fontWeight: "700",
     color: "#2E2430",
@@ -1800,7 +1798,7 @@ const styles = StyleSheet.create({
   },
 
   triviaTitle: {
-    fontFamily: "Nunito_700Bold",
+    fontFamily: "Fraunces_700Bold",
     fontSize: 16,
     fontWeight: "700",
     color: "#FFFFFF",

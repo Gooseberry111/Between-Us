@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontFamily: "Nunito_800ExtraBold",
+    fontFamily: "Fraunces_700Bold",
     marginTop: 12,
     fontSize: 19,
     fontWeight: "800",

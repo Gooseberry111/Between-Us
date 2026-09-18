@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
   },
 
   composerTitle: {
-    fontFamily: "Nunito_700Bold",
+    fontFamily: "Fraunces_700Bold",
     marginTop: 10,
     fontSize: 18,
     lineHeight: 25,
@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
   },
 
   emptyTitle: {
-    fontFamily: "Nunito_700Bold",
+    fontFamily: "Fraunces_700Bold",
     fontSize: 16,
     fontWeight: "700",
     color: "#2E2430",

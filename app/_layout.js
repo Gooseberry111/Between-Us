@@ -11,6 +11,10 @@ import {
   Fraunces_700Bold,
 } from "@expo-google-fonts/fraunces";
 import {
+  DancingScript_600SemiBold,
+  DancingScript_700Bold,
+} from "@expo-google-fonts/dancing-script";
+import {
   Nunito_400Regular,
   Nunito_600SemiBold,
   Nunito_700Bold,
@@ -433,6 +437,8 @@ export default function RootLayout() {
    * form rather than something someone made.
    */
   const [fontsLoaded] = useFonts({
+    DancingScript_600SemiBold,
+    DancingScript_700Bold,
     Fraunces_600SemiBold,
     Fraunces_700Bold,
     Nunito_400Regular,

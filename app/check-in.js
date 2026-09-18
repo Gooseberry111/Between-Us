@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
   },
 
   panelTitle: {
-    fontFamily: "Nunito_700Bold",
+    fontFamily: "Fraunces_700Bold",
     marginTop: 10,
     fontSize: 19,
     lineHeight: 26,
