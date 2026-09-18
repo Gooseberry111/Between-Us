@@ -14,6 +14,7 @@ import { apiFetch } from "../../lib/api";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@clerk/expo";
 import { useFocusEffect, useRouter } from "expo-router";
+import { Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { getCachedData, setCachedData } from "../../lib/dataCache";
 import { Skeleton, SkeletonCard } from "../../components/Skeleton";
@@ -79,6 +80,7 @@ export default function HomeScreen() {
   const [answeredCount, setAnsweredCount] = useState(
     cached?.answeredCount ?? null,
   );
+  const [partner, setPartner] = useState(cached?.partner ?? null);
   const [daily, setDaily] = useState(cached?.daily ?? null);
   const [memoryCount, setMemoryCount] = useState(cached?.memoryCount ?? null);
   const [loading, setLoading] = useState(!cached);
@@ -190,26 +192,22 @@ export default function HomeScreen() {
       if (accepted?.other_clerk_id) {
         const partnerClerkId = accepted.other_clerk_id;
 
-        const [
-          partnerInsightsResponse,
-          partnerPreferencesResponse,
-          triviaResponse,
-          dailyData,
-          memoriesData,
-        ] = await Promise.all([
-          apiFetch(`/users/${partnerClerkId}/insights`),
-          apiFetch(`/users/${partnerClerkId}/preferences`),
-          apiFetch(`/users/${userId}/trivia`),
-          /* The real question of the day, and the streak that
-           * comes with it -- Home used to show a guess from a
-           * local list, which could differ from the actual one. */
-          apiFetch(`/users/${userId}/daily-question`)
-            .then((response) => (response.ok ? response.json() : null))
-            .catch(() => null),
-          apiFetch(`/users/${userId}/memories`)
-            .then((response) => (response.ok ? response.json() : null))
-            .catch(() => null),
-        ]);
+        const [partnerResponse, triviaResponse, dailyData, memoriesData] =
+          await Promise.all([
+            /* Under your own id: the API decides who your partner
+             * is, so no request can name someone else's. */
+            apiFetch(`/users/${userId}/partner`),
+            apiFetch(`/users/${userId}/trivia`),
+            /* The real question of the day, and the streak that
+             * comes with it -- Home used to show a guess from a
+             * local list, which could differ from the actual one. */
+            apiFetch(`/users/${userId}/daily-question`)
+              .then((response) => (response.ok ? response.json() : null))
+              .catch(() => null),
+            apiFetch(`/users/${userId}/memories`)
+              .then((response) => (response.ok ? response.json() : null))
+              .catch(() => null),
+          ]);
 
         setDaily(dailyData);
 
@@ -221,21 +219,17 @@ export default function HomeScreen() {
               : null,
         );
 
-        const partnerInsightsData = await partnerInsightsResponse.json();
-
-        const partnerPreferencesData = await partnerPreferencesResponse.json();
+        const partnerData = await partnerResponse.json();
 
         const triviaData = await triviaResponse.json();
 
-        console.log("HOME PARTNER INSIGHTS:", partnerInsightsData);
+        console.log("HOME PARTNER:", partnerData);
 
-        console.log("HOME PARTNER PREFERENCES:", partnerPreferencesData);
+        setPartner(partnerData?.partner || null);
 
-        console.log("HOME TRIVIA:", triviaData);
+        setPartnerInsights(partnerData?.insights || null);
 
-        setPartnerInsights(partnerInsightsData?.insights || null);
-
-        setPartnerPreferences(partnerPreferencesData?.preferences || null);
+        setPartnerPreferences(partnerData?.preferences || null);
 
         setTrivia(triviaData);
       } else {
@@ -244,6 +238,7 @@ export default function HomeScreen() {
         setTrivia(null);
         setDaily(null);
         setMemoryCount(null);
+        setPartner(null);
       }
     } catch (err) {
       console.log("HOME LOAD ERROR:", err);
@@ -284,6 +279,7 @@ export default function HomeScreen() {
       answeredCount,
       daily,
       memoryCount,
+      partner,
     });
   }, [
     loading,
@@ -299,6 +295,7 @@ export default function HomeScreen() {
     hasUnreadNotifications,
     daily,
     memoryCount,
+    partner,
   ]);
 
   const handleRefresh = () => {
@@ -339,7 +336,16 @@ export default function HomeScreen() {
 
   const firstName = profile?.first_name?.trim() || "there";
 
-  const partnerName = connection?.other_first_name?.trim() || "Your person";
+  /* A nickname is what they actually call each other, so it
+     wins over the name on the birth certificate. */
+  const partnerName =
+    partner?.nickname?.trim() ||
+    partner?.first_name?.trim() ||
+    connection?.other_first_name?.trim() ||
+    "Your person";
+
+  const myName =
+    profile?.nickname?.trim() || profile?.first_name?.trim() || "You";
 
   const relationshipLabel = connection?.relationship_type
     ? connection.relationship_type.charAt(0).toUpperCase() +
@@ -501,40 +507,56 @@ export default function HomeScreen() {
             <FadeIn delay={40}>
               <Pressable onPress={() => router.push("/connection")}>
                 <GlassPanel style={styles.connectionCard}>
-                  <View style={styles.connectionTop}>
-                    <View style={styles.avatar}>
-                      <Text style={styles.avatarText}>
-                        {(partnerName || "?").charAt(0).toUpperCase()}
+                  <Text style={styles.togetherLabel}>{relationshipLabel}</Text>
+
+                  {/* The two of you, overlapping, because that is
+                      the whole idea of the app. */}
+                  <View style={styles.pairRow}>
+                    <View style={styles.pairSide}>
+                      <View style={[styles.pairAvatar, styles.pairAvatarMine]}>
+                        <Text style={styles.pairAvatarText}>
+                          {(myName || "?").charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+
+                      <Text style={styles.pairName} numberOfLines={1}>
+                        {myName}
                       </Text>
                     </View>
 
-                    <View style={styles.connectionInfo}>
-                      <Text style={styles.togetherLabel}>YOU & THEM</Text>
-
-                      <Text style={styles.partnerName}>{partnerName}</Text>
-
-                      <Text style={styles.relationshipText}>
-                        {relationshipLabel}
-                      </Text>
+                    <View style={styles.pairKnot}>
+                      <Text style={styles.pairHeart}>♡</Text>
                     </View>
 
-                    <View style={styles.onlineDot} />
+                    <View style={styles.pairSide}>
+                      <View
+                        style={[styles.pairAvatar, styles.pairAvatarTheirs]}
+                      >
+                        <Text style={styles.pairAvatarText}>
+                          {(partnerName || "?").charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+
+                      <Text style={styles.pairName} numberOfLines={1}>
+                        {partnerName}
+                      </Text>
+                    </View>
                   </View>
 
                   <View style={styles.connectionDivider} />
 
                   <View style={styles.connectionBottom}>
-                    <View>
-                      <Text style={styles.connectionSmallLabel}>
-                        YOUR SPACE
-                      </Text>
+                    <Text style={styles.connectionSmallText}>
+                      {daysTogether
+                        ? `Linked ${daysTogether} ${daysTogether === 1 ? "day" : "days"} ago`
+                        : "Keep choosing each other."}
+                    </Text>
 
-                      <Text style={styles.connectionSmallText}>
-                        Keep choosing each other.
-                      </Text>
-                    </View>
-
-                    <Text style={styles.connectionHeart}>♡</Text>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={16}
+                      color="#F0E4DE"
+                    />
                   </View>
                 </GlassPanel>
               </Pressable>
@@ -702,98 +724,9 @@ export default function HomeScreen() {
               </View>
             ) : null}
 
-            {/* PARTNER SNAPSHOT */}
-
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>ABOUT THEM</Text>
-
-              <Card style={styles.snapshotCard}>
-                <Text style={styles.snapshotTitle}>What they enjoy</Text>
-
-                {food ? <SnapshotRow label="Food" value={food} /> : null}
-
-                {drink ? <SnapshotRow label="Drink" value={drink} /> : null}
-
-                {movieGenre ? (
-                  <SnapshotRow label="Movies" value={movieGenre} />
-                ) : null}
-
-                {musicGenre ? (
-                  <SnapshotRow label="Music" value={musicGenre} />
-                ) : null}
-
-                {favoriteColor ? (
-                  <SnapshotRow label="Favorite color" value={favoriteColor} />
-                ) : null}
-
-                {!food &&
-                !drink &&
-                !movieGenre &&
-                !musicGenre &&
-                !favoriteColor ? (
-                  <Text style={styles.emptySnapshot}>
-                    You are still learning more about each other.
-                  </Text>
-                ) : null}
-              </Card>
-            </View>
-
-            {/* HOW TO LOVE THEM */}
-
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>HOW TO LOVE THEM</Text>
-
-              <Card style={styles.loveCard}>
-                <Text style={styles.loveCardTitle}>
-                  What feels natural to them
-                </Text>
-
-                {loveLanguages.length > 0 ? (
-                  <View style={styles.tagContainer}>
-                    {loveLanguages.map((language, index) => (
-                      <View key={`${language}-${index}`} style={styles.tag}>
-                        <Text style={styles.tagText}>{language}</Text>
-                      </View>
-                    ))}
-                  </View>
-                ) : null}
-
-                {affectionStyle ? (
-                  <InfoRow label="Affection" value={affectionStyle} />
-                ) : null}
-
-                {communicationFrequency ? (
-                  <InfoRow
-                    label="Communication"
-                    value={communicationFrequency}
-                  />
-                ) : null}
-
-                {conflictStyle ? (
-                  <InfoRow label="During conflict" value={conflictStyle} />
-                ) : null}
-              </Card>
-            </View>
-
-            {/* GOALS */}
-
-            {focusAreas.length > 0 ? (
-              <View style={styles.section}>
-                <Text style={styles.sectionLabel}>WHAT THEY WANT MORE OF</Text>
-
-                <Card style={styles.goalsCard}>
-                  {focusAreas.map((focusArea, index) => (
-                    <View key={`${focusArea}-${index}`} style={styles.goalRow}>
-                      <View style={styles.goalIcon}>
-                        <Text style={styles.goalIconText}>✦</Text>
-                      </View>
-
-                      <Text style={styles.goalText}>{focusArea}</Text>
-                    </View>
-                  ))}
-                </Card>
-              </View>
-            ) : null}
+            {/* Everything about them lives on Insights.
+                Home used to repeat it all, which made the screen
+                long and the Insights tab pointless. */}
 
             {/* FOOTER */}
 
@@ -972,17 +905,18 @@ function Header({ firstName, hasUnreadNotifications }) {
   const timeOfDay =
     hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
-  const timeEmoji =
-    hour < 12
-      ? "\u2600\ufe0f"
-      : hour < 18
-        ? "\ud83c\udf24\ufe0f"
-        : "\ud83c\udf19";
-
   return (
     <View style={styles.header}>
       <View style={styles.headerText}>
-        <Text style={styles.brand}>{timeEmoji} BETWEEN US</Text>
+        <View style={styles.brandRow}>
+          <Image
+            source={require("../../assets/logo.png")}
+            style={styles.brandMark}
+            resizeMode="contain"
+          />
+
+          <Text style={styles.brand}>BETWEEN US</Text>
+        </View>
 
         <Text style={styles.greeting}>
           {timeOfDay},{"\n"}
@@ -1241,7 +1175,9 @@ const styles = StyleSheet.create({
 
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 30,
+    /* Clears the floating tab bar and the phone's own
+     * navigation underneath it. */
+    paddingBottom: 120,
   },
 
   container: {
@@ -1262,6 +1198,18 @@ const styles = StyleSheet.create({
 
   headerText: {
     flex: 1,
+  },
+
+  brandRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+
+  brandMark: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
   },
 
   brand: {
@@ -1378,6 +1326,69 @@ const styles = StyleSheet.create({
   connectionCard: {
     marginBottom: 14,
     borderRadius: 28,
+  },
+
+  pairRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 16,
+    marginBottom: 4,
+  },
+
+  pairSide: {
+    flex: 1,
+    alignItems: "center",
+  },
+
+  pairAvatar: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.65)",
+  },
+
+  pairAvatarMine: {
+    backgroundColor: "#F7E2E6",
+  },
+
+  pairAvatarTheirs: {
+    backgroundColor: "#DCE7F2",
+  },
+
+  pairAvatarText: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#5A3C34",
+  },
+
+  /* The knot in the middle: the two circles lean into it. */
+  pairKnot: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginHorizontal: -14,
+    zIndex: 2,
+  },
+
+  pairHeart: {
+    fontSize: 17,
+    color: "#FFFFFF",
+  },
+
+  pairName: {
+    marginTop: 9,
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    maxWidth: 110,
+    textAlign: "center",
   },
 
   connectionTop: {

@@ -24,6 +24,8 @@ import { isAnswered, notifyProfileSaved } from "../lib/profileProgress";
 
 const EMPTY_ANSWERS = {
   firstName: "",
+  lastName: "",
+  nickname: "",
   birthday: "",
   gender: "",
   country: "",
@@ -165,6 +167,8 @@ export default function OnboardingScreen() {
         email: user?.primaryEmailAddress?.emailAddress || "",
 
         firstName: answers.firstName,
+        lastName: answers.lastName,
+        nickname: answers.nickname,
         birthday: answers.birthday,
         gender: answers.gender,
         country: answers.country,

@@ -4,6 +4,7 @@ import { Slot, useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
 import * as SecureStore from "expo-secure-store";
 import * as Notifications from "expo-notifications";
+import * as SplashScreen from "expo-splash-screen";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
 import { StyleSheet, Text, View } from "react-native";
@@ -15,6 +16,14 @@ import ErrorCatcher from "../components/ErrorCatcher";
 import OfflineBanner from "../components/OfflineBanner";
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
+/*
+ * Hold the launch screen until we know whether this is a
+ * signed-in user. Otherwise the logo is followed by a second
+ * holding screen with its own spinner, which reads as the app
+ * starting twice.
+ */
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 /*
  * ==========================================
@@ -189,6 +198,10 @@ function AuthGuard() {
   const segments = useSegments();
 
   const [profileStatus, setProfileStatus] = useState("unknown");
+
+  useEffect(() => {
+    if (isLoaded) SplashScreen.hideAsync().catch(() => {});
+  }, [isLoaded]);
 
   /*
    * ==========================================

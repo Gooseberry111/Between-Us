@@ -82,25 +82,22 @@ export default function InsightsScreen() {
       if (accepted?.other_clerk_id) {
         const partnerClerkId = accepted.other_clerk_id;
 
-        const [partnerInsightsResponse, partnerPreferencesResponse] =
-          await Promise.all([
-            apiFetch(`/users/${partnerClerkId}/insights`),
-            apiFetch(`/users/${partnerClerkId}/preferences`),
-          ]);
+        /*
+         * Asked under your own id on purpose: the API refuses a
+         * path naming anyone but you, so the server decides who
+         * your partner is and what of theirs you may see. Asking
+         * by their id used to come back refused, which showed up
+         * on screen as every answer being "Not set".
+         */
+        const partnerResponse = await apiFetch(`/users/${userId}/partner`);
 
-        const partnerInsightsData = await partnerInsightsResponse.json();
+        const partnerData = await partnerResponse.json();
 
-        const partnerPreferencesData = await partnerPreferencesResponse.json();
+        console.log("PARTNER RESPONSE:", partnerData);
 
-        console.log("PARTNER INSIGHTS RESPONSE:", partnerInsightsData);
+        setPartnerInsights(partnerData?.insights || null);
 
-        console.log("PARTNER PREFERENCES RESPONSE:", partnerPreferencesData);
-
-        setPartnerInsights(partnerInsightsData?.insights || null);
-
-        setPartnerPreferences(
-          partnerPreferencesData?.preferences || partnerPreferencesData || null,
-        );
+        setPartnerPreferences(partnerData?.preferences || null);
       } else {
         setPartnerInsights(null);
         setPartnerPreferences(null);

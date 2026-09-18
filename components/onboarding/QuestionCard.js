@@ -28,6 +28,10 @@ export default function QuestionCard({ question, value, onChange }) {
     <View>
       <Text style={styles.title}>{question.title}</Text>
 
+      {question.subtitle ? (
+        <Text style={styles.subtitle}>{question.subtitle}</Text>
+      ) : null}
+
       {question.type === "text" && (
         <TextInput
           style={styles.input}
@@ -72,6 +76,13 @@ export default function QuestionCard({ question, value, onChange }) {
 }
 
 const styles = StyleSheet.create({
+  subtitle: {
+    marginTop: 8,
+    fontSize: 13.5,
+    lineHeight: 20,
+    color: "#8B807A",
+  },
+
   title: {
     fontSize: 30,
     fontWeight: "700",

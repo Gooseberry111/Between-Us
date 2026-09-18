@@ -583,6 +583,26 @@ export default function ProfileScreen() {
               <TouchableOpacity
                 style={styles.settingRow}
                 activeOpacity={0.8}
+                onPress={() => router.push("/onboarding")}
+              >
+                <View style={styles.settingIcon}>
+                  <Text style={styles.settingIconText}>✎</Text>
+                </View>
+
+                <View style={styles.settingContent}>
+                  <Text style={styles.settingTitle}>Your answers</Text>
+
+                  <Text style={styles.settingDescription}>
+                    Tastes change. Update what you told us when you joined.
+                  </Text>
+                </View>
+
+                <Text style={styles.settingArrow}>›</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.settingRow}
+                activeOpacity={0.8}
                 onPress={() => router.push("/notification-settings")}
               >
                 <View style={styles.settingIcon}>

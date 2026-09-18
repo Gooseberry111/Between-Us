@@ -2,57 +2,67 @@ import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { Platform, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { PASTELS } from "../../components/Playful";
 
 /*
  * The bar floats over the content rather than sitting
  * on an opaque strip, so whatever you are scrolling
- * passes underneath and blurs through it. That is the
- * whole reason it reads as glass instead of as a white
- * bar with rounded corners.
+ * passes underneath it.
  */
 
-function TabBarBackground() {
+function TabBarBackground({ bottomInset }) {
   /*
-   * Android's blur is a different thing entirely: it samples
-   * only what the system hands it, so the bar came out clear
-   * rather than frosted and the icons collided with whatever
-   * scrolled underneath. A near-solid pane reads as glass
-   * there -- light, edged, slightly warm -- without pretending
-   * to a blur the platform won't give us.
+   * Android's blur samples only what the system hands it, so
+   * a true frosted pane isn't available there: the bar came
+   * out see-through and collided with whatever scrolled
+   * beneath. A near-solid pane with a tinted edge reads as
+   * glass on Android; iOS keeps the real blur.
+   *
+   * The pane runs under the phone's own navigation -- the
+   * gesture pill or the three-button row -- so the tabs never
+   * sit on bare content down there.
    */
-  if (Platform.OS === "android") {
-    return (
-      <View style={styles.barWrapper}>
-        <View style={styles.barSolid} />
-
-        <View style={styles.barHairline} />
-      </View>
-    );
-  }
-
   return (
-    <View style={styles.barWrapper}>
-      <BlurView intensity={70} tint="light" style={StyleSheet.absoluteFill} />
+    <View style={[styles.barWrapper, { paddingBottom: bottomInset }]}>
+      {Platform.OS === "ios" ? (
+        <>
+          <BlurView
+            intensity={60}
+            tint="light"
+            style={StyleSheet.absoluteFill}
+          />
 
-      {/* Faint wash so icons stay legible over busy content. */}
-      <View style={styles.barTint} />
+          <View style={styles.barTintIOS} />
+        </>
+      ) : (
+        <View style={styles.barSolid} />
+      )}
 
-      {/* Bright lip along the top edge. */}
       <View style={styles.barHairline} />
     </View>
   );
 }
 
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
+
+  /*
+   * Whatever the system reserves at the bottom, plus a little
+   * breathing room of our own.
+   */
+  const bottomInset = Math.max(insets.bottom, Platform.OS === "ios" ? 20 : 10);
+
   return (
     <Tabs
       screenOptions={({ route }) => ({
         headerShown: false,
 
-        tabBarActiveTintColor: "#6B4E45",
-        tabBarInactiveTintColor: "#A9A09A",
+        tabBarActiveTintColor: "#8C4F5E",
+        tabBarInactiveTintColor: "#A79B94",
 
-        tabBarBackground: () => <TabBarBackground />,
+        tabBarBackground: () => <TabBarBackground bottomInset={bottomInset} />,
 
         tabBarStyle: {
           position: "absolute",
@@ -62,9 +72,9 @@ export default function TabsLayout() {
           borderTopWidth: 0,
           backgroundColor: "transparent",
           elevation: 0,
-          height: Platform.OS === "ios" ? 84 : 68,
+          height: 62 + bottomInset,
           paddingTop: 8,
-          paddingBottom: Platform.OS === "ios" ? 28 : 10,
+          paddingBottom: bottomInset + 4,
         },
 
         tabBarLabelStyle: {
@@ -74,7 +84,7 @@ export default function TabsLayout() {
           marginTop: 1,
         },
 
-        tabBarIcon: ({ color, focused, size }) => {
+        tabBarIcon: ({ color, focused }) => {
           let iconName;
 
           if (route.name === "home") {
@@ -112,14 +122,14 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
 
-  barTint: {
+  barTintIOS: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255,255,255,0.32)",
+    backgroundColor: "rgba(255,253,251,0.58)",
   },
 
   barSolid: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#FBF6F1",
+    backgroundColor: "#FDF8F4",
   },
 
   barHairline: {
@@ -128,10 +138,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: StyleSheet.hairlineWidth,
-    backgroundColor:
-      Platform.OS === "android"
-        ? "rgba(107,78,69,0.16)"
-        : "rgba(255,255,255,0.9)",
+    backgroundColor: "rgba(140,79,94,0.18)",
   },
 
   icon: {
@@ -148,6 +155,6 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.75)",
+    backgroundColor: PASTELS.blush.bg,
   },
 });

@@ -7,6 +7,21 @@ export const questions = [
   },
 
   {
+    id: "lastName",
+    type: "text",
+    title: "And your last name?",
+    placeholder: "Enter your last name",
+  },
+
+  {
+    id: "nickname",
+    type: "text",
+    title: "What do people close to you call you?",
+    subtitle: "This is the name your partner sees on your shared screens.",
+    placeholder: "A nickname, or just your name again",
+  },
+
+  {
     id: "birthday",
     type: "date",
     title: "When is your birthday?",

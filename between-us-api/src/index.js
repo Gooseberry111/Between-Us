@@ -395,6 +395,12 @@ async function ensureSchema(sql) {
 			ON appreciations (connection_id, created_at DESC)
 	`;
 
+	/*
+	 * Nicknames are what the two of them call each other,
+	 * and that is what Home shows.
+	 */
+	await sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS nickname TEXT`;
+
 	await sql`
 		CREATE TABLE IF NOT EXISTS checkins (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1387,12 +1393,16 @@ export default {
 			 */
 
 			if (url.pathname === '/onboarding' && request.method === 'POST') {
+				await ensureSchema(sql);
+
 				const body = await request.json();
 
 				const {
 					clerk_id,
 					email,
 					firstName,
+					lastName,
+					nickname,
 					birthday,
 					gender,
 					country,
@@ -1464,6 +1474,8 @@ export default {
           INSERT INTO profiles (
             user_id,
             first_name,
+            last_name,
+            nickname,
             birthday,
             gender,
             country,
@@ -1472,6 +1484,8 @@ export default {
           VALUES (
             ${userId},
             ${firstName.trim()},
+            ${lastName?.trim() || null},
+            ${nickname?.trim() || null},
             ${normalizedBirthday},
             ${gender || null},
             ${country || null},
@@ -1480,6 +1494,8 @@ export default {
           ON CONFLICT (user_id)
           DO UPDATE SET
             first_name = EXCLUDED.first_name,
+            last_name = COALESCE(EXCLUDED.last_name, profiles.last_name),
+            nickname = COALESCE(EXCLUDED.nickname, profiles.nickname),
             birthday = EXCLUDED.birthday,
             gender = EXCLUDED.gender,
             country = EXCLUDED.country,
@@ -6125,6 +6141,105 @@ VALUES (
 
 			/*
 			 * ==========================================
+			 * PARTNER
+			 * ==========================================
+			 *
+			 * GET /users/:clerkId/partner
+			 *
+			 * Everything you are allowed to know about the
+			 * person you are linked with, in one request.
+			 *
+			 * Asking for it under your own id is the point: the
+			 * gate refuses a path naming anyone but the caller,
+			 * so the server -- not the app -- decides who your
+			 * partner is and what of theirs you may see.
+			 */
+
+			const partnerMatch = url.pathname.match(/^\/users\/([^/]+)\/partner$/);
+
+			if (partnerMatch && request.method === 'GET') {
+				const clerkId = partnerMatch[1];
+
+				await ensureSchema(sql);
+
+				const rows = await sql`
+          SELECT
+            partner.clerk_id,
+            p.first_name,
+            p.last_name,
+            p.nickname,
+            p.birthday,
+            p.country,
+            p.gender,
+            p.relationship_status,
+            c.relationship_type,
+            c.connected_at,
+            pr.love_languages,
+            pr.favorite_food,
+            pr.favorite_snack,
+            pr.favorite_drink,
+            pr.favorite_color,
+            pr.movie_genre,
+            pr.music_genre,
+            pr.communication_frequency,
+            pr.affection_style,
+            ri.personality_type,
+            ri.conflict_style,
+            ri.focus_areas
+          FROM users me
+          INNER JOIN connections c
+            ON (c.user_one = me.id OR c.user_two = me.id)
+            AND c.status = 'accepted'
+          INNER JOIN users partner
+            ON partner.id = CASE WHEN c.user_one = me.id THEN c.user_two ELSE c.user_one END
+          LEFT JOIN profiles p ON p.user_id = partner.id
+          LEFT JOIN preferences pr ON pr.user_id = partner.id
+          LEFT JOIN relationship_insights ri ON ri.user_id = partner.id
+          WHERE me.clerk_id = ${clerkId}
+          LIMIT 1
+        `;
+
+				if (rows.length === 0) {
+					return Response.json({ connected: false, partner: null });
+				}
+
+				const row = rows[0];
+
+				return Response.json({
+					connected: true,
+					partner: {
+						clerk_id: row.clerk_id,
+						first_name: row.first_name,
+						last_name: row.last_name,
+						nickname: row.nickname,
+						birthday: row.birthday ? toIsoDate(row.birthday) : null,
+						country: row.country,
+						gender: row.gender,
+						relationship_status: row.relationship_status,
+						relationship_type: row.relationship_type,
+						connected_at: row.connected_at,
+					},
+					insights: {
+						personality_type: row.personality_type,
+						conflict_style: row.conflict_style,
+						focus_areas: row.focus_areas,
+					},
+					preferences: {
+						love_languages: row.love_languages,
+						favorite_food: row.favorite_food,
+						favorite_snack: row.favorite_snack,
+						favorite_drink: row.favorite_drink,
+						favorite_color: row.favorite_color,
+						movie_genre: row.movie_genre,
+						music_genre: row.music_genre,
+						communication_frequency: row.communication_frequency,
+						affection_style: row.affection_style,
+					},
+				});
+			}
+
+			/*
+			 * ==========================================
 			 * ONBOARDING ANSWERS
 			 * ==========================================
 			 *
@@ -6141,10 +6256,14 @@ VALUES (
 			if (onboardingAnswersMatch && request.method === 'GET') {
 				const clerkId = onboardingAnswersMatch[1];
 
+				await ensureSchema(sql);
+
 				const rows = await sql`
           SELECT
             p.id AS profile_id,
             p.first_name,
+            p.last_name,
+            p.nickname,
             p.birthday,
             p.gender,
             p.country,
@@ -6182,6 +6301,8 @@ VALUES (
 					exists: true,
 					answers: {
 						firstName: text(row.first_name),
+						lastName: text(row.last_name),
+						nickname: text(row.nickname),
 						birthday: row.birthday ? toIsoDate(row.birthday) : '',
 						gender: text(row.gender),
 						country: text(row.country),

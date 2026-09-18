@@ -59,25 +59,12 @@ export default function WelcomeScreen() {
    * a sign-up pitch on the way.
    */
   if (!isLoaded || isSignedIn || returning === null) {
-    return (
-      <SafeAreaView style={styles.screen} edges={["top"]}>
-        <GlassBackground>
-          <View style={styles.splash}>
-            <Image
-              source={require("../assets/logo.png")}
-              style={styles.splashLogo}
-              resizeMode="contain"
-            />
-
-            <ActivityIndicator
-              size="small"
-              color="#6B4E45"
-              style={styles.splashSpinner}
-            />
-          </View>
-        </GlassBackground>
-      </SafeAreaView>
-    );
+    /*
+     * The launch screen is still up at this point, so anything
+     * drawn here would be a second splash behind it. A plain
+     * ground keeps the hand-off seamless.
+     */
+    return <View style={styles.screen} />;
   }
 
   return (
