@@ -14,6 +14,7 @@ import { apiFetch, setTokenProvider } from "../lib/api";
 import { onProfileSaved } from "../lib/profileProgress";
 import ErrorCatcher from "../components/ErrorCatcher";
 import OfflineBanner from "../components/OfflineBanner";
+import Intro, { introHasPlayed } from "../components/Intro";
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
@@ -414,6 +415,9 @@ function AuthGuard() {
  */
 
 export default function RootLayout() {
+  /* The written intro, once per cold start. */
+  const [introDone, setIntroDone] = useState(introHasPlayed());
+
   useEffect(() => {
     configureNotifications();
   }, []);
@@ -441,6 +445,11 @@ export default function RootLayout() {
           <AuthGuard />
 
           <OfflineBanner />
+
+          {/* Over the top of everything, so the app is already
+              loaded and settled behind it by the time the
+              writing finishes. */}
+          {introDone ? null : <Intro onDone={() => setIntroDone(true)} />}
         </ClerkProvider>
       </SafeAreaProvider>
     </ErrorCatcher>

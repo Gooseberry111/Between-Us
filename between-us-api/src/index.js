@@ -1384,7 +1384,10 @@ export default {
 				).map((row) => row.id);
 
 				if (connectionIds.length > 0) {
-					await sql`DELETE FROM memories WHERE connection_id = ANY(${connectionIds})`;
+					await sql`
+            DELETE FROM memories
+            WHERE user_one = ${userId} OR user_two = ${userId}
+          `;
 					await sql`DELETE FROM dreams WHERE connection_id = ANY(${connectionIds})`;
 					await sql`DELETE FROM relationship_goals WHERE connection_id = ANY(${connectionIds})`;
 					await sql`DELETE FROM daily_answers WHERE connection_id = ANY(${connectionIds})`;
@@ -2743,7 +2746,13 @@ VALUES (
 				 * dates and memories, which is nobody's idea of a
 				 * fresh start.
 				 */
-				await sql`DELETE FROM memories WHERE connection_id = ${connection.id}`;
+				/* Memories predate connection_id: they are keyed by
+				 * the two people instead. */
+				await sql`
+          DELETE FROM memories
+          WHERE (user_one = ${userId} AND user_two = ${partnerId})
+             OR (user_one = ${partnerId} AND user_two = ${userId})
+        `;
 				await sql`DELETE FROM dreams WHERE connection_id = ${connection.id}`;
 				await sql`DELETE FROM relationship_goals WHERE connection_id = ${connection.id}`;
 				await sql`DELETE FROM daily_answers WHERE connection_id = ${connection.id}`;
@@ -6383,7 +6392,12 @@ VALUES (
 				const connectionId = connectionResult[0].id;
 
 				const [memories, goalsDone, answers, appreciations, checkins, trivia, dates] = await Promise.all([
-					sql`SELECT COUNT(*)::int AS n FROM memories WHERE connection_id = ${connectionId} AND created_at >= NOW() - INTERVAL '7 days'`,
+					sql`
+            SELECT COUNT(*)::int AS n
+            FROM memories
+            WHERE (user_one = ${userId} OR user_two = ${userId})
+              AND created_at >= NOW() - INTERVAL '7 days'
+          `,
 					sql`SELECT COUNT(*)::int AS n FROM relationship_goals WHERE connection_id = ${connectionId} AND status = 'completed' AND completed_at >= NOW() - INTERVAL '7 days'`,
 					sql`SELECT COUNT(*)::int AS n FROM daily_answers WHERE connection_id = ${connectionId} AND created_at >= NOW() - INTERVAL '7 days'`,
 					sql`SELECT COUNT(*)::int AS n FROM appreciations WHERE connection_id = ${connectionId} AND created_at >= NOW() - INTERVAL '7 days'`,
@@ -6392,8 +6406,41 @@ VALUES (
 					sql`SELECT COUNT(*)::int AS n FROM date_plans WHERE connection_id = ${connectionId} AND status = 'done' AND updated_at >= NOW() - INTERVAL '7 days'`,
 				]);
 
+				/*
+				 * Something from a year ago, give or take a few days.
+				 * The app is only worth keeping if it remembers
+				 * things you have forgotten.
+				 */
+				const throwback = await sql`
+          SELECT id, title, description, memory_date
+          FROM memories
+          WHERE (user_one = ${userId} OR user_two = ${userId})
+            AND memory_date IS NOT NULL
+            AND memory_date <= CURRENT_DATE - INTERVAL '350 days'
+            AND (
+              EXTRACT(DOY FROM memory_date) BETWEEN EXTRACT(DOY FROM CURRENT_DATE) - 3
+                AND EXTRACT(DOY FROM CURRENT_DATE) + 3
+            )
+          ORDER BY memory_date DESC
+          LIMIT 1
+        `;
+
 				return Response.json({
 					connected: true,
+					throwback: throwback[0]
+						? {
+								id: throwback[0].id,
+								title: throwback[0].title,
+								description: throwback[0].description,
+								memory_date: toIsoDate(throwback[0].memory_date),
+								years_ago: Math.max(
+									1,
+									Math.round(
+										(Date.now() - new Date(throwback[0].memory_date).getTime()) / (365.25 * 86400000),
+									),
+								),
+							}
+						: null,
 					week: {
 						memories: memories[0]?.n || 0,
 						goals_completed: goalsDone[0]?.n || 0,
