@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Card, FadeIn, GlassBackground } from "../components/Glass";
+import { PASTELS, Squish } from "../components/Playful";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import { apiFetch } from "../lib/api";
@@ -22,21 +23,40 @@ const relationshipTypes = ["Friendship", "Dating", "Engaged", "Married"];
  * letter listing everybody. */
 const MIN_QUERY_LENGTH = 2;
 
+/*
+ * Everyone gets a colour, picked from their name, so the
+ * list reads as people rather than rows. The same person is
+ * always the same colour.
+ */
+const AVATAR_TONES = ["blush", "sky", "sage", "butter", "lilac", "clay"];
+
+function toneFor(name) {
+  const text = String(name || "?");
+  let sum = 0;
+
+  for (let i = 0; i < text.length; i++) sum += text.charCodeAt(i);
+
+  return PASTELS[AVATAR_TONES[sum % AVATAR_TONES.length]];
+}
+
 const SEARCH_TIPS = [
   {
     icon: "search-outline",
+    tone: PASTELS.sky,
     title: "Their first name is enough",
     text: "Type a few letters and matches appear as you go.",
   },
   {
     icon: "mail-outline",
+    tone: PASTELS.lilac,
     title: "Or use their email",
-    text: "An exact email address finds one person and no one else.",
+    text: "An exact address finds one person and no one else.",
   },
   {
     icon: "heart-outline",
+    tone: PASTELS.blush,
     title: "Then send a request",
-    text: "Pick how you know each other. Nothing is shared until they accept.",
+    text: "Nothing is shared until they accept it.",
   },
 ];
 
@@ -89,12 +109,17 @@ function SearchEmptyState({ query, searching, hasRequests }) {
 
   /* Nothing typed yet: say what this page is for. */
   return (
-    <View style={styles.tips}>
-      {SEARCH_TIPS.map((tip, index) => (
-        <FadeIn key={tip.title} delay={60 + index * 70}>
-          <Card style={styles.tipCard}>
-            <View style={styles.tipIcon}>
-              <Ionicons name={tip.icon} size={18} color="#D9456B" />
+    <FadeIn delay={60}>
+      <View style={styles.tips}>
+        <Text style={styles.tipsHeading}>How this works</Text>
+
+        {SEARCH_TIPS.map((tip, index) => (
+          <View
+            key={tip.title}
+            style={[styles.tipRow, index === 0 && styles.tipRowFirst]}
+          >
+            <View style={[styles.tipIcon, { backgroundColor: tip.tone.bg }]}>
+              <Ionicons name={tip.icon} size={17} color={tip.tone.ink} />
             </View>
 
             <View style={styles.tipTextWrap}>
@@ -102,10 +127,10 @@ function SearchEmptyState({ query, searching, hasRequests }) {
 
               <Text style={styles.tipText}>{tip.text}</Text>
             </View>
-          </Card>
-        </FadeIn>
-      ))}
-    </View>
+          </View>
+        ))}
+      </View>
+    </FadeIn>
   );
 }
 
@@ -464,37 +489,42 @@ export default function FindPersonScreen() {
    */
 
   const renderRequest = ({ item }) => {
+    const name = item.requester_first_name || "Someone";
+    const tone = toneFor(name);
+
     return (
-      <Card style={styles.requestCard}>
-        <View style={styles.requestAvatar}>
-          <Text style={styles.requestAvatarText}>
-            {item.requester_first_name?.charAt(0)?.toUpperCase() || "?"}
-          </Text>
-        </View>
+      <Squish onPress={() => viewRequest(item)} style={styles.requestCard}>
+        <View style={styles.requestTop}>
+          <View style={[styles.requestAvatar, { backgroundColor: tone.bg }]}>
+            <Text style={[styles.requestAvatarText, { color: tone.ink }]}>
+              {name.charAt(0).toUpperCase()}
+            </Text>
+          </View>
 
-        <View style={styles.requestInfo}>
-          <Text style={styles.requestName}>
-            {item.requester_first_name || "Someone"}
-          </Text>
+          <View style={styles.requestInfo}>
+            <Text style={styles.requestName}>{name}</Text>
 
-          <Text style={styles.requestText}>Wants to connect with you</Text>
+            <Text style={styles.requestText}>wants to connect with you</Text>
+          </View>
 
           {item.relationship_type ? (
-            <Text style={styles.requestRelationship}>
-              {item.relationship_type.charAt(0).toUpperCase() +
-                item.relationship_type.slice(1)}
-            </Text>
+            <View style={styles.relationshipPill}>
+              <Text style={styles.relationshipPillText}>
+                {item.relationship_type.charAt(0).toUpperCase() +
+                  item.relationship_type.slice(1)}
+              </Text>
+            </View>
           ) : null}
         </View>
 
-        <TouchableOpacity
-          style={styles.requestViewButton}
-          activeOpacity={0.8}
-          onPress={() => viewRequest(item)}
-        >
-          <Text style={styles.requestViewButtonText}>View</Text>
-        </TouchableOpacity>
-      </Card>
+        <View style={styles.requestActionsRow}>
+          <View style={styles.requestViewButton}>
+            <Text style={styles.requestViewButtonText}>See their request</Text>
+
+            <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
+          </View>
+        </View>
+      </Squish>
     );
   };
 
@@ -525,15 +555,16 @@ export default function FindPersonScreen() {
       selectPerson(item);
     };
 
+    const tone = toneFor(item.first_name);
+
     return (
-      <TouchableOpacity
+      <Squish
         style={[styles.personCard, sent && styles.personCardMuted]}
-        activeOpacity={sent ? 1 : 0.8}
         onPress={onPress}
-        disabled={isSending}
+        disabled={isSending || sent}
       >
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
+        <View style={[styles.avatar, { backgroundColor: tone.bg }]}>
+          <Text style={[styles.avatarText, { color: tone.ink }]}>
             {item.first_name?.charAt(0)?.toUpperCase() || "?"}
           </Text>
         </View>
@@ -541,27 +572,43 @@ export default function FindPersonScreen() {
         <View style={styles.personInfo}>
           <Text style={styles.personName}>{item.first_name}</Text>
 
-          {item.country ? (
-            <Text style={styles.personCountry}>{item.country}</Text>
-          ) : null}
+          <View style={styles.personMetaRow}>
+            {item.country ? (
+              <>
+                <Ionicons name="location-outline" size={11} color="#B9A7B1" />
+
+                <Text style={styles.personCountry}>{item.country}</Text>
+              </>
+            ) : null}
+
+            {item.relationship_status ? (
+              <Text style={styles.personCountry}>
+                {item.country ? " · " : ""}
+                {item.relationship_status}
+              </Text>
+            ) : null}
+          </View>
         </View>
 
-        {sent ? (
+        {isSending ? (
+          <ActivityIndicator size="small" color="#D9456B" />
+        ) : sent ? (
           <View style={styles.statePill}>
-            <Ionicons name="time-outline" size={12} color="#7A6A62" />
+            <Ionicons name="checkmark" size={12} color="#7C7280" />
             <Text style={styles.statePillText}>Requested</Text>
           </View>
         ) : received ? (
           <View style={[styles.statePill, styles.statePillActive]}>
-            <Ionicons name="mail-open-outline" size={12} color="#FFFFFF" />
             <Text style={[styles.statePillText, styles.statePillTextActive]}>
               Asked you
             </Text>
           </View>
         ) : (
-          <Text style={styles.personArrow}>›</Text>
+          <View style={styles.connectButton}>
+            <Text style={styles.connectButtonText}>Connect</Text>
+          </View>
         )}
-      </TouchableOpacity>
+      </Squish>
     );
   };
 
@@ -583,18 +630,10 @@ export default function FindPersonScreen() {
               style={styles.backButton}
               activeOpacity={0.7}
             >
-              <Text style={styles.backArrow}>←</Text>
+              <Ionicons name="chevron-back" size={20} color="#D9456B" />
             </TouchableOpacity>
 
-            <View style={styles.headerText}>
-              <Text style={styles.eyebrow}>BETWEEN US</Text>
-
-              <Text style={styles.title}>Find your person.</Text>
-
-              <Text style={styles.subtitle}>
-                Search for someone you want to build a connection with.
-              </Text>
-            </View>
+            <Text style={styles.title}>Find your person</Text>
           </View>
 
           {/* SEARCH */}
@@ -936,50 +975,27 @@ const styles = StyleSheet.create({
 
   header: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 4,
   },
 
   backButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "#F5DCE4",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 14,
-  },
-
-  backArrow: {
-    fontSize: 21,
-    color: "#D9456B",
-    marginTop: -2,
-  },
-
-  headerText: {
-    flex: 1,
-  },
-
-  eyebrow: {
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 1.8,
-    color: "#9C8F97",
-    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: "#F9E3EA",
   },
 
   title: {
-    fontSize: 29,
-    lineHeight: 34,
-    fontWeight: "700",
+    fontSize: 24,
+    fontWeight: "800",
     color: "#2E2430",
-  },
-
-  subtitle: {
-    marginTop: 8,
-    fontSize: 13,
-    lineHeight: 19,
-    color: "#6B5F68",
-    maxWidth: 310,
+    letterSpacing: -0.4,
   },
 
   /*
@@ -993,26 +1009,51 @@ const styles = StyleSheet.create({
   requestsTitle: {
     fontSize: 10,
     fontWeight: "800",
-    letterSpacing: 1.7,
-    color: "#9C8F97",
+    letterSpacing: 1.6,
+    color: "#D9456B",
     marginBottom: 10,
   },
 
   requestCard: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 14,
+    borderRadius: 22,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#F9E3EA",
+    shadowColor: "#D9456B",
+    shadowOpacity: 0.07,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+
+  requestTop: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#FAECF1",
+  },
+
+  relationshipPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: "#F9E3EA",
+  },
+
+  relationshipPillText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#D9456B",
+  },
+
+  requestActionsRow: {
+    marginTop: 14,
   },
 
   requestAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#F5DCE4",
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1038,12 +1079,6 @@ const styles = StyleSheet.create({
     marginTop: 3,
     fontSize: 12,
     color: "#6B5F68",
-  },
-
-  requestRelationship: {
-    marginTop: 3,
-    fontSize: 11,
-    color: "#B9A7B1",
   },
 
   requestViewButton: {
@@ -1078,18 +1113,16 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 22,
-    height: 54,
-    borderRadius: 16,
+    marginTop: 18,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#F3DFE7",
-    paddingHorizontal: 14,
+    paddingHorizontal: 18,
     shadowColor: "#D9456B",
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
   },
 
   searchIcon: {
@@ -1098,7 +1131,7 @@ const styles = StyleSheet.create({
 
   searchInput: {
     flex: 1,
-    height: 54,
+    height: 56,
     fontSize: 15,
     color: "#2E2430",
   },
@@ -1124,23 +1157,38 @@ const styles = StyleSheet.create({
   },
 
   tips: {
-    paddingTop: 2,
+    marginTop: 4,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#FAECF1",
   },
 
-  tipCard: {
+  tipsHeading: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#2E2430",
+    marginBottom: 4,
+  },
+
+  tipRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginBottom: 12,
+    paddingTop: 14,
+  },
+
+  tipRowFirst: {
+    paddingTop: 12,
   },
 
   tipIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "#F9E3EA",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 13,
+    marginRight: 12,
   },
 
   tipTextWrap: {
@@ -1214,10 +1262,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: "#F9E3EA",
+    backgroundColor: "#F2EDF0",
   },
 
   statePillActive: {
@@ -1243,28 +1291,52 @@ const styles = StyleSheet.create({
 
   personCard: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 14,
+    borderRadius: 22,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: "#FAECF1",
+    shadowColor: "#D9456B",
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 1,
+  },
+
+  personMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    marginTop: 4,
+  },
+
+  connectButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 999,
+    backgroundColor: "#D9456B",
+  },
+
+  connectButtonText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#FFFFFF",
   },
 
   avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#F5DCE4",
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     justifyContent: "center",
     alignItems: "center",
   },
 
   avatarText: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#D9456B",
+    fontSize: 19,
+    fontWeight: "800",
   },
 
   personInfo: {
@@ -1278,22 +1350,10 @@ const styles = StyleSheet.create({
     color: "#2E2430",
   },
 
-  personEmail: {
-    marginTop: 3,
-    fontSize: 12,
-    color: "#6B5F68",
-  },
-
   personCountry: {
     marginTop: 3,
     fontSize: 11,
     color: "#B9A7B1",
-  },
-
-  personArrow: {
-    fontSize: 26,
-    color: "#9C8F97",
-    marginLeft: 8,
   },
 
   /*
@@ -1313,11 +1373,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 17,
-  },
-
-  emptyHeart: {
-    fontSize: 34,
-    color: "#D9456B",
   },
 
   emptyTitle: {
