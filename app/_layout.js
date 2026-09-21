@@ -14,7 +14,7 @@ import { apiFetch, setTokenProvider } from "../lib/api";
 import { onProfileSaved } from "../lib/profileProgress";
 import ErrorCatcher from "../components/ErrorCatcher";
 import OfflineBanner from "../components/OfflineBanner";
-import Intro, { introHasPlayed } from "../components/Intro";
+import Splash from "../components/Splash";
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
@@ -414,10 +414,18 @@ function AuthGuard() {
  * ==========================================
  */
 
-export default function RootLayout() {
-  /* The written intro, once per cold start. */
-  const [introDone, setIntroDone] = useState(introHasPlayed());
+/*
+ * Shows the name until the app knows where it is going.
+ */
+function SplashGate() {
+  const { isLoaded } = useAuth();
 
+  if (isLoaded) return null;
+
+  return <Splash />;
+}
+
+export default function RootLayout() {
   useEffect(() => {
     configureNotifications();
   }, []);
@@ -446,10 +454,9 @@ export default function RootLayout() {
 
           <OfflineBanner />
 
-          {/* Over the top of everything, so the app is already
-              loaded and settled behind it by the time the
-              writing finishes. */}
-          {introDone ? null : <Intro onDone={() => setIntroDone(true)} />}
+          {/* Held over the top until Clerk has answered, so
+              nobody sees a half-built screen on the way in. */}
+          <SplashGate />
         </ClerkProvider>
       </SafeAreaProvider>
     </ErrorCatcher>
