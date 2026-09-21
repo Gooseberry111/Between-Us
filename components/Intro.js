@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { Animated, Easing, StyleSheet, Text, View } from "react-native";
+import { useEffect, useMemo, useRef } from "react";
+import { Animated, Easing, StyleSheet, View } from "react-native";
 import { useFonts } from "expo-font";
 import { DancingScript_600SemiBold } from "@expo-google-fonts/dancing-script";
 
@@ -8,20 +8,22 @@ import { DancingScript_600SemiBold } from "@expo-google-fonts/dancing-script";
  * INTRO
  * ==========================================
  *
- * "Between Us" drawn on, left to right, as though
- * someone is writing it.
+ * The launch screen, with the name written on.
  *
- * There is no handwriting engine here: the words are
- * laid out once, measured, and then revealed through a
- * widening window with a soft nib travelling along the
- * leading edge. Against a script face that reads as
- * writing, and it costs one font file rather than a
- * native drawing library.
+ * The logo settles first, then "Between Us" arrives a
+ * letter at a time -- each one fading up from slightly
+ * below and behind, the way a hand lays them down --
+ * and the app is already loaded behind it by the time
+ * the last letter lands.
  *
- * It plays once per cold start. Coming back to the app
- * from the background should not make anyone sit
- * through it again.
+ * Once per cold start. Coming back from the background
+ * should not make anyone sit through it again.
  */
+
+const WORD = "Between Us";
+
+/* How long each letter waits for the one before it. */
+const LETTER_GAP = 85;
 
 let alreadyPlayed = false;
 
@@ -32,63 +34,64 @@ export function introHasPlayed() {
 export default function Intro({ onDone }) {
   const [fontsLoaded] = useFonts({ DancingScript_600SemiBold });
 
-  const [textWidth, setTextWidth] = useState(0);
+  const letters = useMemo(() => WORD.split(""), []);
 
-  const reveal = useRef(new Animated.Value(0)).current;
-  const nib = useRef(new Animated.Value(0)).current;
+  /* One value per letter, plus the logo and the whole screen. */
+  const letterValues = useRef(letters.map(() => new Animated.Value(0))).current;
+  const logo = useRef(new Animated.Value(0)).current;
+  const rule = useRef(new Animated.Value(0)).current;
   const fade = useRef(new Animated.Value(1)).current;
-  const lift = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (!fontsLoaded || !textWidth) return;
-
-    /* Writing speed scales with the width, so the stroke
-     * moves at the same pace on a small phone as a large one. */
-    const duration = Math.min(2000, Math.max(1100, textWidth * 5));
+    if (!fontsLoaded) return;
 
     Animated.sequence([
-      Animated.delay(180),
+      /* The mark arrives first and settles. */
+      Animated.timing(logo, {
+        toValue: 1,
+        duration: 520,
+        easing: Easing.out(Easing.back(1.4)),
+        useNativeDriver: true,
+      }),
 
-      Animated.parallel([
-        Animated.timing(reveal, {
-          toValue: 1,
-          duration,
-          easing: Easing.bezier(0.35, 0, 0.25, 1),
-          useNativeDriver: false,
-        }),
-        Animated.timing(nib, {
-          toValue: 1,
-          duration,
-          easing: Easing.bezier(0.35, 0, 0.25, 1),
-          useNativeDriver: true,
-        }),
-      ]),
+      Animated.delay(120),
+
+      /* Then the name, one letter after another. */
+      Animated.stagger(
+        LETTER_GAP,
+        letterValues.map((value) =>
+          Animated.timing(value, {
+            toValue: 1,
+            duration: 300,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+        ),
+      ),
+
+      Animated.timing(rule, {
+        toValue: 1,
+        duration: 320,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
 
       /* A beat to read it. */
-      Animated.delay(420),
+      Animated.delay(380),
 
-      Animated.parallel([
-        Animated.timing(fade, {
-          toValue: 0,
-          duration: 420,
-          easing: Easing.out(Easing.quad),
-          useNativeDriver: true,
-        }),
-        Animated.timing(lift, {
-          toValue: 1,
-          duration: 420,
-          easing: Easing.out(Easing.quad),
-          useNativeDriver: true,
-        }),
-      ]),
+      Animated.timing(fade, {
+        toValue: 0,
+        duration: 420,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
     ]).start(({ finished }) => {
       if (!finished) return;
 
       alreadyPlayed = true;
-
       onDone?.();
     });
-  }, [fontsLoaded, textWidth, reveal, nib, fade, lift, onDone]);
+  }, [fontsLoaded, letterValues, logo, rule, fade, onDone]);
 
   /* If the font never arrives, don't hold the app hostage. */
   useEffect(() => {
@@ -97,92 +100,84 @@ export default function Intro({ onDone }) {
         alreadyPlayed = true;
         onDone?.();
       }
-    }, 4500);
+    }, 5000);
 
     return () => clearTimeout(bail);
   }, [onDone]);
 
   return (
-    <Animated.View
-      style={[
-        styles.screen,
-        {
-          opacity: fade,
-          transform: [
-            {
-              scale: lift.interpolate({
-                inputRange: [0, 1],
-                outputRange: [1, 1.04],
-              }),
-            },
-          ],
-        },
-      ]}
-    >
-      <View style={styles.centre}>
-        {/* Measured once, off-view, so the window knows how
-            wide the words are before anything moves. */}
-        <Text
-          style={[styles.word, styles.measure]}
-          onLayout={(event) => setTextWidth(event.nativeEvent.layout.width)}
-        >
-          Between Us
-        </Text>
+    <Animated.View style={[styles.screen, { opacity: fade }]}>
+      <Animated.Image
+        source={require("../assets/logo.png")}
+        resizeMode="contain"
+        style={[
+          styles.logo,
+          {
+            opacity: logo,
+            transform: [
+              {
+                scale: logo.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.82, 1],
+                }),
+              },
+            ],
+          },
+        ]}
+      />
 
-        {fontsLoaded && textWidth ? (
-          <View style={{ width: textWidth }}>
-            <Animated.View
+      {fontsLoaded ? (
+        <View style={styles.word}>
+          {letters.map((letter, index) => (
+            <Animated.Text
+              key={`${letter}-${index}`}
               style={[
-                styles.window,
+                styles.letter,
                 {
-                  width: reveal.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, textWidth],
-                  }),
-                },
-              ]}
-            >
-              <Text style={[styles.word, { width: textWidth }]}>
-                Between Us
-              </Text>
-            </Animated.View>
-
-            <Animated.View
-              style={[
-                styles.nib,
-                {
+                  opacity: letterValues[index],
                   transform: [
                     {
-                      translateX: nib.interpolate({
+                      translateY: letterValues[index].interpolate({
                         inputRange: [0, 1],
-                        outputRange: [0, textWidth],
+                        outputRange: [14, 0],
+                      }),
+                    },
+                    {
+                      scale: letterValues[index].interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.86, 1],
                       }),
                     },
                   ],
-                  opacity: reveal.interpolate({
-                    inputRange: [0, 0.9, 1],
-                    outputRange: [1, 1, 0],
-                  }),
                 },
               ]}
-            />
-          </View>
-        ) : null}
+            >
+              {letter === " " ? " " : letter}
+            </Animated.Text>
+          ))}
+        </View>
+      ) : (
+        /* Holds the same height so nothing jumps when the
+           font lands. */
+        <View style={styles.wordPlaceholder} />
+      )}
 
-        <Animated.View
-          style={[
-            styles.ruleWrap,
-            {
-              opacity: reveal.interpolate({
-                inputRange: [0, 0.65, 1],
-                outputRange: [0, 0, 1],
-              }),
-            },
-          ]}
-        >
-          <View style={styles.rule} />
-        </Animated.View>
-      </View>
+      <Animated.View
+        style={[
+          styles.rule,
+          {
+            opacity: rule,
+            transform: [
+              {
+                scaleX: rule.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.2, 1],
+                }),
+              },
+            ],
+          },
+        ]}
+      />
     </Animated.View>
   );
 }
@@ -196,44 +191,31 @@ const styles = StyleSheet.create({
     zIndex: 200,
   },
 
-  centre: {
-    alignItems: "center",
+  logo: {
+    width: 190,
+    height: 190,
   },
 
   word: {
+    flexDirection: "row",
+    marginTop: 6,
+  },
+
+  wordPlaceholder: {
+    height: 62,
+    marginTop: 6,
+  },
+
+  letter: {
     fontFamily: "DancingScript_600SemiBold",
-    fontSize: 46,
-    lineHeight: 64,
+    fontSize: 44,
+    lineHeight: 62,
     color: "#D9456B",
   },
 
-  /* Laid out for measurement only. */
-  measure: {
-    position: "absolute",
-    opacity: 0,
-  },
-
-  window: {
-    overflow: "hidden",
-    height: 64,
-  },
-
-  nib: {
-    position: "absolute",
-    top: 46,
-    left: -2,
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: "#D9456B",
-  },
-
-  ruleWrap: {
-    marginTop: 10,
-  },
-
   rule: {
-    width: 54,
+    marginTop: 8,
+    width: 56,
     height: 2,
     borderRadius: 2,
     backgroundColor: "#F3C6D3",
