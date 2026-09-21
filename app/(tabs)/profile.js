@@ -530,7 +530,7 @@ export default function ProfileScreen() {
                 </View>
 
                 <View style={styles.settingContent}>
-                  <Text style={styles.settingTitle}>Your Timeline</Text>
+                  <Text style={styles.settingTitle}>Your memories</Text>
 
                   <Text style={styles.settingDescription}>
                     View your story together, one moment at a time.

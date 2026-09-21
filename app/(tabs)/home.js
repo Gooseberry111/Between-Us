@@ -83,6 +83,7 @@ export default function HomeScreen() {
   const [partner, setPartner] = useState(cached?.partner ?? null);
   const [daily, setDaily] = useState(cached?.daily ?? null);
   const [memoryCount, setMemoryCount] = useState(cached?.memoryCount ?? null);
+  const [week, setWeek] = useState(cached?.week ?? null);
   const [loading, setLoading] = useState(!cached);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -192,24 +193,34 @@ export default function HomeScreen() {
       if (accepted?.other_clerk_id) {
         const partnerClerkId = accepted.other_clerk_id;
 
-        const [partnerResponse, triviaResponse, dailyData, memoriesData] =
-          await Promise.all([
-            /* Under your own id: the API decides who your partner
-             * is, so no request can name someone else's. */
-            apiFetch(`/users/${userId}/partner`),
-            apiFetch(`/users/${userId}/trivia`),
-            /* The real question of the day, and the streak that
-             * comes with it -- Home used to show a guess from a
-             * local list, which could differ from the actual one. */
-            apiFetch(`/users/${userId}/daily-question`)
-              .then((response) => (response.ok ? response.json() : null))
-              .catch(() => null),
-            apiFetch(`/users/${userId}/memories`)
-              .then((response) => (response.ok ? response.json() : null))
-              .catch(() => null),
-          ]);
+        const [
+          partnerResponse,
+          triviaResponse,
+          dailyData,
+          memoriesData,
+          weekData,
+        ] = await Promise.all([
+          /* Under your own id: the API decides who your partner
+           * is, so no request can name someone else's. */
+          apiFetch(`/users/${userId}/partner`),
+          apiFetch(`/users/${userId}/trivia`),
+          /* The real question of the day, and the streak that
+           * comes with it -- Home used to show a guess from a
+           * local list, which could differ from the actual one. */
+          apiFetch(`/users/${userId}/daily-question`)
+            .then((response) => (response.ok ? response.json() : null))
+            .catch(() => null),
+          apiFetch(`/users/${userId}/memories`)
+            .then((response) => (response.ok ? response.json() : null))
+            .catch(() => null),
+          apiFetch(`/users/${userId}/week`)
+            .then((response) => (response.ok ? response.json() : null))
+            .catch(() => null),
+        ]);
 
         setDaily(dailyData);
+
+        setWeek(weekData?.week || null);
 
         setMemoryCount(
           Array.isArray(memoriesData?.memories)
@@ -239,6 +250,7 @@ export default function HomeScreen() {
         setDaily(null);
         setMemoryCount(null);
         setPartner(null);
+        setWeek(null);
       }
     } catch (err) {
       console.log("HOME LOAD ERROR:", err);
@@ -280,6 +292,7 @@ export default function HomeScreen() {
       daily,
       memoryCount,
       partner,
+      week,
     });
   }, [
     loading,
@@ -296,6 +309,7 @@ export default function HomeScreen() {
     daily,
     memoryCount,
     partner,
+    week,
   ]);
 
   const handleRefresh = () => {
@@ -325,6 +339,57 @@ export default function HomeScreen() {
         ) + 1,
       )
     : null;
+
+  /*
+   * Reminders the server already works out -- birthdays,
+   * anniversaries, dreams with a date on them -- shown as a
+   * countdown rather than left to be discovered.
+   */
+  const countdowns = (reminders || []).slice(0, 3).map((reminder) => ({
+    ...reminder,
+    icon:
+      reminder.type === "birthday"
+        ? "gift-outline"
+        : reminder.type === "anniversary"
+          ? "heart-outline"
+          : reminder.type === "dream_overdue"
+            ? "alert-circle-outline"
+            : "sparkles-outline",
+    tone:
+      reminder.type === "birthday"
+        ? PASTELS.butter
+        : reminder.type === "anniversary"
+          ? PASTELS.blush
+          : reminder.type === "dream_overdue"
+            ? PASTELS.clay
+            : PASTELS.sky,
+  }));
+
+  /* What the two of you actually did these seven days. */
+  const weekChips = week
+    ? [
+        { label: "memories", value: week.memories, tone: PASTELS.sky },
+        { label: "answers", value: week.answers, tone: PASTELS.butter },
+        { label: "thanks", value: week.appreciations, tone: PASTELS.blush },
+        {
+          label: "goals done",
+          value: week.goals_completed,
+          tone: PASTELS.sage,
+        },
+        { label: "dates", value: week.dates_had, tone: PASTELS.lilac },
+      ].filter((chip) => chip.value > 0)
+    : [];
+
+  const weekTotal = weekChips.reduce((sum, chip) => sum + chip.value, 0);
+
+  const weekSentence =
+    weekTotal === 0
+      ? ""
+      : week?.answers > 0 && week?.appreciations > 0
+        ? `You answered together and said thank you. That is a good week.`
+        : week?.memories > 0
+          ? `You kept something worth keeping this week.`
+          : `A quiet week, but not an empty one.`;
 
   const finishProfileCard =
     answeredCount !== null && answeredCount < TOTAL_QUESTIONS ? (
@@ -562,6 +627,43 @@ export default function HomeScreen() {
               </Pressable>
             </FadeIn>
 
+            {/* WHAT'S COMING */}
+
+            {countdowns.length > 0 ? (
+              <FadeIn delay={60}>
+                <View style={styles.comingCard}>
+                  <Text style={styles.comingLabel}>COMING UP</Text>
+
+                  {countdowns.map((item, index) => (
+                    <View
+                      key={`${item.title}-${index}`}
+                      style={[
+                        styles.comingRow,
+                        index > 0 && styles.comingRowNext,
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.comingIcon,
+                          { backgroundColor: item.tone.bg },
+                        ]}
+                      >
+                        <Ionicons
+                          name={item.icon}
+                          size={15}
+                          color={item.tone.ink}
+                        />
+                      </View>
+
+                      <Text style={styles.comingText} numberOfLines={2}>
+                        {item.message}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </FadeIn>
+            ) : null}
+
             {/* THE NUMBERS THAT MEAN SOMETHING */}
 
             <FadeIn delay={90}>
@@ -633,6 +735,51 @@ export default function HomeScreen() {
                 </View>
               </Squish>
             </FadeIn>
+
+            {/* YOUR WEEK */}
+
+            {weekTotal > 0 ? (
+              <FadeIn delay={320}>
+                <View style={styles.weekCard}>
+                  <View style={styles.weekTop}>
+                    <Text style={styles.weekLabel}>YOUR WEEK</Text>
+
+                    <Text style={styles.weekTotal}>
+                      {weekTotal} {weekTotal === 1 ? "thing" : "things"}
+                    </Text>
+                  </View>
+
+                  <Text style={styles.weekLine}>{weekSentence}</Text>
+
+                  <View style={styles.weekChips}>
+                    {weekChips.map((chip) => (
+                      <View
+                        key={chip.label}
+                        style={[
+                          styles.weekChip,
+                          { backgroundColor: chip.tone.bg },
+                        ]}
+                      >
+                        <Text
+                          style={[styles.weekChipNum, { color: chip.tone.ink }]}
+                        >
+                          {chip.value}
+                        </Text>
+
+                        <Text
+                          style={[
+                            styles.weekChipText,
+                            { color: chip.tone.ink },
+                          ]}
+                        >
+                          {chip.label}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              </FadeIn>
+            ) : null}
 
             {/* TODAY */}
 
@@ -770,7 +917,7 @@ function getTodayPrompt({
         title: `Plan a ${movieGenre.toLowerCase()} movie date.`,
         description: `${partnerName} enjoys ${movieGenre.toLowerCase()} movies. Turn that preference into a simple plan for the two of you.`,
         buttonText: "Plan a date",
-        route: "/memories",
+        route: "/(tabs)/dates",
       };
     }
 
@@ -779,7 +926,7 @@ function getTodayPrompt({
       description:
         "They have date ideas as something they want more of. A simple intentional plan can make the day feel special.",
       buttonText: "Plan a date",
-      route: "/memories",
+      route: "/(tabs)/dates",
     };
   }
 
@@ -953,9 +1100,9 @@ function QuickActions({ router, locked = false }) {
    */
   const items = [
     {
-      icon: "time-outline",
-      label: "Timeline",
-      route: "/memories",
+      icon: "calendar-outline",
+      label: "Dates",
+      route: "/(tabs)/dates",
       tone: "sky",
     },
     {
@@ -978,8 +1125,8 @@ function QuickActions({ router, locked = false }) {
     },
     { icon: "flag-outline", label: "Goals", route: "/goals", tone: "butter" },
     {
-      icon: "calendar-outline",
-      label: "Dates",
+      icon: "gift-outline",
+      label: "Occasions",
       route: "/special-dates",
       tone: "clay",
     },
@@ -1230,6 +1377,111 @@ const styles = StyleSheet.create({
   greetingName: {
     fontSize: 38,
     color: "#D9456B",
+  },
+
+  comingCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 22,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#F9E3EA",
+  },
+
+  comingLabel: {
+    fontSize: 9.5,
+    fontWeight: "800",
+    letterSpacing: 1.5,
+    color: "#D9456B",
+    marginBottom: 10,
+  },
+
+  comingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  comingRowNext: {
+    marginTop: 12,
+  },
+
+  comingIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 11,
+  },
+
+  comingText: {
+    flex: 1,
+    fontSize: 13.5,
+    lineHeight: 19,
+    color: "#2E2430",
+    fontWeight: "600",
+  },
+
+  weekCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    padding: 18,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#F9E3EA",
+  },
+
+  weekTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  weekLabel: {
+    fontSize: 9.5,
+    fontWeight: "800",
+    letterSpacing: 1.5,
+    color: "#D9456B",
+  },
+
+  weekTotal: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#B9A7B1",
+  },
+
+  weekLine: {
+    marginTop: 10,
+    fontSize: 16,
+    lineHeight: 23,
+    fontWeight: "700",
+    color: "#2E2430",
+  },
+
+  weekChips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 14,
+  },
+
+  weekChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    borderRadius: 999,
+  },
+
+  weekChipNum: {
+    fontSize: 13,
+    fontWeight: "800",
+  },
+
+  weekChipText: {
+    fontSize: 11.5,
+    fontWeight: "700",
   },
 
   /* The row of numbers under the partner card. */

@@ -154,7 +154,7 @@ export default function ConnectionScreen() {
                 </View>
 
                 <View style={styles.featureContent}>
-                  <Text style={styles.featureTitle}>Timeline</Text>
+                  <Text style={styles.featureTitle}>Memories</Text>
 
                   <Text style={styles.featureText}>
                     Your story together, one moment at a time.

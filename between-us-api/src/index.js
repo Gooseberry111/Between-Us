@@ -401,6 +401,31 @@ async function ensureSchema(sql) {
 	 */
 	await sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS nickname TEXT`;
 
+	/*
+	 * Dates the two of them are actually planning, as opposed
+	 * to special_dates, which are anniversaries that come round
+	 * every year.
+	 */
+	await sql`
+		CREATE TABLE IF NOT EXISTS date_plans (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			connection_id UUID NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
+			created_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			title TEXT NOT NULL,
+			place TEXT,
+			notes TEXT,
+			plan_date DATE,
+			status TEXT NOT NULL DEFAULT 'planned',
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+			updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+		)
+	`;
+
+	await sql`
+		CREATE INDEX IF NOT EXISTS date_plans_connection_idx
+			ON date_plans (connection_id, plan_date)
+	`;
+
 	await sql`
 		CREATE TABLE IF NOT EXISTS checkins (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1366,6 +1391,7 @@ export default {
 					await sql`DELETE FROM appreciations WHERE connection_id = ANY(${connectionIds})`;
 					await sql`DELETE FROM checkins WHERE connection_id = ANY(${connectionIds})`;
 					await sql`DELETE FROM trivia_sessions WHERE connection_id = ANY(${connectionIds})`;
+					await sql`DELETE FROM date_plans WHERE connection_id = ANY(${connectionIds})`;
 				}
 
 				await sql`DELETE FROM notifications WHERE user_id = ${userId}`;
@@ -2724,6 +2750,7 @@ VALUES (
 				await sql`DELETE FROM appreciations WHERE connection_id = ${connection.id}`;
 				await sql`DELETE FROM checkins WHERE connection_id = ${connection.id}`;
 				await sql`DELETE FROM trivia_sessions WHERE connection_id = ${connection.id}`;
+				await sql`DELETE FROM date_plans WHERE connection_id = ${connection.id}`;
 
 				/*
 				 * Special dates hang off the person rather than the
@@ -6139,6 +6166,243 @@ VALUES (
 						rating: r.rating,
 						mine: r.user_id === userId,
 					})),
+				});
+			}
+
+			/*
+			 * ==========================================
+			 * DATE PLANS
+			 * ==========================================
+			 *
+			 * GET    /users/:clerkId/date-plans
+			 * POST   /users/:clerkId/date-plans
+			 * PATCH  /users/:clerkId/date-plans/:planId
+			 * DELETE /users/:clerkId/date-plans/:planId
+			 *
+			 * A date someone is planning: what it is, where,
+			 * when, and whether it has happened yet. Shared with
+			 * the partner, because a date planned alone is just
+			 * a diary entry.
+			 */
+
+			const datePlansMatch = url.pathname.match(/^\/users\/([^/]+)\/date-plans$/);
+			const datePlanItemMatch = url.pathname.match(/^\/users\/([^/]+)\/date-plans\/([^/]+)$/);
+
+			if (datePlansMatch || datePlanItemMatch) {
+				const clerkId = (datePlansMatch || datePlanItemMatch)[1];
+
+				await ensureSchema(sql);
+
+				const userResult = await sql`
+          SELECT id FROM users WHERE clerk_id = ${clerkId} LIMIT 1
+        `;
+
+				if (userResult.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const userId = userResult[0].id;
+
+				const connectionResult = await sql`
+          SELECT id, user_one, user_two
+          FROM connections
+          WHERE (user_one = ${userId} OR user_two = ${userId})
+            AND status = 'accepted'
+          LIMIT 1
+        `;
+
+				if (connectionResult.length === 0) {
+					return Response.json({ error: 'Connect with your partner first.' }, { status: 403 });
+				}
+
+				const connection = connectionResult[0];
+				const partnerId = connection.user_one === userId ? connection.user_two : connection.user_one;
+
+				if (datePlansMatch && request.method === 'POST') {
+					const body = await request.json();
+
+					const title = String(body?.title || '').trim();
+
+					if (!title) {
+						return Response.json({ error: 'A date needs a name.' }, { status: 400 });
+					}
+
+					const planDate = body?.plan_date ? toIsoDate(body.plan_date) : null;
+
+					const created = await sql`
+            INSERT INTO date_plans (
+              connection_id, created_by, title, place, notes, plan_date
+            )
+            VALUES (
+              ${connection.id},
+              ${userId},
+              ${title},
+              ${String(body?.place || '').trim() || null},
+              ${String(body?.notes || '').trim() || null},
+              ${planDate}
+            )
+            RETURNING id, title, place, notes, plan_date, status, created_by, created_at
+          `;
+
+					const planner = await sql`
+            SELECT first_name, nickname FROM profiles WHERE user_id = ${userId} LIMIT 1
+          `;
+
+					const partnerRow = await sql`
+            SELECT push_token, notification_preferences FROM users WHERE id = ${partnerId} LIMIT 1
+          `;
+
+					const plannerName = planner[0]?.nickname?.trim() || planner[0]?.first_name?.trim() || 'Your partner';
+
+					await notifyUser(sql, {
+						userId: partnerId,
+						pushToken: partnerRow[0]?.push_token,
+						preferences: partnerRow[0]?.notification_preferences,
+						type: 'date_idea',
+						title: 'A date is being planned',
+						message: `${plannerName} is planning ${title}.`,
+						dedupeKey: `date-plan-${created[0].id}`,
+					});
+
+					return Response.json({ plan: created[0] }, { status: 201 });
+				}
+
+				if (datePlanItemMatch && (request.method === 'PATCH' || request.method === 'DELETE')) {
+					const planId = datePlanItemMatch[2];
+
+					if (request.method === 'DELETE') {
+						const removed = await sql`
+              DELETE FROM date_plans
+              WHERE id = ${planId} AND connection_id = ${connection.id}
+              RETURNING id
+            `;
+
+						if (removed.length === 0) {
+							return Response.json({ error: 'Date not found' }, { status: 404 });
+						}
+
+						return Response.json({ message: 'Date removed' });
+					}
+
+					const body = await request.json();
+
+					const status = ['planned', 'done', 'cancelled'].includes(body?.status) ? body.status : null;
+
+					if (!status) {
+						return Response.json({ error: 'status must be planned, done or cancelled' }, { status: 400 });
+					}
+
+					const updated = await sql`
+            UPDATE date_plans
+            SET status = ${status}, updated_at = NOW()
+            WHERE id = ${planId} AND connection_id = ${connection.id}
+            RETURNING id, title, place, notes, plan_date, status, created_by, created_at
+          `;
+
+					if (updated.length === 0) {
+						return Response.json({ error: 'Date not found' }, { status: 404 });
+					}
+
+					return Response.json({ plan: updated[0] });
+				}
+
+				/* GET: everything, newest plans first, with who made them. */
+				const plans = await sql`
+          SELECT
+            d.id,
+            d.title,
+            d.place,
+            d.notes,
+            d.plan_date,
+            d.status,
+            d.created_by,
+            d.created_at,
+            p.first_name AS planner_first_name,
+            p.nickname AS planner_nickname
+          FROM date_plans d
+          LEFT JOIN profiles p ON p.user_id = d.created_by
+          WHERE d.connection_id = ${connection.id}
+          ORDER BY
+            CASE WHEN d.status = 'planned' THEN 0 ELSE 1 END,
+            d.plan_date ASC NULLS LAST,
+            d.created_at DESC
+          LIMIT 60
+        `;
+
+				return Response.json({
+					plans: plans.map((row) => ({
+						...row,
+						plan_date: row.plan_date ? toIsoDate(row.plan_date) : null,
+						mine: row.created_by === userId,
+						planner_name: row.planner_nickname?.trim() || row.planner_first_name?.trim() || 'Someone',
+					})),
+				});
+			}
+
+			/*
+			 * ==========================================
+			 * YOUR WEEK
+			 * ==========================================
+			 *
+			 * GET /users/:clerkId/week
+			 *
+			 * What the two of you actually did these last seven
+			 * days. Counted from the same rows the screens read,
+			 * so it can never disagree with them.
+			 */
+
+			const weekMatch = url.pathname.match(/^\/users\/([^/]+)\/week$/);
+
+			if (weekMatch && request.method === 'GET') {
+				const clerkId = weekMatch[1];
+
+				await ensureSchema(sql);
+
+				const userResult = await sql`
+          SELECT id FROM users WHERE clerk_id = ${clerkId} LIMIT 1
+        `;
+
+				if (userResult.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const userId = userResult[0].id;
+
+				const connectionResult = await sql`
+          SELECT id, connected_at
+          FROM connections
+          WHERE (user_one = ${userId} OR user_two = ${userId})
+            AND status = 'accepted'
+          LIMIT 1
+        `;
+
+				if (connectionResult.length === 0) {
+					return Response.json({ connected: false });
+				}
+
+				const connectionId = connectionResult[0].id;
+
+				const [memories, goalsDone, answers, appreciations, checkins, trivia, dates] = await Promise.all([
+					sql`SELECT COUNT(*)::int AS n FROM memories WHERE connection_id = ${connectionId} AND created_at >= NOW() - INTERVAL '7 days'`,
+					sql`SELECT COUNT(*)::int AS n FROM relationship_goals WHERE connection_id = ${connectionId} AND status = 'completed' AND completed_at >= NOW() - INTERVAL '7 days'`,
+					sql`SELECT COUNT(*)::int AS n FROM daily_answers WHERE connection_id = ${connectionId} AND created_at >= NOW() - INTERVAL '7 days'`,
+					sql`SELECT COUNT(*)::int AS n FROM appreciations WHERE connection_id = ${connectionId} AND created_at >= NOW() - INTERVAL '7 days'`,
+					sql`SELECT COUNT(*)::int AS n FROM checkins WHERE connection_id = ${connectionId} AND created_at >= NOW() - INTERVAL '7 days'`,
+					sql`SELECT COUNT(*)::int AS n FROM trivia_sessions WHERE connection_id = ${connectionId} AND created_at >= NOW() - INTERVAL '7 days'`,
+					sql`SELECT COUNT(*)::int AS n FROM date_plans WHERE connection_id = ${connectionId} AND status = 'done' AND updated_at >= NOW() - INTERVAL '7 days'`,
+				]);
+
+				return Response.json({
+					connected: true,
+					week: {
+						memories: memories[0]?.n || 0,
+						goals_completed: goalsDone[0]?.n || 0,
+						answers: answers[0]?.n || 0,
+						appreciations: appreciations[0]?.n || 0,
+						checkins: checkins[0]?.n || 0,
+						trivia_rounds: trivia[0]?.n || 0,
+						dates_had: dates[0]?.n || 0,
+					},
 				});
 			}
 

@@ -325,7 +325,7 @@ export default function TimelineScreen() {
   };
 
   if (connected === false) {
-    return <ConnectFirst feature="Timeline" showBack={false} />;
+    return <ConnectFirst feature="Memories" showBack={true} />;
   }
 
   if (loading) {
@@ -382,7 +382,7 @@ export default function TimelineScreen() {
                 <View style={styles.headerText}>
                   <Text style={styles.brand}>BETWEEN US</Text>
 
-                  <Text style={styles.pageTitle}>Timeline</Text>
+                  <Text style={styles.pageTitle}>Memories</Text>
 
                   <Text style={styles.pageSubtitle}>
                     Your story together, one moment at a time.

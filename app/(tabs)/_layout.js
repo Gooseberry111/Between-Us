@@ -70,8 +70,8 @@ export default function TabsLayout() {
 
           if (route.name === "home") {
             iconName = focused ? "home" : "home-outline";
-          } else if (route.name === "memories") {
-            iconName = focused ? "time" : "time-outline";
+          } else if (route.name === "dates") {
+            iconName = focused ? "calendar" : "calendar-outline";
           } else if (route.name === "dreams") {
             iconName = focused ? "sparkles" : "sparkles-outline";
           } else if (route.name === "insights") {
@@ -89,7 +89,12 @@ export default function TabsLayout() {
       })}
     >
       <Tabs.Screen name="home" options={{ title: "Home" }} />
-      <Tabs.Screen name="memories" options={{ title: "Timeline" }} />
+      <Tabs.Screen name="dates" options={{ title: "Dates" }} />
+
+      {/* Timeline is gone: special dates and the dates screen
+          cover what it was for, and nobody could tell what it
+          was. The screen stays reachable, just not as a tab. */}
+      <Tabs.Screen name="memories" options={{ href: null }} />
       <Tabs.Screen name="dreams" options={{ title: "Dreams" }} />
       <Tabs.Screen name="insights" options={{ title: "Insights" }} />
       <Tabs.Screen name="profile" options={{ title: "Profile" }} />
