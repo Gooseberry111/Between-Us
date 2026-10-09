@@ -1,49 +1,73 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
-  Pressable,
   Alert,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
-import { apiFetch } from "../../lib/api";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { GlassBackground, Card } from "../../components/Glass";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useFocusEffect, useRouter } from "expo-router";
-import DateInput from "../../components/DateInput";
+
+import { apiFetch } from "../../lib/api";
 import { getCachedData, setCachedData } from "../../lib/dataCache";
-import { Skeleton, SkeletonList } from "../../components/Skeleton";
-import ConnectFirst from "../../components/ConnectFirst";
 import { useIsConnected } from "../../lib/connection";
+import { T } from "../../lib/theme";
+import {
+  Button,
+  Card,
+  Empty,
+  GlassButton,
+  GroupHeader,
+  LargeTitle,
+  NavBar,
+  Press,
+  Screen,
+  Segmented,
+} from "../../components/ui";
+import ConnectFirst from "../../components/ConnectFirst";
+import { SkeletonList } from "../../components/Skeleton";
+import DateInput from "../../components/DateInput";
 
 /*
  * ==========================================
  * TIMELINE
  * ==========================================
  *
- * A single chronological story of the
- * relationship, combining:
- *
- * - Memories you write yourself
- * - Dreams you've completed together
- * - Special dates you've saved
- *
- * Only memories are created/edited/deleted here.
- * Dreams and special dates are read-only entries
- * that link back to their own screens.
+ * Everything the two of you have marked, newest
+ * first: memories you saved, dates you had, and the
+ * milestones that come round. One filter across the
+ * top, and a sheet for adding a memory.
  */
 
-function todayIsoDate() {
-  return new Date().toISOString().split("T")[0];
+const FILTERS = ["All", "Memories", "Dates", "Milestones"];
+
+const PROMPTS = ["Our first date", "Our song", "An inside joke"];
+
+function groupLabel(iso) {
+  if (!iso) return "Undated";
+
+  const date = new Date(`${String(iso).slice(0, 10)}T00:00:00`);
+  const today = new Date();
+
+  today.setHours(0, 0, 0, 0);
+
+  const days = Math.round((today - date) / 86400000);
+
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days} days ago`;
+
+  return date.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "long",
+    year: date.getFullYear() === today.getFullYear() ? undefined : "numeric",
+  });
 }
 
 export default function TimelineScreen() {
@@ -52,1139 +76,435 @@ export default function TimelineScreen() {
   const connected = useIsConnected();
 
   const cacheKey = userId ? `timeline:${userId}` : null;
-  const cachedEntries = cacheKey ? getCachedData(cacheKey) : undefined;
+  const cached = cacheKey ? getCachedData(cacheKey) : undefined;
 
-  const [entries, setEntries] = useState(cachedEntries || []);
-  const [loading, setLoading] = useState(!cachedEntries);
+  const [entries, setEntries] = useState(cached?.entries ?? []);
+  const [loading, setLoading] = useState(!cached);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState("");
+  const [filter, setFilter] = useState("All");
 
-  const [showForm, setShowForm] = useState(false);
-  const [editingMemory, setEditingMemory] = useState(null);
-
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [memoryDate, setMemoryDate] = useState(todayIsoDate());
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [title, setTitle] = useState("");
+  const [note, setNote] = useState("");
+  const [when, setWhen] = useState("");
 
-  const loadTimeline = useCallback(async () => {
+  const load = useCallback(async () => {
     if (!isLoaded || !isSignedIn || !userId) {
       setLoading(false);
       return;
     }
 
-    const cached = cacheKey ? getCachedData(cacheKey) : undefined;
-
-    if (cached) {
-      setEntries(cached);
-      setLoading(false);
-    }
-
     try {
-      setError("");
-
-      const [memoriesResponse, dreamsResponse, specialDatesResponse] =
-        await Promise.all([
-          apiFetch(`/users/${userId}/memories`),
-          apiFetch(`/users/${userId}/dreams`),
-          apiFetch(`/users/${userId}/special-dates`),
-        ]);
-
-      const [memoriesData, dreamsData, specialDatesData] = await Promise.all([
-        memoriesResponse.json(),
-        dreamsResponse.json(),
-        specialDatesResponse.json(),
+      const [memoriesData, platesData, datesData] = await Promise.all([
+        apiFetch(`/users/${userId}/memories`)
+          .then((r) => (r.ok ? r.json() : []))
+          .catch(() => []),
+        apiFetch(`/users/${userId}/date-plans`)
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null),
+        apiFetch(`/users/${userId}/special-dates`)
+          .then((r) => (r.ok ? r.json() : []))
+          .catch(() => []),
       ]);
 
-      console.log("TIMELINE MEMORIES:", memoriesData);
-      console.log("TIMELINE DREAMS:", dreamsData);
-      console.log("TIMELINE SPECIAL DATES:", specialDatesData);
+      const memories = (Array.isArray(memoriesData) ? memoriesData : []).map(
+        (item) => ({
+          id: `memory-${item.id}`,
+          kind: "Memories",
+          title: item.title,
+          note: item.description,
+          date: item.memory_date,
+        }),
+      );
 
-      if (!memoriesResponse.ok) {
-        throw new Error(memoriesData?.error || "Unable to load your timeline.");
-      }
-
-      const memoryEntries = (
-        Array.isArray(memoriesData) ? memoriesData : []
-      ).map((memory) => ({
-        id: `memory-${memory.id}`,
-        kind: "memory",
-        date: memory.memory_date,
-        title: memory.title,
-        description: memory.description,
-        raw: memory,
-      }));
-
-      const dreamEntries = (
-        Array.isArray(dreamsData?.dreams) ? dreamsData.dreams : []
-      )
-        .filter((dream) => dream.is_completed)
-        .map((dream) => ({
-          id: `dream-${dream.id}`,
-          kind: "dream",
-          date: dream.completed_at || dream.target_date,
-          title: dream.title,
-          description: dream.description,
-          raw: dream,
+      const plans = (platesData?.plans || [])
+        .filter((plan) => plan.status === "done")
+        .map((plan) => ({
+          id: `date-${plan.id}`,
+          kind: "Dates",
+          title: plan.title,
+          note: plan.place,
+          date: plan.plan_date,
         }));
 
-      const specialDateEntries = (
-        Array.isArray(specialDatesData?.special_dates)
-          ? specialDatesData.special_dates
-          : []
-      ).map((specialDate) => ({
-        id: `special-date-${specialDate.id}`,
-        kind: "special_date",
-        date: specialDate.event_date,
-        title: specialDate.title,
-        description: null,
-        raw: specialDate,
-      }));
+      const milestones = (Array.isArray(datesData) ? datesData : []).map(
+        (item) => ({
+          id: `milestone-${item.id}`,
+          kind: "Milestones",
+          title: item.title,
+          note: "Comes round every year",
+          date: item.event_date,
+        }),
+      );
 
-      const merged = [...memoryEntries, ...dreamEntries, ...specialDateEntries]
-        .filter((entry) => entry.date)
-        .sort((a, b) => new Date(b.date) - new Date(a.date));
+      const all = [...memories, ...plans, ...milestones].sort((a, b) =>
+        String(b.date || "").localeCompare(String(a.date || "")),
+      );
 
-      setEntries(merged);
+      setEntries(all);
 
-      if (cacheKey) setCachedData(cacheKey, merged);
+      if (cacheKey) setCachedData(cacheKey, { entries: all });
     } catch (err) {
       console.log("TIMELINE LOAD ERROR:", err);
-
-      if (!cached) {
-        setError(err?.message || "Unable to load your timeline.");
-      }
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   }, [isLoaded, isSignedIn, userId, cacheKey]);
 
-  /* Tabs stay mounted; refetch when this one comes back into view. */
   useFocusEffect(
     useCallback(() => {
-      loadTimeline();
-    }, [loadTimeline]),
+      load();
+    }, [load]),
   );
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    loadTimeline();
-  };
-
-  const resetForm = () => {
-    setTitle("");
-    setDescription("");
-    setMemoryDate(todayIsoDate());
-    setEditingMemory(null);
-    setShowForm(false);
-  };
-
-  const openCreateForm = () => {
-    setEditingMemory(null);
-    setTitle("");
-    setDescription("");
-    setMemoryDate(todayIsoDate());
-    setShowForm(true);
-  };
-
-  const openEditForm = (memory) => {
-    setEditingMemory(memory);
-    setTitle(memory.title || "");
-    setDescription(memory.description || "");
-    setMemoryDate(
-      memory.memory_date
-        ? new Date(memory.memory_date).toISOString().split("T")[0]
-        : todayIsoDate(),
-    );
-    setShowForm(true);
-  };
-
   const saveMemory = async () => {
-    if (!title.trim()) {
-      Alert.alert("Missing title", "Please give this memory a title.");
-      return;
-    }
-
-    if (!description.trim()) {
-      Alert.alert("Missing description", "Tell us a little about this memory.");
-      return;
-    }
-
-    if (!memoryDate.trim()) {
-      Alert.alert("Missing date", "When did this happen?");
-      return;
-    }
-
-    if (!userId) return;
+    if (!title.trim() || saving) return;
 
     try {
       setSaving(true);
 
-      let response;
-
-      if (editingMemory) {
-        response = await apiFetch(
-          `/users/${userId}/memories/${editingMemory.id}`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              title: title.trim(),
-              description: description.trim(),
-              memory_date: memoryDate.trim(),
-            }),
-          },
-        );
-      } else {
-        response = await apiFetch(`/users/${userId}/memories`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            title: title.trim(),
-            description: description.trim(),
-            memory_date: memoryDate.trim(),
-          }),
-        });
-      }
+      const response = await apiFetch(`/users/${userId}/memories`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clerk_id: userId,
+          title: title.trim(),
+          description: note.trim() || null,
+          memory_date: when.trim() || new Date().toISOString().slice(0, 10),
+        }),
+      });
 
       const data = await response.json();
 
-      console.log(
-        editingMemory ? "UPDATE MEMORY RESPONSE:" : "CREATE MEMORY RESPONSE:",
-        data,
-      );
-
       if (!response.ok) {
-        throw new Error(data?.error || "Unable to save memory.");
+        throw new Error(data?.error || "Unable to save this memory.");
       }
 
-      resetForm();
-      await loadTimeline();
+      setTitle("");
+      setNote("");
+      setWhen("");
+      setSheetOpen(false);
+
+      await load();
     } catch (err) {
-      console.log("SAVE MEMORY ERROR:", err);
-      Alert.alert(
-        "Something went wrong",
-        err?.message || "Unable to save memory.",
-      );
+      Alert.alert("We couldn't save that", err?.message || "Please try again.");
     } finally {
       setSaving(false);
     }
   };
 
-  const deleteMemory = (entry) => {
-    Alert.alert(
-      "Delete memory?",
-      `"${entry.title}" will be permanently removed.`,
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const response = await apiFetch(
-                `/users/${userId}/memories/${entry.raw.id}`,
-                {
-                  method: "DELETE",
-                },
-              );
-
-              const data = await response.json();
-
-              console.log("DELETE MEMORY RESPONSE:", data);
-
-              if (!response.ok) {
-                throw new Error(data?.error || "Unable to delete memory.");
-              }
-
-              setEntries((current) => {
-                const next = current.filter((item) => item.id !== entry.id);
-                if (cacheKey) setCachedData(cacheKey, next);
-                return next;
-              });
-            } catch (err) {
-              console.log("DELETE MEMORY ERROR:", err);
-
-              Alert.alert(
-                "Something went wrong",
-                err?.message || "Unable to delete memory.",
-              );
-            }
-          },
-        },
-      ],
-    );
-  };
-
   if (connected === false) {
-    return <ConnectFirst feature="Memories" showBack={true} />;
+    return <ConnectFirst feature="Timeline" showBack={false} />;
   }
 
-  if (loading) {
-    /*
-     * Cold load only (nothing cached yet). Mirrors the
-     * real layout so the page appears at once and fills
-     * in, instead of blocking on a spinner.
-     */
-    return (
-      <SafeAreaView style={styles.screen} edges={["top"]}>
-        <GlassBackground>
-          <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
-            <Skeleton width={96} height={11} radius={6} />
-            <Skeleton
-              width="62%"
-              height={26}
-              radius={9}
-              style={{ marginTop: 12 }}
-            />
-            <Skeleton width="80%" height={12} style={{ marginTop: 10 }} />
+  const shown =
+    filter === "All"
+      ? entries
+      : entries.filter((entry) => entry.kind === filter);
 
-            <View style={{ marginTop: 26 }}>
-              <SkeletonList count={3} />
-            </View>
-          </View>
-        </GlassBackground>
-      </SafeAreaView>
-    );
-  }
+  /* Group by day, keeping the order. */
+  const groups = [];
+
+  shown.forEach((entry) => {
+    const label = groupLabel(entry.date);
+    const last = groups[groups.length - 1];
+
+    if (last && last.label === label) last.items.push(entry);
+    else groups.push({ label, items: [entry] });
+  });
 
   return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
-      <GlassBackground>
-        <KeyboardAvoidingView
-          style={styles.keyboardContainer}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-        >
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={handleRefresh}
-                tintColor="#D9456B"
-              />
+    <>
+      <Screen
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              load();
+            }}
+            tintColor={T.accent}
+          />
+        }
+      >
+        <NavBar>
+          <GlassButton
+            icon="add"
+            label="Add a memory"
+            onPress={() => setSheetOpen(true)}
+          />
+        </NavBar>
+
+        <LargeTitle>Timeline</LargeTitle>
+
+        <Segmented options={FILTERS} value={filter} onChange={setFilter} />
+
+        {loading ? (
+          <View style={{ paddingHorizontal: 16 }}>
+            <SkeletonList count={3} />
+          </View>
+        ) : shown.length === 0 ? (
+          <Empty
+            icon="images-outline"
+            title={
+              entries.length === 0
+                ? "Your story starts with one moment"
+                : "Nothing here yet"
             }
-            contentContainerStyle={styles.scrollContent}
-          >
-            <View style={styles.container}>
-              {/* HEADER */}
+            text="Save a photo, a place or a feeling. It shows up here for both of you."
+            chips={PROMPTS.map((prompt) => ({
+              label: prompt,
+              onPress: () => {
+                setTitle(prompt);
+                setSheetOpen(true);
+              },
+            }))}
+            action={{
+              title: "Add a Memory",
+              icon: "add",
+              onPress: () => setSheetOpen(true),
+            }}
+          />
+        ) : (
+          groups.map((group) => (
+            <View key={group.label} style={styles.group}>
+              <GroupHeader>{group.label}</GroupHeader>
 
-              <View style={styles.header}>
-                <View style={styles.headerText}>
-                  <Text style={styles.brand}>BETWEEN US</Text>
-
-                  <Text style={styles.pageTitle}>Memories</Text>
-
-                  <Text style={styles.pageSubtitle}>
-                    Your story together, one moment at a time.
-                  </Text>
-                </View>
-
-                <View style={styles.headerIcon}>
-                  <Ionicons name="time-outline" size={22} color="#D9456B" />
-                </View>
-              </View>
-
-              {error ? (
-                <View style={styles.errorBox}>
-                  <Text style={styles.errorText}>{error}</Text>
-                </View>
-              ) : null}
-
-              {/* ADD BUTTON */}
-
-              {!showForm ? (
-                <Pressable onPress={openCreateForm}>
-                  <Card style={styles.addButton}>
-                    <View style={styles.addIcon}>
-                      <Text style={styles.addIconText}>+</Text>
-                    </View>
-
-                    <View style={styles.addContent}>
-                      <Text style={styles.addTitle}>Add a memory</Text>
-
-                      <Text style={styles.addSubtitle}>
-                        Save a moment that matters to both of you.
-                      </Text>
-                    </View>
-
-                    <Text style={styles.addArrow}>→</Text>
-                  </Card>
-                </Pressable>
-              ) : null}
-
-              {/* FORM */}
-
-              {showForm ? (
-                <Card style={styles.formCard}>
-                  <View style={styles.formHeader}>
-                    <View>
-                      <Text style={styles.formLabel}>
-                        {editingMemory ? "EDIT MEMORY" : "NEW MEMORY"}
-                      </Text>
-
-                      <Text style={styles.formTitle}>
-                        {editingMemory
-                          ? "Update this moment."
-                          : "Capture this moment."}
-                      </Text>
-                    </View>
-
-                    <TouchableOpacity
-                      onPress={resetForm}
-                      style={styles.closeButton}
+              {group.items.map((entry) => (
+                <Press
+                  key={entry.id}
+                  onPress={() =>
+                    entry.kind === "Milestones"
+                      ? router.push("/special-dates")
+                      : entry.kind === "Dates"
+                        ? router.push("/(tabs)/dates")
+                        : null
+                  }
+                >
+                  <Card style={styles.entry}>
+                    <View
+                      style={[
+                        styles.entryIcon,
+                        entry.kind === "Dates" && styles.entryIconDate,
+                        entry.kind === "Milestones" && styles.entryIconMile,
+                      ]}
                     >
-                      <Text style={styles.closeButtonText}>×</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  <Text style={styles.inputLabel}>TITLE</Text>
-
-                  <TextInput
-                    value={title}
-                    onChangeText={setTitle}
-                    placeholder="e.g. Our first date"
-                    placeholderTextColor="#B9A7B1"
-                    style={styles.input}
-                    returnKeyType="next"
-                  />
-
-                  <Text style={styles.inputLabel}>WHEN DID THIS HAPPEN?</Text>
-
-                  <DateInput
-                    value={memoryDate}
-                    onChangeText={setMemoryDate}
-                    style={styles.input}
-                  />
-
-                  <Text style={styles.inputLabel}>DESCRIPTION</Text>
-
-                  <TextInput
-                    value={description}
-                    onChangeText={setDescription}
-                    placeholder="What happened?"
-                    placeholderTextColor="#B9A7B1"
-                    style={[styles.input, styles.descriptionInput]}
-                    multiline
-                    textAlignVertical="top"
-                  />
-
-                  <TouchableOpacity
-                    style={[
-                      styles.saveButton,
-                      saving && styles.saveButtonDisabled,
-                    ]}
-                    activeOpacity={0.85}
-                    onPress={saveMemory}
-                    disabled={saving}
-                  >
-                    {saving ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <Text style={styles.saveButtonText}>
-                        {editingMemory ? "Save changes" : "Save memory"}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                </Card>
-              ) : null}
-
-              {/* TIMELINE */}
-
-              <View style={styles.section}>
-                <Text style={styles.sectionLabel}>YOUR STORY</Text>
-
-                <Text style={styles.sectionTitle}>
-                  {entries.length === 0
-                    ? "Nothing here yet."
-                    : `${entries.length} ${
-                        entries.length === 1 ? "moment" : "moments"
-                      } together.`}
-                </Text>
-
-                {entries.length === 0 ? (
-                  <Card style={styles.emptyCard}>
-                    <View style={styles.emptyIcon}>
-                      <Ionicons name="time-outline" size={24} color="#D9456B" />
-                    </View>
-
-                    <Text style={styles.emptyTitle}>Nothing here yet.</Text>
-
-                    <Text style={styles.emptyText}>
-                      Your timeline fills in on its own as you add memories,
-                      complete dreams together, and save special dates. Start
-                      with a memory below.
-                    </Text>
-
-                    <TouchableOpacity
-                      style={styles.emptyButton}
-                      onPress={openCreateForm}
-                      activeOpacity={0.85}
-                    >
-                      <Text style={styles.emptyButtonText}>
-                        Add your first memory
-                      </Text>
-                    </TouchableOpacity>
-                  </Card>
-                ) : (
-                  entries.map((entry) => (
-                    <TimelineCard
-                      key={entry.id}
-                      entry={entry}
-                      onEdit={() => openEditForm(entry.raw)}
-                      onDelete={() => deleteMemory(entry)}
-                      onPress={() => {
-                        if (entry.kind === "dream") {
-                          router.push("/(tabs)/dreams");
-                        } else if (entry.kind === "special_date") {
-                          router.push("/special-dates");
+                      <Ionicons
+                        name={
+                          entry.kind === "Dates"
+                            ? "calendar"
+                            : entry.kind === "Milestones"
+                              ? "heart"
+                              : "camera"
                         }
-                      }}
-                    />
-                  ))
-                )}
-              </View>
+                        size={17}
+                        color={
+                          entry.kind === "Milestones" ? T.accentText : T.you
+                        }
+                      />
+                    </View>
 
-              {/* FOOTER */}
+                    <View style={styles.entryText}>
+                      <Text style={styles.entryTitle}>{entry.title}</Text>
 
-              {entries.length > 0 ? (
-                <Card style={styles.footerCard}>
-                  <Text style={styles.footerQuote}>
-                    "Some moments deserve to be remembered forever."
-                  </Text>
-
-                  <Text style={styles.footerText}>
-                    Keep building your story, one moment at a time.
-                  </Text>
-                </Card>
-              ) : null}
+                      {entry.note ? (
+                        <Text style={styles.entryNote} numberOfLines={2}>
+                          {entry.note}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </Card>
+                </Press>
+              ))}
             </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </GlassBackground>
-    </SafeAreaView>
-  );
-}
+          ))
+        )}
+      </Screen>
 
-/*
- * ==========================================
- * TIMELINE CARD
- * ==========================================
- */
+      {/* NEW MEMORY SHEET */}
 
-const KIND_META = {
-  memory: {
-    label: "MEMORY",
-    icon: "heart-outline",
-  },
-  dream: {
-    label: "DREAM ACHIEVED",
-    icon: "sparkles-outline",
-  },
-  special_date: {
-    label: "SPECIAL DATE",
-    icon: "calendar-outline",
-  },
-};
+      <Modal
+        visible={sheetOpen}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setSheetOpen(false)}
+      >
+        <KeyboardAvoidingView
+          style={styles.sheet}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <View style={styles.sheetNav}>
+            <Text
+              style={styles.sheetCancel}
+              onPress={() => setSheetOpen(false)}
+            >
+              Cancel
+            </Text>
 
-function TimelineCard({ entry, onEdit, onDelete, onPress }) {
-  const meta = KIND_META[entry.kind] || KIND_META.memory;
+            <Text style={styles.sheetTitle}>New Memory</Text>
 
-  const date = entry.date
-    ? new Date(entry.date).toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      })
-    : "No date";
-
-  const isMemory = entry.kind === "memory";
-
-  const CardWrapper = isMemory ? View : TouchableOpacity;
-
-  return (
-    <CardWrapper
-      style={styles.entryCard}
-      {...(!isMemory ? { activeOpacity: 0.85, onPress } : {})}
-    >
-      <View style={styles.entryTop}>
-        <View style={styles.entryKindBadge}>
-          <Ionicons name={meta.icon} size={13} color="#D9456B" />
-
-          <Text style={styles.entryKindText}>{meta.label}</Text>
-        </View>
-
-        <View style={styles.entryDateContainer}>
-          <Text style={styles.entryDate}>{date}</Text>
-        </View>
-      </View>
-
-      <Text style={styles.entryTitle}>{entry.title}</Text>
-
-      {entry.description ? (
-        <Text style={styles.entryDescription}>{entry.description}</Text>
-      ) : null}
-
-      {isMemory ? (
-        <>
-          <View style={styles.entryDivider} />
-
-          <View style={styles.entryBottom}>
-            <View style={styles.entryCreated}>
-              <View style={styles.miniHeart}>
-                <Text style={styles.miniHeartText}>♡</Text>
-              </View>
-
-              <Text style={styles.entryCreatedText}>A moment together</Text>
-            </View>
-
-            <View style={styles.entryActions}>
-              <TouchableOpacity
-                style={styles.editButton}
-                activeOpacity={0.8}
-                onPress={onEdit}
-              >
-                <Text style={styles.editButtonText}>Edit</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.deleteButton}
-                activeOpacity={0.8}
-                onPress={onDelete}
-              >
-                <Text style={styles.deleteButtonText}>Delete</Text>
-              </TouchableOpacity>
-            </View>
+            <Text
+              style={[styles.sheetSave, !title.trim() && styles.sheetSaveOff]}
+              onPress={saveMemory}
+            >
+              Save
+            </Text>
           </View>
-        </>
-      ) : (
-        <View style={styles.entryLinkRow}>
-          <Text style={styles.entryLinkText}>
-            {entry.kind === "dream"
-              ? "View on Dream Board"
-              : "View Special Dates"}
-          </Text>
 
-          <Text style={styles.entryLinkArrow}>→</Text>
-        </View>
-      )}
-    </CardWrapper>
+          <View style={styles.sheetBody}>
+            <Card>
+              <TextInput
+                value={title}
+                onChangeText={setTitle}
+                placeholder="What happened?"
+                placeholderTextColor={T.label3}
+                style={styles.field}
+              />
+
+              <View style={styles.fieldLine} />
+
+              <TextInput
+                value={note}
+                onChangeText={setNote}
+                placeholder="Say a little more (optional)"
+                placeholderTextColor={T.label3}
+                style={[styles.field, styles.fieldTall]}
+                multiline
+                textAlignVertical="top"
+              />
+
+              <View style={styles.fieldLine} />
+
+              <DateInput
+                value={when}
+                onChangeText={setWhen}
+                placeholder="When? YYYY-MM-DD (optional)"
+                style={styles.field}
+              />
+            </Card>
+
+            <Button
+              title="Save Memory"
+              onPress={saveMemory}
+              busy={saving}
+              disabled={!title.trim()}
+              style={styles.sheetButton}
+            />
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+    </>
   );
 }
-
-/*
- * ==========================================
- * STYLES
- * ==========================================
- */
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
+  group: {
+    gap: 10,
   },
 
-  keyboardContainer: {
-    flex: 1,
-  },
-
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 120,
-  },
-
-  container: {
-    paddingHorizontal: 22,
-    paddingTop: 22,
-  },
-
-  /*
-   * HEADER
-   */
-
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 26,
-  },
-
-  headerText: {
-    flex: 1,
-  },
-
-  brand: {
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 2.2,
-    color: "#D9456B",
-  },
-
-  pageTitle: {
-    marginTop: 7,
-    fontSize: 29,
-    lineHeight: 35,
-    fontWeight: "700",
-    color: "#2E2430",
-  },
-
-  pageSubtitle: {
-    marginTop: 5,
-    fontSize: 13,
-    lineHeight: 19,
-    color: "#6B5F68",
-    maxWidth: 280,
-  },
-
-  headerIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "rgba(217, 69, 107, 0.09)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  /*
-   * ADD MEMORY
-   */
-
-  addButton: {
-    borderRadius: 20,
-    padding: 17,
+  entry: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    marginBottom: 12,
+    gap: 12,
+    padding: 14,
   },
 
-  addIcon: {
-    width: 43,
-    height: 43,
-    borderRadius: 22,
-    backgroundColor: "#D9456B",
+  entryIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: T.youTint,
     alignItems: "center",
     justifyContent: "center",
   },
 
-  addIconText: {
-    fontSize: 24,
-    lineHeight: 27,
-    color: "#FFFFFF",
+  entryIconDate: {
+    backgroundColor: T.youTint,
   },
 
-  addContent: {
+  entryIconMile: {
+    backgroundColor: T.accentTint,
+  },
+
+  entryText: {
     flex: 1,
-    marginLeft: 13,
-  },
-
-  addTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#2E2430",
-  },
-
-  addSubtitle: {
-    marginTop: 3,
-    fontSize: 11,
-    lineHeight: 16,
-    color: "#6B5F68",
-  },
-
-  addArrow: {
-    fontSize: 20,
-    color: "#D9456B",
-    marginLeft: 8,
-  },
-
-  /*
-   * FORM
-   */
-
-  formCard: {
-    marginTop: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 20,
-    padding: 19,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-  },
-
-  formHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    marginBottom: 20,
-  },
-
-  formLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 1.6,
-    color: "#9C8F97",
-  },
-
-  formTitle: {
-    marginTop: 5,
-    fontSize: 19,
-    fontWeight: "700",
-    color: "#2E2430",
-  },
-
-  closeButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  closeButtonText: {
-    fontSize: 22,
-    lineHeight: 24,
-    color: "#D9456B",
-  },
-
-  inputLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 1.5,
-    color: "#9C8F97",
-    marginBottom: 7,
-  },
-
-  input: {
-    minHeight: 49,
-    borderRadius: 12,
-    backgroundColor: "rgba(217, 69, 107, 0.07)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 14,
-    color: "#2E2430",
-    marginBottom: 16,
-  },
-
-  descriptionInput: {
-    height: 120,
-    marginBottom: 5,
-  },
-
-  saveButton: {
-    height: 50,
-    borderRadius: 13,
-    backgroundColor: "#D9456B",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 12,
-  },
-
-  saveButtonDisabled: {
-    opacity: 0.65,
-  },
-
-  saveButtonText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
-  },
-
-  /*
-   * SECTION
-   */
-
-  section: {
-    marginTop: 30,
-  },
-
-  sectionLabel: {
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1.7,
-    color: "#9C8F97",
-    marginBottom: 7,
-  },
-
-  sectionTitle: {
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: "700",
-    color: "#2E2430",
-    marginBottom: 13,
-  },
-
-  /*
-   * TIMELINE ENTRY CARD
-   */
-
-  entryCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    marginBottom: 13,
-  },
-
-  entryTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-
-  entryKindBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 9,
-    gap: 5,
-  },
-
-  entryKindText: {
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 0.6,
-    color: "#D9456B",
-  },
-
-  entryDateContainer: {
-    backgroundColor: "rgba(217, 69, 107, 0.07)",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 9,
-  },
-
-  entryDate: {
-    fontSize: 10,
-    fontWeight: "600",
-    color: "#6B5F68",
   },
 
   entryTitle: {
-    marginTop: 16,
-    fontSize: 20,
-    lineHeight: 25,
-    fontWeight: "700",
-    color: "#2E2430",
-  },
-
-  entryDescription: {
-    marginTop: 8,
-    fontSize: 13,
-    lineHeight: 20,
-    color: "#6B5F68",
-  },
-
-  entryDivider: {
-    height: 1,
-    backgroundColor: "#F6E6EC",
-    marginVertical: 16,
-  },
-
-  entryBottom: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-
-  entryCreated: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-
-  miniHeart: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  miniHeartText: {
     fontSize: 16,
-    color: "#D9456B",
+    fontWeight: "600",
+    color: T.label,
   },
 
-  entryCreatedText: {
-    marginLeft: 8,
-    fontSize: 10,
-    color: "#9C8F97",
+  entryNote: {
+    fontSize: 13,
+    lineHeight: 17,
+    color: T.label2,
+    marginTop: 2,
   },
 
-  entryActions: {
-    flexDirection: "row",
-    gap: 7,
+  sheet: {
+    flex: 1,
+    backgroundColor: T.appBackground,
   },
 
-  editButton: {
-    paddingHorizontal: 11,
-    paddingVertical: 8,
-    borderRadius: 9,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-  },
-
-  editButtonText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#D9456B",
-  },
-
-  deleteButton: {
-    paddingHorizontal: 11,
-    paddingVertical: 8,
-    borderRadius: 9,
-    backgroundColor: "#FBEDF1",
-  },
-
-  deleteButtonText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#C2405F",
-  },
-
-  entryLinkRow: {
-    marginTop: 14,
+  sheetNav: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
 
-  entryLinkText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#D9456B",
+  sheetCancel: {
+    fontSize: 17,
+    color: T.accent,
+    width: 70,
   },
 
-  entryLinkArrow: {
-    fontSize: 15,
-    color: "#D9456B",
-  },
-
-  /*
-   * EMPTY STATE
-   */
-
-  emptyCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 20,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    alignItems: "center",
-  },
-
-  emptyIcon: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: "rgba(217, 69, 107, 0.09)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 15,
-  },
-
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#2E2430",
-  },
-
-  emptyText: {
-    marginTop: 8,
-    fontSize: 13,
-    lineHeight: 20,
-    color: "#6B5F68",
-    textAlign: "center",
-  },
-
-  emptyButton: {
-    marginTop: 17,
-    paddingHorizontal: 15,
-    paddingVertical: 11,
-    borderRadius: 11,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-  },
-
-  emptyButtonText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#D9456B",
-  },
-
-  /*
-   * FOOTER
-   */
-
-  footerCard: {
-    marginTop: 17,
-    padding: 20,
-    borderRadius: 18,
-    backgroundColor: "#FBEEF2",
-    alignItems: "center",
-  },
-
-  footerQuote: {
-    textAlign: "center",
-    fontSize: 14,
-    lineHeight: 21,
+  sheetTitle: {
+    fontSize: 17,
     fontWeight: "600",
-    color: "#D9456B",
+    color: T.label,
   },
 
-  footerText: {
-    marginTop: 7,
-    textAlign: "center",
-    fontSize: 11,
-    lineHeight: 17,
-    color: "#6B5F68",
+  sheetSave: {
+    fontSize: 17,
+    fontWeight: "600",
+    color: T.accent,
+    width: 70,
+    textAlign: "right",
   },
 
-  /*
-   * ERROR
-   */
-
-  errorBox: {
-    backgroundColor: "#F9E3EA",
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderRadius: 12,
-    marginBottom: 15,
+  sheetSaveOff: {
+    color: T.label3,
   },
 
-  errorText: {
-    fontSize: 12,
-    lineHeight: 17,
-    color: "#C2405F",
+  sheetBody: {
+    padding: 0,
+    gap: 16,
   },
 
-  /*
-   * LOADING
-   */
-
-  loadingContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+  field: {
+    fontSize: 16,
+    color: T.label,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
 
-  loadingText: {
-    marginTop: 12,
-    fontSize: 12,
-    color: "#6B5F68",
+  fieldTall: {
+    minHeight: 92,
+  },
+
+  fieldLine: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: T.separator,
+    marginLeft: 16,
+  },
+
+  sheetButton: {
+    marginHorizontal: 16,
   },
 });

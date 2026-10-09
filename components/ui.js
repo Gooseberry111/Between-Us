@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import {
   AccessibilityInfo,
   ActivityIndicator,
@@ -113,6 +113,54 @@ export function GlassButton({ icon, onPress, badge, label }) {
 
 export function LargeTitle({ children, style }) {
   return <Text style={[styles.largeTitle, style]}>{children}</Text>;
+}
+
+export function GroupHeader({ children }) {
+  return <Text style={styles.groupHeader}>{children}</Text>;
+}
+
+export function GroupFooter({ children }) {
+  return <Text style={styles.groupFooter}>{children}</Text>;
+}
+
+/* iOS switch: 51x31, accent track when on. */
+export function Switch({ value, onChange }) {
+  const slide = useRef(new Animated.Value(value ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.spring(slide, {
+      toValue: value ? 1 : 0,
+      useNativeDriver: true,
+      speed: 16,
+      bounciness: 6,
+    }).start();
+  }, [value, slide]);
+
+  return (
+    <Pressable onPress={() => onChange(!value)} hitSlop={8}>
+      <View style={[styles.switchTrack, value && styles.switchTrackOn]}>
+        <Animated.View
+          style={[
+            styles.switchThumb,
+            {
+              transform: [
+                {
+                  translateX: slide.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 20],
+                  }),
+                },
+              ],
+            },
+          ]}
+        />
+      </View>
+    </Pressable>
+  );
+}
+
+export function SubTitle({ children }) {
+  return <Text style={styles.largeTitleSub}>{children}</Text>;
 }
 
 export function SectionHeader({ children, action, onAction }) {
@@ -388,7 +436,9 @@ const styles = StyleSheet.create({
   },
 
   scrollContent: {
-    paddingBottom: 130,
+    paddingTop: 4,
+    paddingBottom: 112,
+    gap: 14,
   },
 
   nav: {
@@ -448,8 +498,13 @@ const styles = StyleSheet.create({
     letterSpacing: -1.2,
     color: T.label,
     paddingHorizontal: 16,
-    marginTop: 2,
-    marginBottom: 12,
+  },
+
+  largeTitleSub: {
+    fontSize: 15,
+    color: T.label2,
+    paddingHorizontal: 16,
+    marginTop: -10,
   },
 
   sectionHeaderRow: {
@@ -457,8 +512,7 @@ const styles = StyleSheet.create({
     alignItems: "baseline",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    marginTop: 22,
-    marginBottom: 10,
+    marginBottom: -4,
   },
 
   sectionHeader: {
@@ -472,6 +526,49 @@ const styles = StyleSheet.create({
   sectionAction: {
     fontSize: 16,
     color: T.accent,
+  },
+
+  groupHeader: {
+    fontSize: 13,
+    fontWeight: "500",
+    textTransform: "uppercase",
+    letterSpacing: 0.13,
+    color: T.label2,
+    paddingHorizontal: 16,
+    marginBottom: -6,
+  },
+
+  groupFooter: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: T.label2,
+    paddingHorizontal: 16,
+    marginTop: -6,
+  },
+
+  switchTrack: {
+    width: 51,
+    height: 31,
+    borderRadius: 999,
+    backgroundColor: "#E9E9EB",
+    padding: 2,
+    justifyContent: "center",
+  },
+
+  switchTrackOn: {
+    backgroundColor: T.accent,
+  },
+
+  switchThumb: {
+    width: 27,
+    height: 27,
+    borderRadius: 999,
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000000",
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
 
   card: {

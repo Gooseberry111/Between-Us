@@ -9,11 +9,11 @@ What exists today, and where it lands in the new design.
 | Current screen | File | Becomes |
 |---|---|---|
 | Home | `app/(tabs)/home.js` | Home: bond hero, tonight's question, mood, quick actions, Coming up, From partner |
-| Dates | `app/(tabs)/dates.js` | Stays a tab; restyle pending |
-| Dreams | `app/(tabs)/dreams.js` | Dreams board: counter, featured dream, starters — pending |
-| Insights | `app/(tabs)/insights.js` | Venn + comparison cards — pending |
-| Profile | `app/(tabs)/profile.js` | Settings-style groups — pending |
-| Memories | `app/(tabs)/memories.js` (off the tab bar) | Timeline: segmented filter, grouped by date — pending |
+| Dates | `app/(tabs)/dates.js` | Off the tab bar, reached from the Home quick actions (the prototype has five tabs and Dates is not one) |
+| Dreams | `app/(tabs)/dreams.js` | Done: board counter, featured dream with progress ring, starter cards |
+| Insights | `app/(tabs)/insights.js` | Done: Venn, trait comparisons with Match/Complementary, love-language bars, weekly suggestion |
+| Profile | `app/(tabs)/profile.js` | Done: account row, partner row with Nudge, reminder switches, Your space, Relationship ending in the red unlink row |
+| Memories | `app/(tabs)/memories.js` | Done: Timeline tab with segmented filter, grouped by day, empty state with prompt chips, New Memory sheet |
 | Daily question | `app/daily-question.js` | Nightly ritual: answer, reveal, streak, plan — pending |
 | Appreciations | `app/appreciations.js` | Reached as the Note quick action |
 | Check-in | `app/check-in.js` | Folded into the Home mood check-in; screen stays reachable |
@@ -32,9 +32,20 @@ Shared: `lib/api.js`, `lib/dataCache.js`, `lib/connection.js`, `lib/profileProgr
 - [Home] Coming up list, from date plans and server-computed reminders. Files: `app/(tabs)/home.js`
 - [Tooling] `scripts/check-references.js` — parses every file for components used but not imported, and `styles.x` that does not exist. Bundling does not catch either; both have crashed this app before.
 
+## Added (second pass)
+
+- [Shared] `react-native-svg` for real vector work: the dashed ring that turns, the curved bond thread, the hug travelling along it, the heart's hold ring, and the Dreams progress ring. **Native module — needs a new build, which is why the app is now 1.1.0.**
+- [Shared] iOS `Switch` (51x31, accent track), `GroupHeader`, `GroupFooter`, `SubTitle`. Files: `components/ui.js`
+- [Timeline] Segmented filter across memories, dates and milestones, grouped by day, with a New Memory sheet (Cancel / title / Save). Files: `app/(tabs)/memories.js`
+- [Dreams] Board counter, featured dream with a Fitness-style ring, horizontally scrolling starters with App Store-style Add buttons. Files: `app/(tabs)/dreams.js` · **Needs backend: steps within a dream; the starters are local suggestions**
+- [Insights] Venn of the shared trait, comparison cards with Match / Complementary badges and a tip when you differ, love-language bars in both colours, and a weekly suggestion that adds to Dates. Files: `app/(tabs)/insights.js`
+- [Profile] Reminder switches wired to the notification preferences endpoint, Your space links, Relationship group, and the unlink alert naming what is lost. Files: `app/(tabs)/profile.js`
+
 ## Changed
 
-- [Tab bar] Now a floating frosted capsule inset from the edges, with a soft pill behind the active tab and the accent-filled icon. Files: `app/(tabs)/_layout.js`
+- [Tab bar] Floating frosted capsule inset 14px, 62px tall, radius 999, with a soft `fill-3` pill behind the active tab, 25px icons that fill when active and 10px labels — the playground's values. Tabs are Home, Timeline, Dreams, Insights, Profile. Files: `app/(tabs)/_layout.js`
+- [Shell] Every screen is a 14px-gap stack with 16px sides and 112px of room under the floating bar, as the prototype lays them out. Files: `components/ui.js`
+- [Home] Rebuilt a second time against the playground CSS rather than the written spec: 76px day count, 90px orbs with 74px avatars and a 3px white edge, 58px heart, state pills, 20px card radius, separators inset to the text. Files: `components/BondHero.js`, `app/(tabs)/home.js`
 - [Home] Rebuilt on the new primitives: flat white surfaces on the tinted ground, no borders or heavy shadows. Files: `app/(tabs)/home.js`
 - [Home] Unlinked state is now one empty state with a first action instead of a welcome card plus locked tiles. Files: `app/(tabs)/home.js`
 - [Home] "Finish your profile" is a grouped-list row rather than a large plum card. Files: `app/(tabs)/home.js`
@@ -68,4 +79,5 @@ UI only. No endpoint or table was touched.
 Kept and restyled rather than removed, pending your call:
 
 - [Home] The notification bell. The design shows one; keeping it.
-- [Memories] The screen is off the tab bar but still reachable from Profile and Connection. The design calls Timeline a tab — needs a decision on whether Timeline returns as a tab in place of something else.
+- [Dates] The prototype has no Dates tab, so Dates moved off the tab bar and is reached from the Home quick actions and Profile › Your space. Everything in it still works. Say the word if you would rather keep it as a sixth tab.
+- [Dreams] The featured dream's ring currently reflects how much of the board is finished, because a dream has no steps to tick yet. The prototype shows five steps filling the ring. **Needs backend.**

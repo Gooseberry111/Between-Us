@@ -624,8 +624,7 @@ const styles = StyleSheet.create({
   error: {
     ...TYPE.footnote,
     color: T.red,
-    paddingHorizontal: 20,
-    marginBottom: 10,
+    paddingHorizontal: 16,
   },
 
   questionTop: {
@@ -687,9 +686,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
 
-  moodCard: {
-    marginTop: 14,
-  },
+  moodCard: {},
 
   moodTitle: {
     ...TYPE.headline,
@@ -731,7 +728,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
     paddingHorizontal: 16,
-    marginTop: 14,
   },
 
   actionWrap: {

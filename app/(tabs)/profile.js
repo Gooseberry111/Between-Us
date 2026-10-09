@@ -1,28 +1,68 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Alert, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useAuth, useClerk, useUser } from "@clerk/expo";
+import { useFocusEffect, useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
+
 import { apiFetch } from "../../lib/api";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { GlassBackground, Card } from "../../components/Glass";
 import {
   clearCachedData,
   getCachedData,
   setCachedData,
 } from "../../lib/dataCache";
 import { connectionCacheKey } from "../../lib/connection";
-import { Skeleton, SkeletonList } from "../../components/Skeleton";
-import { useAuth, useClerk, useUser } from "@clerk/expo";
 import { RETURNING_USER_KEY } from "../../lib/auth";
-import * as SecureStore from "expo-secure-store";
-import { useFocusEffect, useRouter } from "expo-router";
+import { T } from "../../lib/theme";
+import {
+  Avatar,
+  Button,
+  Cell,
+  Group,
+  GroupFooter,
+  GroupHeader,
+  LargeTitle,
+  NavBar,
+  Screen,
+  Switch,
+} from "../../components/ui";
+import { SkeletonList } from "../../components/Skeleton";
+
+/*
+ * ==========================================
+ * PROFILE
+ * ==========================================
+ *
+ * Settings, as iOS does settings: an account row, the
+ * person you are linked with, switches for reminders,
+ * links to your shared space, and the relationship —
+ * ending in the one red row.
+ */
+
+const REMINDERS = [
+  {
+    type: "daily_question",
+    icon: "notifications",
+    title: "Tonight's question",
+    subtitle: "Every evening",
+  },
+  {
+    type: "daily_question_answered",
+    icon: "heart",
+    title: "When they answer",
+  },
+  {
+    type: "anniversary",
+    icon: "calendar",
+    title: "Anniversary countdown",
+  },
+  {
+    type: "inactivity",
+    icon: "pulse",
+    title: "Weekly check-in",
+    subtitle: "Sundays",
+  },
+];
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -34,100 +74,127 @@ export default function ProfileScreen() {
   const cached = cacheKey ? getCachedData(cacheKey) : undefined;
 
   const [profile, setProfile] = useState(cached?.profile ?? null);
+  const [partner, setPartner] = useState(cached?.partner ?? null);
   const [connection, setConnection] = useState(cached?.connection ?? null);
+  const [prefs, setPrefs] = useState(cached?.prefs ?? {});
   const [loading, setLoading] = useState(!cached);
   const [refreshing, setRefreshing] = useState(false);
-  const [unlinking, setUnlinking] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  const loadProfile = useCallback(async () => {
+  const load = useCallback(async () => {
     if (!isLoaded || !isSignedIn || !userId) {
       setLoading(false);
       return;
     }
 
     try {
-      setError("");
-
-      const [profileResponse, connectionResponse] = await Promise.all([
-        apiFetch(`/users/${userId}/profile`),
-        apiFetch(`/users/${userId}/connections`),
-      ]);
+      const [profileResponse, connectionResponse, partnerData, prefsData] =
+        await Promise.all([
+          apiFetch(`/users/${userId}/profile`),
+          apiFetch(`/users/${userId}/connections`),
+          apiFetch(`/users/${userId}/partner`)
+            .then((r) => (r.ok ? r.json() : null))
+            .catch(() => null),
+          apiFetch(`/users/${userId}/notification-preferences`)
+            .then((r) => (r.ok ? r.json() : null))
+            .catch(() => null),
+        ]);
 
       const profileData = await profileResponse.json();
       const connectionData = await connectionResponse.json();
 
-      console.log("PROFILE RESPONSE:", profileData);
-      console.log("PROFILE CONNECTIONS:", connectionData);
-
-      if (!profileResponse.ok) {
-        throw new Error(profileData?.error || "Unable to load your profile.");
-      }
-
-      if (!connectionResponse.ok) {
-        throw new Error(
-          connectionData?.error || "Unable to load your connection.",
-        );
-      }
-
       setProfile(profileData?.profile || null);
+      setPartner(partnerData?.partner || null);
+      setPrefs(prefsData?.preferences || {});
 
       const connections = Array.isArray(connectionData) ? connectionData : [];
 
-      const accepted = connections.find(
-        (item) => item.status?.toLowerCase() === "accepted",
+      setConnection(
+        connections.find((item) => item.status?.toLowerCase() === "accepted") ||
+          null,
       );
-
-      setConnection(accepted || null);
     } catch (err) {
       console.log("PROFILE LOAD ERROR:", err);
-      setError(err?.message || "Unable to load your profile.");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   }, [isLoaded, isSignedIn, userId]);
 
-  /* Tabs stay mounted; refetch when this one comes back into view. */
   useFocusEffect(
     useCallback(() => {
-      loadProfile();
-    }, [loadProfile]),
+      load();
+    }, [load]),
   );
 
   useEffect(() => {
     if (loading || !cacheKey) return;
 
-    setCachedData(cacheKey, {
-      profile,
-      connection,
-    });
-  }, [loading, cacheKey, profile, connection]);
+    setCachedData(cacheKey, { profile, partner, connection, prefs });
+  }, [loading, cacheKey, profile, partner, connection, prefs]);
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    loadProfile();
+  const setReminder = async (type, value) => {
+    setPrefs((current) => ({ ...current, [type]: value }));
+
+    try {
+      await apiFetch(`/users/${userId}/notification-preferences`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ preferences: { [type]: value } }),
+      });
+    } catch (err) {
+      console.log("REMINDER SAVE ERROR:", err);
+
+      setPrefs((current) => ({ ...current, [type]: !value }));
+    }
   };
 
-  const handleSignOut = () => {
+  const unlink = () => {
+    const name =
+      partner?.nickname?.trim() ||
+      partner?.first_name?.trim() ||
+      "your partner";
+
     Alert.alert(
-      "Sign out",
-      "Are you sure you want to sign out of Between Us?",
+      "Unlink Partner?",
+      `This closes the space you share with ${name}. Memories, dreams, goals and dates you made together are removed for both of you.`,
       [
+        { text: "Cancel", style: "cancel" },
         {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Sign Out",
+          text: "Unlink",
           style: "destructive",
           onPress: async () => {
             try {
-              await signOut();
-              router.replace("/");
-            } catch (error) {
-              console.log("SIGN OUT ERROR:", error);
+              setBusy(true);
+
+              const response = await apiFetch(`/users/${userId}/connection`, {
+                method: "DELETE",
+              });
+
+              if (!response.ok) throw new Error("Unable to unlink.");
+
+              setConnection(null);
+              setPartner(null);
+
+              setCachedData(connectionCacheKey(userId), false);
+
+              [
+                "home",
+                "timeline",
+                "dates",
+                "dreams",
+                "insights",
+                "daily-question",
+                "appreciations",
+                "checkin",
+                "goals",
+                "special-dates",
+                "connection",
+              ].forEach((prefix) => clearCachedData(`${prefix}:${userId}`));
+            } catch (err) {
+              Alert.alert("We couldn't unlink", err?.message || "Try again.");
+            } finally {
+              setBusy(false);
             }
           },
         },
@@ -135,1153 +202,315 @@ export default function ProfileScreen() {
     );
   };
 
-  const handleUnlink = () => {
-    if (!connection || unlinking) {
-      return;
-    }
-
-    const partnerName = connection?.other_first_name?.trim() || "your partner";
-
-    Alert.alert(
-      "Unlink partner",
-      `Are you sure you want to unlink from ${partnerName}? You will no longer be connected on Between Us.`,
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Unlink",
-          style: "destructive",
-          onPress: confirmUnlink,
-        },
-      ],
-    );
-  };
-
-  const confirmUnlink = async () => {
-    try {
-      setUnlinking(true);
-      setError("");
-
-      const response = await apiFetch(`/users/${userId}/connection`, {
-        method: "DELETE",
-      });
-
-      const data = await response.json();
-
-      console.log("UNLINK RESPONSE:", data);
-
-      if (!response.ok) {
-        throw new Error(data?.error || "Unable to unlink your connection.");
-      }
-
-      setConnection(null);
-
-      /*
-       * Drop everything cached about the old partner, so no
-       * screen flashes their name or shared data afterwards.
-       */
-      setCachedData(connectionCacheKey(userId), false);
-      [
-        "home",
-        "timeline",
-        "daily-question",
-        "appreciations",
-        "checkin",
-        "goals",
-        "completed-goals",
-        "completed-dreams",
-        "special-dates",
-        "trivia-history",
-        "insights",
-        "connection",
-      ].forEach((prefix) => clearCachedData(`${prefix}:${userId}`));
-
-      Alert.alert(
-        "Connection ended",
-        "You and your partner are no longer connected on Between Us.",
-      );
-    } catch (err) {
-      console.log("UNLINK ERROR:", err);
-
-      setError(err?.message || "Unable to unlink your connection.");
-    } finally {
-      setUnlinking(false);
-    }
-  };
-
-  /*
-   * ==========================================
-   * DELETE ACCOUNT
-   * ==========================================
-   *
-   * Two questions, not one: the first explains what
-   * goes, the second is the point of no return. The
-   * server clears the data, then Clerk drops the
-   * sign-in itself, so nothing is left that could log
-   * back in to an empty account.
-   */
-  const performDelete = async () => {
-    try {
-      setDeleting(true);
-
-      const response = await apiFetch(`/users/${userId}`, {
-        method: "DELETE",
-      });
-
-      const data = await response.json();
-
-      if (!response.ok && response.status !== 404) {
-        throw new Error(data?.error || "Unable to delete your account.");
-      }
-
-      if (cacheKey) clearCachedData(cacheKey);
-      if (userId) {
-        clearCachedData(`home:${userId}`);
-        clearCachedData(connectionCacheKey(userId));
-      }
-
-      /* Next launch should greet them as a new person. */
-      try {
-        await SecureStore.deleteItemAsync(RETURNING_USER_KEY);
-      } catch (storeError) {
-        console.log("CLEAR RETURNING USER FAILED:", storeError?.message);
-      }
-
-      try {
-        await user?.delete();
-      } catch (clerkError) {
-        /* The data is already gone; don't strand them on this
-         * screen if Clerk refuses to remove the login. */
-        console.log("CLERK DELETE FAILED:", clerkError?.message);
-
-        await signOut();
-      }
-
-      router.replace("/");
-    } catch (err) {
-      console.log("DELETE ACCOUNT ERROR:", err);
-
-      setDeleting(false);
-
-      Alert.alert(
-        "We couldn't delete your account",
-        err?.message || "Please check your connection and try again.",
-      );
-    }
-  };
-
-  const handleDeleteAccount = () => {
-    if (deleting) return;
-
+  const deleteAccount = () => {
     Alert.alert(
       "Delete your account?",
-      connection
-        ? `This removes your profile, your answers, and everything you and ${
-            connection?.other_first_name?.trim() || "your partner"
-          } have saved together: memories, dreams, goals and check-ins. It cannot be undone.`
-        : "This removes your profile, your answers and everything you have saved. It cannot be undone.",
+      "This removes your profile, your answers and everything you have saved. It cannot be undone.",
       [
         { text: "Keep my account", style: "cancel" },
         {
-          text: "Continue",
+          text: "Delete",
           style: "destructive",
           onPress: () =>
-            Alert.alert(
-              "Last chance",
-              "Once this is done, nothing can be recovered.",
-              [
-                { text: "Cancel", style: "cancel" },
-                {
-                  text: "Delete forever",
-                  style: "destructive",
-                  onPress: performDelete,
+            Alert.alert("Last chance", "Nothing can be recovered.", [
+              { text: "Cancel", style: "cancel" },
+              {
+                text: "Delete forever",
+                style: "destructive",
+                onPress: async () => {
+                  try {
+                    setBusy(true);
+
+                    await apiFetch(`/users/${userId}`, { method: "DELETE" });
+
+                    if (cacheKey) clearCachedData(cacheKey);
+
+                    try {
+                      await SecureStore.deleteItemAsync(RETURNING_USER_KEY);
+                    } catch {
+                      /* nothing to clear */
+                    }
+
+                    try {
+                      await user?.delete();
+                    } catch {
+                      await signOut();
+                    }
+
+                    router.replace("/");
+                  } catch (err) {
+                    Alert.alert(
+                      "We couldn't delete your account",
+                      err?.message || "Please try again.",
+                    );
+                  } finally {
+                    setBusy(false);
+                  }
                 },
-              ],
-            ),
+              },
+            ]),
         },
       ],
     );
   };
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.screen} edges={["top"]}>
-        <GlassBackground>
-          <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
-            <Skeleton width={96} height={11} radius={6} />
-            <Skeleton
-              width="62%"
-              height={26}
-              radius={9}
-              style={{ marginTop: 12 }}
-            />
+  const fullName = [profile?.first_name, profile?.last_name]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
 
-            <View style={{ marginTop: 26 }}>
-              <SkeletonList count={3} />
-            </View>
-          </View>
-        </GlassBackground>
-      </SafeAreaView>
-    );
-  }
-
-  const firstName = profile?.first_name?.trim() || "User";
-  const lastName = profile?.last_name?.trim() || "";
-
-  const fullName = `${firstName} ${lastName}`.trim();
-
-  const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-
-  const relationshipLabel = connection?.relationship_type
-    ? connection.relationship_type.charAt(0).toUpperCase() +
-      connection.relationship_type.slice(1)
-    : "Not connected";
-
-  const partnerFirstName = connection?.other_first_name?.trim() || "";
-
-  const partnerLastName = connection?.other_last_name?.trim() || "";
+  const nickname = profile?.nickname?.trim();
 
   const partnerName =
-    `${partnerFirstName} ${partnerLastName}`.trim() || "Your partner";
-
-  const partnerInitial = partnerFirstName.charAt(0).toUpperCase() || "♡";
+    partner?.nickname?.trim() || partner?.first_name?.trim() || "Your person";
 
   return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
-      <GlassBackground>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor="#D9456B"
-            />
-          }
-          contentContainerStyle={styles.scrollContent}
-        >
-          <View style={styles.container}>
-            {/* HEADER */}
-
-            <View style={styles.header}>
-              <View>
-                <Text style={styles.brand}>BETWEEN US</Text>
-
-                <Text style={styles.pageTitle}>Profile</Text>
-              </View>
-
-              <View style={styles.headerIcon}>
-                <Text style={styles.headerHeart}>♡</Text>
-              </View>
-            </View>
-
-            {error ? (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            ) : null}
-
-            {/* YOUR PROFILE */}
-
-            <Card dark style={styles.profileCard}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{initials || "U"}</Text>
-              </View>
-
-              <View style={styles.profileInfo}>
-                <Text style={styles.profileName}>{fullName}</Text>
-
-                {profile?.email ? (
-                  <Text style={styles.profileEmail}>{profile.email}</Text>
-                ) : null}
-
-                <View style={styles.profileBadge}>
-                  <Text style={styles.profileBadgeText}>BETWEEN US MEMBER</Text>
-                </View>
-              </View>
-            </Card>
-
-            {/* PERSONAL INFORMATION */}
-
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionLabel}>PERSONAL INFORMATION</Text>
-
-                <TouchableOpacity
-                  style={styles.editButton}
-                  activeOpacity={0.8}
-                  onPress={() => router.push("/edit-profile")}
-                >
-                  <Text style={styles.editButtonText}>Edit Profile</Text>
-                </TouchableOpacity>
-              </View>
-
-              <Card style={styles.infoCard}>
-                <InfoRow
-                  label="First name"
-                  value={profile?.first_name || "Not set"}
-                />
-
-                <View style={styles.divider} />
-
-                <InfoRow
-                  label="Last name"
-                  value={profile?.last_name || "Not set"}
-                />
-
-                {profile?.email ? (
-                  <>
-                    <View style={styles.divider} />
-
-                    <InfoRow label="Email" value={profile.email} />
-                  </>
-                ) : null}
-              </Card>
-            </View>
-
-            {/* YOUR CONNECTION */}
-
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>YOUR CONNECTION</Text>
-
-              {connection ? (
-                <>
-                  <Card style={styles.partnerCard}>
-                    <View style={styles.partnerAvatar}>
-                      <Text style={styles.partnerAvatarText}>
-                        {partnerInitial}
-                      </Text>
-                    </View>
-
-                    <View style={styles.partnerInfo}>
-                      <Text style={styles.partnerEyebrow}>CONNECTED WITH</Text>
-
-                      <Text style={styles.partnerName}>{partnerName}</Text>
-
-                      <Text style={styles.partnerRelationship}>
-                        {relationshipLabel}
-                      </Text>
-                    </View>
-
-                    <View style={styles.connectedDot} />
-                  </Card>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.unlinkButton,
-                      unlinking && styles.unlinkButtonDisabled,
-                    ]}
-                    activeOpacity={0.8}
-                    onPress={handleUnlink}
-                    disabled={unlinking}
-                  >
-                    {unlinking ? (
-                      <ActivityIndicator size="small" color="#B8345A" />
-                    ) : (
-                      <Text style={styles.unlinkText}>Unlink Partner</Text>
-                    )}
-                  </TouchableOpacity>
-
-                  <Text style={styles.unlinkWarning}>
-                    Unlinking ends your current connection. You can connect
-                    again later.
-                  </Text>
-                </>
-              ) : (
-                <TouchableOpacity
-                  style={styles.noConnectionCard}
-                  activeOpacity={0.85}
-                  onPress={() => router.push("/connection")}
-                >
-                  <View style={styles.noConnectionIcon}>
-                    <Text style={styles.noConnectionIconText}>♡</Text>
-                  </View>
-
-                  <View style={styles.noConnectionInfo}>
-                    <Text style={styles.noConnectionTitle}>
-                      No partner connected
-                    </Text>
-
-                    <Text style={styles.noConnectionDescription}>
-                      Connect with someone to start building your relationship
-                      together.
-                    </Text>
-                  </View>
-
-                  <Text style={styles.noConnectionArrow}>›</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {/* SETTINGS */}
-
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>YOUR SPACE</Text>
-
-              <TouchableOpacity
-                style={styles.settingRow}
-                activeOpacity={0.8}
-                onPress={() => router.push("/memories")}
-              >
-                <View style={styles.settingIcon}>
-                  <Text style={styles.settingIconText}>♡</Text>
-                </View>
-
-                <View style={styles.settingContent}>
-                  <Text style={styles.settingTitle}>Your memories</Text>
-
-                  <Text style={styles.settingDescription}>
-                    View your story together, one moment at a time.
-                  </Text>
-                </View>
-
-                <Text style={styles.settingArrow}>›</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.settingRow}
-                activeOpacity={0.8}
-                onPress={() => router.push("/insights")}
-              >
-                <View style={styles.settingIcon}>
-                  <Text style={styles.settingIconText}>◌</Text>
-                </View>
-
-                <View style={styles.settingContent}>
-                  <Text style={styles.settingTitle}>Insights</Text>
-
-                  <Text style={styles.settingDescription}>
-                    Learn more about your relationship.
-                  </Text>
-                </View>
-
-                <Text style={styles.settingArrow}>›</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.settingRow}
-                activeOpacity={0.8}
-                onPress={() => router.push("/trivia-history")}
-              >
-                <View style={styles.settingIcon}>
-                  <Text style={styles.settingIconText}>✦</Text>
-                </View>
-
-                <View style={styles.settingContent}>
-                  <Text style={styles.settingTitle}>Trivia History</Text>
-
-                  <Text style={styles.settingDescription}>
-                    See every round you've both played.
-                  </Text>
-                </View>
-
-                <Text style={styles.settingArrow}>›</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.settingRow}
-                activeOpacity={0.8}
-                onPress={() => router.push("/onboarding")}
-              >
-                <View style={styles.settingIcon}>
-                  <Text style={styles.settingIconText}>✎</Text>
-                </View>
-
-                <View style={styles.settingContent}>
-                  <Text style={styles.settingTitle}>Your answers</Text>
-
-                  <Text style={styles.settingDescription}>
-                    Tastes change. Update what you told us when you joined.
-                  </Text>
-                </View>
-
-                <Text style={styles.settingArrow}>›</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.settingRow}
-                activeOpacity={0.8}
-                onPress={() => router.push("/notification-settings")}
-              >
-                <View style={styles.settingIcon}>
-                  <Text style={styles.settingIconText}>◈</Text>
-                </View>
-
-                <View style={styles.settingContent}>
-                  <Text style={styles.settingTitle}>Notifications</Text>
-
-                  <Text style={styles.settingDescription}>
-                    Choose what Between Us reminds you about.
-                  </Text>
-                </View>
-
-                <Text style={styles.settingArrow}>›</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* SIGN OUT */}
-
-            <View style={styles.section}>
-              <TouchableOpacity
-                style={styles.signOutButton}
-                activeOpacity={0.8}
-                onPress={handleSignOut}
-              >
-                <Text style={styles.signOutText}>Sign Out</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* DELETE ACCOUNT */}
-
-            <View style={styles.section}>
-              <TouchableOpacity
-                style={styles.legalRow}
-                activeOpacity={0.7}
-                onPress={() => router.push("/terms")}
-              >
-                <Text style={styles.legalText}>Terms of Use</Text>
-                <Text style={styles.settingArrow}>›</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.legalRow}
-                activeOpacity={0.7}
-                onPress={() => router.push("/privacy")}
-              >
-                <Text style={styles.legalText}>Privacy Policy</Text>
-                <Text style={styles.settingArrow}>›</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.dangerSection}>
-              <TouchableOpacity
-                style={[styles.deleteButton, deleting && styles.deleteBusy]}
-                activeOpacity={0.8}
-                disabled={deleting}
-                onPress={handleDeleteAccount}
-              >
-                {deleting ? (
-                  <ActivityIndicator size="small" color="#C2405F" />
-                ) : (
-                  <Text style={styles.deleteText}>Delete Account</Text>
-                )}
-              </TouchableOpacity>
-
-              <Text style={styles.deleteWarning}>
-                This permanently removes your profile, your answers and
-                everything saved in your shared space.
-              </Text>
-            </View>
-
-            {/* FOOTER */}
-
-            <View style={styles.footer}>
-              <Text style={styles.footerHeart}>♡</Text>
-
-              <Text style={styles.footerText}>BETWEEN US</Text>
-
-              <Text style={styles.footerSubtext}>
-                A little more intention. A little more connection.
-              </Text>
-            </View>
-          </View>
-        </ScrollView>
-      </GlassBackground>
-    </SafeAreaView>
-  );
-}
-
-/*
- * ==========================================
- * INFO ROW
- * ==========================================
- */
-
-function InfoRow({ label, value }) {
-  return (
-    <View style={styles.infoRow}>
-      <Text style={styles.infoLabel}>{label}</Text>
-
-      <Text style={styles.infoValue}>{value}</Text>
-    </View>
-  );
-}
-
-/*
- * ==========================================
- * LOADING
- * ==========================================
- */
-
-function LoadingScreen() {
-  return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
-      <GlassBackground>
-        <View style={styles.loadingContainer}>
-          <View style={styles.loadingLogo}>
-            <Text style={styles.loadingHeart}>♡</Text>
-          </View>
-
-          <Text style={styles.loadingTitle}>Between Us</Text>
-
-          <ActivityIndicator
-            size="small"
-            color="#D9456B"
-            style={styles.loadingIndicator}
-          />
+    <Screen
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => {
+            setRefreshing(true);
+            load();
+          }}
+          tintColor={T.accent}
+        />
+      }
+    >
+      <NavBar />
+
+      <LargeTitle>Profile</LargeTitle>
+
+      {loading ? (
+        <View style={{ paddingHorizontal: 16 }}>
+          <SkeletonList count={3} />
         </View>
-      </GlassBackground>
-    </SafeAreaView>
+      ) : (
+        <>
+          {/* ACCOUNT */}
+
+          <Group inset={76}>
+            <Cell
+              leading={<Avatar name={fullName || "You"} who="you" size={60} />}
+              title={fullName || "Your account"}
+              subtitle={[nickname, user?.primaryEmailAddress?.emailAddress]
+                .filter(Boolean)
+                .join(" · ")}
+              chevron
+              onPress={() => router.push("/edit-profile")}
+            />
+          </Group>
+
+          {/* PARTNER */}
+
+          {connection ? (
+            <Group inset={64}>
+              <Cell
+                leading={<Avatar name={partnerName} who="them" size={40} />}
+                title={partnerName}
+                subtitle={
+                  connection?.relationship_type
+                    ? `${connection.relationship_type.charAt(0).toUpperCase()}${connection.relationship_type.slice(1)}`
+                    : "Linked"
+                }
+                trailing={
+                  <Button
+                    title="Nudge"
+                    kind="tinted"
+                    size="small"
+                    onPress={() => router.push("/daily-question")}
+                  />
+                }
+              />
+            </Group>
+          ) : (
+            <Group inset={52}>
+              <Cell
+                leading={
+                  <Ionicons name="person-add" size={22} color={T.accent} />
+                }
+                title="Find your person"
+                subtitle="The shared parts open once you are linked"
+                chevron
+                onPress={() => router.push("/find-person")}
+              />
+            </Group>
+          )}
+
+          {/* REMINDERS */}
+
+          <GroupHeader>Reminders</GroupHeader>
+
+          <Group inset={52}>
+            {REMINDERS.map((reminder) => (
+              <Cell
+                key={reminder.type}
+                leading={
+                  <Ionicons name={reminder.icon} size={21} color={T.accent} />
+                }
+                title={reminder.title}
+                subtitle={reminder.subtitle}
+                trailing={
+                  <Switch
+                    value={prefs?.[reminder.type] !== false}
+                    onChange={(value) => setReminder(reminder.type, value)}
+                  />
+                }
+              />
+            ))}
+          </Group>
+
+          <GroupFooter>
+            Everything else lives in notification settings.
+          </GroupFooter>
+
+          {/* YOUR SPACE */}
+
+          <GroupHeader>Your space</GroupHeader>
+
+          <Group inset={52}>
+            <Cell
+              leading={<Ionicons name="time" size={21} color={T.accent} />}
+              title="Timeline"
+              chevron
+              onPress={() => router.push("/(tabs)/memories")}
+            />
+
+            <Cell
+              leading={<Ionicons name="sparkles" size={21} color={T.accent} />}
+              title="Dreams"
+              chevron
+              onPress={() => router.push("/(tabs)/dreams")}
+            />
+
+            <Cell
+              leading={<Ionicons name="calendar" size={21} color={T.accent} />}
+              title="Dates"
+              chevron
+              onPress={() => router.push("/(tabs)/dates")}
+            />
+
+            <Cell
+              leading={<Ionicons name="flag" size={21} color={T.accent} />}
+              title="Goals"
+              chevron
+              onPress={() => router.push("/goals")}
+            />
+
+            <Cell
+              leading={
+                <Ionicons name="create-outline" size={21} color={T.accent} />
+              }
+              title="Your answers"
+              subtitle="Tastes change. Update what you told us."
+              chevron
+              onPress={() => router.push("/onboarding")}
+            />
+
+            <Cell
+              leading={
+                <Ionicons
+                  name="notifications-outline"
+                  size={21}
+                  color={T.accent}
+                />
+              }
+              title="All notifications"
+              chevron
+              onPress={() => router.push("/notification-settings")}
+            />
+          </Group>
+
+          {/* RELATIONSHIP */}
+
+          {connection ? (
+            <>
+              <GroupHeader>Relationship</GroupHeader>
+
+              <Group>
+                <Cell
+                  title="Status"
+                  trailing={
+                    <Text style={styles.value}>
+                      {connection?.relationship_type
+                        ? `${connection.relationship_type.charAt(0).toUpperCase()}${connection.relationship_type.slice(1)}`
+                        : "Linked"}
+                    </Text>
+                  }
+                />
+
+                <Cell
+                  title="Together since"
+                  trailing={
+                    <Text style={styles.value}>
+                      {connection?.connected_at
+                        ? new Date(connection.connected_at).toLocaleDateString(
+                            undefined,
+                            { day: "numeric", month: "short", year: "numeric" },
+                          )
+                        : "—"}
+                    </Text>
+                  }
+                />
+
+                <Cell
+                  title={busy ? "Working…" : "Unlink Partner"}
+                  destructive
+                  onPress={busy ? undefined : unlink}
+                />
+              </Group>
+
+              <GroupFooter>
+                Unlinking closes your shared space for both of you.
+              </GroupFooter>
+            </>
+          ) : null}
+
+          {/* ACCOUNT ACTIONS */}
+
+          <GroupHeader>Account</GroupHeader>
+
+          <Group inset={16}>
+            <Cell
+              title="Terms of Use"
+              chevron
+              onPress={() => router.push("/terms")}
+            />
+
+            <Cell
+              title="Privacy Policy"
+              chevron
+              onPress={() => router.push("/privacy")}
+            />
+
+            <Cell
+              title="Sign Out"
+              onPress={() =>
+                Alert.alert("Sign out?", "You can sign back in any time.", [
+                  { text: "Cancel", style: "cancel" },
+                  {
+                    text: "Sign Out",
+                    style: "destructive",
+                    onPress: async () => {
+                      await signOut();
+                      router.replace("/");
+                    },
+                  },
+                ])
+              }
+            />
+
+            <Cell title="Delete Account" destructive onPress={deleteAccount} />
+          </Group>
+        </>
+      )}
+    </Screen>
   );
 }
-
-/*
- * ==========================================
- * STYLES
- * ==========================================
- */
 
 const styles = StyleSheet.create({
-  legalRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 14,
-  },
-
-  legalText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#4A3B45",
-  },
-
-  deleteBusy: {
-    opacity: 0.6,
-  },
-
-  screen: {
-    flex: 1,
-  },
-
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 35,
-  },
-
-  container: {
-    paddingHorizontal: 22,
-    paddingTop: 22,
-  },
-
-  /*
-   * HEADER
-   */
-
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 28,
-  },
-
-  brand: {
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 2.2,
-    color: "#D9456B",
-  },
-
-  pageTitle: {
-    marginTop: 7,
-    fontSize: 28,
-    lineHeight: 34,
-    fontWeight: "700",
-    color: "#2E2430",
-  },
-
-  headerIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: "rgba(217, 69, 107, 0.09)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  headerHeart: {
-    fontSize: 27,
-    color: "#D9456B",
-  },
-
-  /*
-   * YOUR PROFILE
-   */
-
-  profileCard: {
-    backgroundColor: "#D9456B",
-    borderRadius: 22,
-    padding: 20,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  avatar: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: "rgba(255, 255, 255, 0.18)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  avatarText: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: "#FFFFFF",
-  },
-
-  profileInfo: {
-    flex: 1,
-    marginLeft: 16,
-  },
-
-  profileName: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-
-  profileEmail: {
-    marginTop: 4,
-    fontSize: 12,
-    color: "#EBC9D5",
-  },
-
-  profileBadge: {
-    alignSelf: "flex-start",
-    marginTop: 10,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 8,
-    backgroundColor: "#806B62",
-  },
-
-  profileBadgeText: {
-    fontSize: 8,
-    fontWeight: "800",
-    letterSpacing: 1,
-    color: "#FFF8F5",
-  },
-
-  /*
-   * SECTIONS
-   */
-
-  section: {
-    marginTop: 28,
-  },
-
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 9,
-  },
-
-  sectionLabel: {
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1.7,
-    color: "#9C8F97",
-    marginBottom: 9,
-  },
-
-  /*
-   * EDIT BUTTON
-   */
-
-  editButton: {
-    marginBottom: 9,
-    paddingHorizontal: 11,
-    paddingVertical: 6,
-    borderRadius: 9,
-    backgroundColor: "rgba(217, 69, 107, 0.09)",
-  },
-
-  editButtonText: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: "#D9456B",
-  },
-
-  /*
-   * INFORMATION
-   */
-
-  infoCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 18,
-    paddingHorizontal: 17,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-  },
-
-  infoRow: {
-    minHeight: 58,
-    justifyContent: "center",
-  },
-
-  infoLabel: {
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 1,
-    color: "#9C8F97",
-    textTransform: "uppercase",
-  },
-
-  infoValue: {
-    marginTop: 4,
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#2E2430",
-  },
-
-  divider: {
-    height: 1,
-    backgroundColor: "#FAECF1",
-  },
-
-  /*
-   * PARTNER CARD
-   */
-
-  partnerCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 20,
-    padding: 17,
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-  },
-
-  partnerAvatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: "rgba(217, 69, 107, 0.09)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  partnerAvatarText: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: "#D9456B",
-  },
-
-  partnerInfo: {
-    flex: 1,
-    marginLeft: 14,
-  },
-
-  partnerEyebrow: {
-    fontSize: 8,
-    fontWeight: "800",
-    letterSpacing: 1.4,
-    color: "#9C8F97",
-  },
-
-  partnerName: {
-    marginTop: 3,
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#2E2430",
-  },
-
-  partnerRelationship: {
-    marginTop: 3,
-    fontSize: 11,
-    color: "#6B5F68",
-  },
-
-  connectedDot: {
-    width: 9,
-    height: 9,
-    borderRadius: 5,
-    backgroundColor: "#D9456B",
-  },
-
-  /*
-   * UNLINK
-   */
-
-  unlinkButton: {
-    marginTop: 10,
-    minHeight: 44,
-    borderRadius: 13,
-    borderWidth: 1,
-    borderColor: "#E4D2CC",
-    backgroundColor: "#F8F1EE",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  unlinkButtonDisabled: {
-    opacity: 0.65,
-  },
-
-  unlinkText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#B8345A",
-  },
-
-  unlinkWarning: {
-    marginTop: 7,
-    paddingHorizontal: 8,
-    textAlign: "center",
-    fontSize: 10,
-    lineHeight: 15,
-    color: "#9C8F97",
-  },
-
-  /*
-   * NO CONNECTION
-   */
-
-  noConnectionCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 20,
-    padding: 17,
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-  },
-
-  noConnectionIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  noConnectionIconText: {
-    fontSize: 22,
-    color: "#D9456B",
-  },
-
-  noConnectionInfo: {
-    flex: 1,
-    marginLeft: 14,
-  },
-
-  noConnectionTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#2E2430",
-  },
-
-  noConnectionDescription: {
-    marginTop: 4,
-    fontSize: 11,
-    lineHeight: 16,
-    color: "#6B5F68",
-  },
-
-  noConnectionArrow: {
-    marginLeft: 8,
-    fontSize: 27,
-    color: "#9C8F97",
-  },
-
-  /*
-   * SETTINGS
-   */
-
-  settingRow: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    minHeight: 75,
-    borderRadius: 17,
-    paddingHorizontal: 15,
-    paddingVertical: 13,
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    marginBottom: 10,
-  },
-
-  settingIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  settingIconText: {
-    fontSize: 18,
-    color: "#D9456B",
-  },
-
-  settingContent: {
-    flex: 1,
-    marginLeft: 12,
-  },
-
-  settingTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#2E2430",
-  },
-
-  settingDescription: {
-    marginTop: 3,
-    fontSize: 11,
-    lineHeight: 16,
-    color: "#6B5F68",
-  },
-
-  settingArrow: {
-    marginLeft: 8,
-    fontSize: 26,
-    color: "#9C8F97",
-  },
-
-  /*
-   * SIGN OUT
-   */
-
-  signOutButton: {
-    height: 53,
-    borderRadius: 14,
-    backgroundColor: "#D9456B",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  signOutText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-
-  /*
-   * DELETE
-   */
-
-  dangerSection: {
-    marginTop: 18,
-    alignItems: "center",
-  },
-
-  deleteButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-  },
-
-  deleteText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#B8345A",
-  },
-
-  deleteWarning: {
-    maxWidth: 290,
-    textAlign: "center",
-    fontSize: 10,
-    lineHeight: 15,
-    color: "#9C8F97",
-  },
-
-  /*
-   * ERROR
-   */
-
-  errorBox: {
-    backgroundColor: "#F9E3EA",
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderRadius: 12,
-    marginBottom: 15,
-  },
-
-  errorText: {
-    fontSize: 12,
-    lineHeight: 17,
-    color: "#C2405F",
-  },
-
-  /*
-   * FOOTER
-   */
-
-  footer: {
-    marginTop: 30,
-    paddingTop: 25,
-    paddingBottom: 10,
-    alignItems: "center",
-  },
-
-  footerHeart: {
-    fontSize: 25,
-    color: "#D9456B",
-  },
-
-  footerText: {
-    marginTop: 8,
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 2,
-    color: "#D9456B",
-  },
-
-  footerSubtext: {
-    marginTop: 6,
-    textAlign: "center",
-    fontSize: 10,
-    color: "#9C8F97",
-  },
-
-  /*
-   * LOADING
-   */
-
-  loadingContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  loadingLogo: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "rgba(217, 69, 107, 0.09)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  loadingHeart: {
-    fontSize: 29,
-    color: "#D9456B",
-  },
-
-  loadingTitle: {
-    marginTop: 14,
-    fontSize: 21,
-    fontWeight: "700",
-    color: "#2E2430",
-  },
-
-  loadingIndicator: {
-    marginTop: 15,
+  value: {
+    fontSize: 16,
+    color: T.label2,
   },
 });

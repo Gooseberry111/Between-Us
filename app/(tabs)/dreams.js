@@ -1,1265 +1,680 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
-  Pressable,
   Alert,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
-import { apiFetch } from "../../lib/api";
-import { SafeAreaView } from "react-native-safe-area-context";
-import Celebration from "../../components/Celebration";
-import { GlassBackground, Card } from "../../components/Glass";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import Svg, { Circle } from "react-native-svg";
 import { useAuth } from "@clerk/expo";
 import { useFocusEffect, useRouter } from "expo-router";
-import DateInput from "../../components/DateInput";
-import { clearCachedData } from "../../lib/dataCache";
-import { Skeleton, SkeletonList } from "../../components/Skeleton";
-import ConnectFirst from "../../components/ConnectFirst";
+
+import { apiFetch } from "../../lib/api";
+import { getCachedData, setCachedData } from "../../lib/dataCache";
 import { useIsConnected } from "../../lib/connection";
+import { T } from "../../lib/theme";
+import {
+  Button,
+  Card,
+  Cell,
+  Empty,
+  GlassButton,
+  Group,
+  LargeTitle,
+  NavBar,
+  Press,
+  Screen,
+  SectionHeader,
+} from "../../components/ui";
+import ConnectFirst from "../../components/ConnectFirst";
+import { SkeletonList } from "../../components/Skeleton";
+import DateInput from "../../components/DateInput";
+
+/*
+ * ==========================================
+ * DREAMS
+ * ==========================================
+ *
+ * A board of things the two of you want to do, led by
+ * the one in progress, with starters for when neither
+ * of you can think of anything.
+ *
+ * Needs backend: steps within a dream, and the source
+ * for the starter cards (these are local suggestions).
+ */
+
+const STARTERS = [
+  {
+    id: "zanzibar",
+    title: "Weekend in Zanzibar",
+    kind: "Travel",
+    icon: "umbrella",
+    colours: ["#7FD3FF", "#3A8DFF"],
+  },
+  {
+    id: "cuisines",
+    title: "Cook 10 cuisines",
+    kind: "At home",
+    icon: "restaurant",
+    colours: ["#FFD36E", "#FF8A4C"],
+  },
+  {
+    id: "salsa",
+    title: "Learn salsa",
+    kind: "Experience",
+    icon: "musical-notes",
+    colours: ["#C8B4FF", "#8456F5"],
+  },
+  {
+    id: "home",
+    title: "Our first home",
+    kind: "Build",
+    icon: "home",
+    colours: ["#8FE9C5", "#1FB884"],
+  },
+];
+
+/* Fitness-style ring. */
+function Ring({ value, size = 54 }) {
+  const r = size / 2 - 5;
+  const circumference = 2 * Math.PI * r;
+
+  return (
+    <View style={{ width: size, height: size }}>
+      <Svg width={size} height={size}>
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke={T.accentTint}
+          strokeWidth="6"
+          fill="none"
+        />
+
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke={T.accent}
+          strokeWidth="6"
+          strokeLinecap="round"
+          fill="none"
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference * (1 - value)}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </Svg>
+
+      <View style={styles.ringLabel}>
+        <Text style={styles.ringText}>{Math.round(value * 100)}%</Text>
+      </View>
+    </View>
+  );
+}
 
 export default function DreamsScreen() {
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
   const connected = useIsConnected();
 
-  const [dreams, setDreams] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = userId ? `dreams:${userId}` : null;
+  const cached = cacheKey ? getCachedData(cacheKey) : undefined;
+
+  const [dreams, setDreams] = useState(cached?.dreams ?? []);
+  const [done, setDone] = useState(cached?.done ?? 0);
+  const [loading, setLoading] = useState(!cached);
   const [refreshing, setRefreshing] = useState(false);
-  const [celebrating, setCelebrating] = useState(false);
+
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-
-  const [showForm, setShowForm] = useState(false);
-  const [editingDream, setEditingDream] = useState(null);
-
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("Travel");
   const [description, setDescription] = useState("");
   const [targetDate, setTargetDate] = useState("");
 
-  const categories = [
-    "Travel",
-    "Home",
-    "Finance",
-    "Career",
-    "Family",
-    "Lifestyle",
-    "Adventure",
-    "Other",
-  ];
-
-  const loadDreams = useCallback(async () => {
+  const load = useCallback(async () => {
     if (!isLoaded || !isSignedIn || !userId) {
       setLoading(false);
       return;
     }
 
     try {
-      setError("");
-
       const response = await apiFetch(`/users/${userId}/dreams`);
       const data = await response.json();
 
-      console.log("DREAMS RESPONSE:", data);
+      const all = Array.isArray(data) ? data : data?.dreams || [];
 
-      if (!response.ok) {
-        throw new Error(data?.error || "Unable to load dreams.");
-      }
+      const open = all.filter((dream) => !dream.is_completed);
+      const closed = all.length - open.length;
 
-      const allDreams = Array.isArray(data?.dreams) ? data.dreams : [];
+      setDreams(open);
+      setDone(closed);
 
-      // Only show active dreams on the main Dream Board.
-      setDreams(allDreams.filter((dream) => !dream.is_completed));
+      if (cacheKey) setCachedData(cacheKey, { dreams: open, done: closed });
     } catch (err) {
       console.log("DREAMS LOAD ERROR:", err);
-      setError(err?.message || "Unable to load your dreams.");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [isLoaded, isSignedIn, userId]);
+  }, [isLoaded, isSignedIn, userId, cacheKey]);
 
-  /* Tabs stay mounted; refetch when this one comes back into view. */
   useFocusEffect(
     useCallback(() => {
-      loadDreams();
-    }, [loadDreams]),
+      load();
+    }, [load]),
   );
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    loadDreams();
-  };
+  const saveDream = async (preset) => {
+    const name = (preset || title).trim();
 
-  const resetForm = () => {
-    setTitle("");
-    setCategory("Travel");
-    setDescription("");
-    setTargetDate("");
-    setEditingDream(null);
-    setShowForm(false);
-  };
-
-  const openCreateForm = () => {
-    setEditingDream(null);
-    setTitle("");
-    setCategory("Travel");
-    setDescription("");
-    setTargetDate("");
-    setShowForm(true);
-  };
-
-  const openEditForm = (dream) => {
-    setEditingDream(dream);
-
-    setTitle(dream.title || "");
-    setCategory(dream.category || "Other");
-    setDescription(dream.description || "");
-
-    if (dream.target_date) {
-      setTargetDate(new Date(dream.target_date).toISOString().split("T")[0]);
-    } else {
-      setTargetDate("");
-    }
-
-    setShowForm(true);
-  };
-
-  const saveDream = async () => {
-    if (!title.trim()) {
-      Alert.alert("Missing title", "Please give this dream a title.");
-      return;
-    }
-
-    if (!userId) return;
+    if (!name || saving) return;
 
     try {
       setSaving(true);
 
-      let response;
-
-      if (editingDream) {
-        response = await apiFetch(
-          `/users/${userId}/dreams/${editingDream.id}`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              title: title.trim(),
-              category: category.trim(),
-              description: description.trim(),
-              target_date: targetDate.trim() || null,
-            }),
-          },
-        );
-      } else {
-        response = await apiFetch(`/users/${userId}/dreams`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            title: title.trim(),
-            category: category.trim(),
-            description: description.trim(),
-            target_date: targetDate.trim() || null,
-          }),
-        });
-      }
-
-      const data = await response.json();
-
-      console.log(
-        editingDream ? "UPDATE DREAM RESPONSE:" : "CREATE DREAM RESPONSE:",
-        data,
-      );
-
-      if (!response.ok) {
-        throw new Error(data?.error || "Unable to save dream.");
-      }
-
-      resetForm();
-      await loadDreams();
-    } catch (err) {
-      console.log("SAVE DREAM ERROR:", err);
-
-      Alert.alert(
-        "Something went wrong",
-        err?.message || "Unable to save dream.",
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const toggleComplete = async (dream) => {
-    if (!userId) return;
-
-    try {
-      const response = await apiFetch(`/users/${userId}/dreams/${dream.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+      const response = await apiFetch(`/users/${userId}/dreams`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          is_completed: true,
+          clerk_id: userId,
+          title: name,
+          description: preset ? null : description.trim() || null,
+          target_date: preset ? null : targetDate.trim() || null,
+          category: "Other",
         }),
       });
 
       const data = await response.json();
 
-      console.log("TOGGLE DREAM RESPONSE:", data);
-
       if (!response.ok) {
-        throw new Error(data?.error || "Unable to complete dream.");
+        throw new Error(data?.error || "Unable to save this dream.");
       }
 
-      setCelebrating(true);
+      setTitle("");
+      setDescription("");
+      setTargetDate("");
+      setSheetOpen(false);
 
-      // Remove it from the active Dream Board.
-      setDreams((current) => current.filter((item) => item.id !== dream.id));
-
-      // The Completed Dreams screen may have a stale cached
-      // list that doesn't include this dream yet.
-      if (userId) clearCachedData(`completed-dreams:${userId}`);
+      await load();
     } catch (err) {
-      console.log("TOGGLE DREAM ERROR:", err);
-
-      Alert.alert(
-        "Something went wrong",
-        err?.message || "Unable to complete dream.",
-      );
+      Alert.alert("We couldn't save that", err?.message || "Please try again.");
+    } finally {
+      setSaving(false);
     }
   };
 
-  const deleteDream = (dream) => {
-    Alert.alert(
-      "Delete dream?",
-      `"${dream.title}" will be permanently removed.`,
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const response = await apiFetch(
-                `/users/${userId}/dreams/${dream.id}`,
-                {
-                  method: "DELETE",
-                },
-              );
-
-              const data = await response.json();
-
-              console.log("DELETE DREAM RESPONSE:", data);
-
-              if (!response.ok) {
-                throw new Error(data?.error || "Unable to delete dream.");
-              }
-
-              setDreams((current) =>
-                current.filter((item) => item.id !== dream.id),
-              );
-            } catch (err) {
-              console.log("DELETE DREAM ERROR:", err);
-
-              Alert.alert(
-                "Something went wrong",
-                err?.message || "Unable to delete dream.",
-              );
-            }
-          },
-        },
-      ],
-    );
-  };
-
   if (connected === false) {
-    return <ConnectFirst feature="Dream Board" showBack={false} />;
+    return <ConnectFirst feature="Dreams" showBack={false} />;
   }
 
-  if (loading) {
-    /*
-     * Cold load only (nothing cached yet). Mirrors the
-     * real layout so the page appears at once and fills
-     * in, instead of blocking on a spinner.
-     */
-    return (
-      <SafeAreaView style={styles.screen} edges={["top"]}>
-        <GlassBackground>
-          <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
-            <Skeleton width={96} height={11} radius={6} />
-            <Skeleton
-              width="62%"
-              height={26}
-              radius={9}
-              style={{ marginTop: 12 }}
-            />
-            <Skeleton width="80%" height={12} style={{ marginTop: 10 }} />
-
-            <View style={{ marginTop: 26 }}>
-              <SkeletonList count={3} />
-            </View>
-          </View>
-        </GlassBackground>
-      </SafeAreaView>
-    );
-  }
+  const featured = dreams[0];
+  const rest = dreams.slice(1);
 
   return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
-      <Celebration
-        visible={celebrating}
-        title="Dream complete"
-        message="One more thing you made happen together."
-        onDone={() => setCelebrating(false)}
-      />
+    <>
+      <Screen
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              load();
+            }}
+            tintColor={T.accent}
+          />
+        }
+      >
+        <NavBar>
+          <GlassButton
+            icon="add"
+            label="Add a dream"
+            onPress={() => setSheetOpen(true)}
+          />
+        </NavBar>
 
-      <GlassBackground>
-        <KeyboardAvoidingView
-          style={styles.keyboardContainer}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-        >
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={handleRefresh}
-                tintColor="#D9456B"
-              />
-            }
-            contentContainerStyle={styles.scrollContent}
-          >
-            <View style={styles.container}>
-              {/* HEADER */}
+        <LargeTitle>Dreams</LargeTitle>
 
-              <View style={styles.header}>
-                <View style={styles.headerText}>
-                  <Text style={styles.brand}>BETWEEN US</Text>
+        {/* THE BOARD */}
 
-                  <Text style={styles.pageTitle}>Dream Board</Text>
+        <Card style={styles.board}>
+          <Text style={styles.boardNumber}>{dreams.length}</Text>
 
-                  <Text style={styles.pageSubtitle}>
-                    The things you both want to experience, build, and achieve
-                    together.
-                  </Text>
-                </View>
+          <View style={styles.boardText}>
+            <Text style={styles.boardTitle}>
+              {dreams.length === 1
+                ? "dream on your board"
+                : "dreams on your board"}
+            </Text>
 
-                <View style={styles.headerIcon}>
-                  <Text style={styles.headerIconText}>✦</Text>
-                </View>
+            <Text style={styles.boardSub}>
+              Add a starter and watch this go up
+            </Text>
+          </View>
+
+          <Ionicons name="sparkles" size={20} color={T.accent} />
+        </Card>
+
+        {loading ? (
+          <View style={{ paddingHorizontal: 16 }}>
+            <SkeletonList count={2} />
+          </View>
+        ) : featured ? (
+          <Card style={styles.dream} padded={false}>
+            <LinearGradient
+              colors={["#FFC2E4", "#F03FA9"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.cover}
+            >
+              <View style={styles.coverChip}>
+                <Text style={styles.coverChipText}>In progress</Text>
+              </View>
+            </LinearGradient>
+
+            <View style={styles.dreamHead}>
+              <View style={styles.dreamText}>
+                <Text style={styles.dreamTitle}>{featured.title}</Text>
+
+                <Text style={styles.dreamSub}>
+                  {featured.target_date
+                    ? `Hoping for ${new Date(featured.target_date).toLocaleDateString(undefined, { month: "long", year: "numeric" })}`
+                    : "No date on it yet"}
+                </Text>
               </View>
 
-              {error ? (
-                <View style={styles.errorBox}>
-                  <Text style={styles.errorText}>{error}</Text>
-                </View>
-              ) : null}
+              <Ring
+                value={dreams.length ? 1 / (dreams.length + done || 1) : 0}
+              />
+            </View>
 
-              {/* SUMMARY */}
+            {featured.description ? (
+              <Text style={styles.dreamNote}>{featured.description}</Text>
+            ) : null}
+          </Card>
+        ) : (
+          <Empty
+            icon="sparkles-outline"
+            title="What are you two dreaming of?"
+            text="Put one thing on the board. It can be small."
+            action={{
+              title: "Add a Dream",
+              icon: "add",
+              onPress: () => setSheetOpen(true),
+            }}
+          />
+        )}
 
-              <Card style={styles.summaryCard}>
-                <View style={styles.summaryItem}>
-                  <Text style={styles.summaryNumber}>{dreams.length}</Text>
-                  <Text style={styles.summaryLabel}>In progress</Text>
-                </View>
+        {rest.length > 0 ? (
+          <Group inset={16}>
+            {rest.map((dream) => (
+              <Cell
+                key={dream.id}
+                title={dream.title}
+                subtitle={dream.description}
+                leading={
+                  <Ionicons name="ellipse-outline" size={22} color={T.accent} />
+                }
+                chevron
+                onPress={() => router.push("/(tabs)/dreams")}
+              />
+            ))}
+          </Group>
+        ) : null}
 
-                <View style={styles.summaryDivider} />
+        {/* STARTERS */}
 
-                <TouchableOpacity
-                  style={styles.summaryItem}
-                  activeOpacity={0.75}
-                  onPress={() => router.push("/completed-dreams")}
-                >
-                  <Text style={styles.summaryNumber}>›</Text>
-                  <Text style={styles.summaryLabel}>Completed dreams</Text>
-                </TouchableOpacity>
-              </Card>
+        <SectionHeader>Dream starters</SectionHeader>
 
-              {/* ADD */}
-
-              {!showForm ? (
-                <Pressable onPress={openCreateForm}>
-                  <Card style={styles.addButton}>
-                    <View style={styles.addIcon}>
-                      <Text style={styles.addIconText}>+</Text>
-                    </View>
-
-                    <View style={styles.addContent}>
-                      <Text style={styles.addTitle}>Add a dream</Text>
-
-                      <Text style={styles.addSubtitle}>
-                        Add something you both want to make happen.
-                      </Text>
-                    </View>
-
-                    <Text style={styles.addArrow}>→</Text>
-                  </Card>
-                </Pressable>
-              ) : null}
-
-              {/* COMPLETED DREAMS LINK */}
-
-              <TouchableOpacity
-                style={styles.completedLink}
-                activeOpacity={0.8}
-                onPress={() => router.push("/completed-dreams")}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.starters}
+        >
+          {STARTERS.map((starter) => (
+            <Card key={starter.id} style={styles.starter} padded={false}>
+              <LinearGradient
+                colors={starter.colours}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.starterCover}
               >
-                <View style={styles.completedLinkIcon}>
-                  <Text style={styles.completedLinkIconText}>✓</Text>
-                </View>
+                <Ionicons name={starter.icon} size={26} color="#FFFFFF" />
+              </LinearGradient>
 
-                <View style={styles.completedLinkContent}>
-                  <Text style={styles.completedLinkTitle}>
-                    Completed dreams
-                  </Text>
-
-                  <Text style={styles.completedLinkSubtitle}>
-                    Look back at everything you've achieved together.
-                  </Text>
-                </View>
-
-                <Text style={styles.completedLinkArrow}>→</Text>
-              </TouchableOpacity>
-
-              {/* FORM */}
-
-              {showForm ? (
-                <Card style={styles.formCard}>
-                  <View style={styles.formHeader}>
-                    <View>
-                      <Text style={styles.formLabel}>
-                        {editingDream ? "EDIT DREAM" : "NEW DREAM"}
-                      </Text>
-
-                      <Text style={styles.formTitle}>
-                        {editingDream
-                          ? "Update your dream."
-                          : "What do you want to do together?"}
-                      </Text>
-                    </View>
-
-                    <TouchableOpacity
-                      onPress={resetForm}
-                      style={styles.closeButton}
-                    >
-                      <Text style={styles.closeButtonText}>×</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  <Text style={styles.inputLabel}>TITLE</Text>
-
-                  <TextInput
-                    value={title}
-                    onChangeText={setTitle}
-                    placeholder="e.g. Visit Paris together"
-                    placeholderTextColor="#B9A7B1"
-                    style={styles.input}
-                  />
-
-                  <Text style={styles.inputLabel}>CATEGORY</Text>
-
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    style={styles.categoryScroll}
-                  >
-                    {categories.map((item) => (
-                      <TouchableOpacity
-                        key={item}
-                        style={[
-                          styles.categoryButton,
-                          category === item && styles.categoryButtonActive,
-                        ]}
-                        onPress={() => setCategory(item)}
-                      >
-                        <Text
-                          style={[
-                            styles.categoryButtonText,
-                            category === item &&
-                              styles.categoryButtonTextActive,
-                          ]}
-                        >
-                          {item}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-
-                  <Text style={styles.inputLabel}>DESCRIPTION</Text>
-
-                  <TextInput
-                    value={description}
-                    onChangeText={setDescription}
-                    placeholder="Tell us about this dream..."
-                    placeholderTextColor="#B9A7B1"
-                    style={[styles.input, styles.descriptionInput]}
-                    multiline
-                    textAlignVertical="top"
-                  />
-
-                  <Text style={styles.inputLabel}>TARGET DATE</Text>
-
-                  <DateInput
-                    value={targetDate}
-                    onChangeText={setTargetDate}
-                    style={styles.input}
-                  />
-
-                  <TouchableOpacity
-                    style={[
-                      styles.saveButton,
-                      saving && styles.saveButtonDisabled,
-                    ]}
-                    activeOpacity={0.85}
-                    onPress={saveDream}
-                    disabled={saving}
-                  >
-                    {saving ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <Text style={styles.saveButtonText}>
-                        {editingDream ? "Save changes" : "Add dream"}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                </Card>
-              ) : null}
-
-              {/* ACTIVE DREAMS */}
-
-              <View style={styles.section}>
-                <Text style={styles.sectionLabel}>YOUR FUTURE TOGETHER</Text>
-
-                <Text style={styles.sectionTitle}>
-                  {dreams.length === 0
-                    ? "Start dreaming together."
-                    : `${dreams.length} ${
-                        dreams.length === 1 ? "dream" : "dreams"
-                      } on your board.`}
+              <View style={styles.starterBody}>
+                <Text style={styles.starterTitle} numberOfLines={2}>
+                  {starter.title}
                 </Text>
 
-                {dreams.length === 0 ? (
-                  <Card style={styles.emptyCard}>
-                    <View style={styles.emptyIcon}>
-                      <Text style={styles.emptyIconText}>✦</Text>
-                    </View>
+                <Text style={styles.starterKind}>{starter.kind}</Text>
 
-                    <Text style={styles.emptyTitle}>Nothing here yet.</Text>
-
-                    <Text style={styles.emptyText}>
-                      Add your first shared dream — a trip, a home, an
-                      experience, or anything you want to accomplish together.
-                    </Text>
-
-                    <TouchableOpacity
-                      style={styles.emptyButton}
-                      onPress={openCreateForm}
-                    >
-                      <Text style={styles.emptyButtonText}>
-                        Add your first dream
-                      </Text>
-                    </TouchableOpacity>
-                  </Card>
-                ) : (
-                  dreams.map((dream, index) => (
-                    <DreamCard
-                      key={dream.id}
-                      dream={dream}
-                      index={index}
-                      onEdit={() => openEditForm(dream)}
-                      onDelete={() => deleteDream(dream)}
-                      onToggle={() => toggleComplete(dream)}
-                    />
-                  ))
-                )}
+                <Press
+                  onPress={() => saveDream(starter.title)}
+                  scaleTo={0.92}
+                  style={styles.starterAdd}
+                >
+                  <Text style={styles.starterAddText}>ADD</Text>
+                </Press>
               </View>
+            </Card>
+          ))}
+        </ScrollView>
 
-              {dreams.length > 0 ? (
-                <Card style={styles.footerCard}>
-                  <Text style={styles.footerQuote}>
-                    "Dreams are better when you build them together."
-                  </Text>
+        <Group inset={52}>
+          <Cell
+            title="Completed together"
+            subtitle={
+              done > 0
+                ? "Opens the ones you have finished"
+                : "Your first finished dream gets a celebration here"
+            }
+            leading={<Ionicons name="trophy" size={22} color={T.accent} />}
+            trailing={<Text style={styles.value}>{done}</Text>}
+            chevron
+            onPress={() => router.push("/completed-dreams")}
+          />
+        </Group>
+      </Screen>
 
-                  <Text style={styles.footerText}>
-                    Keep adding things you want your future to hold.
-                  </Text>
-                </Card>
-              ) : null}
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </GlassBackground>
-    </SafeAreaView>
-  );
-}
+      {/* NEW DREAM SHEET */}
 
-function DreamCard({ dream, index, onEdit, onDelete, onToggle }) {
-  const date = dream.target_date
-    ? new Date(dream.target_date).toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      })
-    : null;
-
-  return (
-    <Card style={styles.dreamCard}>
-      <View style={styles.dreamTop}>
-        <View style={styles.dreamNumber}>
-          <Text style={styles.dreamNumberText}>
-            {String(index + 1).padStart(2, "0")}
-          </Text>
-        </View>
-
-        <View style={styles.categoryBadge}>
-          <Text style={styles.categoryBadgeText}>
-            {dream.category || "Other"}
-          </Text>
-        </View>
-      </View>
-
-      <Text style={styles.dreamTitle}>{dream.title}</Text>
-
-      {dream.description ? (
-        <Text style={styles.dreamDescription}>{dream.description}</Text>
-      ) : null}
-
-      {date ? (
-        <View style={styles.dateContainer}>
-          <Text style={styles.dateLabel}>TARGET DATE</Text>
-          <Text style={styles.dateText}>{date}</Text>
-        </View>
-      ) : null}
-
-      <View style={styles.dreamDivider} />
-
-      <View style={styles.dreamBottom}>
-        <TouchableOpacity
-          style={styles.completeButton}
-          onPress={onToggle}
-          activeOpacity={0.8}
+      <Modal
+        visible={sheetOpen}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setSheetOpen(false)}
+      >
+        <KeyboardAvoidingView
+          style={styles.sheet}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
-          <View style={styles.checkCircle} />
+          <View style={styles.sheetNav}>
+            <Text
+              style={styles.sheetCancel}
+              onPress={() => setSheetOpen(false)}
+            >
+              Cancel
+            </Text>
 
-          <Text style={styles.completeText}>Mark complete</Text>
-        </TouchableOpacity>
+            <Text style={styles.sheetTitle}>New Dream</Text>
 
-        <View style={styles.dreamActions}>
-          <TouchableOpacity style={styles.editButton} onPress={onEdit}>
-            <Text style={styles.editButtonText}>Edit</Text>
-          </TouchableOpacity>
+            <Text
+              style={[styles.sheetSave, !title.trim() && styles.sheetSaveOff]}
+              onPress={() => saveDream()}
+            >
+              Save
+            </Text>
+          </View>
 
-          <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
-            <Text style={styles.deleteButtonText}>Delete</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Card>
+          <View style={styles.sheetBody}>
+            <Card padded={false}>
+              <TextInput
+                value={title}
+                onChangeText={setTitle}
+                placeholder="What do you want to do together?"
+                placeholderTextColor={T.label3}
+                style={styles.field}
+              />
+
+              <View style={styles.fieldLine} />
+
+              <TextInput
+                value={description}
+                onChangeText={setDescription}
+                placeholder="Why it matters (optional)"
+                placeholderTextColor={T.label3}
+                style={[styles.field, styles.fieldTall]}
+                multiline
+                textAlignVertical="top"
+              />
+
+              <View style={styles.fieldLine} />
+
+              <DateInput
+                value={targetDate}
+                onChangeText={setTargetDate}
+                placeholder="By when? YYYY-MM-DD (optional)"
+                style={styles.field}
+              />
+            </Card>
+
+            <Button
+              title="Add to the Board"
+              onPress={() => saveDream()}
+              busy={saving}
+              disabled={!title.trim()}
+              style={styles.sheetButton}
+            />
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-  },
-
-  keyboardContainer: {
-    flex: 1,
-  },
-
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 120,
-  },
-
-  container: {
-    paddingHorizontal: 22,
-    paddingTop: 22,
-  },
-
-  header: {
+  board: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 22,
+    gap: 14,
+    padding: 16,
   },
 
-  headerText: {
+  boardNumber: {
+    fontSize: 40,
+    lineHeight: 44,
+    fontWeight: "700",
+    letterSpacing: -1.6,
+    color: T.accent,
+    minWidth: 46,
+  },
+
+  boardText: {
     flex: 1,
   },
 
-  brand: {
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 2.2,
-    color: "#D9456B",
+  boardTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: T.label,
   },
 
-  pageTitle: {
-    marginTop: 7,
-    fontSize: 29,
-    lineHeight: 35,
-    fontWeight: "700",
-    color: "#2E2430",
-  },
-
-  pageSubtitle: {
-    marginTop: 5,
+  boardSub: {
     fontSize: 13,
-    lineHeight: 19,
-    color: "#6B5F68",
-    maxWidth: 290,
+    color: T.label2,
+    marginTop: 1,
   },
 
-  headerIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "rgba(217, 69, 107, 0.09)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: 10,
+  dream: {
+    overflow: "hidden",
   },
 
-  headerIconText: {
-    fontSize: 22,
-    color: "#D9456B",
-  },
-
-  summaryCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 18,
-    paddingVertical: 17,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-around",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    marginBottom: 12,
-  },
-
-  summaryItem: {
-    alignItems: "center",
-    justifyContent: "center",
-    flex: 1,
-  },
-
-  summaryNumber: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#D9456B",
-  },
-
-  summaryLabel: {
-    marginTop: 3,
-    fontSize: 9,
-    color: "#9C8F97",
-    fontWeight: "600",
-    textAlign: "center",
-  },
-
-  summaryDivider: {
-    width: 1,
-    height: 28,
-    backgroundColor: "#F6E6EC",
-  },
-
-  completedLink: {
-    marginTop: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 20,
-    padding: 17,
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    marginBottom: 15,
-  },
-
-  completedLinkIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "rgba(217, 69, 107, 0.09)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  completedLinkIconText: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#D9456B",
-  },
-
-  completedLinkContent: {
-    flex: 1,
-    marginLeft: 12,
-  },
-
-  completedLinkTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#2E2430",
-  },
-
-  completedLinkSubtitle: {
-    marginTop: 3,
-    fontSize: 11,
-    lineHeight: 16,
-    color: "#6B5F68",
-  },
-
-  completedLinkArrow: {
-    fontSize: 20,
-    color: "#D9456B",
-    marginLeft: 8,
-  },
-
-  addButton: {
-    borderRadius: 20,
-    padding: 17,
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    marginBottom: 12,
-  },
-
-  addIcon: {
-    width: 43,
-    height: 43,
-    borderRadius: 22,
-    backgroundColor: "#D9456B",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  addIconText: {
-    fontSize: 24,
-    lineHeight: 27,
-    color: "#FFFFFF",
-  },
-
-  addContent: {
-    flex: 1,
-    marginLeft: 13,
-  },
-
-  addTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#2E2430",
-  },
-
-  addSubtitle: {
-    marginTop: 3,
-    fontSize: 11,
-    lineHeight: 16,
-    color: "#6B5F68",
-  },
-
-  addArrow: {
-    fontSize: 20,
-    color: "#D9456B",
-    marginLeft: 8,
-  },
-
-  formCard: {
-    marginTop: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 20,
-    padding: 19,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-  },
-
-  formHeader: {
-    flexDirection: "row",
+  cover: {
+    height: 130,
+    justifyContent: "flex-start",
     alignItems: "flex-start",
-    justifyContent: "space-between",
-    marginBottom: 20,
+    padding: 12,
   },
 
-  formLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 1.6,
-    color: "#9C8F97",
+  coverChip: {
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.82)",
   },
 
-  formTitle: {
-    marginTop: 5,
-    fontSize: 19,
-    fontWeight: "700",
-    color: "#2E2430",
-    maxWidth: 260,
-  },
-
-  closeButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  closeButtonText: {
-    fontSize: 22,
-    color: "#D9456B",
-  },
-
-  inputLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 1.5,
-    color: "#9C8F97",
-    marginBottom: 7,
-  },
-
-  input: {
-    minHeight: 49,
-    borderRadius: 12,
-    backgroundColor: "rgba(217, 69, 107, 0.07)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 14,
-    color: "#2E2430",
-    marginBottom: 16,
-  },
-
-  descriptionInput: {
-    height: 110,
-  },
-
-  categoryScroll: {
-    marginBottom: 17,
-  },
-
-  categoryButton: {
-    paddingHorizontal: 13,
-    paddingVertical: 9,
-    borderRadius: 10,
-    backgroundColor: "rgba(217, 69, 107, 0.07)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    marginRight: 7,
-  },
-
-  categoryButtonActive: {
-    backgroundColor: "#D9456B",
-    borderColor: "#D9456B",
-  },
-
-  categoryButtonText: {
-    fontSize: 11,
+  coverChipText: {
+    fontSize: 12,
     fontWeight: "600",
-    color: "#6B5F68",
+    color: T.accentText,
   },
 
-  categoryButtonTextActive: {
-    color: "#FFFFFF",
-  },
-
-  saveButton: {
-    height: 50,
-    borderRadius: 13,
-    backgroundColor: "#D9456B",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 4,
-  },
-
-  saveButtonDisabled: {
-    opacity: 0.65,
-  },
-
-  saveButtonText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
-  },
-
-  section: {
-    marginTop: 30,
-  },
-
-  sectionLabel: {
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1.7,
-    color: "#9C8F97",
-    marginBottom: 7,
-  },
-
-  sectionTitle: {
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: "700",
-    color: "#2E2430",
-    marginBottom: 13,
-  },
-
-  dreamCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    marginBottom: 13,
-  },
-
-  dreamTop: {
+  dreamHead: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: 14,
+    padding: 16,
   },
 
-  dreamNumber: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "rgba(217, 69, 107, 0.09)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  dreamNumberText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#D9456B",
-  },
-
-  categoryBadge: {
-    backgroundColor: "rgba(217, 69, 107, 0.07)",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 9,
-  },
-
-  categoryBadgeText: {
-    fontSize: 10,
-    fontWeight: "600",
-    color: "#6B5F68",
+  dreamText: {
+    flex: 1,
   },
 
   dreamTitle: {
-    marginTop: 16,
-    fontSize: 20,
-    lineHeight: 25,
+    fontSize: 18,
     fontWeight: "700",
-    color: "#2E2430",
+    letterSpacing: -0.4,
+    color: T.label,
   },
 
-  dreamDescription: {
-    marginTop: 8,
+  dreamSub: {
     fontSize: 13,
+    color: T.label2,
+    marginTop: 2,
+  },
+
+  dreamNote: {
+    fontSize: 14,
     lineHeight: 20,
-    color: "#6B5F68",
+    color: T.label2,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    marginTop: -6,
   },
 
-  dateContainer: {
-    marginTop: 14,
-    backgroundColor: "rgba(217, 69, 107, 0.07)",
-    borderRadius: 11,
-    padding: 11,
+  ringLabel: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
-  dateLabel: {
-    fontSize: 8,
-    fontWeight: "800",
-    letterSpacing: 1.2,
-    color: "#9C8F97",
-  },
-
-  dateText: {
-    marginTop: 3,
+  ringText: {
     fontSize: 12,
+    fontWeight: "700",
+    color: T.accentText,
+  },
+
+  starters: {
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+
+  starter: {
+    width: 180,
+    marginHorizontal: 0,
+    overflow: "hidden",
+  },
+
+  starterCover: {
+    height: 92,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  starterBody: {
+    padding: 12,
+  },
+
+  starterTitle: {
+    fontSize: 15,
     fontWeight: "600",
-    color: "#D9456B",
+    color: T.label,
   },
 
-  dreamDivider: {
-    height: 1,
-    backgroundColor: "#F6E6EC",
-    marginVertical: 16,
+  starterKind: {
+    fontSize: 13,
+    color: T.label2,
+    marginTop: 2,
   },
 
-  dreamBottom: {
+  starterAdd: {
+    marginTop: 10,
+    alignSelf: "flex-start",
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: T.fill3,
+  },
+
+  starterAddText: {
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+    color: T.accentText,
+  },
+
+  value: {
+    fontSize: 16,
+    color: T.label2,
+  },
+
+  sheet: {
+    flex: 1,
+    backgroundColor: T.appBackground,
+  },
+
+  sheetNav: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
 
-  completeButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
+  sheetCancel: {
+    fontSize: 17,
+    color: T.accent,
+    width: 70,
   },
 
-  checkCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: "#C9BDB6",
-  },
-
-  completeText: {
-    marginLeft: 8,
-    fontSize: 10,
-    color: "#6B5F68",
-  },
-
-  dreamActions: {
-    flexDirection: "row",
-    gap: 7,
-  },
-
-  editButton: {
-    paddingHorizontal: 11,
-    paddingVertical: 8,
-    borderRadius: 9,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-  },
-
-  editButtonText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#D9456B",
-  },
-
-  deleteButton: {
-    paddingHorizontal: 11,
-    paddingVertical: 8,
-    borderRadius: 9,
-    backgroundColor: "#FBEDF1",
-  },
-
-  deleteButtonText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#C2405F",
-  },
-
-  emptyCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 20,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    alignItems: "center",
-  },
-
-  emptyIcon: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: "rgba(217, 69, 107, 0.09)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 15,
-  },
-
-  emptyIconText: {
-    fontSize: 25,
-    color: "#D9456B",
-  },
-
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#2E2430",
-  },
-
-  emptyText: {
-    marginTop: 8,
-    fontSize: 13,
-    lineHeight: 20,
-    color: "#6B5F68",
-    textAlign: "center",
-  },
-
-  emptyButton: {
-    marginTop: 17,
-    paddingHorizontal: 15,
-    paddingVertical: 11,
-    borderRadius: 11,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-  },
-
-  emptyButtonText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#D9456B",
-  },
-
-  footerCard: {
-    marginTop: 17,
-    padding: 20,
-    borderRadius: 18,
-    backgroundColor: "#FBEEF2",
-    alignItems: "center",
-  },
-
-  footerQuote: {
-    textAlign: "center",
-    fontSize: 14,
-    lineHeight: 21,
+  sheetTitle: {
+    fontSize: 17,
     fontWeight: "600",
-    color: "#D9456B",
+    color: T.label,
   },
 
-  footerText: {
-    marginTop: 7,
-    textAlign: "center",
-    fontSize: 11,
-    lineHeight: 17,
-    color: "#6B5F68",
+  sheetSave: {
+    fontSize: 17,
+    fontWeight: "600",
+    color: T.accent,
+    width: 70,
+    textAlign: "right",
   },
 
-  errorBox: {
-    backgroundColor: "#F9E3EA",
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderRadius: 12,
-    marginBottom: 15,
+  sheetSaveOff: {
+    color: T.label3,
   },
 
-  errorText: {
-    fontSize: 12,
-    lineHeight: 17,
-    color: "#C2405F",
+  sheetBody: {
+    gap: 16,
   },
 
-  loadingContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+  field: {
+    fontSize: 16,
+    color: T.label,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
 
-  loadingText: {
-    marginTop: 12,
-    fontSize: 12,
-    color: "#6B5F68",
+  fieldTall: {
+    minHeight: 92,
+  },
+
+  fieldLine: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: T.separator,
+    marginLeft: 16,
+  },
+
+  sheetButton: {
+    marginHorizontal: 16,
   },
 });

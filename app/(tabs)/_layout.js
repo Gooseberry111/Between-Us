@@ -7,13 +7,26 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { T } from "../../lib/theme";
 
 /*
- * A floating frosted capsule, lifted off the content,
- * with a soft pill behind the tab you are on.
+ * ==========================================
+ * TABS
+ * ==========================================
+ *
+ * A floating glass capsule, inset from the edges and
+ * lifted off the content, with a soft pill behind the
+ * tab you are on and the icon filled while active.
  */
+
+const ICONS = {
+  home: ["home-outline", "home"],
+  memories: ["time-outline", "time"],
+  dreams: ["sparkles-outline", "sparkles"],
+  insights: ["git-compare-outline", "git-compare"],
+  profile: ["person-outline", "person"],
+};
 
 function TabBarBackground() {
   return (
-    <View style={styles.barWrap}>
+    <View style={styles.bar}>
       <View style={styles.barFill} />
 
       {Platform.OS === "ios" ? (
@@ -26,123 +39,96 @@ function TabBarBackground() {
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
 
-  /*
-   * Whatever the system reserves at the bottom, plus a little
-   * breathing room of our own.
-   */
-  const bottomInset = Math.max(insets.bottom, Platform.OS === "ios" ? 20 : 10);
-
   return (
     <Tabs
       screenOptions={({ route }) => ({
         headerShown: false,
 
         tabBarActiveTintColor: T.accent,
-        tabBarInactiveTintColor: T.label2,
+        tabBarInactiveTintColor: "#8E8E93",
 
         tabBarBackground: () => <TabBarBackground />,
 
-        /*
-         * A solid bar, not a glass one.
-         *
-         * Anything translucent here showed the content
-         * scrolling underneath -- text sliding behind the
-         * icons, colours fighting the labels. The bar is now
-         * an opaque surface the screen ends at, running the
-         * whole way down under the phone's own navigation
-         * buttons so nothing shows between them either.
-         */
         tabBarStyle: {
           position: "absolute",
-          left: 16,
-          right: 16,
-          bottom: Math.max(insets.bottom, 10),
+          left: 14,
+          right: 14,
+          bottom: Math.max(insets.bottom, 16),
           height: 62,
-          borderRadius: 31,
+          borderRadius: 999,
           borderTopWidth: 0,
           backgroundColor: "transparent",
-          paddingTop: 8,
-          paddingBottom: 8,
-          paddingHorizontal: 6,
+          paddingTop: 5,
+          paddingBottom: 5,
+          paddingHorizontal: 5,
 
           shadowColor: "#000000",
-          shadowOpacity: 0.16,
-          shadowRadius: 22,
+          shadowOpacity: 0.18,
+          shadowRadius: 30,
           shadowOffset: { width: 0, height: 10 },
-          elevation: 14,
+          elevation: 16,
         },
 
         tabBarLabelStyle: {
-          fontSize: 9,
-          fontWeight: "700",
-          letterSpacing: 0.3,
+          fontSize: 10,
+          fontWeight: "500",
+          letterSpacing: 0,
           marginTop: 1,
         },
 
         tabBarIcon: ({ color, focused }) => {
-          let iconName;
-
-          if (route.name === "home") {
-            iconName = focused ? "home" : "home-outline";
-          } else if (route.name === "dates") {
-            iconName = focused ? "calendar" : "calendar-outline";
-          } else if (route.name === "dreams") {
-            iconName = focused ? "sparkles" : "sparkles-outline";
-          } else if (route.name === "insights") {
-            iconName = focused ? "stats-chart" : "stats-chart-outline";
-          } else if (route.name === "profile") {
-            iconName = focused ? "person" : "person-outline";
-          }
+          const [outline, filled] = ICONS[route.name] || ICONS.home;
 
           return (
-            <View style={focused ? styles.iconActive : styles.icon}>
-              <Ionicons name={iconName} size={19} color={color} />
+            <View style={[styles.icon, focused && styles.iconActive]}>
+              <Ionicons
+                name={focused ? filled : outline}
+                size={25}
+                color={color}
+              />
             </View>
           );
         },
       })}
     >
       <Tabs.Screen name="home" options={{ title: "Home" }} />
-      <Tabs.Screen name="dates" options={{ title: "Dates" }} />
-
-      {/* Timeline is gone: special dates and the dates screen
-          cover what it was for, and nobody could tell what it
-          was. The screen stays reachable, just not as a tab. */}
-      <Tabs.Screen name="memories" options={{ href: null }} />
+      <Tabs.Screen name="memories" options={{ title: "Timeline" }} />
       <Tabs.Screen name="dreams" options={{ title: "Dreams" }} />
       <Tabs.Screen name="insights" options={{ title: "Insights" }} />
       <Tabs.Screen name="profile" options={{ title: "Profile" }} />
+
+      {/* Dates keeps its screen; the prototype reaches it from
+          the Home quick actions rather than the tab bar. */}
+      <Tabs.Screen name="dates" options={{ href: null }} />
     </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
-  barWrap: {
+  bar: {
     ...StyleSheet.absoluteFillObject,
-    borderRadius: 31,
+    borderRadius: 999,
     overflow: "hidden",
   },
 
   barFill: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor:
-      Platform.OS === "ios" ? "rgba(255,255,255,0.82)" : "#FFFFFF",
+      Platform.OS === "ios"
+        ? "rgba(255,255,255,0.72)"
+        : "rgba(255,255,255,0.97)",
   },
 
   icon: {
-    width: 34,
-    height: 30,
+    width: 46,
+    height: 34,
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: 999,
   },
 
-  /* The soft pill behind the tab you are on. */
+  /* The soft pill behind the active tab. */
   iconActive: {
-    width: 44,
-    height: 30,
-    borderRadius: 15,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: T.fill4,
+    backgroundColor: T.fill3,
   },
 });

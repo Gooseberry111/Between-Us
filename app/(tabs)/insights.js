@@ -1,1346 +1,636 @@
-import { useCallback, useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { apiFetch } from "../../lib/api";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { GlassBackground, Card } from "../../components/Glass";
-import { getCachedData, setCachedData } from "../../lib/dataCache";
-import { Skeleton, SkeletonList } from "../../components/Skeleton";
-import { useAuth } from "@clerk/expo";
+import { useCallback, useState } from "react";
+import { RefreshControl, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "@clerk/expo";
 import { useFocusEffect, useRouter } from "expo-router";
+
+import { apiFetch } from "../../lib/api";
+import { getCachedData, setCachedData } from "../../lib/dataCache";
+import { useIsConnected } from "../../lib/connection";
+import { T } from "../../lib/theme";
+import {
+  Button,
+  Card,
+  Empty,
+  GlassButton,
+  LargeTitle,
+  NavBar,
+  Screen,
+  SubTitle,
+} from "../../components/ui";
+import ConnectFirst from "../../components/ConnectFirst";
+import { SkeletonList } from "../../components/Skeleton";
+
+/*
+ * ==========================================
+ * INSIGHTS
+ * ==========================================
+ *
+ * What the two of you share, and where you differ,
+ * read straight off the onboarding answers. Your
+ * colour on the left, theirs on the right, every
+ * time, so a glance is enough.
+ */
+
+const LOVE_LANGUAGES = [
+  "Quality time",
+  "Words",
+  "Touch",
+  "Acts of service",
+  "Gifts",
+];
+
+/* A rough strength for each language: picked ones lead. */
+function strengths(picked) {
+  const chosen = (picked || []).map((item) => String(item).toLowerCase());
+
+  return LOVE_LANGUAGES.map((language) => {
+    const key = language.toLowerCase().split(" ")[0];
+    const hit = chosen.findIndex((item) => item.includes(key));
+
+    return {
+      language,
+      value: hit === -1 ? 0.18 : Math.max(0.45, 0.95 - hit * 0.18),
+    };
+  });
+}
+
+function Trait({ label, mine, theirs, tip, partnerName }) {
+  if (!mine && !theirs) return null;
+
+  const match =
+    mine && theirs && mine.trim().toLowerCase() === theirs.trim().toLowerCase();
+
+  return (
+    <Card style={styles.trait}>
+      <View style={styles.traitHead}>
+        <Text style={styles.traitLabel}>{label}</Text>
+
+        <View
+          style={[styles.badge, match ? styles.badgeMatch : styles.badgeComp]}
+        >
+          {match ? (
+            <Ionicons name="checkmark" size={12} color="#1E8E3E" />
+          ) : null}
+
+          <Text
+            style={[
+              styles.badgeText,
+              { color: match ? "#1E8E3E" : T.accentText },
+            ]}
+          >
+            {match ? "Match" : "Complementary"}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.pair}>
+        <View style={styles.who}>
+          <Text style={styles.whoLabel}>You</Text>
+
+          <Text style={[styles.whoValue, { color: T.youText }]}>
+            {mine || "Not set"}
+          </Text>
+        </View>
+
+        <View style={[styles.who, styles.whoThem]}>
+          <Text style={styles.whoLabel}>{partnerName}</Text>
+
+          <Text style={[styles.whoValue, { color: T.accentText }]}>
+            {theirs || "Not set"}
+          </Text>
+        </View>
+      </View>
+
+      {!match && tip ? (
+        <View style={styles.tip}>
+          <Ionicons name="bulb" size={15} color={T.orange} />
+
+          <Text style={styles.tipText}>{tip}</Text>
+        </View>
+      ) : null}
+    </Card>
+  );
+}
 
 export default function InsightsScreen() {
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
+  const connected = useIsConnected();
 
   const cacheKey = userId ? `insights:${userId}` : null;
   const cached = cacheKey ? getCachedData(cacheKey) : undefined;
 
-  const [insights, setInsights] = useState(cached?.insights ?? null);
-  const [preferences, setPreferences] = useState(cached?.preferences ?? null);
-
-  /*
-   * Seeded from the session cache, same as your own answers.
-   * Leaving these null meant coming back to this screen showed
-   * an empty partner section for a beat, then everything
-   * jumped in as the requests landed.
-   */
-  const [partnerInsights, setPartnerInsights] = useState(
-    cached?.partnerInsights ?? null,
-  );
-  const [partnerPreferences, setPartnerPreferences] = useState(
-    cached?.partnerPreferences ?? null,
-  );
-
-  const [connection, setConnection] = useState(cached?.connection ?? null);
-
+  const [mine, setMine] = useState(cached?.mine ?? null);
+  const [myPrefs, setMyPrefs] = useState(cached?.myPrefs ?? null);
+  const [theirs, setTheirs] = useState(cached?.theirs ?? null);
+  const [theirPrefs, setTheirPrefs] = useState(cached?.theirPrefs ?? null);
+  const [partner, setPartner] = useState(cached?.partner ?? null);
   const [loading, setLoading] = useState(!cached);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState("");
 
-  const loadInsights = useCallback(async () => {
+  const load = useCallback(async () => {
     if (!isLoaded || !isSignedIn || !userId) {
       setLoading(false);
       return;
     }
 
     try {
-      setError("");
+      const [insightsData, prefsData, partnerData] = await Promise.all([
+        apiFetch(`/users/${userId}/insights`)
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null),
+        apiFetch(`/users/${userId}/preferences`)
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null),
+        apiFetch(`/users/${userId}/partner`)
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null),
+      ]);
 
-      const [insightsResponse, preferencesResponse, connectionResponse] =
-        await Promise.all([
-          apiFetch(`/users/${userId}/insights`),
-          apiFetch(`/users/${userId}/preferences`),
-          apiFetch(`/users/${userId}/connections`),
-        ]);
+      setMine(insightsData?.insights || null);
+      setMyPrefs(prefsData?.preferences || prefsData || null);
+      setTheirs(partnerData?.insights || null);
+      setTheirPrefs(partnerData?.preferences || null);
+      setPartner(partnerData?.partner || null);
 
-      const insightsData = await insightsResponse.json();
-      const preferencesData = await preferencesResponse.json();
-      const connectionData = await connectionResponse.json();
-
-      console.log("INSIGHTS RESPONSE:", insightsData);
-      console.log("PREFERENCES RESPONSE:", preferencesData);
-      console.log("INSIGHTS CONNECTIONS:", connectionData);
-
-      if (!insightsResponse.ok) {
-        throw new Error(insightsData?.error || "Unable to load your insights.");
-      }
-
-      setInsights(insightsData?.insights || null);
-
-      setPreferences(preferencesData?.preferences || preferencesData || null);
-
-      const connections = Array.isArray(connectionData) ? connectionData : [];
-
-      const accepted = connections.find(
-        (item) => item?.status?.toLowerCase() === "accepted",
-      );
-
-      setConnection(accepted || null);
-
-      /*
-       * ==========================================
-       * LOAD PARTNER DATA
-       * ==========================================
-       */
-
-      if (accepted?.other_clerk_id) {
-        const partnerClerkId = accepted.other_clerk_id;
-
-        /*
-         * Asked under your own id on purpose: the API refuses a
-         * path naming anyone but you, so the server decides who
-         * your partner is and what of theirs you may see. Asking
-         * by their id used to come back refused, which showed up
-         * on screen as every answer being "Not set".
-         */
-        const partnerResponse = await apiFetch(`/users/${userId}/partner`);
-
-        const partnerData = await partnerResponse.json();
-
-        console.log("PARTNER RESPONSE:", partnerData);
-
-        setPartnerInsights(partnerData?.insights || null);
-
-        setPartnerPreferences(partnerData?.preferences || null);
-      } else {
-        setPartnerInsights(null);
-        setPartnerPreferences(null);
+      if (cacheKey) {
+        setCachedData(cacheKey, {
+          mine: insightsData?.insights || null,
+          myPrefs: prefsData?.preferences || prefsData || null,
+          theirs: partnerData?.insights || null,
+          theirPrefs: partnerData?.preferences || null,
+          partner: partnerData?.partner || null,
+        });
       }
     } catch (err) {
       console.log("INSIGHTS LOAD ERROR:", err);
-
-      setError(err?.message || "Unable to load your insights.");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [isLoaded, isSignedIn, userId]);
+  }, [isLoaded, isSignedIn, userId, cacheKey]);
 
-  /* Tabs stay mounted; refetch when this one comes back into view. */
   useFocusEffect(
     useCallback(() => {
-      loadInsights();
-    }, [loadInsights]),
+      load();
+    }, [load]),
   );
 
-  useEffect(() => {
-    if (loading || !cacheKey) return;
-
-    setCachedData(cacheKey, {
-      insights,
-      preferences,
-      partnerInsights,
-      partnerPreferences,
-      connection,
-    });
-  }, [
-    loading,
-    cacheKey,
-    insights,
-    preferences,
-    partnerInsights,
-    partnerPreferences,
-    connection,
-  ]);
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-    loadInsights();
-  };
-
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.screen} edges={["top"]}>
-        <GlassBackground>
-          <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
-            <Skeleton width={96} height={11} radius={6} />
-            <Skeleton
-              width="62%"
-              height={26}
-              radius={9}
-              style={{ marginTop: 12 }}
-            />
-
-            <View style={{ marginTop: 26 }}>
-              <SkeletonList count={3} />
-            </View>
-          </View>
-        </GlassBackground>
-      </SafeAreaView>
-    );
+  if (connected === false) {
+    return <ConnectFirst feature="Insights" showBack={false} />;
   }
 
-  /*
-   * ==========================================
-   * BASIC DATA
-   * ==========================================
-   */
+  const partnerName =
+    partner?.nickname?.trim() || partner?.first_name?.trim() || "Them";
 
-  const partnerName = connection?.other_first_name?.trim() || "Your partner";
+  const samePersonality =
+    mine?.personality_type &&
+    theirs?.personality_type &&
+    mine.personality_type === theirs.personality_type;
 
-  const relationshipType = connection?.relationship_type
-    ? connection.relationship_type.charAt(0).toUpperCase() +
-      connection.relationship_type.slice(1)
-    : "Relationship";
+  const myLanguages = strengths(myPrefs?.love_languages);
+  const theirLanguages = strengths(theirPrefs?.love_languages);
 
-  const loveLanguages = Array.isArray(preferences?.love_languages)
-    ? preferences.love_languages
-    : [];
-
-  const partnerLoveLanguages = Array.isArray(partnerPreferences?.love_languages)
-    ? partnerPreferences.love_languages
-    : [];
-
-  const focusAreas = Array.isArray(insights?.focus_areas)
-    ? insights.focus_areas
-    : [];
-
-  const partnerFocusAreas = Array.isArray(partnerInsights?.focus_areas)
-    ? partnerInsights.focus_areas
-    : [];
-
-  /*
-   * ==========================================
-   * COMMON DATA
-   * ==========================================
-   */
-
-  const sharedLoveLanguages = loveLanguages.filter((language) =>
-    partnerLoveLanguages.includes(language),
+  const topShared = myLanguages.find(
+    (item, index) => item.value > 0.4 && theirLanguages[index].value > 0.4,
   );
 
-  const sharedFocusAreas = focusAreas.filter((focusArea) =>
-    partnerFocusAreas.includes(focusArea),
-  );
-
-  const sharedInterests = [];
-
-  if (
-    preferences?.music_genre &&
-    partnerPreferences?.music_genre &&
-    preferences.music_genre.toLowerCase() ===
-      partnerPreferences.music_genre.toLowerCase()
-  ) {
-    sharedInterests.push(`You both enjoy ${preferences.music_genre} music`);
-  }
-
-  if (
-    preferences?.favorite_drink &&
-    partnerPreferences?.favorite_drink &&
-    preferences.favorite_drink.trim().toLowerCase() ===
-      partnerPreferences.favorite_drink.trim().toLowerCase()
-  ) {
-    sharedInterests.push(`You both enjoy ${preferences.favorite_drink.trim()}`);
-  }
-
-  /*
-   * ==========================================
-   * DIFFERENCES
-   * ==========================================
-   */
-
-  const differences = [];
-
-  if (
-    preferences?.movie_genre &&
-    partnerPreferences?.movie_genre &&
-    preferences.movie_genre.toLowerCase() !==
-      partnerPreferences.movie_genre.toLowerCase()
-  ) {
-    differences.push(
-      `You prefer ${preferences.movie_genre} movies while ${partnerName} prefers ${partnerPreferences.movie_genre}.`,
-    );
-  }
-
-  if (
-    preferences?.favorite_food &&
-    partnerPreferences?.favorite_food &&
-    preferences.favorite_food.trim().toLowerCase() !==
-      partnerPreferences.favorite_food.trim().toLowerCase()
-  ) {
-    differences.push(
-      `You enjoy ${preferences.favorite_food}, while ${partnerName} enjoys ${partnerPreferences.favorite_food}.`,
-    );
-  }
-
-  /*
-   * ==========================================
-   * RELATIONSHIP INSIGHT
-   * ==========================================
-   */
-
-  let relationshipInsight =
-    "Keep learning about each other. The more you understand each other's preferences, the easier it becomes to make everyday moments meaningful.";
-
-  if (
-    insights?.personality_type &&
-    partnerInsights?.personality_type &&
-    insights.personality_type === partnerInsights.personality_type
-  ) {
-    relationshipInsight = `You are both ${insights.personality_type.toLowerCase()}s, which may mean you naturally understand each other's need for space and comfortable one-on-one moments.`;
-  }
-
-  if (
-    insights?.conflict_style &&
-    partnerInsights?.conflict_style &&
-    insights.conflict_style === partnerInsights.conflict_style
-  ) {
-    relationshipInsight = `You both prefer to ${insights.conflict_style.toLowerCase()} during conflict. Giving each other that same kind of support can make difficult conversations easier.`;
-  }
-
-  if (sharedLoveLanguages.length > 0 && sharedLoveLanguages.length <= 2) {
-    relationshipInsight = `You both value ${sharedLoveLanguages.join(
-      " and ",
-    )}. Paying attention to this shared love language can make small everyday gestures feel more meaningful.`;
-  }
-
-  if (sharedLoveLanguages.length > 2) {
-    relationshipInsight = `You share several love languages, including ${sharedLoveLanguages
-      .slice(0, 3)
-      .join(
-        ", ",
-      )}. You already have several natural ways of showing care to each other.`;
-  }
+  const nothingYet = !mine && !theirs && !myPrefs && !theirPrefs;
 
   return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
-      <GlassBackground>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor="#D9456B"
-            />
-          }
-          contentContainerStyle={styles.scrollContent}
-        >
-          <View style={styles.container}>
-            {/* HEADER */}
+    <Screen
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => {
+            setRefreshing(true);
+            load();
+          }}
+          tintColor={T.accent}
+        />
+      }
+    >
+      <NavBar>
+        <GlassButton
+          icon="create-outline"
+          label="Edit your answers"
+          onPress={() => router.push("/onboarding")}
+        />
+      </NavBar>
 
-            <View style={styles.header}>
-              <View>
-                <Text style={styles.brand}>BETWEEN US</Text>
+      <LargeTitle>Insights</LargeTitle>
 
-                <Text style={styles.pageTitle}>Insights</Text>
+      <SubTitle>What you share, and where you differ.</SubTitle>
+
+      {loading ? (
+        <View style={{ paddingHorizontal: 16 }}>
+          <SkeletonList count={3} />
+        </View>
+      ) : nothingYet ? (
+        <Empty
+          icon="git-compare-outline"
+          title="Answer a few questions first"
+          text="Insights come from what you each said when you joined."
+          action={{
+            title: "Finish Your Answers",
+            icon: "create-outline",
+            onPress: () => router.push("/onboarding"),
+          }}
+        />
+      ) : (
+        <>
+          {/* THE OVERLAP */}
+
+          {samePersonality ? (
+            <Card style={styles.venn}>
+              <View style={styles.vennArt}>
+                <View style={[styles.vennCircle, styles.vennYou]}>
+                  <Text style={[styles.vennLabel, { color: T.youText }]}>
+                    You
+                  </Text>
+                </View>
+
+                <View style={[styles.vennCircle, styles.vennThem]}>
+                  <Text style={[styles.vennLabel, { color: T.accentText }]}>
+                    {partnerName}
+                  </Text>
+                </View>
+
+                <View style={styles.vennMid}>
+                  <Text style={styles.vennMidText}>
+                    Both {String(mine.personality_type).toLowerCase()}
+                  </Text>
+                </View>
               </View>
 
-              <View style={styles.headerIcon}>
-                <Text style={styles.headerIconText}>◌</Text>
-              </View>
-            </View>
-
-            {error ? (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            ) : null}
-
-            {/* HERO */}
-
-            <Card dark style={styles.heroCard}>
-              <View style={styles.heroIcon}>
-                <Text style={styles.heroHeart}>♡</Text>
-              </View>
-
-              <Text style={styles.heroTitle}>
-                Understanding what makes you two work.
+              <Text style={styles.vennTitle}>
+                You are both {String(mine.personality_type).toLowerCase()}
               </Text>
 
-              <Text style={styles.heroText}>
-                Between Us compares the things you both shared to help you
-                understand each other better.
+              <Text style={styles.vennText}>
+                The dates that suit you are the ones that suit you both.
               </Text>
             </Card>
+          ) : null}
 
-            {/* RELATIONSHIP */}
+          <Trait
+            label="Personality"
+            mine={mine?.personality_type}
+            theirs={theirs?.personality_type}
+            partnerName={partnerName}
+            tip={`One of you recharges alone and the other with people. Plan one of each this month.`}
+          />
 
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>YOUR RELATIONSHIP</Text>
+          <Trait
+            label="In a disagreement"
+            mine={mine?.conflict_style}
+            theirs={theirs?.conflict_style}
+            partnerName={partnerName}
+            tip={`Agree on a pause word. Whoever needs time takes twenty minutes and promises to come back.`}
+          />
 
-              <Card style={styles.connectionCard}>
-                <View style={styles.connectionAvatar}>
-                  <Text style={styles.connectionAvatarText}>
-                    {partnerName.charAt(0).toUpperCase()}
-                  </Text>
-                </View>
+          <Trait
+            label="Showing affection"
+            mine={myPrefs?.affection_style}
+            theirs={theirPrefs?.affection_style}
+            partnerName={partnerName}
+            tip={`You show love differently. Say out loud what you each notice most.`}
+          />
 
-                <View style={styles.connectionInfo}>
-                  <Text style={styles.connectionLabel}>CONNECTED WITH</Text>
+          <Trait
+            label="Staying in touch"
+            mine={myPrefs?.communication_frequency}
+            theirs={theirPrefs?.communication_frequency}
+            partnerName={partnerName}
+            tip={`Different rhythms are fine as long as neither of you is guessing. Name a time you both check in.`}
+          />
 
-                  <Text style={styles.connectionName}>{partnerName}</Text>
+          {/* LOVE LANGUAGES */}
 
-                  <Text style={styles.connectionType}>{relationshipType}</Text>
-                </View>
-              </Card>
+          <Card style={styles.languages}>
+            <View style={styles.traitHead}>
+              <Text style={styles.traitLabel}>Love languages</Text>
             </View>
 
-            {!connection ? (
-              <Card style={styles.noConnectionCard}>
-                <Text style={styles.noConnectionTitle}>
-                  Connect with someone
-                </Text>
+            <View style={styles.legend}>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: T.you }]} />
 
-                <Text style={styles.noConnectionText}>
-                  Once you connect with your partner, you'll be able to see
-                  shared insights and discover what makes your relationship
-                  unique.
-                </Text>
-              </Card>
-            ) : null}
-
-            {/* YOUR INSIGHTS */}
-
-            <View style={styles.section}>
-              <View style={styles.sectionHead}>
-                <Text style={styles.sectionLabel}>YOUR INSIGHTS</Text>
-
-                {/* People change. This is where they say so. */}
-                <TouchableOpacity
-                  onPress={() => router.push("/onboarding")}
-                  activeOpacity={0.7}
-                  style={styles.editChip}
-                >
-                  <Ionicons name="create-outline" size={13} color="#D9456B" />
-
-                  <Text style={styles.editChipText}>Edit</Text>
-                </TouchableOpacity>
+                <Text style={styles.legendText}>You</Text>
               </View>
 
-              <View style={styles.aboutGrid}>
-                <Card style={styles.smallCard}>
-                  <Text style={styles.cardEyebrow}>PERSONALITY</Text>
+              <View style={styles.legendItem}>
+                <View
+                  style={[styles.legendDot, { backgroundColor: T.accent }]}
+                />
 
-                  <Text style={styles.smallCardValue}>
-                    {insights?.personality_type || "Not set"}
-                  </Text>
-                </Card>
-
-                <Card style={styles.smallCard}>
-                  <Text style={styles.cardEyebrow}>CONFLICT STYLE</Text>
-
-                  <Text style={styles.smallCardValue}>
-                    {insights?.conflict_style || "Not set"}
-                  </Text>
-                </Card>
+                <Text style={styles.legendText}>{partnerName}</Text>
               </View>
             </View>
 
-            {/* PARTNER */}
+            {myLanguages.map((item, index) => (
+              <View key={item.language} style={styles.llRow}>
+                <Text style={styles.llLabel}>{item.language}</Text>
 
-            {connection ? (
-              <View style={styles.section}>
-                <Text style={styles.sectionLabel}>
-                  ABOUT {partnerName.toUpperCase()}
-                </Text>
-
-                <View style={styles.aboutGrid}>
-                  <Card style={styles.smallCard}>
-                    <Text style={styles.cardEyebrow}>PERSONALITY</Text>
-
-                    <Text style={styles.smallCardValue}>
-                      {partnerInsights?.personality_type || "Not set"}
-                    </Text>
-                  </Card>
-
-                  <Card style={styles.smallCard}>
-                    <Text style={styles.cardEyebrow}>CONFLICT STYLE</Text>
-
-                    <Text style={styles.smallCardValue}>
-                      {partnerInsights?.conflict_style || "Not set"}
-                    </Text>
-                  </Card>
-                </View>
-              </View>
-            ) : null}
-
-            {/* SHARED */}
-
-            {connection ? (
-              <View style={styles.section}>
-                <Text style={styles.sectionLabel}>WHAT YOU HAVE IN COMMON</Text>
-
-                <Card style={styles.sharedCard}>
-                  {sharedLoveLanguages.length > 0 ? (
-                    <InsightRow
-                      title="Shared love language"
-                      value={sharedLoveLanguages.join(", ")}
-                    />
-                  ) : null}
-
-                  {sharedFocusAreas.length > 0 ? (
-                    <InsightRow
-                      title="Shared focus"
-                      value={sharedFocusAreas.join(", ")}
-                    />
-                  ) : null}
-
-                  {sharedInterests.length > 0
-                    ? sharedInterests.map((interest, index) => (
-                        <InsightRow
-                          key={`${interest}-${index}`}
-                          title="Shared interest"
-                          value={interest}
-                        />
-                      ))
-                    : null}
-
-                  {sharedLoveLanguages.length === 0 &&
-                  sharedFocusAreas.length === 0 &&
-                  sharedInterests.length === 0 ? (
-                    <Text style={styles.emptyText}>
-                      You are still discovering what you have in common.
-                    </Text>
-                  ) : null}
-                </Card>
-              </View>
-            ) : null}
-
-            {/* DIFFERENCES */}
-
-            {connection ? (
-              <View style={styles.section}>
-                <Text style={styles.sectionLabel}>WHERE YOU DIFFER</Text>
-
-                <Card style={styles.sharedCard}>
-                  {differences.length > 0 ? (
-                    differences.map((difference, index) => (
-                      <View
-                        key={`${difference}-${index}`}
-                        style={[
-                          styles.differenceRow,
-                          index < differences.length - 1 && styles.rowDivider,
-                        ]}
-                      >
-                        <View style={styles.dot} />
-
-                        <Text style={styles.differenceText}>{difference}</Text>
-                      </View>
-                    ))
-                  ) : (
-                    <Text style={styles.emptyText}>
-                      You have many similarities so far. Keep answering
-                      questions to discover more about each other.
-                    </Text>
-                  )}
-                </Card>
-              </View>
-            ) : null}
-
-            {/* LOVE LANGUAGES */}
-
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>YOUR LOVE LANGUAGES</Text>
-
-              <Card style={styles.loveCard}>
-                {loveLanguages.length > 0 ? (
-                  loveLanguages.map((language, index) => (
+                <View style={styles.bars}>
+                  <View style={styles.barTrack}>
                     <View
                       style={[
-                        styles.languageRow,
-                        index < loveLanguages.length - 1 && styles.rowDivider,
+                        styles.bar,
+                        {
+                          width: `${item.value * 100}%`,
+                          backgroundColor: T.you,
+                        },
                       ]}
-                      key={`${language}-${index}`}
-                    >
-                      <View style={styles.languageNumber}>
-                        <Text style={styles.languageNumberText}>
-                          {index + 1}
-                        </Text>
-                      </View>
-
-                      <Text style={styles.languageText}>{language}</Text>
-                    </View>
-                  ))
-                ) : (
-                  <Text style={styles.emptyText}>
-                    Your love languages have not been added yet.
-                  </Text>
-                )}
-              </Card>
-            </View>
-
-            {/* PARTNER LOVE LANGUAGE */}
-
-            {connection ? (
-              <View style={styles.section}>
-                <Text style={styles.sectionLabel}>
-                  {partnerName.toUpperCase()}'S LOVE LANGUAGES
-                </Text>
-
-                <Card style={styles.loveCard}>
-                  {partnerLoveLanguages.length > 0 ? (
-                    partnerLoveLanguages.map((language, index) => (
-                      <View
-                        style={[
-                          styles.languageRow,
-                          index < partnerLoveLanguages.length - 1 &&
-                            styles.rowDivider,
-                        ]}
-                        key={`${language}-${index}`}
-                      >
-                        <View style={styles.languageNumber}>
-                          <Text style={styles.languageNumberText}>
-                            {index + 1}
-                          </Text>
-                        </View>
-
-                        <Text style={styles.languageText}>{language}</Text>
-                      </View>
-                    ))
-                  ) : (
-                    <Text style={styles.emptyText}>
-                      Your partner has not added any love languages yet.
-                    </Text>
-                  )}
-                </Card>
-              </View>
-            ) : null}
-
-            {/* PERSONALIZED INSIGHT */}
-
-            {connection ? (
-              <View style={styles.section}>
-                <Text style={styles.sectionLabel}>A LITTLE INSIGHT</Text>
-
-                <Card style={styles.insightCard}>
-                  <View style={styles.insightIcon}>
-                    <Text style={styles.insightIconText}>♡</Text>
+                    />
                   </View>
 
-                  <Text style={styles.cardTitle}>What this tells us</Text>
-
-                  <Text style={styles.cardDescription}>
-                    {relationshipInsight}
-                  </Text>
-                </Card>
-              </View>
-            ) : null}
-
-            {/* SHARED FOCUS AREAS */}
-
-            {connection && sharedFocusAreas.length > 0 ? (
-              <View style={styles.section}>
-                <Text style={styles.sectionLabel}>THINGS TO DO TOGETHER</Text>
-
-                <Card style={styles.goalsCard}>
-                  {sharedFocusAreas.map((focusArea, index) => (
+                  <View style={styles.barTrack}>
                     <View
                       style={[
-                        styles.goalRow,
-                        index < sharedFocusAreas.length - 1 &&
-                          styles.rowDivider,
+                        styles.bar,
+                        {
+                          width: `${theirLanguages[index].value * 100}%`,
+                          backgroundColor: T.accent,
+                        },
                       ]}
-                      key={`${focusArea}-${index}`}
-                    >
-                      <View style={styles.goalIcon}>
-                        <Text style={styles.goalIconText}>+</Text>
-                      </View>
-
-                      <Text style={styles.goalText}>{focusArea}</Text>
-                    </View>
-                  ))}
-                </Card>
+                    />
+                  </View>
+                </View>
               </View>
-            ) : null}
+            ))}
+          </Card>
 
-            {/* FAVORITES */}
+          {/* THIS WEEK */}
 
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>YOUR FAVORITES</Text>
+          {topShared ? (
+            <Card style={styles.suggest}>
+              <Text style={styles.suggestKicker}>This week, try</Text>
 
-              <Card style={styles.favoritesCard}>
-                <FavoriteRow label="Food" value={preferences?.favorite_food} />
-
-                <View style={styles.divider} />
-
-                <FavoriteRow
-                  label="Snack"
-                  value={preferences?.favorite_snack}
-                />
-
-                <View style={styles.divider} />
-
-                <FavoriteRow
-                  label="Drink"
-                  value={preferences?.favorite_drink}
-                />
-
-                <View style={styles.divider} />
-
-                <FavoriteRow
-                  label="Color"
-                  value={preferences?.favorite_color}
-                />
-
-                <View style={styles.divider} />
-
-                <FavoriteRow label="Music" value={preferences?.music_genre} />
-
-                <View style={styles.divider} />
-
-                <FavoriteRow label="Movies" value={preferences?.movie_genre} />
-              </Card>
-            </View>
-
-            {/* PARTNER FAVORITES */}
-
-            {connection ? (
-              <View style={styles.section}>
-                <Text style={styles.sectionLabel}>
-                  {partnerName.toUpperCase()}'S FAVORITES
-                </Text>
-
-                <Card style={styles.favoritesCard}>
-                  <FavoriteRow
-                    label="Food"
-                    value={partnerPreferences?.favorite_food}
-                  />
-
-                  <View style={styles.divider} />
-
-                  <FavoriteRow
-                    label="Snack"
-                    value={partnerPreferences?.favorite_snack}
-                  />
-
-                  <View style={styles.divider} />
-
-                  <FavoriteRow
-                    label="Drink"
-                    value={partnerPreferences?.favorite_drink}
-                  />
-
-                  <View style={styles.divider} />
-
-                  <FavoriteRow
-                    label="Color"
-                    value={partnerPreferences?.favorite_color}
-                  />
-
-                  <View style={styles.divider} />
-
-                  <FavoriteRow
-                    label="Music"
-                    value={partnerPreferences?.music_genre}
-                  />
-
-                  <View style={styles.divider} />
-
-                  <FavoriteRow
-                    label="Movies"
-                    value={partnerPreferences?.movie_genre}
-                  />
-                </Card>
-              </View>
-            ) : null}
-
-            {/* FOOTER */}
-
-            <View style={styles.footer}>
-              <Text style={styles.footerHeart}>♡</Text>
-
-              <Text style={styles.footerTitle}>BETWEEN US</Text>
-
-              <Text style={styles.footerText}>
-                Understanding each other is part of loving each other.
+              <Text style={styles.suggestTitle}>
+                {topShared.language === "Quality time"
+                  ? "A phone-free evening walk"
+                  : topShared.language === "Words"
+                    ? "Telling each other one specific thing"
+                    : topShared.language === "Touch"
+                      ? "Ten unhurried minutes on the sofa"
+                      : topShared.language === "Gifts"
+                        ? "Something small, picked on purpose"
+                        : "Doing one chore the other hates"}
               </Text>
-            </View>
-          </View>
-        </ScrollView>
-      </GlassBackground>
-    </SafeAreaView>
+
+              <Text style={styles.suggestText}>
+                {topShared.language} matters to both of you.
+              </Text>
+
+              <Button
+                title="Add to Dates"
+                icon="calendar-outline"
+                kind="tinted"
+                size="small"
+                style={styles.suggestButton}
+                onPress={() => router.push("/(tabs)/dates")}
+              />
+            </Card>
+          ) : null}
+        </>
+      )}
+    </Screen>
   );
 }
-
-/*
- * ==========================================
- * SMALL COMPONENTS
- * ==========================================
- */
-
-function FavoriteRow({ label, value }) {
-  return (
-    <View style={styles.favoriteRow}>
-      <Text style={styles.favoriteLabel}>{label}</Text>
-
-      <Text style={styles.favoriteValue}>{value || "Not set"}</Text>
-    </View>
-  );
-}
-
-function InsightRow({ title, value }) {
-  return (
-    <View style={styles.insightRow}>
-      <View style={styles.insightBullet}>
-        <Text style={styles.insightBulletText}>✓</Text>
-      </View>
-
-      <View style={styles.insightRowContent}>
-        <Text style={styles.insightRowTitle}>{title}</Text>
-
-        <Text style={styles.insightRowValue}>{value}</Text>
-      </View>
-    </View>
-  );
-}
-
-function LoadingScreen() {
-  return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
-      <GlassBackground>
-        <View style={styles.loadingContainer}>
-          <View style={styles.loadingLogo}>
-            <Text style={styles.loadingHeart}>♡</Text>
-          </View>
-
-          <Text style={styles.loadingTitle}>Between Us</Text>
-
-          <ActivityIndicator
-            size="small"
-            color="#D9456B"
-            style={styles.loadingIndicator}
-          />
-        </View>
-      </GlassBackground>
-    </SafeAreaView>
-  );
-}
-
-/*
- * ==========================================
- * STYLES
- * ==========================================
- */
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
+  venn: {
+    padding: 16,
   },
 
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 35,
-  },
-
-  container: {
-    paddingHorizontal: 22,
-    paddingTop: 22,
-  },
-
-  header: {
-    flexDirection: "row",
+  vennArt: {
+    height: 120,
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 28,
+    justifyContent: "center",
+    marginBottom: 14,
   },
 
-  brand: {
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 2.2,
-    color: "#D9456B",
-  },
-
-  pageTitle: {
-    marginTop: 7,
-    fontSize: 28,
-    lineHeight: 34,
-    fontWeight: "700",
-    color: "#2E2430",
-  },
-
-  headerIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: "rgba(217, 69, 107, 0.09)",
+  vennCircle: {
+    position: "absolute",
+    width: 112,
+    height: 112,
+    borderRadius: 56,
     alignItems: "center",
     justifyContent: "center",
   },
 
-  headerIconText: {
-    fontSize: 25,
-    color: "#D9456B",
+  vennYou: {
+    left: "50%",
+    marginLeft: -98,
+    backgroundColor: "rgba(155,107,255,0.22)",
   },
 
-  heroCard: {
-    backgroundColor: "#D9456B",
-    borderRadius: 22,
-    padding: 20,
+  vennThem: {
+    left: "50%",
+    marginLeft: -14,
+    backgroundColor: "rgba(240,63,169,0.22)",
   },
 
-  heroIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: "rgba(255, 255, 255, 0.18)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 15,
-  },
-
-  heroHeart: {
-    fontSize: 27,
-    color: "#FFFFFF",
-  },
-
-  heroTitle: {
-    fontSize: 21,
-    lineHeight: 27,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-
-  heroText: {
-    marginTop: 9,
+  vennLabel: {
     fontSize: 13,
+    fontWeight: "700",
+  },
+
+  vennMid: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: "#FFFFFF",
+  },
+
+  vennMidText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: T.label,
+  },
+
+  vennTitle: {
+    fontSize: 17,
+    fontWeight: "600",
+    color: T.label,
+  },
+
+  vennText: {
+    fontSize: 14,
     lineHeight: 20,
-    color: "#EBC9D5",
+    color: T.label2,
+    marginTop: 4,
   },
 
-  section: {
-    marginTop: 28,
+  trait: {
+    padding: 16,
   },
 
-  sectionHead: {
+  traitHead: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
 
-  editChip: {
+  traitLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+    color: T.label2,
+  },
+
+  badge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 11,
-    paddingVertical: 6,
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: "#F9E3EA",
   },
 
-  editChipText: {
+  badgeMatch: {
+    backgroundColor: "rgba(52,199,89,0.14)",
+  },
+
+  badgeComp: {
+    backgroundColor: T.accentTint,
+  },
+
+  badgeText: {
     fontSize: 12,
-    fontWeight: "800",
-    color: "#D9456B",
+    fontWeight: "600",
   },
 
-  sectionLabel: {
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1.7,
-    color: "#9C8F97",
-    marginBottom: 9,
-  },
-
-  connectionCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 18,
-    padding: 17,
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-  },
-
-  connectionAvatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: "rgba(217, 69, 107, 0.09)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  connectionAvatarText: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#D9456B",
-  },
-
-  connectionInfo: {
-    flex: 1,
-    marginLeft: 13,
-  },
-
-  connectionLabel: {
-    fontSize: 8,
-    fontWeight: "800",
-    letterSpacing: 1.4,
-    color: "#9C8F97",
-  },
-
-  connectionName: {
-    marginTop: 3,
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#2E2430",
-  },
-
-  connectionType: {
-    marginTop: 2,
-    fontSize: 11,
-    color: "#6B5F68",
-  },
-
-  noConnectionCard: {
-    marginTop: 18,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 18,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-  },
-
-  noConnectionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#2E2430",
-  },
-
-  noConnectionText: {
-    marginTop: 7,
-    fontSize: 12,
-    lineHeight: 18,
-    color: "#6B5F68",
-  },
-
-  aboutGrid: {
+  pair: {
     flexDirection: "row",
     gap: 10,
+    marginTop: 14,
   },
 
-  smallCard: {
+  who: {
     flex: 1,
-    minHeight: 105,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
+    backgroundColor: T.youTint,
+    borderRadius: 14,
+    padding: 12,
   },
 
-  smallCardValue: {
-    marginTop: 12,
-    fontSize: 15,
-    lineHeight: 20,
-    fontWeight: "700",
-    color: "#2E2430",
+  whoThem: {
+    backgroundColor: T.accentTint,
   },
 
-  insightCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 18,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    marginBottom: 10,
-  },
-
-  insightIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 13,
-  },
-
-  insightIconText: {
-    fontSize: 20,
-    color: "#D9456B",
-  },
-
-  cardEyebrow: {
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 1.3,
-    color: "#9C8F97",
-  },
-
-  cardTitle: {
-    marginTop: 7,
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#2E2430",
-  },
-
-  cardDescription: {
-    marginTop: 7,
+  whoLabel: {
     fontSize: 12,
-    lineHeight: 18,
-    color: "#6B5F68",
+    color: T.label2,
   },
 
-  sharedCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 18,
-    paddingHorizontal: 17,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-  },
-
-  insightRow: {
-    minHeight: 70,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  insightBullet: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  insightBulletText: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#D9456B",
-  },
-
-  insightRowContent: {
-    flex: 1,
-    marginLeft: 12,
-  },
-
-  insightRowTitle: {
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1,
-    color: "#9C8F97",
-  },
-
-  insightRowValue: {
-    marginTop: 4,
-    fontSize: 14,
-    lineHeight: 19,
+  whoValue: {
+    fontSize: 15,
     fontWeight: "600",
-    color: "#2E2430",
+    marginTop: 3,
   },
 
-  differenceRow: {
-    minHeight: 72,
+  tip: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 14,
+    padding: 12,
+    borderRadius: 14,
+    backgroundColor: T.fill4,
+  },
+
+  tipText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+    color: T.label2,
+  },
+
+  languages: {
+    padding: 16,
+  },
+
+  legend: {
+    flexDirection: "row",
+    gap: 16,
+    marginTop: 12,
+  },
+
+  legendItem: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 6,
   },
 
-  rowDivider: {
-    borderBottomWidth: 1,
-    borderBottomColor: "#FAECF1",
+  legendDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
   },
 
-  dot: {
-    width: 8,
+  legendText: {
+    fontSize: 13,
+    color: T.label2,
+  },
+
+  llRow: {
+    marginTop: 14,
+  },
+
+  llLabel: {
+    fontSize: 14,
+    color: T.label,
+    marginBottom: 6,
+  },
+
+  bars: {
+    gap: 5,
+  },
+
+  barTrack: {
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#D9456B",
+    backgroundColor: T.fill4,
+    overflow: "hidden",
   },
 
-  differenceText: {
-    flex: 1,
-    marginLeft: 13,
-    fontSize: 13,
-    lineHeight: 19,
-    color: "#2E2430",
+  bar: {
+    height: 8,
+    borderRadius: 4,
   },
 
-  loveCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 18,
-    paddingHorizontal: 17,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
+  suggest: {
+    padding: 16,
+    backgroundColor: T.accent,
   },
 
-  languageRow: {
-    minHeight: 58,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  languageNumber: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  languageNumberText: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: "#D9456B",
-  },
-
-  languageText: {
-    marginLeft: 12,
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#2E2430",
-  },
-
-  goalsCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 18,
-    paddingHorizontal: 17,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-  },
-
-  goalRow: {
-    minHeight: 62,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  goalIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  goalIconText: {
-    fontSize: 18,
-    fontWeight: "500",
-    color: "#D9456B",
-  },
-
-  goalText: {
-    marginLeft: 12,
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#2E2430",
-  },
-
-  favoritesCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 18,
-    paddingHorizontal: 17,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-  },
-
-  favoriteRow: {
-    minHeight: 52,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-
-  favoriteLabel: {
-    fontSize: 11,
+  suggestKicker: {
+    fontSize: 12,
     fontWeight: "700",
-    color: "#9C8F97",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    color: "rgba(255,255,255,0.75)",
   },
 
-  favoriteValue: {
-    flex: 1,
-    marginLeft: 15,
-    textAlign: "right",
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#2E2430",
-  },
-
-  divider: {
-    height: 1,
-    backgroundColor: "#FAECF1",
-  },
-
-  emptyText: {
-    paddingVertical: 20,
-    fontSize: 12,
-    lineHeight: 18,
-    color: "#6B5F68",
-  },
-
-  errorBox: {
-    backgroundColor: "#F9E3EA",
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderRadius: 12,
-    marginBottom: 15,
-  },
-
-  errorText: {
-    fontSize: 12,
-    lineHeight: 17,
-    color: "#C2405F",
-  },
-
-  footer: {
-    marginTop: 30,
-    paddingTop: 25,
-    paddingBottom: 10,
-    alignItems: "center",
-  },
-
-  footerHeart: {
-    fontSize: 25,
-    color: "#D9456B",
-  },
-
-  footerTitle: {
+  suggestTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    letterSpacing: -0.4,
+    color: "#FFFFFF",
     marginTop: 8,
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 2,
-    color: "#D9456B",
   },
 
-  footerText: {
-    marginTop: 6,
-    textAlign: "center",
-    fontSize: 10,
-    lineHeight: 15,
-    color: "#9C8F97",
+  suggestText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: "rgba(255,255,255,0.85)",
+    marginTop: 4,
   },
 
-  loadingContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  loadingLogo: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "rgba(217, 69, 107, 0.09)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  loadingHeart: {
-    fontSize: 29,
-    color: "#D9456B",
-  },
-
-  loadingTitle: {
+  suggestButton: {
+    alignSelf: "flex-start",
     marginTop: 14,
-    fontSize: 21,
-    fontWeight: "700",
-    color: "#2E2430",
-  },
-
-  loadingIndicator: {
-    marginTop: 15,
   },
 });
