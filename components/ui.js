@@ -102,7 +102,7 @@ export function NavBar({ left, children }) {
 export function GlassButton({ icon, onPress, badge, label }) {
   return (
     <Press onPress={onPress} style={styles.glassButton}>
-      <Ionicons name={icon} size={19} color={T.label} />
+      <Ionicons name={icon} size={22} color={T.label} />
 
       {badge ? <View style={styles.glassBadge} /> : null}
 
@@ -140,14 +140,16 @@ export function Card({ children, style, padded = true }) {
 }
 
 /* An inset grouped list. Separators start where the text does. */
-export function Group({ children, style }) {
+export function Group({ children, style, inset = 16 }) {
   const rows = Array.isArray(children) ? children.filter(Boolean) : [children];
 
   return (
     <View style={[styles.group, style]}>
       {rows.map((row, index) => (
         <View key={index}>
-          {index > 0 ? <View style={styles.separator} /> : null}
+          {index > 0 ? (
+            <View style={[styles.separator, { marginLeft: inset }]} />
+          ) : null}
 
           {row}
         </View>
@@ -393,9 +395,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: 6,
-    minHeight: 44,
+    paddingHorizontal: 16,
+    minHeight: 40,
   },
 
   navLeft: {
@@ -412,20 +413,25 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(255,255,255,0.75)",
+    backgroundColor: "rgba(255,255,255,0.85)",
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#000000",
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
   },
 
   glassBadge: {
     position: "absolute",
-    top: 8,
-    right: 9,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: T.accent,
-    borderWidth: 1.5,
+    top: 7,
+    right: 8,
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: T.red,
+    borderWidth: 2,
     borderColor: "#FFFFFF",
   },
 
@@ -436,36 +442,41 @@ const styles = StyleSheet.create({
   },
 
   largeTitle: {
-    ...TYPE.largeTitle,
+    fontSize: 34,
+    lineHeight: 37,
+    fontWeight: "700",
+    letterSpacing: -1.2,
     color: T.label,
-    paddingHorizontal: 20,
-    marginTop: 4,
-    marginBottom: 10,
+    paddingHorizontal: 16,
+    marginTop: 2,
+    marginBottom: 12,
   },
 
   sectionHeaderRow: {
     flexDirection: "row",
-    alignItems: "flex-end",
+    alignItems: "baseline",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    marginTop: 26,
-    marginBottom: 8,
+    paddingHorizontal: 16,
+    marginTop: 22,
+    marginBottom: 10,
   },
 
   sectionHeader: {
-    ...TYPE.sectionHeader,
-    color: T.label2,
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: "700",
+    letterSpacing: -0.5,
+    color: T.label,
   },
 
   sectionAction: {
-    ...TYPE.footnote,
-    color: T.accentText,
-    fontWeight: "600",
+    fontSize: 16,
+    color: T.accent,
   },
 
   card: {
     backgroundColor: T.surface,
-    borderRadius: RADIUS.card,
+    borderRadius: 20,
     marginHorizontal: 16,
   },
 
@@ -483,7 +494,6 @@ const styles = StyleSheet.create({
   separator: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: T.separator,
-    marginLeft: 16,
   },
 
   cell: {
@@ -491,8 +501,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     paddingHorizontal: 16,
-    paddingVertical: 13,
+    paddingVertical: 10,
     minHeight: 50,
+    backgroundColor: T.surface,
   },
 
   cellLeading: {
@@ -504,15 +515,17 @@ const styles = StyleSheet.create({
   },
 
   cellTitle: {
-    ...TYPE.body,
     fontSize: 16,
+    lineHeight: 21,
+    fontWeight: "400",
     color: T.label,
   },
 
   cellSubtitle: {
-    ...TYPE.footnote,
+    fontSize: 13,
+    lineHeight: 17,
     color: T.label2,
-    marginTop: 2,
+    marginTop: 1,
   },
 
   buttonLarge: {
@@ -531,8 +544,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    paddingHorizontal: 16,
+    gap: 7,
+    paddingHorizontal: 14,
   },
 
   buttonOff: {
@@ -542,7 +555,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 17,
     fontWeight: "600",
-    letterSpacing: -0.3,
+    letterSpacing: -0.34,
   },
 
   buttonTextSmall: {
@@ -552,10 +565,12 @@ const styles = StyleSheet.create({
   },
 
   chip: {
+    height: 34,
     paddingHorizontal: 14,
-    paddingVertical: 8,
     borderRadius: RADIUS.capsule,
-    backgroundColor: T.fill4,
+    backgroundColor: T.accentTint,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   chipSelected: {
@@ -563,9 +578,9 @@ const styles = StyleSheet.create({
   },
 
   chipText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "500",
-    color: T.label,
+    color: T.accentText,
   },
 
   chipTextSelected: {

@@ -257,6 +257,24 @@ export default function HomeScreen() {
       )
     : null;
 
+  /* "7 months today" only on the day it is true. */
+  const monthsLine = (() => {
+    if (!connection?.connected_at) return null;
+
+    const start = new Date(connection.connected_at);
+    const now = new Date();
+
+    if (start.getDate() !== now.getDate()) return null;
+
+    const months =
+      (now.getFullYear() - start.getFullYear()) * 12 +
+      (now.getMonth() - start.getMonth());
+
+    if (months < 1) return null;
+
+    return `${months} month${months === 1 ? "" : "s"} today`;
+  })();
+
   const profileDone =
     answeredCount === null || answeredCount >= TOTAL_QUESTIONS;
 
@@ -331,6 +349,8 @@ export default function HomeScreen() {
    * ==========================================
    */
 
+  const hoursLeft = `${Math.max(1, 24 - new Date().getHours())}h left`;
+
   const youAnswered = Boolean(daily?.your_answer);
   const partnerAnswered = Boolean(daily?.partner_answered);
 
@@ -390,6 +410,7 @@ export default function HomeScreen() {
         youAnswered={youAnswered}
         partnerAnswered={partnerAnswered}
         streak={Number(daily?.streak || 0)}
+        monthsLine={monthsLine}
         mood={MOODS.find((item) => item.key === mood)?.emoji}
         onHug={() => {}}
       />
@@ -401,9 +422,11 @@ export default function HomeScreen() {
       <Press onPress={() => router.push("/daily-question")}>
         <Card>
           <View style={styles.questionTop}>
-            <Ionicons name="sparkles" size={14} color={T.accentText} />
+            <Ionicons name="sparkles" size={18} color={T.accent} />
 
             <Text style={styles.questionLabel}>Tonight&apos;s question</Text>
+
+            <Text style={styles.questionTime}>{hoursLeft}</Text>
           </View>
 
           <Text style={styles.question}>
@@ -481,10 +504,10 @@ export default function HomeScreen() {
 
       <View style={styles.actions}>
         {[
-          { icon: "mail-outline", label: "Note", route: "/appreciations" },
-          { icon: "calendar-outline", label: "Date", route: "/(tabs)/dates" },
-          { icon: "camera-outline", label: "Memory", route: "/memories" },
-          { icon: "flag-outline", label: "Goals", route: "/goals" },
+          { icon: "mail", label: "Note", route: "/appreciations" },
+          { icon: "calendar", label: "Date", route: "/(tabs)/dates" },
+          { icon: "camera", label: "Memory", route: "/memories" },
+          { icon: "flag", label: "Goals", route: "/goals" },
         ].map((action) => (
           <Press
             key={action.label}
@@ -492,7 +515,7 @@ export default function HomeScreen() {
             outerStyle={styles.actionWrap}
           >
             <View style={styles.action}>
-              <Ionicons name={action.icon} size={20} color={T.accent} />
+              <Ionicons name={action.icon} size={24} color={T.accent} />
 
               <Text style={styles.actionLabel}>{action.label}</Text>
             </View>
@@ -591,8 +614,10 @@ const styles = StyleSheet.create({
   },
 
   dateline: {
-    ...TYPE.footnote,
+    fontSize: 13,
     fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.13,
     color: T.label2,
   },
 
@@ -610,43 +635,51 @@ const styles = StyleSheet.create({
   },
 
   questionLabel: {
-    ...TYPE.footnote,
+    fontSize: 13,
     fontWeight: "600",
-    color: T.accentText,
+    color: T.accent,
+  },
+
+  questionTime: {
+    marginLeft: "auto",
+    fontSize: 13,
+    color: T.label2,
   },
 
   question: {
-    ...TYPE.title3,
-    color: T.label,
-    marginTop: 10,
+    fontSize: 21,
     lineHeight: 26,
+    fontWeight: "600",
+    letterSpacing: -0.52,
+    color: T.label,
+    marginTop: 12,
   },
 
   lockRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 9,
-    marginTop: 14,
+    gap: 10,
+    marginTop: 12,
+    paddingLeft: 8,
+    paddingRight: 12,
+    paddingVertical: 8,
+    borderRadius: 14,
+    backgroundColor: T.fill4,
   },
 
   blurred: {
     flex: 1,
-    backgroundColor: T.fill4,
-    borderRadius: 9,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
   },
 
   blurredText: {
-    ...TYPE.footnote,
+    fontSize: 15,
     color: T.label3,
-    letterSpacing: 1,
+    letterSpacing: 2,
   },
 
   answerText: {
     flex: 1,
-    ...TYPE.footnote,
-    fontSize: 14,
+    fontSize: 15,
     color: T.label2,
   },
 
@@ -679,13 +712,13 @@ const styles = StyleSheet.create({
   },
 
   moodOptionOn: {
-    backgroundColor: T.accentTint,
+    backgroundColor: "#FEE4F3",
     borderWidth: 2,
     borderColor: T.accent,
   },
 
   moodFace: {
-    fontSize: 24,
+    fontSize: 25,
   },
 
   moodLine: {
@@ -696,9 +729,9 @@ const styles = StyleSheet.create({
 
   actions: {
     flexDirection: "row",
-    gap: 10,
+    gap: 8,
     paddingHorizontal: 16,
-    marginTop: 16,
+    marginTop: 14,
   },
 
   actionWrap: {
@@ -707,16 +740,17 @@ const styles = StyleSheet.create({
 
   action: {
     backgroundColor: T.surface,
-    borderRadius: 16,
-    paddingVertical: 14,
+    borderRadius: 14,
+    paddingTop: 10,
+    paddingBottom: 8,
     alignItems: "center",
-    gap: 7,
+    gap: 3,
   },
 
   actionLabel: {
-    ...TYPE.caption,
-    fontWeight: "600",
-    color: T.label,
+    fontSize: 12,
+    fontWeight: "500",
+    color: T.accent,
   },
 
   cellIcon: {
