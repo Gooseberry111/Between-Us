@@ -211,6 +211,31 @@ export default function BondHero({
     }).start();
   };
 
+  /* The dashes crawl along the thread: 1.4s per cycle. */
+  const flow = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!animate) return;
+
+    const loop = Animated.loop(
+      Animated.timing(flow, {
+        toValue: 1,
+        duration: 1400,
+        easing: Easing.linear,
+        useNativeDriver: false,
+      }),
+    );
+
+    loop.start();
+
+    return () => loop.stop();
+  }, [animate, flow]);
+
+  const flowOffset = flow.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -20],
+  });
+
   const ringOffset = hold.interpolate({
     inputRange: [0, 1],
     outputRange: [RING, 0],
@@ -236,12 +261,20 @@ export default function BondHero({
         <View style={[styles.glowBlob, styles.glowThem]} />
       </View>
 
-      <Text style={styles.dayLabel}>Day</Text>
+      {days ? (
+        <>
+          <Text style={styles.dayLabel}>Day</Text>
 
-      <Text style={styles.dayCount}>{days ?? "—"}</Text>
+          <Text style={styles.dayCount}>{days}</Text>
+        </>
+      ) : null}
 
-      <Text style={styles.names} numberOfLines={1}>
-        of {youName} &amp; {partnerName}
+      <Text
+        style={[styles.names, !days && styles.namesAlone]}
+        numberOfLines={1}
+      >
+        {days ? "of " : ""}
+        {youName} &amp; {partnerName}
       </Text>
 
       <View style={styles.row}>
@@ -323,7 +356,8 @@ export default function BondHero({
               <Defs>
                 <SvgGradient id="bondGrad" x1="0" y1="0" x2="1" y2="0">
                   <Stop offset="0" stopColor={T.you} />
-                  <Stop offset="1" stopColor={T.accent} />
+                  <Stop offset="0.55" stopColor={T.accent} />
+                  <Stop offset="1" stopColor={T.secondary} />
                 </SvgGradient>
               </Defs>
 
@@ -336,13 +370,16 @@ export default function BondHero({
                 strokeLinecap="round"
               />
 
-              <Path
+              {/* The dashes that travel between them, in the
+                  full gradient: you, the accent, the sky. */}
+              <AnimatedPath
                 d={WIRE}
                 fill="none"
                 stroke="url(#bondGrad)"
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeDasharray="2 8"
+                strokeDashoffset={flowOffset}
               />
 
               {/* The hug travelling across. */}
@@ -532,6 +569,15 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: -3.8,
     color: T.accent,
+  },
+
+  namesAlone: {
+    fontSize: 26,
+    lineHeight: 32,
+    fontStyle: "normal",
+    fontWeight: "700",
+    color: T.label,
+    marginTop: 2,
   },
 
   names: {

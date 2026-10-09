@@ -159,7 +159,7 @@ export default function CheckInScreen() {
                   activeOpacity={0.8}
                   onPress={() => router.back()}
                 >
-                  <Ionicons name="chevron-back" size={20} color="#D9456B" />
+                  <Ionicons name="chevron-back" size={20} color="#F03FA9" />
                 </TouchableOpacity>
 
                 <View style={styles.headerText}>
@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 2,
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   pageTitle: {
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
     fontSize: 26,
     lineHeight: 31,
     fontWeight: "700",
-    color: "#2E2430",
+    color: "#111114",
   },
 
   panel: {
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.6,
-    color: "#EBC9D5",
+    color: "#FDE8F5",
   },
 
   panelTitle: {
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
   },
 
   scaleValueActive: {
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   scaleLabel: {
@@ -498,20 +498,20 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.5,
-    color: "#9C8F97",
+    color: "rgba(60,60,67,0.6)",
   },
 
   partnerRating: {
     marginTop: 10,
     fontSize: 30,
     fontWeight: "800",
-    color: "#2E2430",
+    color: "#111114",
   },
 
   partnerOutOf: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#9C8F97",
+    color: "rgba(60,60,67,0.6)",
   },
 
   partnerNote: {
@@ -525,7 +525,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 13,
     lineHeight: 19,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 
   trendRow: {
@@ -543,7 +543,7 @@ const styles = StyleSheet.create({
   trendBar: {
     width: "100%",
     borderRadius: 7,
-    backgroundColor: "#D9456B",
+    backgroundColor: "#F03FA9",
     opacity: 0.75,
   },
 
@@ -551,7 +551,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 10,
     fontWeight: "700",
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 
   errorBox: {
@@ -562,5 +562,5 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
 
-  errorText: { fontSize: 12, lineHeight: 17, color: "#C2405F" },
+  errorText: { fontSize: 12, lineHeight: 17, color: "#FF3B30" },
 });

@@ -292,7 +292,7 @@ export default function DatesScreen() {
                   setRefreshing(true);
                   load();
                 }}
-                tintColor="#D9456B"
+                tintColor="#F03FA9"
               />
             }
           >
@@ -314,7 +314,7 @@ export default function DatesScreen() {
                       value={title}
                       onChangeText={setTitle}
                       placeholder="What are you doing?"
-                      placeholderTextColor="#B9A7B1"
+                      placeholderTextColor="rgba(60,60,67,0.3)"
                       style={styles.input}
                     />
 
@@ -322,7 +322,7 @@ export default function DatesScreen() {
                       value={place}
                       onChangeText={setPlace}
                       placeholder="Where? (optional)"
-                      placeholderTextColor="#B9A7B1"
+                      placeholderTextColor="rgba(60,60,67,0.3)"
                       style={styles.input}
                     />
 
@@ -459,7 +459,7 @@ export default function DatesScreen() {
                               <Ionicons
                                 name="ellipsis-horizontal"
                                 size={18}
-                                color="#B9A7B1"
+                                color="rgba(60,60,67,0.3)"
                               />
                             </TouchableOpacity>
                           </View>
@@ -471,7 +471,7 @@ export default function DatesScreen() {
                               <Ionicons
                                 name="location-outline"
                                 size={13}
-                                color="#9C8F97"
+                                color="rgba(60,60,67,0.6)"
                               />
 
                               <Text style={styles.planMetaText}>
@@ -494,7 +494,7 @@ export default function DatesScreen() {
                             <Ionicons
                               name="checkmark-circle-outline"
                               size={15}
-                              color="#D9456B"
+                              color="#F03FA9"
                             />
 
                             <Text style={styles.doneText}>We did this</Text>
@@ -553,7 +553,7 @@ export default function DatesScreen() {
                       <Ionicons
                         name="calendar-outline"
                         size={15}
-                        color="#D9456B"
+                        color="#F03FA9"
                       />
 
                       <Text style={styles.addSpecialText}>
@@ -600,7 +600,7 @@ export default function DatesScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#FFF8F5",
+    backgroundColor: "#F2ECF4",
   },
 
   fill: {
@@ -609,7 +609,7 @@ const styles = StyleSheet.create({
 
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 120,
+    paddingBottom: 150,
   },
 
   container: {
@@ -621,21 +621,21 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.8,
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   title: {
     marginTop: 6,
     fontSize: 30,
     fontWeight: "800",
-    color: "#2E2430",
+    color: "#111114",
     letterSpacing: -0.5,
   },
 
   error: {
     marginTop: 12,
     fontSize: 13,
-    color: "#C2405F",
+    color: "#FF3B30",
   },
 
   addCard: {
@@ -646,14 +646,14 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#F9E3EA",
+    borderColor: "#FDE8F5",
   },
 
   addIcon: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#D9456B",
+    backgroundColor: "#F03FA9",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 14,
@@ -666,13 +666,13 @@ const styles = StyleSheet.create({
   addTitle: {
     fontSize: 16,
     fontWeight: "800",
-    color: "#2E2430",
+    color: "#111114",
   },
 
   addText: {
     marginTop: 3,
     fontSize: 12.5,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 
   form: {
@@ -682,19 +682,19 @@ const styles = StyleSheet.create({
   formTitle: {
     fontSize: 17,
     fontWeight: "800",
-    color: "#2E2430",
+    color: "#111114",
     marginBottom: 14,
   },
 
   input: {
     height: 50,
     borderRadius: 14,
-    backgroundColor: "#FFF8F5",
+    backgroundColor: "#F2ECF4",
     borderWidth: 1,
-    borderColor: "#F3DFE7",
+    borderColor: "#FDE8F5",
     paddingHorizontal: 14,
     fontSize: 15,
-    color: "#2E2430",
+    color: "#111114",
     marginBottom: 10,
   },
 
@@ -713,14 +713,14 @@ const styles = StyleSheet.create({
   cancelText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#9C8F97",
+    color: "rgba(60,60,67,0.6)",
   },
 
   saveButton: {
     flex: 1,
     height: 48,
     borderRadius: 16,
-    backgroundColor: "#D9456B",
+    backgroundColor: "#F03FA9",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -772,7 +772,7 @@ const styles = StyleSheet.create({
   ideaButtonText: {
     fontSize: 13,
     fontWeight: "800",
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   sectionLabel: {
@@ -781,7 +781,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.6,
-    color: "#9C8F97",
+    color: "rgba(60,60,67,0.6)",
   },
 
   sectionHead: {
@@ -793,7 +793,7 @@ const styles = StyleSheet.create({
   seeAll: {
     fontSize: 12.5,
     fontWeight: "800",
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   emptyCard: {
@@ -814,20 +814,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     paddingVertical: 5,
     borderRadius: 999,
-    backgroundColor: "#F9E3EA",
+    backgroundColor: "#FDE8F5",
   },
 
   planWhenText: {
     fontSize: 11,
     fontWeight: "800",
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   planTitle: {
     marginTop: 12,
     fontSize: 18,
     fontWeight: "800",
-    color: "#2E2430",
+    color: "#111114",
     lineHeight: 24,
   },
 
@@ -840,13 +840,13 @@ const styles = StyleSheet.create({
 
   planMetaText: {
     fontSize: 13,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 
   planBy: {
     marginTop: 8,
     fontSize: 12,
-    color: "#B9A7B1",
+    color: "rgba(60,60,67,0.3)",
   },
 
   doneButton: {
@@ -857,13 +857,13 @@ const styles = StyleSheet.create({
     gap: 7,
     height: 42,
     borderRadius: 14,
-    backgroundColor: "#FBEDF1",
+    backgroundColor: "#FDE8F5",
   },
 
   doneText: {
     fontSize: 13.5,
     fontWeight: "800",
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   specialCard: {
@@ -889,13 +889,13 @@ const styles = StyleSheet.create({
   specialTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#2E2430",
+    color: "#111114",
   },
 
   specialWhen: {
     marginTop: 2,
     fontSize: 12.5,
-    color: "#9C8F97",
+    color: "rgba(60,60,67,0.6)",
   },
 
   addSpecial: {
@@ -907,13 +907,13 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderStyle: "dashed",
-    borderColor: "#F0D8E1",
+    borderColor: "#FDE8F5",
   },
 
   addSpecialText: {
     fontSize: 13.5,
     fontWeight: "700",
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   pastRow: {
@@ -926,11 +926,11 @@ const styles = StyleSheet.create({
   pastText: {
     flex: 1,
     fontSize: 14,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 
   pastWhen: {
     fontSize: 11.5,
-    color: "#B9A7B1",
+    color: "rgba(60,60,67,0.3)",
   },
 });

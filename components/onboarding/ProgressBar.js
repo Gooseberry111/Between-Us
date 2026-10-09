@@ -20,7 +20,7 @@ export default function ProgressBar({ current, total }) {
 const styles = StyleSheet.create({
   background: {
     height: 8,
-    backgroundColor: "#F3DFE7",
+    backgroundColor: "#FDE8F5",
     borderRadius: 999,
     overflow: "hidden",
     marginBottom: 24,
@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
 
   fill: {
     height: "100%",
-    backgroundColor: "#D9456B",
+    backgroundColor: "#F03FA9",
     borderRadius: 999,
   },
 });

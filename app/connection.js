@@ -77,7 +77,7 @@ export default function ConnectionScreen() {
     return (
       <SafeAreaView style={styles.screen} edges={["top"]}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color="#D9456B" />
+          <ActivityIndicator size="small" color="#F03FA9" />
 
           <Text style={styles.loadingText}>Loading your space...</Text>
         </View>
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#F6E6EC",
+    borderColor: "#FDE8F5",
   },
 
   featureIcon: {
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
 
   featureIconText: {
     fontSize: 21,
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   featureContent: {
@@ -245,19 +245,19 @@ const styles = StyleSheet.create({
   featureTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#2E2430",
+    color: "#111114",
   },
 
   featureText: {
     marginTop: 3,
     fontSize: 11,
     lineHeight: 16,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 
   featureArrow: {
     fontSize: 25,
-    color: "#9C8F97",
+    color: "rgba(60,60,67,0.6)",
     marginLeft: 8,
   },
 
@@ -265,11 +265,11 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: "800",
     letterSpacing: 1,
-    color: "#9C8F97",
+    color: "rgba(60,60,67,0.6)",
   },
   screen: {
     flex: 1,
-    backgroundColor: "#FFF8F5",
+    backgroundColor: "#F2ECF4",
   },
 
   container: {
@@ -286,14 +286,14 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 13,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#F5DCE4",
+    backgroundColor: "#FDE8F5",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 35,
@@ -301,14 +301,14 @@ const styles = StyleSheet.create({
 
   backText: {
     fontSize: 22,
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   eyebrow: {
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.8,
-    color: "#9C8F97",
+    color: "rgba(60,60,67,0.6)",
   },
 
   title: {
@@ -316,19 +316,19 @@ const styles = StyleSheet.create({
     fontSize: 29,
     lineHeight: 35,
     fontWeight: "700",
-    color: "#2E2430",
+    color: "#111114",
   },
 
   subtitle: {
     marginTop: 9,
     fontSize: 14,
     lineHeight: 21,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 
   profileCard: {
     marginTop: 28,
-    backgroundColor: "#D9456B",
+    backgroundColor: "#F03FA9",
     borderRadius: 20,
     padding: 18,
     flexDirection: "row",
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "#F5DCE4",
+    backgroundColor: "#FDE8F5",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
   relationship: {
     marginTop: 3,
     fontSize: 12,
-    color: "#EBC9D5",
+    color: "#FDE8F5",
   },
 
   connectedDot: {
@@ -380,12 +380,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 21,
     borderWidth: 1,
-    borderColor: "#F6E6EC",
+    borderColor: "#FDE8F5",
   },
 
   cardIcon: {
     fontSize: 29,
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   cardTitle: {
@@ -393,18 +393,18 @@ const styles = StyleSheet.create({
     fontSize: 20,
     lineHeight: 26,
     fontWeight: "700",
-    color: "#2E2430",
+    color: "#111114",
   },
 
   cardText: {
     marginTop: 8,
     fontSize: 13,
     lineHeight: 20,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 
   errorBox: {
-    backgroundColor: "#F9E3EA",
+    backgroundColor: "#FDE8F5",
     paddingHorizontal: 14,
     paddingVertical: 11,
     borderRadius: 12,
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 12,
     lineHeight: 17,
-    color: "#C2405F",
+    color: "#FF3B30",
   },
 
   emptyState: {
@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 21,
     fontWeight: "700",
-    color: "#2E2430",
+    color: "#111114",
   },
 
   emptyText: {
@@ -435,6 +435,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 13,
     lineHeight: 20,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 });

@@ -437,7 +437,10 @@ const styles = StyleSheet.create({
 
   scrollContent: {
     paddingTop: 4,
-    paddingBottom: 112,
+    /* The bar floats 16 from the bottom and is 62 tall, so
+     * nothing may sit in the last ~120pt or it reads as
+     * clashing with it. */
+    paddingBottom: 150,
     gap: 14,
   },
 

@@ -174,7 +174,7 @@ export default function CompletedGoalsScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              tintColor="#D9456B"
+              tintColor="#F03FA9"
             />
           }
           contentContainerStyle={styles.scrollContent}
@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(217, 69, 107, 0.09)",
+    backgroundColor: "rgba(240, 63, 169, 0.09)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 11,
@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
 
   backButtonText: {
     fontSize: 22,
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   headerText: {
@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 2,
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   pageTitle: {
@@ -413,21 +413,21 @@ const styles = StyleSheet.create({
     fontSize: 26,
     lineHeight: 32,
     fontWeight: "700",
-    color: "#2E2430",
+    color: "#111114",
   },
 
   pageSubtitle: {
     marginTop: 4,
     fontSize: 12,
     lineHeight: 18,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 
   headerIcon: {
     width: 45,
     height: 45,
     borderRadius: 23,
-    backgroundColor: "rgba(217, 69, 107, 0.09)",
+    backgroundColor: "rgba(240, 63, 169, 0.09)",
     justifyContent: "center",
     alignItems: "center",
     marginLeft: 8,
@@ -435,7 +435,7 @@ const styles = StyleSheet.create({
 
   headerIconText: {
     fontSize: 20,
-    color: "#D9456B",
+    color: "#F03FA9",
     fontWeight: "700",
   },
 
@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
   summaryNumber: {
     fontSize: 29,
     fontWeight: "700",
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   summaryText: {
@@ -462,13 +462,13 @@ const styles = StyleSheet.create({
   summaryTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#2E2430",
+    color: "#111114",
   },
 
   summarySubtitle: {
     marginTop: 3,
     fontSize: 11,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 
   section: {
@@ -479,7 +479,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.7,
-    color: "#9C8F97",
+    color: "rgba(60,60,67,0.6)",
     marginBottom: 7,
   },
 
@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 24,
     fontWeight: "700",
-    color: "#2E2430",
+    color: "#111114",
     marginBottom: 13,
   },
 
@@ -510,7 +510,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "rgba(217, 69, 107, 0.09)",
+    backgroundColor: "rgba(240, 63, 169, 0.09)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -518,21 +518,21 @@ const styles = StyleSheet.create({
   goalNumberText: {
     fontSize: 10,
     fontWeight: "800",
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   completedBadge: {
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 9,
-    backgroundColor: "rgba(217, 69, 107, 0.09)",
+    backgroundColor: "rgba(240, 63, 169, 0.09)",
   },
 
   completedBadgeText: {
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 0.8,
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   goalTitle: {
@@ -540,19 +540,19 @@ const styles = StyleSheet.create({
     fontSize: 20,
     lineHeight: 25,
     fontWeight: "700",
-    color: "#2E2430",
+    color: "#111114",
   },
 
   goalDescription: {
     marginTop: 8,
     fontSize: 13,
     lineHeight: 20,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 
   dateContainer: {
     marginTop: 14,
-    backgroundColor: "rgba(217, 69, 107, 0.07)",
+    backgroundColor: "rgba(240, 63, 169, 0.07)",
     borderRadius: 11,
     padding: 11,
   },
@@ -561,14 +561,14 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: "800",
     letterSpacing: 1.2,
-    color: "#9C8F97",
+    color: "rgba(60,60,67,0.6)",
   },
 
   dateText: {
     marginTop: 3,
     fontSize: 12,
     fontWeight: "600",
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   completedContainer: {
@@ -582,19 +582,19 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: "800",
     letterSpacing: 1.2,
-    color: "#9C8F97",
+    color: "rgba(60,60,67,0.6)",
   },
 
   completedDate: {
     marginTop: 3,
     fontSize: 12,
     fontWeight: "700",
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   goalDivider: {
     height: 1,
-    backgroundColor: "#F6E6EC",
+    backgroundColor: "#FDE8F5",
     marginVertical: 16,
   },
 
@@ -607,7 +607,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "#D9456B",
+    backgroundColor: "#F03FA9",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -622,7 +622,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 11,
     fontWeight: "600",
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   emptyCard: {
@@ -638,7 +638,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "rgba(217, 69, 107, 0.09)",
+    backgroundColor: "rgba(240, 63, 169, 0.09)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 15,
@@ -646,14 +646,14 @@ const styles = StyleSheet.create({
 
   emptyIconText: {
     fontSize: 25,
-    color: "#D9456B",
+    color: "#F03FA9",
     fontWeight: "700",
   },
 
   emptyTitle: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#2E2430",
+    color: "#111114",
     textAlign: "center",
   },
 
@@ -661,7 +661,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 13,
     lineHeight: 20,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
     textAlign: "center",
   },
 
@@ -676,7 +676,7 @@ const styles = StyleSheet.create({
   backToGoalsText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   footerCard: {
@@ -692,7 +692,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 21,
     fontWeight: "600",
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   footerText: {
@@ -700,11 +700,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 11,
     lineHeight: 17,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 
   errorBox: {
-    backgroundColor: "#F9E3EA",
+    backgroundColor: "#FDE8F5",
     paddingHorizontal: 14,
     paddingVertical: 11,
     borderRadius: 12,
@@ -714,7 +714,7 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 12,
     lineHeight: 17,
-    color: "#C2405F",
+    color: "#FF3B30",
   },
 
   loadingContainer: {
@@ -726,6 +726,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 12,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 });

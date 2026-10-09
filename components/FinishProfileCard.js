@@ -29,7 +29,7 @@ export default function FinishProfileCard({ answered, onPress }) {
         <GlassPanel tone="plum" style={styles.card}>
           <View style={styles.topRow}>
             <View style={styles.pill}>
-              <Ionicons name="sparkles" size={11} color="#7A4A5C" />
+              <Ionicons name="sparkles" size={11} color="#C21F82" />
               <Text style={styles.pillText}>PRIORITY</Text>
             </View>
 
@@ -52,7 +52,7 @@ export default function FinishProfileCard({ answered, onPress }) {
 
           <View style={styles.button}>
             <Text style={styles.buttonText}>Pick up where you left off</Text>
-            <Ionicons name="arrow-forward" size={16} color="#5A3444" />
+            <Ionicons name="arrow-forward" size={16} color="#C21F82" />
           </View>
         </GlassPanel>
       </Pressable>
@@ -78,20 +78,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: "#F6E7EC",
+    backgroundColor: "#FDE8F5",
   },
 
   pillText: {
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1,
-    color: "#7A4A5C",
+    color: "#C21F82",
   },
 
   percent: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#F3DDE5",
+    color: "#FDE8F5",
   },
 
   title: {
@@ -136,6 +136,6 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#5A3444",
+    color: "#C21F82",
   },
 });

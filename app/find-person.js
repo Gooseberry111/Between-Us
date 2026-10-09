@@ -66,7 +66,7 @@ function SearchEmptyState({ query, searching, hasRequests }) {
   if (searching) {
     return (
       <View style={styles.searchingState}>
-        <ActivityIndicator size="small" color="#D9456B" />
+        <ActivityIndicator size="small" color="#F03FA9" />
 
         <Text style={styles.searchingText}>Looking...</Text>
       </View>
@@ -89,7 +89,7 @@ function SearchEmptyState({ query, searching, hasRequests }) {
     return (
       <View style={styles.emptyState}>
         <View style={styles.emptyIcon}>
-          <Ionicons name="person-outline" size={26} color="#D9456B" />
+          <Ionicons name="person-outline" size={26} color="#F03FA9" />
         </View>
 
         <Text style={styles.emptyTitle}>No one called "{trimmed}"</Text>
@@ -474,7 +474,7 @@ export default function FindPersonScreen() {
     return (
       <SafeAreaView style={styles.screen} edges={["top"]}>
         <View style={styles.loadingScreen}>
-          <ActivityIndicator size="small" color="#D9456B" />
+          <ActivityIndicator size="small" color="#F03FA9" />
 
           <Text style={styles.loadingText}>Preparing...</Text>
         </View>
@@ -575,7 +575,7 @@ export default function FindPersonScreen() {
           <View style={styles.personMetaRow}>
             {item.country ? (
               <>
-                <Ionicons name="location-outline" size={11} color="#B9A7B1" />
+                <Ionicons name="location-outline" size={11} color="rgba(60,60,67,0.3)" />
 
                 <Text style={styles.personCountry}>{item.country}</Text>
               </>
@@ -591,7 +591,7 @@ export default function FindPersonScreen() {
         </View>
 
         {isSending ? (
-          <ActivityIndicator size="small" color="#D9456B" />
+          <ActivityIndicator size="small" color="#F03FA9" />
         ) : sent ? (
           <View style={styles.statePill}>
             <Ionicons name="checkmark" size={12} color="#7C7280" />
@@ -630,7 +630,7 @@ export default function FindPersonScreen() {
               style={styles.backButton}
               activeOpacity={0.7}
             >
-              <Ionicons name="chevron-back" size={20} color="#D9456B" />
+              <Ionicons name="chevron-back" size={20} color="#F03FA9" />
             </TouchableOpacity>
 
             <Text style={styles.title}>Find your person</Text>
@@ -654,7 +654,7 @@ export default function FindPersonScreen() {
                 setSuccess("");
               }}
               placeholder="Start typing a name, or paste their email"
-              placeholderTextColor="#B9A7B1"
+              placeholderTextColor="rgba(60,60,67,0.3)"
               style={styles.searchInput}
               autoCapitalize="none"
               autoCorrect={false}
@@ -665,7 +665,7 @@ export default function FindPersonScreen() {
             {searching ? (
               <ActivityIndicator
                 size="small"
-                color="#D9456B"
+                color="#F03FA9"
                 style={styles.searchSpinner}
               />
             ) : null}
@@ -718,7 +718,7 @@ export default function FindPersonScreen() {
 
           {loadingRequests ? (
             <View style={styles.requestLoading}>
-              <ActivityIndicator size="small" color="#D9456B" />
+              <ActivityIndicator size="small" color="#F03FA9" />
 
               <Text style={styles.requestLoadingText}>
                 Checking for requests...
@@ -830,7 +830,7 @@ export default function FindPersonScreen() {
                 disabled={processingRequest}
               >
                 {processingRequest ? (
-                  <ActivityIndicator size="small" color="#D9456B" />
+                  <ActivityIndicator size="small" color="#F03FA9" />
                 ) : (
                   <Text style={styles.rejectButtonText}>Reject</Text>
                 )}
@@ -948,7 +948,7 @@ export default function FindPersonScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#FFF8F5",
+    backgroundColor: "#F2ECF4",
   },
 
   container: {
@@ -966,7 +966,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 14,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 
   /*
@@ -988,13 +988,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#F9E3EA",
+    borderColor: "#FDE8F5",
   },
 
   title: {
     fontSize: 24,
     fontWeight: "800",
-    color: "#2E2430",
+    color: "#111114",
     letterSpacing: -0.4,
   },
 
@@ -1010,7 +1010,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.6,
-    color: "#D9456B",
+    color: "#F03FA9",
     marginBottom: 10,
   },
 
@@ -1020,8 +1020,8 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#F9E3EA",
-    shadowColor: "#D9456B",
+    borderColor: "#FDE8F5",
+    shadowColor: "#F03FA9",
     shadowOpacity: 0.07,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
@@ -1037,13 +1037,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 999,
-    backgroundColor: "#F9E3EA",
+    backgroundColor: "#FDE8F5",
   },
 
   relationshipPillText: {
     fontSize: 11,
     fontWeight: "800",
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   requestActionsRow: {
@@ -1061,7 +1061,7 @@ const styles = StyleSheet.create({
   requestAvatarText: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   requestInfo: {
@@ -1072,13 +1072,13 @@ const styles = StyleSheet.create({
   requestName: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#2E2430",
+    color: "#111114",
   },
 
   requestText: {
     marginTop: 3,
     fontSize: 12,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 
   requestViewButton: {
@@ -1089,7 +1089,7 @@ const styles = StyleSheet.create({
   },
 
   requestViewButtonText: {
-    color: "#D9456B",
+    color: "#F03FA9",
     fontSize: 12,
     fontWeight: "700",
   },
@@ -1103,7 +1103,7 @@ const styles = StyleSheet.create({
   requestLoadingText: {
     marginLeft: 8,
     fontSize: 12,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 
   /*
@@ -1118,7 +1118,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     backgroundColor: "#FFFFFF",
     paddingHorizontal: 18,
-    shadowColor: "#D9456B",
+    shadowColor: "#F03FA9",
     shadowOpacity: 0.1,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 6 },
@@ -1133,7 +1133,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 56,
     fontSize: 15,
-    color: "#2E2430",
+    color: "#111114",
   },
 
   searchSpinner: {
@@ -1153,7 +1153,7 @@ const styles = StyleSheet.create({
   searchingText: {
     marginTop: 10,
     fontSize: 13,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 
   tips: {
@@ -1162,13 +1162,13 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 18,
     borderWidth: 1,
-    borderColor: "#FAECF1",
+    borderColor: "#FDE8F5",
   },
 
   tipsHeading: {
     fontSize: 15,
     fontWeight: "800",
-    color: "#2E2430",
+    color: "#111114",
     marginBottom: 4,
   },
 
@@ -1198,14 +1198,14 @@ const styles = StyleSheet.create({
   tipTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#2E2430",
+    color: "#111114",
   },
 
   tipText: {
     marginTop: 4,
     fontSize: 13,
     lineHeight: 19,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 
   /*
@@ -1213,7 +1213,7 @@ const styles = StyleSheet.create({
    */
 
   errorBox: {
-    backgroundColor: "#F9E3EA",
+    backgroundColor: "#FDE8F5",
     borderRadius: 12,
     paddingHorizontal: 13,
     paddingVertical: 11,
@@ -1221,7 +1221,7 @@ const styles = StyleSheet.create({
   },
 
   errorText: {
-    color: "#C2405F",
+    color: "#FF3B30",
     fontSize: 13,
     lineHeight: 18,
   },
@@ -1269,7 +1269,7 @@ const styles = StyleSheet.create({
   },
 
   statePillActive: {
-    backgroundColor: "#D9456B",
+    backgroundColor: "#F03FA9",
   },
 
   statePillText: {
@@ -1285,7 +1285,7 @@ const styles = StyleSheet.create({
   resultsTitle: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
     marginBottom: 12,
   },
 
@@ -1298,8 +1298,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#FAECF1",
-    shadowColor: "#D9456B",
+    borderColor: "#FDE8F5",
+    shadowColor: "#F03FA9",
     shadowOpacity: 0.06,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 3 },
@@ -1317,7 +1317,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 9,
     borderRadius: 999,
-    backgroundColor: "#D9456B",
+    backgroundColor: "#F03FA9",
   },
 
   connectButtonText: {
@@ -1347,13 +1347,13 @@ const styles = StyleSheet.create({
   personName: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#2E2430",
+    color: "#111114",
   },
 
   personCountry: {
     marginTop: 3,
     fontSize: 11,
-    color: "#B9A7B1",
+    color: "rgba(60,60,67,0.3)",
   },
 
   /*
@@ -1369,7 +1369,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: "#F5DCE4",
+    backgroundColor: "#FDE8F5",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 17,
@@ -1378,7 +1378,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#2E2430",
+    color: "#111114",
     textAlign: "center",
   },
 
@@ -1386,7 +1386,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 13,
     lineHeight: 20,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
     textAlign: "center",
   },
   requestDetails: {
@@ -1396,7 +1396,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 6,
     borderWidth: 1,
-    borderColor: "#FAECF1",
+    borderColor: "#FDE8F5",
   },
 
   detailRow: {
@@ -1410,13 +1410,13 @@ const styles = StyleSheet.create({
 
   detailLabel: {
     fontSize: 13,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 
   detailValue: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#2E2430",
+    color: "#111114",
     maxWidth: 180,
     textAlign: "right",
   },
@@ -1441,14 +1441,14 @@ const styles = StyleSheet.create({
   rejectButtonText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   acceptButton: {
     flex: 1,
     height: 52,
     borderRadius: 14,
-    backgroundColor: "#D9456B",
+    backgroundColor: "#F03FA9",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1473,7 +1473,7 @@ const styles = StyleSheet.create({
   },
 
   modal: {
-    backgroundColor: "#FFF8F5",
+    backgroundColor: "#F2ECF4",
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 24,
@@ -1497,7 +1497,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "#F5DCE4",
+    backgroundColor: "#FDE8F5",
     justifyContent: "center",
     alignItems: "center",
     zIndex: 2,
@@ -1505,7 +1505,7 @@ const styles = StyleSheet.create({
 
   modalCloseText: {
     fontSize: 23,
-    color: "#D9456B",
+    color: "#F03FA9",
     lineHeight: 25,
   },
 
@@ -1513,7 +1513,7 @@ const styles = StyleSheet.create({
     width: 66,
     height: 66,
     borderRadius: 33,
-    backgroundColor: "#F5DCE4",
+    backgroundColor: "#FDE8F5",
     justifyContent: "center",
     alignItems: "center",
     alignSelf: "center",
@@ -1523,7 +1523,7 @@ const styles = StyleSheet.create({
   modalAvatarText: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   modalTitle: {
@@ -1531,7 +1531,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     lineHeight: 27,
     fontWeight: "700",
-    color: "#2E2430",
+    color: "#111114",
     textAlign: "center",
   },
 
@@ -1539,7 +1539,7 @@ const styles = StyleSheet.create({
     marginTop: 7,
     fontSize: 13,
     lineHeight: 19,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
     textAlign: "center",
   },
 
@@ -1563,18 +1563,18 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#F3DFE7",
+    borderColor: "#FDE8F5",
   },
 
   relationshipSelected: {
-    backgroundColor: "#D9456B",
-    borderColor: "#D9456B",
+    backgroundColor: "#F03FA9",
+    borderColor: "#F03FA9",
   },
 
   relationshipText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 
   relationshipSelectedText: {
@@ -1584,7 +1584,7 @@ const styles = StyleSheet.create({
   connectButton: {
     height: 55,
     borderRadius: 14,
-    backgroundColor: "#D9456B",
+    backgroundColor: "#F03FA9",
     justifyContent: "center",
     alignItems: "center",
     marginTop: 22,

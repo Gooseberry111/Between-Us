@@ -131,7 +131,7 @@ export default function EditProfileScreen() {
     return (
       <SafeAreaView style={styles.screen} edges={["top"]}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color="#D9456B" />
+          <ActivityIndicator size="small" color="#F03FA9" />
 
           <Text style={styles.loadingText}>Loading your profile...</Text>
         </View>
@@ -202,7 +202,7 @@ export default function EditProfileScreen() {
                     value={firstName}
                     onChangeText={setFirstName}
                     placeholder="Enter your first name"
-                    placeholderTextColor="#B9A7B1"
+                    placeholderTextColor="rgba(60,60,67,0.3)"
                     style={styles.input}
                     autoCapitalize="words"
                     returnKeyType="next"
@@ -218,7 +218,7 @@ export default function EditProfileScreen() {
                     value={lastName}
                     onChangeText={setLastName}
                     placeholder="Enter your last name"
-                    placeholderTextColor="#B9A7B1"
+                    placeholderTextColor="rgba(60,60,67,0.3)"
                     style={styles.input}
                     autoCapitalize="words"
                     returnKeyType="done"
@@ -233,7 +233,7 @@ export default function EditProfileScreen() {
                   <DateInput
                     value={birthday}
                     onChangeText={setBirthday}
-                    placeholderTextColor="#B9A7B1"
+                    placeholderTextColor="rgba(60,60,67,0.3)"
                     style={styles.input}
                   />
 
@@ -288,7 +288,7 @@ export default function EditProfileScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#FFF8F5",
+    backgroundColor: "#F2ECF4",
   },
 
   keyboard: {
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: "#F5DCE4",
+    backgroundColor: "#FDE8F5",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -327,7 +327,7 @@ const styles = StyleSheet.create({
   backArrow: {
     fontSize: 31,
     lineHeight: 34,
-    color: "#D9456B",
+    color: "#F03FA9",
     marginTop: -3,
   },
 
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 2,
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   title: {
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
     fontSize: 27,
     lineHeight: 33,
     fontWeight: "700",
-    color: "#2E2430",
+    color: "#111114",
   },
 
   /*
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
    */
 
   introCard: {
-    backgroundColor: "#D9456B",
+    backgroundColor: "#F03FA9",
     borderRadius: 22,
     padding: 20,
   },
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: "#F5DCE4",
+    backgroundColor: "#FDE8F5",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 15,
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 13,
     lineHeight: 20,
-    color: "#EBC9D5",
+    color: "#FDE8F5",
   },
 
   /*
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.7,
-    color: "#9C8F97",
+    color: "rgba(60,60,67,0.6)",
     marginBottom: 9,
   },
 
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     paddingHorizontal: 17,
     borderWidth: 1,
-    borderColor: "#F6E6EC",
+    borderColor: "#FDE8F5",
   },
 
   inputGroup: {
@@ -424,31 +424,31 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.3,
-    color: "#9C8F97",
+    color: "rgba(60,60,67,0.6)",
     marginBottom: 7,
   },
 
   input: {
     height: 44,
     borderRadius: 11,
-    backgroundColor: "#FFF8F5",
+    backgroundColor: "#F2ECF4",
     borderWidth: 1,
-    borderColor: "#F6E6EC",
+    borderColor: "#FDE8F5",
     paddingHorizontal: 13,
     fontSize: 14,
-    color: "#2E2430",
+    color: "#111114",
   },
 
   inputHint: {
     marginTop: 7,
     fontSize: 10,
     lineHeight: 15,
-    color: "#9C8F97",
+    color: "rgba(60,60,67,0.6)",
   },
 
   divider: {
     height: 1,
-    backgroundColor: "#FAECF1",
+    backgroundColor: "#FDE8F5",
   },
 
   /*
@@ -459,7 +459,7 @@ const styles = StyleSheet.create({
     height: 54,
     marginTop: 24,
     borderRadius: 14,
-    backgroundColor: "#D9456B",
+    backgroundColor: "#F03FA9",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -495,7 +495,7 @@ const styles = StyleSheet.create({
   cancelText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 
   /*
@@ -503,7 +503,7 @@ const styles = StyleSheet.create({
    */
 
   errorBox: {
-    backgroundColor: "#F9E3EA",
+    backgroundColor: "#FDE8F5",
     paddingHorizontal: 14,
     paddingVertical: 11,
     borderRadius: 12,
@@ -513,7 +513,7 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 12,
     lineHeight: 17,
-    color: "#C2405F",
+    color: "#FF3B30",
   },
 
   /*
@@ -527,7 +527,7 @@ const styles = StyleSheet.create({
 
   footerHeart: {
     fontSize: 24,
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   footerText: {
@@ -535,7 +535,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 2,
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   /*
@@ -551,6 +551,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 13,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 });

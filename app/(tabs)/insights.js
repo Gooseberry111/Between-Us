@@ -245,16 +245,21 @@ export default function InsightsScreen() {
           {samePersonality ? (
             <Card style={styles.venn}>
               <View style={styles.vennArt}>
-                <View style={[styles.vennCircle, styles.vennYou]}>
-                  <Text style={[styles.vennLabel, { color: T.youText }]}>
-                    You
-                  </Text>
-                </View>
+                <View style={styles.vennPair}>
+                  <View style={[styles.vennCircle, styles.vennYou]}>
+                    <Text style={[styles.vennLabel, { color: T.youText }]}>
+                      You
+                    </Text>
+                  </View>
 
-                <View style={[styles.vennCircle, styles.vennThem]}>
-                  <Text style={[styles.vennLabel, { color: T.accentText }]}>
-                    {partnerName}
-                  </Text>
+                  <View style={[styles.vennCircle, styles.vennThem]}>
+                    <Text
+                      style={[styles.vennLabel, { color: T.accentText }]}
+                      numberOfLines={1}
+                    >
+                      {partnerName}
+                    </Text>
+                  </View>
                 </View>
 
                 <View style={styles.vennMid}>
@@ -406,47 +411,55 @@ const styles = StyleSheet.create({
   },
 
   vennArt: {
-    height: 120,
     alignItems: "center",
-    justifyContent: "center",
+    paddingVertical: 8,
     marginBottom: 14,
   },
 
+  /* Two circles that genuinely overlap, each labelled
+     inside its own half so nothing sits on top of
+     anything else. */
+  vennPair: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
   vennCircle: {
-    position: "absolute",
-    width: 112,
-    height: 112,
-    borderRadius: 56,
+    width: 118,
+    height: 118,
+    borderRadius: 59,
     alignItems: "center",
     justifyContent: "center",
   },
 
   vennYou: {
-    left: "50%",
-    marginLeft: -98,
-    backgroundColor: "rgba(155,107,255,0.22)",
+    backgroundColor: "rgba(155,107,255,0.20)",
+    marginRight: -34,
+    paddingRight: 26,
   },
 
   vennThem: {
-    left: "50%",
-    marginLeft: -14,
-    backgroundColor: "rgba(240,63,169,0.22)",
+    backgroundColor: "rgba(240,63,169,0.20)",
+    paddingLeft: 26,
   },
 
   vennLabel: {
     fontSize: 13,
     fontWeight: "700",
+    maxWidth: 74,
+    textAlign: "center",
   },
 
   vennMid: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    marginTop: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: T.fill4,
   },
 
   vennMidText: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: "600",
     color: T.label,
   },

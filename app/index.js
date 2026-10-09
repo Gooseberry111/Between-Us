@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 2.5,
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   headerMark: {
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 1.8,
-    color: "#9C8F97",
+    color: "rgba(60,60,67,0.6)",
     marginBottom: 18,
   },
 
@@ -243,19 +243,19 @@ const styles = StyleSheet.create({
     fontSize: 42,
     lineHeight: 47,
     fontWeight: "700",
-    color: "#2E2430",
+    color: "#111114",
     letterSpacing: -1,
   },
 
   titleAccent: {
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   description: {
     marginTop: 22,
     fontSize: 15,
     lineHeight: 23,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
     maxWidth: 340,
   },
 
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   primaryButton: {
     height: 58,
     borderRadius: 16,
-    backgroundColor: "#D9456B",
+    backgroundColor: "#F03FA9",
     paddingHorizontal: 20,
     flexDirection: "row",
     alignItems: "center",
@@ -292,14 +292,14 @@ const styles = StyleSheet.create({
   },
 
   secondaryText: {
-    color: "#D9456B",
+    color: "#F03FA9",
     fontSize: 15,
     fontWeight: "600",
   },
 
   footerText: {
     textAlign: "center",
-    color: "#B9A7B1",
+    color: "rgba(60,60,67,0.3)",
     fontSize: 11,
     marginTop: 16,
   },

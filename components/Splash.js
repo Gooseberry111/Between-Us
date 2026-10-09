@@ -29,7 +29,7 @@ export default function Splash() {
 const styles = StyleSheet.create({
   screen: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#FFF8F5",
+    backgroundColor: "#F2ECF4",
     zIndex: 200,
   },
 
@@ -43,6 +43,6 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: "700",
     letterSpacing: 0.5,
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 });

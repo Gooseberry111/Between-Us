@@ -373,7 +373,7 @@ export default function SignInScreen() {
 
           <ActivityIndicator
             size="small"
-            color="#D9456B"
+            color="#F03FA9"
             style={styles.loader}
           />
         </View>
@@ -442,7 +442,7 @@ export default function SignInScreen() {
                       setError("");
                     }}
                     placeholder="Enter the code"
-                    placeholderTextColor="#B9A7B1"
+                    placeholderTextColor="rgba(60,60,67,0.3)"
                     keyboardType="number-pad"
                     editable={!loading}
                     style={styles.input}
@@ -498,7 +498,7 @@ export default function SignInScreen() {
                       setError("");
                     }}
                     placeholder="Enter your email"
-                    placeholderTextColor="#B9A7B1"
+                    placeholderTextColor="rgba(60,60,67,0.3)"
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -521,7 +521,7 @@ export default function SignInScreen() {
                       setError("");
                     }}
                     placeholder="Enter your password"
-                    placeholderTextColor="#B9A7B1"
+                    placeholderTextColor="rgba(60,60,67,0.3)"
                     secureTextEntry
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -606,7 +606,7 @@ export default function SignInScreen() {
 const styles = StyleSheet.create({
   linkAction: {
     textAlign: "center",
-    color: "#D9456B",
+    color: "#F03FA9",
     fontSize: 14,
     fontWeight: "600",
     marginTop: 18,
@@ -621,7 +621,7 @@ const styles = StyleSheet.create({
 
   screen: {
     flex: 1,
-    backgroundColor: "#FFF8F5",
+    backgroundColor: "#F2ECF4",
   },
 
   keyboard: {
@@ -653,14 +653,14 @@ const styles = StyleSheet.create({
 
   backArrow: {
     fontSize: 21,
-    color: "#D9456B",
+    color: "#F03FA9",
     marginRight: 7,
   },
 
   backText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   /*
@@ -675,7 +675,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 1.8,
-    color: "#9C8F97",
+    color: "rgba(60,60,67,0.6)",
     marginBottom: 12,
   },
 
@@ -683,11 +683,11 @@ const styles = StyleSheet.create({
     fontSize: 38,
     lineHeight: 44,
     fontWeight: "700",
-    color: "#2E2430",
+    color: "#111114",
   },
 
   titleAccent: {
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   description: {
@@ -695,7 +695,7 @@ const styles = StyleSheet.create({
     maxWidth: 330,
     fontSize: 15,
     lineHeight: 22,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 
   /*
@@ -723,9 +723,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     paddingHorizontal: 16,
     fontSize: 15,
-    color: "#2E2430",
+    color: "#111114",
     borderWidth: 1,
-    borderColor: "#F3DFE7",
+    borderColor: "#FDE8F5",
   },
 
   /*
@@ -733,7 +733,7 @@ const styles = StyleSheet.create({
    */
 
   errorBox: {
-    backgroundColor: "#F9E3EA",
+    backgroundColor: "#FDE8F5",
     paddingHorizontal: 13,
     paddingVertical: 11,
     borderRadius: 12,
@@ -741,7 +741,7 @@ const styles = StyleSheet.create({
   },
 
   errorText: {
-    color: "#C2405F",
+    color: "#FF3B30",
     fontSize: 13,
     lineHeight: 18,
   },
@@ -753,7 +753,7 @@ const styles = StyleSheet.create({
   signInButton: {
     height: 56,
     borderRadius: 14,
-    backgroundColor: "#D9456B",
+    backgroundColor: "#F03FA9",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -797,13 +797,13 @@ const styles = StyleSheet.create({
   },
 
   footerText: {
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
     fontSize: 14,
     marginRight: 5,
   },
 
   createText: {
-    color: "#D9456B",
+    color: "#F03FA9",
     fontSize: 14,
     fontWeight: "700",
   },
@@ -823,7 +823,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "#F5DCE4",
+    backgroundColor: "#FDE8F5",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
@@ -831,19 +831,19 @@ const styles = StyleSheet.create({
 
   loadingLogoText: {
     fontSize: 30,
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   loadingTitle: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#2E2430",
+    color: "#111114",
   },
 
   loadingText: {
     marginTop: 7,
     fontSize: 14,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 
   loader: {

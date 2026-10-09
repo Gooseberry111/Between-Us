@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
     paddingTop: 52,
     paddingBottom: 12,
     paddingHorizontal: 20,
-    backgroundColor: "#6E2743",
+    backgroundColor: "#C21F82",
   },
 
   text: {

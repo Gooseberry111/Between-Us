@@ -185,7 +185,7 @@ export default function TriviaScreen() {
 
             <ActivityIndicator
               size="small"
-              color="#D9456B"
+              color="#F03FA9"
               style={styles.loadingIndicator}
             />
           </View>
@@ -532,7 +532,7 @@ const styles = StyleSheet.create({
   headerBackText: {
     fontSize: 30,
     lineHeight: 32,
-    color: "#D9456B",
+    color: "#F03FA9",
     marginTop: -3,
   },
 
@@ -545,7 +545,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.5,
-    color: "#9C8F97",
+    color: "rgba(60,60,67,0.6)",
   },
 
   headerTitle: {
@@ -553,7 +553,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 20,
     fontWeight: "700",
-    color: "#2E2430",
+    color: "#111114",
   },
 
   scoreBadge: {
@@ -561,7 +561,7 @@ const styles = StyleSheet.create({
     height: 42,
     paddingHorizontal: 10,
     borderRadius: 21,
-    backgroundColor: "rgba(217, 69, 107, 0.09)",
+    backgroundColor: "rgba(240, 63, 169, 0.09)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -569,7 +569,7 @@ const styles = StyleSheet.create({
   scoreText: {
     fontSize: 15,
     fontWeight: "800",
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   progressArea: {
@@ -586,7 +586,7 @@ const styles = StyleSheet.create({
   progressFill: {
     height: "100%",
     borderRadius: 3,
-    backgroundColor: "#D9456B",
+    backgroundColor: "#F03FA9",
   },
 
   progressText: {
@@ -594,12 +594,12 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.4,
-    color: "#9C8F97",
+    color: "rgba(60,60,67,0.6)",
   },
 
   questionCard: {
     marginTop: 25,
-    backgroundColor: "#D9456B",
+    backgroundColor: "#F03FA9",
     borderRadius: 23,
     padding: 22,
   },
@@ -616,7 +616,7 @@ const styles = StyleSheet.create({
 
   questionIconText: {
     fontSize: 19,
-    color: "#FFF8F5",
+    color: "#F2ECF4",
   },
 
   questionText: {
@@ -630,7 +630,7 @@ const styles = StyleSheet.create({
     marginTop: 11,
     fontSize: 12,
     lineHeight: 18,
-    color: "#EBC9D5",
+    color: "#FDE8F5",
   },
 
   options: {
@@ -650,18 +650,18 @@ const styles = StyleSheet.create({
   },
 
   optionSelected: {
-    borderColor: "#D9456B",
+    borderColor: "#F03FA9",
     backgroundColor: "rgba(255, 255, 255, 0.78)",
   },
 
   optionCorrect: {
-    borderColor: "#D9456B",
-    backgroundColor: "rgba(217, 69, 107, 0.09)",
+    borderColor: "#F03FA9",
+    backgroundColor: "rgba(240, 63, 169, 0.09)",
   },
 
   optionWrong: {
     borderColor: "#C98E80",
-    backgroundColor: "#F9E3EA",
+    backgroundColor: "#FDE8F5",
   },
 
   optionCircle: {
@@ -675,11 +675,11 @@ const styles = StyleSheet.create({
   },
 
   optionCircleSelected: {
-    backgroundColor: "#D9456B",
+    backgroundColor: "#F03FA9",
   },
 
   optionCircleCorrect: {
-    backgroundColor: "#D9456B",
+    backgroundColor: "#F03FA9",
   },
 
   optionCircleWrong: {
@@ -689,7 +689,7 @@ const styles = StyleSheet.create({
   optionLetter: {
     fontSize: 12,
     fontWeight: "800",
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   optionLetterSelected: {
@@ -701,19 +701,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 19,
     fontWeight: "600",
-    color: "#2E2430",
+    color: "#111114",
   },
 
   optionTextSelected: {
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   optionTextCorrect: {
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   optionTextWrong: {
-    color: "#C2405F",
+    color: "#FF3B30",
   },
 
   answerMessage: {
@@ -724,17 +724,17 @@ const styles = StyleSheet.create({
   },
 
   correctMessage: {
-    backgroundColor: "rgba(217, 69, 107, 0.09)",
+    backgroundColor: "rgba(240, 63, 169, 0.09)",
   },
 
   wrongMessage: {
-    backgroundColor: "#F9E3EA",
+    backgroundColor: "#FDE8F5",
   },
 
   answerMessageTitle: {
     fontSize: 13,
     fontWeight: "800",
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   answerMessageText: {
@@ -752,7 +752,7 @@ const styles = StyleSheet.create({
   primaryButton: {
     minHeight: 53,
     borderRadius: 14,
-    backgroundColor: "#D9456B",
+    backgroundColor: "#F03FA9",
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 18,
@@ -778,21 +778,21 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "rgba(217, 69, 107, 0.09)",
+    backgroundColor: "rgba(240, 63, 169, 0.09)",
     alignItems: "center",
     justifyContent: "center",
   },
 
   loadingHeart: {
     fontSize: 29,
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   loadingTitle: {
     marginTop: 15,
     fontSize: 17,
     fontWeight: "700",
-    color: "#2E2430",
+    color: "#111114",
   },
 
   loadingIndicator: {
@@ -809,7 +809,7 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#2E2430",
+    color: "#111114",
     textAlign: "center",
   },
 
@@ -817,7 +817,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 13,
     lineHeight: 19,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
     textAlign: "center",
     maxWidth: 320,
   },
@@ -831,7 +831,7 @@ const styles = StyleSheet.create({
   backButtonText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   resultContainer: {
@@ -845,14 +845,14 @@ const styles = StyleSheet.create({
     width: 74,
     height: 74,
     borderRadius: 37,
-    backgroundColor: "rgba(217, 69, 107, 0.09)",
+    backgroundColor: "rgba(240, 63, 169, 0.09)",
     alignItems: "center",
     justifyContent: "center",
   },
 
   resultHeart: {
     fontSize: 38,
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   resultEyebrow: {
@@ -860,21 +860,21 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.7,
-    color: "#9C8F97",
+    color: "rgba(60,60,67,0.6)",
   },
 
   resultTitle: {
     marginTop: 7,
     fontSize: 30,
     fontWeight: "800",
-    color: "#2E2430",
+    color: "#111114",
   },
 
   resultDescription: {
     marginTop: 9,
     fontSize: 14,
     lineHeight: 21,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
     textAlign: "center",
     maxWidth: 310,
   },
@@ -892,13 +892,13 @@ const styles = StyleSheet.create({
   resultCardTitle: {
     fontSize: 14,
     fontWeight: "800",
-    color: "#2E2430",
+    color: "#111114",
   },
 
   resultCardText: {
     marginTop: 6,
     fontSize: 12,
     lineHeight: 18,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 });

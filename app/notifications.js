@@ -151,7 +151,7 @@ export default function NotificationsScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              tintColor="#D9456B"
+              tintColor="#F03FA9"
             />
           }
           contentContainerStyle={styles.scrollContent}
@@ -165,7 +165,7 @@ export default function NotificationsScreen() {
                 activeOpacity={0.8}
                 onPress={() => router.back()}
               >
-                <Ionicons name="chevron-back" size={20} color="#D9456B" />
+                <Ionicons name="chevron-back" size={20} color="#F03FA9" />
               </TouchableOpacity>
 
               <View style={styles.headerText}>
@@ -194,7 +194,7 @@ export default function NotificationsScreen() {
                     <Ionicons
                       name="notifications-outline"
                       size={23}
-                      color="#D9456B"
+                      color="#F03FA9"
                     />
                   </View>
 
@@ -334,7 +334,7 @@ function NotificationCard({ notification, userId, onRead }) {
             !notification.is_read && styles.notificationIconUnread,
           ]}
         >
-          <Ionicons name={getIcon()} size={19} color="#D9456B" />
+          <Ionicons name={getIcon()} size={19} color="#F03FA9" />
         </View>
 
         <View style={styles.notificationContent}>
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "rgba(217, 69, 107, 0.09)",
+    backgroundColor: "rgba(240, 63, 169, 0.09)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 11,
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 2,
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   pageTitle: {
@@ -410,14 +410,14 @@ const styles = StyleSheet.create({
     fontSize: 26,
     lineHeight: 31,
     fontWeight: "700",
-    color: "#2E2430",
+    color: "#111114",
   },
 
   pageSubtitle: {
     marginTop: 4,
     fontSize: 11,
     lineHeight: 17,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 
   section: {
@@ -453,7 +453,7 @@ const styles = StyleSheet.create({
   },
 
   notificationIconUnread: {
-    backgroundColor: "rgba(217, 69, 107, 0.09)",
+    backgroundColor: "rgba(240, 63, 169, 0.09)",
   },
 
   notificationContent: {
@@ -470,7 +470,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 19,
     fontWeight: "600",
-    color: "#2E2430",
+    color: "#111114",
   },
 
   notificationTitleUnread: {
@@ -481,7 +481,7 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: "#D9456B",
+    backgroundColor: "#F03FA9",
     marginTop: 6,
     marginLeft: 7,
   },
@@ -490,14 +490,14 @@ const styles = StyleSheet.create({
     marginTop: 5,
     fontSize: 11,
     lineHeight: 17,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 
   notificationDate: {
     marginTop: 8,
     fontSize: 9,
     fontWeight: "600",
-    color: "#9C8F97",
+    color: "rgba(60,60,67,0.6)",
   },
 
   emptyCard: {
@@ -513,7 +513,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: "rgba(217, 69, 107, 0.09)",
+    backgroundColor: "rgba(240, 63, 169, 0.09)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 13,
@@ -522,19 +522,19 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#2E2430",
+    color: "#111114",
   },
 
   emptyText: {
     marginTop: 7,
     fontSize: 12,
     lineHeight: 19,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
     textAlign: "center",
   },
 
   errorBox: {
-    backgroundColor: "#F9E3EA",
+    backgroundColor: "#FDE8F5",
     paddingHorizontal: 13,
     paddingVertical: 10,
     borderRadius: 11,
@@ -544,7 +544,7 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 11,
     lineHeight: 16,
-    color: "#C2405F",
+    color: "#FF3B30",
   },
 
   loadingContainer: {
@@ -556,6 +556,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 11,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 });

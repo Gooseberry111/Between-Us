@@ -82,7 +82,7 @@ export default function QuestionCard({ question, value, onChange }) {
         <TextInput
           style={styles.input}
           placeholder={question.placeholder}
-          placeholderTextColor="#9C8F97"
+          placeholderTextColor="rgba(60,60,67,0.6)"
           value={value || ""}
           onChangeText={onChange}
         />
@@ -92,7 +92,7 @@ export default function QuestionCard({ question, value, onChange }) {
         <DateInput
           style={styles.input}
           placeholder={question.placeholder}
-          placeholderTextColor="#9C8F97"
+          placeholderTextColor="rgba(60,60,67,0.6)"
           value={value || ""}
           onChangeText={onChange}
         />
@@ -174,7 +174,7 @@ function OtherOption({
       <TextInput
         style={styles.otherInput}
         placeholder={placeholder}
-        placeholderTextColor="#9C8F97"
+        placeholderTextColor="rgba(60,60,67,0.6)"
         value={text}
         onChangeText={onChangeText}
         autoFocus
@@ -186,7 +186,7 @@ function OtherOption({
 const styles = StyleSheet.create({
   otherWrap: {
     borderWidth: 1.5,
-    borderColor: "#D9456B",
+    borderColor: "#F03FA9",
     backgroundColor: "#FFFFFF",
     borderRadius: 14,
     paddingHorizontal: 16,
@@ -199,12 +199,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 1.2,
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   otherInput: {
     fontSize: 15,
-    color: "#2E2430",
+    color: "#111114",
     paddingVertical: 8,
   },
 
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 30,
     fontWeight: "700",
-    color: "#2E2430",
+    color: "#111114",
     marginBottom: 24,
     lineHeight: 38,
   },
@@ -226,11 +226,11 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#F2DDE5",
+    borderColor: "#FDE8F5",
     borderRadius: 14,
     paddingHorizontal: 16,
     height: 56,
     fontSize: 16,
-    color: "#2E2430",
+    color: "#111114",
   },
 });

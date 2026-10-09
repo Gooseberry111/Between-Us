@@ -70,7 +70,7 @@ export default function LegalPage({ title, updated, intro, sections }) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#FFF8F5",
+    backgroundColor: "#F2ECF4",
   },
 
   header: {
@@ -87,20 +87,20 @@ const styles = StyleSheet.create({
 
   backArrow: {
     fontSize: 24,
-    color: "#D9456B",
+    color: "#F03FA9",
   },
 
   title: {
     marginTop: 4,
     fontSize: 28,
     fontWeight: "800",
-    color: "#2E2430",
+    color: "#111114",
   },
 
   updated: {
     marginTop: 6,
     fontSize: 12,
-    color: "#9C8F97",
+    color: "rgba(60,60,67,0.6)",
   },
 
   content: {
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 15,
     lineHeight: 23,
-    color: "#5E544F",
+    color: "rgba(60,60,67,0.6)",
   },
 
   section: {
@@ -122,14 +122,14 @@ const styles = StyleSheet.create({
   heading: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#2E2430",
+    color: "#111114",
     marginBottom: 8,
   },
 
   paragraph: {
     fontSize: 14,
     lineHeight: 22,
-    color: "#5E544F",
+    color: "rgba(60,60,67,0.6)",
     marginBottom: 10,
   },
 
@@ -137,6 +137,6 @@ const styles = StyleSheet.create({
     marginTop: 34,
     fontSize: 13,
     lineHeight: 20,
-    color: "#6B5F68",
+    color: "rgba(60,60,67,0.6)",
   },
 });
