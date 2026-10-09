@@ -1,0 +1,1765 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Between Us Playground</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:opsz,wght@14..32,400..800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..700,0..1,0&amp;icon_names=ac_unit,accessibility_new,add,add_circle,add_photo_alternate,apps,auto_awesome,bar_chart,beach_access,calendar_month,celebration,check,check_circle,chevron_right,compare_arrows,cottage,ecg_heart,edit,favorite,flag,forum,home,ios_share,join,landscape,lightbulb,local_fire_department,location_on,lock,mail,mood,more_horiz,nightlife,nights_stay,notifications,palette,person,photo_camera,photo_library,play_arrow,ramen_dining,restaurant,schedule,search,send,toggle_on,touch_app,trophy,view_day,warning&amp;display=block">
+<style>
+/* Layout: an Apple-style product page. Frosted top bar, big type, live phones pinned beside grouped-list notes. */
+:root{
+  /* Theme tokens (13 palettes below override only these) */
+  --kiss:#FF2E74; --kiss-d:#D90F57; --kiss-rgb:255,46,116; --sunset:#FF7A45;
+  --you:#9B6BFF; --you-d:#5B35C9; --you-tint:#F0E8FF;
+  /* Derived from the theme */
+  --tint:color-mix(in srgb,var(--kiss) 12%,#fff);
+  --a-bg:color-mix(in srgb,var(--kiss) 3.5%,#F2F2F7);
+  /* iOS system values (the app always renders light, like a device) */
+  --label:#111114; --label-2:rgba(60,60,67,.6); --label-3:rgba(60,60,67,.3); --sep:rgba(60,60,67,.18);
+  --fill-2:rgba(120,120,128,.16); --fill-3:rgba(118,118,128,.12); --fill-4:rgba(116,116,128,.08);
+  --hl:#E5E5EA; --green:#34C759; --red:#FF3B30; --orange:#FF9500; --yellow:#FFCC00;
+  /* Type */
+  --f:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter",system-ui,"Segoe UI",sans-serif;
+  --f-round:ui-rounded,"SF Pro Rounded",-apple-system,BlinkMacSystemFont,"Inter",system-ui,sans-serif;
+  --f-serif:ui-serif,"New York","Instrument Serif",Georgia,serif;
+  /* Motion: iOS-like curves */
+  --ease:cubic-bezier(.25,.1,.25,1); --out:cubic-bezier(.16,1,.3,1);
+  --spring:cubic-bezier(.32,1.28,.55,1); --snappy:cubic-bezier(.3,1.12,.5,1);
+  --float:0 10px 30px -8px rgba(0,0,0,.18),0 0 0 .5px rgba(0,0,0,.06);
+  /* Page shell (theme-aware) */
+  --bg:#F5F5F7; --fg:#1D1D1F; --muted:#6E6E73; --panel:#FFFFFF; --line:rgba(0,0,0,.08); --soft:rgba(0,0,0,.045);
+  --accent:var(--kiss-d); --frame:#2C2C31; --frame-2:#0E0E10;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--bg:#000; --fg:#F5F5F7; --muted:#98989D; --panel:#1C1C1E; --line:rgba(255,255,255,.1); --soft:rgba(255,255,255,.07);
+    --accent:color-mix(in srgb,var(--kiss) 70%,#fff); --frame:#3A3A40; --frame-2:#151517; color-scheme:dark}
+}
+:root[data-theme="dark"]{--bg:#000; --fg:#F5F5F7; --muted:#98989D; --panel:#1C1C1E; --line:rgba(255,255,255,.1); --soft:rgba(255,255,255,.07);
+  --accent:color-mix(in srgb,var(--kiss) 70%,#fff); --frame:#3A3A40; --frame-2:#151517; color-scheme:dark}
+
+:root[data-palette="sunset"]{--kiss:#FF6A3D;--kiss-d:#C9461C;--kiss-rgb:255,106,61;--sunset:#FFB020;--you:#8B6BFF;--you-d:#5532C2;--you-tint:#EFE8FF}
+:root[data-palette="lavender"]{--kiss:#8B5CF6;--kiss-d:#6532E0;--kiss-rgb:139,92,246;--sunset:#EC4899;--you:#FF4F8B;--you-d:#B8124F;--you-tint:#FFE8F0}
+:root[data-palette="ocean"]{--kiss:#0891B2;--kiss-d:#0E7490;--kiss-rgb:8,145,178;--sunset:#6366F1;--you:#FF6B6B;--you-d:#C53030;--you-tint:#FFECEC}
+:root[data-palette="cherry"]{--kiss:#E11D48;--kiss-d:#B3123A;--kiss-rgb:225,29,72;--sunset:#FB7185;--you:#9B6BFF;--you-d:#5B35C9;--you-tint:#F0E8FF}
+:root[data-palette="berry"]{--kiss:#C026D3;--kiss-d:#9A1BAA;--kiss-rgb:192,38,211;--sunset:#F472B6;--you:#F97316;--you-d:#C2410C;--you-tint:#FFEDDF}
+:root[data-palette="matcha"]{--kiss:#0F9F6E;--kiss-d:#0B7A55;--kiss-rgb:15,159,110;--sunset:#84CC16;--you:#FF5C80;--you-d:#C21E4A;--you-tint:#FFE8EE}
+:root[data-palette="mocha"]{--kiss:#B45F3C;--kiss-d:#8C4428;--kiss-rgb:180,95,60;--sunset:#E8A87C;--you:#7C6BD6;--you-d:#4B3BA8;--you-tint:#EEEAFB}
+:root[data-palette="peach"]{--kiss:#FF7A5C;--kiss-d:#D24B2A;--kiss-rgb:255,122,92;--sunset:#F9A03F;--you:#14B8A6;--you-d:#0F766E;--you-tint:#DDF7F3}
+:root[data-palette="indigo"]{--kiss:#4F46E5;--kiss-d:#3730A3;--kiss-rgb:79,70,229;--sunset:#DB2777;--you:#F59E0B;--you-d:#B45309;--you-tint:#FEF3D7}
+:root[data-palette="sage"]{--kiss:#5B8A6B;--kiss-d:#3F6B50;--kiss-rgb:91,138,107;--sunset:#C9A66B;--you:#E26D8A;--you-d:#B23A5A;--you-tint:#FCE8ED}
+:root[data-palette="bubblegum"]{--kiss:#F03FA9;--kiss-d:#C21F82;--kiss-rgb:240,63,169;--sunset:#38BDF8;--you:#9B6BFF;--you-d:#5B35C9;--you-tint:#F0E8FF}
+:root[data-palette="velvet"]{--kiss:#4A2D5C;--kiss-d:#321D40;--kiss-rgb:74,45,92;--sunset:#C9973F;--you:#D9577A;--you-d:#A83355;--you-tint:#FBE6EC}
+
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.47 var(--f);letter-spacing:-.022em;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4,h5,p{margin:0}
+a{color:inherit}
+button{font:inherit;color:inherit}
+:where(button,label,a,summary){-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:3px solid color-mix(in srgb,var(--kiss) 60%,transparent);outline-offset:2px;border-radius:10px}
+.sr{position:fixed;top:50%;left:50%;width:1px;height:1px;margin:0;opacity:0;pointer-events:none}
+label:has(> .sr:focus-visible),.sr:focus-visible + label{outline:3px solid color-mix(in srgb,var(--kiss) 60%,transparent);outline-offset:2px}
+
+/* Icons: Material Symbols Rounded (closest web match to SF Symbols). Box size sets glyph size; FILL morphs on state. */
+.ic{--fill:0;--wg:400;display:inline-grid;place-items:center;width:20px;height:20px;flex:none;vertical-align:middle;overflow:hidden;container-type:size;line-height:1}
+.ic::before{content:attr(data-i);font-family:"Material Symbols Rounded";font-size:100cqh;font-weight:normal;font-style:normal;line-height:1;letter-spacing:normal;text-transform:none;
+  white-space:nowrap;direction:ltr;-webkit-font-smoothing:antialiased;font-feature-settings:"liga";font-variation-settings:"FILL" var(--fill),"wght" var(--wg),"GRAD" 0,"opsz" 24;
+  transition:font-variation-settings .3s var(--ease)}
+.ic.f{--fill:1}
+svg.si{fill:currentColor;flex:none}
+
+/* Generic iOS press: dim + slight scale */
+.tap{transition:transform .4s var(--snappy),opacity .2s var(--ease),background-color .2s var(--ease)}
+.tap:active{transform:scale(.97);opacity:.72;transition-duration:.08s}
+
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes pop{0%{transform:scale(1)}35%{transform:scale(1.22)}65%{transform:scale(.94)}100%{transform:scale(1)}}
+@keyframes beat{0%,100%{transform:scale(1)}14%{transform:scale(1.16)}28%{transform:scale(1)}42%{transform:scale(1.1)}56%{transform:scale(1)}}
+@keyframes breathe{0%,100%{opacity:1}50%{opacity:.55}}
+@keyframes spin{to{transform:rotate(1turn)}}
+
+/* ============ Page shell ============ */
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:90;background:color-mix(in srgb,var(--bg) 78%,transparent);
+  backdrop-filter:saturate(1.8) blur(20px);-webkit-backdrop-filter:saturate(1.8) blur(20px);border-bottom:1px solid var(--line)}
+.topbar-in{max-width:1220px;margin:0 auto;padding:10px clamp(16px,4vw,40px);display:flex;align-items:center;justify-content:space-between;gap:10px 20px;flex-wrap:wrap}
+.mark{display:flex;align-items:center;gap:10px;font:600 15px var(--f);white-space:nowrap}
+.mark small{color:var(--muted);font-weight:400;font-size:15px}
+.mark-ic{width:30px;height:30px;border-radius:8px;background:var(--kiss);color:#fff;display:grid;place-items:center}
+.mark-ic .ic{width:18px;height:18px}
+.links{display:flex;gap:2px;padding:3px;border-radius:999px;background:var(--soft);overflow-x:auto;scrollbar-width:none;min-width:0;max-width:100%}
+.links::-webkit-scrollbar{display:none}
+.links a{padding:6px 13px;border-radius:999px;font:500 13px var(--f);text-decoration:none;white-space:nowrap;transition:background .2s}
+.links a:hover{background:var(--panel)}
+
+.wrap{max-width:1220px;margin:0 auto;padding-inline:clamp(16px,4vw,40px);padding-block:0 96px}
+.hero{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:clamp(32px,5vw,72px);align-items:end;padding-block:clamp(56px,9vw,120px) clamp(40px,6vw,72px)}
+.hero-tag,.sec-tag{font:600 17px var(--f);color:var(--accent)}
+.hero h1{font:700 clamp(52px,8.6vw,108px)/.98 var(--f);letter-spacing:-.05em;margin-top:10px;text-wrap:balance}
+.hero .lede{font:400 clamp(19px,2vw,23px)/1.38 var(--f);color:var(--muted);margin-top:22px;max-width:36ch}
+
+.list{background:var(--panel);border-radius:20px;overflow:hidden}
+.li{position:relative;display:flex;gap:14px;align-items:flex-start;padding:15px 18px}
+.li + .li::before{content:"";position:absolute;top:0;left:54px;right:0;height:1px;background:var(--line)}
+.li > .ic{width:22px;height:22px;color:var(--accent);margin-top:1px}
+.li .t{min-width:0}
+.li b{display:block;font:600 16px/1.3 var(--f)}
+.li .d{display:block;color:var(--muted);font-size:15px;line-height:1.4;margin-top:2px}
+.li .d s{text-decoration-color:color-mix(in srgb,var(--muted) 60%,transparent)}
+
+.sec{padding-block:clamp(56px,8vw,100px);border-top:1px solid var(--line)}
+.sec-head{display:grid;gap:10px;margin-bottom:clamp(28px,4vw,48px);max-width:760px}
+.sec-head h2{font:700 clamp(36px,5.2vw,60px)/1.03 var(--f);letter-spacing:-.045em;text-wrap:balance}
+.sec-head p{font-size:19px;line-height:1.42;color:var(--muted)}
+
+.stage{display:grid;grid-template-columns:minmax(0,392px) minmax(0,1fr);gap:clamp(28px,5vw,72px);align-items:start}
+.phone-col{position:sticky;top:76px}
+.notes{display:flex;flex-direction:column;gap:20px;min-width:0}
+
+.shell-seg{position:relative;display:grid;grid-template-columns:repeat(5,1fr);padding:3px;border-radius:12px;background:var(--soft)}
+.shell-seg label{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 4px;font:500 14px var(--f);cursor:pointer;border-radius:9px}
+.shell-seg label .ic{width:18px;height:18px}
+.shell-seg .thumb{position:absolute;top:3px;bottom:3px;left:3px;width:calc((100% - 6px)/5);border-radius:9px;background:var(--panel);box-shadow:0 3px 8px rgba(0,0,0,.12),0 1px 1px rgba(0,0,0,.04);transition:transform .45s var(--spring)}
+body:has(#v-timeline:checked) .shell-seg .thumb{transform:translateX(100%)}
+body:has(#v-dreams:checked) .shell-seg .thumb{transform:translateX(200%)}
+body:has(#v-insights:checked) .shell-seg .thumb{transform:translateX(300%)}
+body:has(#v-profile:checked) .shell-seg .thumb{transform:translateX(400%)}
+body:has(#v-home:checked) .shell-seg [for="v-home"],body:has(#v-timeline:checked) .shell-seg [for="v-timeline"],body:has(#v-dreams:checked) .shell-seg [for="v-dreams"],
+body:has(#v-insights:checked) .shell-seg [for="v-insights"],body:has(#v-profile:checked) .shell-seg [for="v-profile"]{font-weight:600}
+body:has(#v-home:checked) .shell-seg [for="v-home"] .ic,body:has(#v-timeline:checked) .shell-seg [for="v-timeline"] .ic,body:has(#v-dreams:checked) .shell-seg [for="v-dreams"] .ic,
+body:has(#v-insights:checked) .shell-seg [for="v-insights"] .ic,body:has(#v-profile:checked) .shell-seg [for="v-profile"] .ic{--fill:1;color:var(--accent)}
+@media (max-width:560px){.shell-seg label .lbl{display:none}}
+
+.note{display:none;flex-direction:column;gap:18px}
+body:has(#v-home:checked) .note-home,body:has(#v-timeline:checked) .note-timeline,body:has(#v-dreams:checked) .note-dreams,
+body:has(#v-insights:checked) .note-insights,body:has(#v-profile:checked) .note-profile{display:flex;animation:rise .45s var(--out)}
+.note h3{font:700 clamp(26px,3vw,34px)/1.1 var(--f);letter-spacing:-.035em;text-wrap:balance}
+.note .lead{font-size:18px;color:var(--muted);line-height:1.45;max-width:58ch}
+.gh-shell{font:600 13px var(--f);text-transform:uppercase;letter-spacing:.02em;color:var(--muted);padding:0 18px 6px}
+
+.flow{display:flex;flex-direction:column}
+.fs{position:relative;display:grid;grid-template-columns:32px minmax(0,1fr);gap:2px 14px;padding:15px 18px;cursor:pointer;transition:background .2s}
+.fs + .fs::before{content:"";position:absolute;top:0;left:64px;right:0;height:1px;background:var(--line)}
+.fs .num{grid-row:span 2;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--soft);font:600 15px var(--f-round);transition:background .3s,color .3s}
+.fs b{font:600 16px/1.35 var(--f)}
+.fs .d{color:var(--muted);font-size:15px;line-height:1.4}
+body:has(#r1:checked) .fs1 .num,body:has(#r2:checked) .fs2 .num,body:has(#r3:checked) .fs3 .num,body:has(#r4:checked) .fs4 .num,body:has(#r5:checked) .fs5 .num{background:var(--kiss);color:#fff}
+body:has(#r1:checked) .fs1,body:has(#r2:checked) .fs2,body:has(#r3:checked) .fs3,body:has(#r4:checked) .fs4,body:has(#r5:checked) .fs5{background:color-mix(in srgb,var(--kiss) 7%,var(--panel))}
+
+/* ============ Phone frame ============ */
+.phone{width:100%;max-width:390px;height:812px;margin-inline:auto;border-radius:58px;padding:11px;background:linear-gradient(160deg,var(--frame),var(--frame-2));
+  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.14),0 40px 80px -36px rgba(0,0,0,.45)}
+.screen{position:relative;height:100%;border-radius:47px;overflow:hidden;isolation:isolate;background:var(--a-bg);color:var(--label);font:16px/1.38 var(--f);letter-spacing:-.02em}
+.island{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:120px;height:35px;border-radius:20px;background:#000;z-index:70}
+.status{position:absolute;inset:0 0 auto;height:54px;display:flex;justify-content:space-between;align-items:center;padding:6px 32px 0 40px;font:600 16px var(--f);z-index:65;pointer-events:none;transition:color .3s}
+.status .st{display:flex;gap:6px;align-items:center}
+.app::before,.app::after{content:"";position:absolute;left:0;right:0;z-index:26;pointer-events:none;background:color-mix(in srgb,var(--a-bg) 55%,transparent);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.app::before{top:0;height:60px;-webkit-mask-image:linear-gradient(#000 55%,transparent);mask-image:linear-gradient(#000 55%,transparent)}
+.app::after{bottom:0;height:104px;-webkit-mask-image:linear-gradient(transparent,#000 65%);mask-image:linear-gradient(transparent,#000 65%)}
+
+.views{position:absolute;inset:0}
+.view{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;padding:56px 16px 112px;display:flex;flex-direction:column;gap:14px;
+  opacity:0;visibility:hidden;transform:scale(.985);transition:opacity .28s var(--ease),transform .4s var(--out),visibility 0s linear .28s}
+.view::-webkit-scrollbar{display:none}
+.view > *{flex:none}
+.app:has(#v-home:checked) .view-home,.app:has(#v-timeline:checked) .view-timeline,.app:has(#v-dreams:checked) .view-dreams,
+.app:has(#v-insights:checked) .view-insights,.app:has(#v-profile:checked) .view-profile{opacity:1;visibility:visible;transform:none;transition:opacity .3s var(--ease),transform .45s var(--out),visibility 0s}
+
+.nav{display:flex;align-items:center;justify-content:space-between;min-height:40px}
+.lt{font:700 34px/1.08 var(--f);letter-spacing:-.035em}
+.lt-sub{font-size:15px;color:var(--label-2);margin-top:-8px}
+.dateline{font:600 13px var(--f);text-transform:uppercase;color:var(--label-2);letter-spacing:.01em}
+.h2{display:flex;justify-content:space-between;align-items:baseline;margin-top:8px}
+.h2 h4{font:700 20px/1.2 var(--f);letter-spacing:-.025em}
+.h2 a,.h2 .lnk{font:400 16px var(--f);color:var(--kiss);text-decoration:none}
+.gh{font:500 13px var(--f);text-transform:uppercase;color:var(--label-2);padding:6px 16px 0;letter-spacing:.01em}
+.gfoot{font-size:13px;color:var(--label-2);padding:0 16px;margin-top:-6px;line-height:1.35}
+
+.glass-btn{display:grid;place-items:center;width:38px;height:38px;border:0;border-radius:50%;background:rgba(255,255,255,.85);color:var(--label);cursor:pointer;position:relative;
+  box-shadow:0 1px 3px rgba(0,0,0,.08),0 0 0 .5px rgba(0,0,0,.05);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.glass-btn .ic{width:22px;height:22px}
+.dot-badge{position:absolute;top:7px;right:8px;width:9px;height:9px;border-radius:50%;background:var(--red);box-shadow:0 0 0 2px #fff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:50px;padding:0 20px;border:0;border-radius:14px;font:600 17px/1 var(--f);letter-spacing:-.02em;
+  cursor:pointer;text-decoration:none;user-select:none;-webkit-user-select:none;white-space:nowrap}
+.btn .ic{width:20px;height:20px;--wg:500}
+.btn-filled{background:var(--kiss);color:#fff}
+.btn-tinted{background:var(--tint);color:var(--kiss-d)}
+.btn-gray{background:var(--fill-3);color:var(--kiss-d)}
+.btn-plain{background:none;color:var(--kiss);padding:0 8px}
+.btn-white{background:#fff;color:var(--kiss-d)}
+.btn-red{background:color-mix(in srgb,var(--red) 12%,#fff);color:var(--red)}
+.btn-sm{height:34px;padding:0 14px;border-radius:999px;font-size:15px}
+.btn-block{display:flex;width:100%}
+
+.card{background:#fff;border-radius:20px}
+.group{background:#fff;border-radius:18px;overflow:hidden}
+.cell{position:relative;display:flex;align-items:center;gap:12px;min-height:50px;padding:10px 16px;background:#fff;--inset:16px}
+.cell::after{content:"";position:absolute;left:var(--inset);right:0;bottom:0;height:1px;background:var(--sep);transform:scaleY(.6);transform-origin:bottom}
+.group > .cell:last-child::after,.steps > .cell:last-child::after{display:none}
+.cell.has-ic{--inset:52px}
+.cell.has-av{--inset:64px}
+label.cell,a.cell,.cell.press{cursor:pointer;transition:background .15s}
+label.cell:active,a.cell:active,.cell.press:active{background:var(--hl);transition-duration:0s}
+.cell > .ic:first-child{width:24px;height:24px;color:var(--kiss)}
+.cell .grow{flex:1;min-width:0}
+.cell .grow b{display:block;font:400 16px/1.3 var(--f)}
+.cell .grow small{display:block;font-size:13px;color:var(--label-2);line-height:1.3;margin-top:1px}
+.cell .val{color:var(--label-2);font-size:16px}
+.cell .chev{width:18px;height:18px;color:var(--label-3);--wg:500}
+.cell.danger{justify-content:center;color:var(--red)}
+
+.av{display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:50%;font:600 16px var(--f-round);letter-spacing:0}
+.av-m{background:var(--you-tint);color:var(--you-d)}
+.av-r{background:var(--tint);color:var(--kiss-d)}
+.av.xs{width:30px;height:30px;font-size:13px}
+.av.lg{width:60px;height:60px;font-size:24px}
+
+.seg{--n:3;position:relative;display:grid;grid-template-columns:repeat(var(--n),1fr);padding:2px;border-radius:10px;background:var(--fill-3)}
+.seg > label{position:relative;z-index:1;text-align:center;padding:6px 2px;font:500 14px var(--f);cursor:pointer;white-space:nowrap}
+.seg > input:checked + label{font-weight:600}
+.seg .thumb{position:absolute;top:2px;bottom:2px;left:2px;width:calc((100% - 4px)/var(--n));border-radius:8px;background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.12),0 3px 1px rgba(0,0,0,.04);transition:transform .45s var(--spring)}
+.seg:has(> input:nth-of-type(2):checked) .thumb{transform:translateX(100%)}
+.seg:has(> input:nth-of-type(3):checked) .thumb{transform:translateX(200%)}
+.seg:has(> input:nth-of-type(4):checked) .thumb{transform:translateX(300%)}
+.sw{position:relative;width:51px;height:31px;border-radius:999px;background:#E9E9EB;flex:none;transition:background .25s var(--ease)}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:999px;background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.15),0 3px 1px rgba(0,0,0,.06);
+  transition:transform .4s var(--spring),width .2s var(--ease)}
+input:checked + .sw{background:var(--kiss)}
+input:checked + .sw::after{transform:translateX(20px)}
+label:active > .sw::after{width:33px}
+label:active > input:checked + .sw::after{transform:translateX(14px)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{flex:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;background:var(--fill-3);color:var(--label);font:500 15px var(--f);cursor:pointer;
+  transition:background .2s var(--ease),color .2s,transform .35s var(--snappy)}
+.chip:active{transform:scale(.94)}
+input:checked + .chip,.chip:has(input:checked){background:var(--kiss);color:#fff}
+.chip.tinted{background:var(--tint);color:var(--kiss-d)}
+.field{width:100%;border:0;outline:0;background:transparent;font:400 16px var(--f);color:var(--label);letter-spacing:-.02em;padding:0}
+.field::placeholder{color:var(--label-3)}
+.search{display:flex;align-items:center;gap:6px;height:38px;padding:0 10px;border-radius:12px;background:var(--fill-3);color:var(--label-2)}
+.search .ic{width:20px;height:20px}
+
+/* ============ Home: the bond ============ */
+.bond{position:relative;isolation:isolate;display:flex;flex-direction:column;align-items:center;text-align:center;padding-top:2px}
+.bond::before{content:"";position:absolute;left:-40px;right:-40px;top:40px;height:280px;z-index:-1;
+  background:radial-gradient(42% 46% at 22% 62%,color-mix(in srgb,var(--you) 22%,transparent),transparent 70%),radial-gradient(42% 46% at 78% 62%,rgba(var(--kiss-rgb),.22),transparent 70%)}
+.bond-day{font:600 13px var(--f);color:var(--label-2)}
+.day-count{font:700 76px/.92 var(--f-round);letter-spacing:-.05em;color:var(--kiss)}
+.bond-names{font:400 italic 21px/1.2 var(--f-serif);color:var(--label-2);margin-top:4px;letter-spacing:-.01em}
+.bond-row{display:grid;grid-template-columns:96px minmax(0,1fr) 96px;align-items:start;width:100%;margin-top:18px}
+.person{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0}
+.person > b{font:600 15px var(--f);margin-top:6px}
+.orb{position:relative;width:90px;height:90px;display:grid;place-items:center}
+.orb .av{width:74px;height:74px;font-size:28px;border:3px solid #fff;box-shadow:0 10px 24px -14px rgba(0,0,0,.4)}
+.orb-ring{position:absolute;inset:0;width:100%;height:100%;fill:none;stroke-width:3;stroke-linecap:round;overflow:visible}
+.me .orb-ring{stroke:var(--you);stroke-dasharray:3 8;animation:spin 18s linear infinite}
+.them .orb-ring{stroke:var(--kiss);stroke-width:3.5}
+.mood-badge{position:absolute;right:0;bottom:2px;width:30px;height:30px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:16px;line-height:1;color:var(--you-d);box-shadow:0 2px 8px rgba(0,0,0,.14)}
+.mood-badge > span{display:none}
+.mood-badge .ic{width:16px;height:16px;--wg:600}
+.app:not(:has([name="mood"]:checked)) .me .mb0{display:grid}
+.app:has(#ma-1:checked) .me .mb1,.app:has(#ma-2:checked) .me .mb2,.app:has(#ma-3:checked) .me .mb3,.app:has(#ma-4:checked) .me .mb4,.app:has(#ma-5:checked) .me .mb5{display:inline;animation:pop .5s var(--spring)}
+.online{position:absolute;left:5px;bottom:5px;width:15px;height:15px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px #fff}
+.pstate{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:999px;font:600 12px var(--f);white-space:nowrap}
+.pstate .ic{width:13px;height:13px;--wg:600}
+.pstate.turn{background:var(--you-tint);color:var(--you-d);animation:breathe 2.4s ease-in-out infinite}
+.pstate.done{background:color-mix(in srgb,var(--green) 14%,#fff);color:#1E8E3E}
+.thread{position:relative;height:90px;display:grid;place-items:center}
+.wire{position:absolute;left:-10px;top:50%;width:calc(100% + 20px);height:60px;transform:translateY(-50%);overflow:visible;pointer-events:none}
+.wire path{fill:none;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.w-base{stroke:rgba(var(--kiss-rgb),.12);stroke-width:5}
+.w-flow{stroke:url(#bondGrad);stroke-width:2;stroke-dasharray:2 8;animation:flow 1.4s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-20}}
+.w-hug{stroke:url(#bondGrad);stroke-width:6;stroke-dasharray:32 600;stroke-dashoffset:32;opacity:0}
+.bond.sent .w-hug{animation:hugWave .8s var(--out) forwards}
+@keyframes hugWave{0%{stroke-dashoffset:32;opacity:1}85%{opacity:1}100%{stroke-dashoffset:-200;opacity:0}}
+.w-dot{fill:#fff;stroke:var(--kiss);stroke-width:1.5}
+.bond-heart{position:relative;z-index:2;width:58px;height:58px;border:0;border-radius:50%;background:#fff;color:var(--kiss);display:grid;place-items:center;cursor:pointer;
+  box-shadow:0 8px 24px -10px rgba(var(--kiss-rgb),.55),0 0 0 .5px rgba(0,0,0,.04);user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation;
+  transition:transform .4s var(--snappy),background .3s,color .3s}
+.bond-heart:active{transform:scale(.9);transition-duration:.1s}
+.bond-heart > .ic{width:26px;height:26px;--fill:1;animation:beat 1.6s ease-in-out infinite}
+.bond-heart .hp{position:absolute;inset:-5px;width:68px;height:68px;transform:rotate(-90deg);fill:none;stroke:var(--kiss);stroke-width:3.5;stroke-linecap:round;stroke-dasharray:195;stroke-dashoffset:195;transition:stroke-dashoffset .3s var(--out)}
+.bond-heart:active .hp{stroke-dashoffset:0;transition:stroke-dashoffset 1.2s linear}
+.bond.sent .bond-heart{background:var(--kiss);color:#fff}
+.bond.sent .bond-heart .hp{stroke-dashoffset:0;transition:none}
+.bond.sent .them .orb{animation:pop .6s var(--spring) .55s}
+.bond.sent .them .orb::after{content:"";position:absolute;inset:6px;border-radius:50%;border:3px solid var(--kiss);opacity:0;animation:ringOut .8s var(--out) .55s}
+@keyframes ringOut{0%{transform:scale(.8);opacity:1}100%{transform:scale(1.5);opacity:0}}
+.bond-cap{margin-top:12px;font-size:13px;color:var(--label-2)}
+.bond-cap .c2{display:none;color:var(--kiss-d);font-weight:600}
+.bond.sent .bond-cap .c1{display:none}
+.bond.sent .bond-cap .c2{display:inline;animation:fade .3s}
+.bond-chips{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+.bchip{display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 12px;border-radius:999px;background:#fff;font:500 13px var(--f)}
+.bchip .ic{width:16px;height:16px;--fill:1;color:var(--kiss)}
+.bchip:first-child .ic{color:var(--orange)}
+.app:has(#v-home:checked) .day-count{animation:countIn .8s var(--spring) both}
+@keyframes countIn{from{opacity:0;transform:translateY(10px) scale(.92)}}
+.app:has(#v-home:checked) .me .orb{animation:inL .8s var(--spring) both .1s}
+.app:has(#v-home:checked) .them .orb{animation:inR .8s var(--spring) both .1s}
+@keyframes inL{from{transform:translateX(-26px);opacity:0}}
+@keyframes inR{from{transform:translateX(26px);opacity:0}}
+
+.qcard{padding:16px;display:flex;flex-direction:column;gap:12px}
+.qc-top{display:flex;align-items:center;gap:6px;font:600 13px var(--f);color:var(--kiss)}
+.qc-top .ic{width:18px;height:18px;--fill:1}
+.qc-top .time{margin-left:auto;color:var(--label-2);font-weight:400}
+.qc-q{font:600 21px/1.22 var(--f);letter-spacing:-.025em;text-wrap:balance}
+.qc-lock{display:flex;align-items:center;gap:10px;padding:8px 12px 8px 8px;border-radius:14px;background:var(--fill-4)}
+.qc-lock .blur{flex:1;min-width:0;filter:blur(4.5px);font-size:15px;white-space:nowrap;overflow:hidden;user-select:none}
+.qc-lock .ic{color:var(--label-2);width:18px;height:18px}
+.mood{padding:16px;display:flex;flex-direction:column;gap:12px}
+.mood h4{font:600 17px var(--f);letter-spacing:-.02em}
+.moods{display:flex;justify-content:space-between}
+.moods label{width:50px;height:50px;border-radius:50%;display:grid;place-items:center;font-size:25px;cursor:pointer;background:var(--fill-4);transition:transform .4s var(--spring),background .2s,box-shadow .2s}
+.moods label:active{transform:scale(.9)}
+.moods input:checked + label{background:var(--tint);box-shadow:0 0 0 2px var(--kiss);animation:pop .5s var(--spring)}
+.mood-out{font-size:13px;color:var(--label-2);min-height:1.4em}
+.mood-out span{display:none}
+.mood:not(:has(input:checked)) .mo0,.mood:has([id$="-1"]:checked) .mo1,.mood:has([id$="-2"]:checked) .mo2,.mood:has([id$="-3"]:checked) .mo3,
+.mood:has([id$="-4"]:checked) .mo4,.mood:has([id$="-5"]:checked) .mo5{display:inline;animation:fade .3s}
+.actions{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.action{display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 0 8px;border:0;border-radius:14px;background:#fff;color:var(--kiss);font:500 12px var(--f);cursor:pointer;
+  transition:background .15s,transform .35s var(--snappy)}
+.action .ic{width:24px;height:24px;--fill:1}
+.action:active{background:var(--hl);transform:scale(.96);transition-duration:.06s}
+.cal{width:40px;flex:none;text-align:center}
+.cal span{display:block;font:600 11px var(--f);text-transform:uppercase;color:var(--red);letter-spacing:.02em}
+.cal b{display:block;font:300 24px/1.05 var(--f);letter-spacing:-.03em}
+.cal.you span{color:var(--you-d)}
+
+.love{position:relative;width:40px;height:40px;display:grid;place-items:center;border-radius:50%;color:var(--label-3);cursor:pointer;flex:none;transition:transform .3s var(--snappy)}
+.love:active{transform:scale(.85)}
+.love .ic{width:24px;height:24px;transition:color .2s}
+.love input:checked ~ .ic{--fill:1;color:var(--kiss);animation:pop .5s var(--spring)}
+.love .spk{position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2.5px;border-radius:50%;opacity:0;pointer-events:none}
+.love input:checked ~ .spk{animation:sparks .6s var(--out)}
+@keyframes sparks{0%{opacity:1;box-shadow:0 0 var(--kiss),0 0 var(--sunset),0 0 var(--you),0 0 var(--kiss),0 0 var(--sunset),0 0 var(--you)}
+  100%{opacity:0;box-shadow:0 -22px var(--kiss),19px -11px var(--sunset),19px 11px var(--you),0 22px var(--kiss),-19px 11px var(--sunset),-19px -11px var(--you)}}
+.love.big{width:56px;height:56px;background:#fff}
+.love.big .ic{width:30px;height:30px}
+
+/* ============ Timeline ============ */
+.empty{padding:26px 18px 20px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px}
+.empty > .ic{width:46px;height:46px;color:var(--label-3);margin-bottom:4px}
+.empty h3{font:700 20px/1.2 var(--f);letter-spacing:-.025em;text-wrap:balance}
+.empty p{font-size:15px;color:var(--label-2);max-width:30ch}
+.empty .chips{justify-content:center;margin:6px 0 4px}
+.empty .again{display:none}
+.app:has(#mem-added:checked) .empty .first{display:none}
+.app:has(#mem-added:checked) .empty .again{display:inline}
+.memory,.memory-h{display:none}
+.app:has(#mem-added:checked) .memory-h{display:block}
+.app:has(#mem-added:checked) .memory{display:block;overflow:hidden;animation:popIn .7s var(--spring) .25s both}
+@keyframes popIn{from{opacity:0;transform:translateY(-10px) scale(.94)}}
+.photo{position:relative;height:170px;overflow:hidden;background:linear-gradient(180deg,#FFB27A 0%,#FF6F91 52%,#8C4BE0 100%)}
+.photo::before{content:"";position:absolute;width:78px;height:78px;border-radius:50%;left:50%;top:58%;transform:translate(-50%,-50%);background:radial-gradient(circle,#FFF3C4,#FFC86B)}
+.photo::after{content:"";position:absolute;left:0;right:0;bottom:0;height:44%;background:repeating-linear-gradient(180deg,rgba(80,30,120,.55) 0 6px,rgba(120,60,170,.45) 6px 12px)}
+.photo .pin{position:absolute;z-index:1;left:12px;bottom:12px;display:flex;align-items:center;gap:4px;padding:4px 10px 4px 7px;border-radius:999px;background:rgba(0,0,0,.35);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;font:500 13px var(--f)}
+.photo .pin .ic{width:15px;height:15px;--fill:1}
+.memory .cell{min-height:60px}
+.mile{padding:14px 16px;display:flex;align-items:center;gap:12px}
+.mile .pair{display:flex}
+.mile .pair .av + .av{margin-left:-10px;box-shadow:0 0 0 2px #fff}
+.mile .grow{flex:1;min-width:0}
+.mile b{display:block;font:600 16px var(--f)}
+.mile small{color:var(--label-2);font-size:13px}
+
+/* ============ Dreams ============ */
+.view-dreams{counter-reset:dr 1}
+.view-dreams .nav{order:-4}.view-dreams .lt{order:-3}.view-dreams .board{order:-2}
+.dchk:checked{counter-increment:dr}
+.board{display:flex;align-items:center;gap:14px;padding:16px}
+.board .n::before{content:counter(dr);display:block;font:700 48px/1 var(--f-round);letter-spacing:-.04em;color:var(--kiss)}
+.board .grow{flex:1;min-width:0}
+.board .grow b{display:block;font:600 16px var(--f)}
+.board .grow small{color:var(--label-2);font-size:13px}
+.board > .ic{width:30px;height:30px;color:var(--kiss);--fill:1}
+.dream{overflow:hidden;display:flex;flex-direction:column;counter-reset:stp;--s1:0;--s2:0;--s3:0;--s4:0;--s5:0}
+.dream:has(#st1:checked){--s1:20}.dream:has(#st2:checked){--s2:20}.dream:has(#st3:checked){--s3:20}.dream:has(#st4:checked){--s4:20}.dream:has(#st5:checked){--s5:20}
+.dream .cover{order:-2;position:relative;height:120px;overflow:hidden;background:linear-gradient(180deg,#FFD3B0 0%,#FFB0C4 45%,#B9A2FF 100%)}
+.dream .cover::before{content:"";position:absolute;left:-10%;right:-10%;bottom:-40px;height:110px;background:#7B5BD6;clip-path:polygon(0 100%,0 55%,18% 20%,32% 48%,50% 5%,66% 42%,80% 22%,100% 50%,100% 100%)}
+.dream .cover::after{content:"";position:absolute;left:-10%;right:-10%;bottom:-40px;height:80px;background:#5A3FB0;clip-path:polygon(0 100%,0 60%,24% 30%,44% 62%,62% 28%,86% 58%,100% 40%,100% 100%)}
+.dream .sun{position:absolute;right:58px;top:22px;width:34px;height:34px;border-radius:50%;background:#FFF2C2;box-shadow:0 0 30px #FFE08A}
+.glass-chip{position:absolute;left:12px;top:12px;z-index:1;display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:999px;background:rgba(0,0,0,.28);color:#fff;font:600 12px var(--f);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.dream-head{order:-1;display:flex;align-items:center;gap:12px;padding:14px 16px 6px}
+.dream-head .grow{flex:1;min-width:0}
+.dream-head .grow b{display:block;font:600 17px var(--f)}
+.dream-head .grow small{color:var(--label-2);font-size:13px}
+.ring{--p:calc(var(--s1) + var(--s2) + var(--s3) + var(--s4) + var(--s5));position:relative;width:52px;height:52px;border-radius:50%;flex:none;display:grid;place-items:center;
+  background:conic-gradient(var(--kiss) calc(var(--p) * 1%),var(--fill-3) 0)}
+.ring::before{content:"";position:absolute;inset:5px;border-radius:50%;background:#fff}
+.ring span{position:relative;font:600 13px var(--f-round)}
+.ring span::before{content:counter(stp) "/5"}
+.sti:checked{counter-increment:stp}
+.rem{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--label-3);flex:none;transition:border-color .2s,background .2s,box-shadow .2s}
+input:checked + .rem{border-color:var(--kiss);background:var(--kiss);box-shadow:inset 0 0 0 3px #fff;animation:pop .4s var(--spring)}
+.steps .cell{--inset:50px}
+.steps .grow b{transition:color .2s}
+input:checked ~ .grow b{color:var(--label-2)}
+.starters{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin-inline:-16px;padding:2px 16px 6px;scrollbar-width:none}
+.starters::-webkit-scrollbar{display:none}
+.starter{flex:0 0 152px;scroll-snap-align:start;overflow:hidden;cursor:pointer;transition:transform .4s var(--snappy)}
+.starter:active{transform:scale(.96)}
+.starter .sc{height:92px;display:grid;place-items:center;background:var(--g)}
+.starter .sc .ic{width:40px;height:40px;color:#fff;--fill:1}
+.starter .sb{padding:10px 12px 12px;display:flex;flex-direction:column;gap:1px}
+.starter b{font:600 15px/1.25 var(--f)}
+.starter small{color:var(--label-2);font-size:13px}
+.get{align-self:flex-start;margin-top:8px;display:inline-flex;align-items:center;gap:3px;height:28px;padding:0 14px;border-radius:999px;background:var(--fill-3);color:var(--kiss);font:700 14px var(--f);text-transform:uppercase;letter-spacing:.01em;transition:background .25s,color .25s}
+.get .ic{width:15px;height:15px;--wg:700}
+.get .g2{display:none}
+.starter:has(input:checked) .get{background:var(--kiss);color:#fff;animation:pop .4s var(--spring)}
+.starter:has(input:checked) .g1{display:none}
+.starter:has(input:checked) .g2{display:inline-flex;align-items:center;gap:3px}
+
+/* ============ Insights ============ */
+.venn{padding:16px;overflow:hidden}
+.venn-art{position:relative;height:150px}
+.vc{position:absolute;top:8px;width:134px;height:134px;border-radius:50%;mix-blend-mode:multiply;display:flex;align-items:center;font:600 13px var(--f);padding:0 18px}
+.vc.you{left:calc(50% - 114px);background:color-mix(in srgb,var(--you) 35%,#fff);color:var(--you-d)}
+.vc.them{left:calc(50% - 20px);background:color-mix(in srgb,var(--kiss) 30%,#fff);color:var(--kiss-d);justify-content:flex-end}
+.vmid{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:76px;text-align:center;font:600 14px/1.15 var(--f)}
+.app:has(#v-insights:checked) .vc.you{animation:inL .8s var(--spring) both .1s}
+.app:has(#v-insights:checked) .vc.them{animation:inR .8s var(--spring) both .1s}
+.venn h4{font:600 17px var(--f);margin-top:2px}
+.venn p{font-size:15px;color:var(--label-2);margin-top:2px}
+.trait{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.trait-h{display:flex;justify-content:space-between;align-items:center}
+.trait-h span:first-child{font:500 13px var(--f);text-transform:uppercase;color:var(--label-2)}
+.badge{display:inline-flex;align-items:center;gap:3px;height:24px;padding:0 9px;border-radius:999px;font:600 12px var(--f)}
+.badge .ic{width:13px;height:13px;--wg:700}
+.b-match{background:color-mix(in srgb,var(--green) 14%,#fff);color:#1E8E3E}
+.b-comp{background:color-mix(in srgb,var(--orange) 14%,#fff);color:#B45F00}
+.pair2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.who{padding:10px 12px;border-radius:12px;background:var(--you-tint)}
+.who.m{background:var(--tint)}
+.who small{display:block;font-size:12px;color:var(--label-2)}
+.who b{font:600 15px var(--f)}
+.tip{display:flex;gap:8px;align-items:flex-start;font-size:14px;color:var(--label-2);line-height:1.4}
+.tip .ic{width:18px;height:18px;color:var(--orange);--fill:1;margin-top:1px}
+.ll{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--label-2)}
+.legend span{display:flex;align-items:center;gap:6px}
+.legend i{width:9px;height:9px;border-radius:50%;background:var(--you)}
+.legend .m i{background:var(--kiss)}
+.ll-row{display:grid;grid-template-columns:104px 1fr;gap:10px;align-items:center;font-size:14px}
+.bars{display:flex;flex-direction:column;gap:3px}
+.bar{height:6px;border-radius:6px;background:var(--fill-4);overflow:hidden}
+.bar i{display:block;height:100%;width:var(--w);border-radius:inherit;background:var(--you)}
+.bar.m i{background:var(--kiss)}
+.app:has(#v-insights:checked) .bar i{animation:grow 1s var(--out) both .2s}
+@keyframes grow{from{width:0}}
+.suggest{padding:16px;background:var(--kiss);color:#fff;display:flex;flex-direction:column;gap:8px}
+.suggest .k{font:600 13px var(--f);opacity:.85}
+.suggest h4{font:700 20px/1.2 var(--f);letter-spacing:-.025em}
+.suggest p{font-size:15px;opacity:.9}
+
+/* ============ Profile ============ */
+.acct{padding:14px 16px}
+.acct .grow b{font:600 20px/1.2 var(--f)!important;letter-spacing:-.025em}
+.acct .grow small{font-size:14px!important}
+.acct .av{border:2px solid #fff;box-shadow:0 0 0 2px var(--you)}
+.live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:4px;vertical-align:1px}
+
+/* Alert (shared by the app and the component demo) */
+.alert-wrap{position:absolute;inset:0;z-index:80;display:grid;place-items:center;opacity:0;visibility:hidden;transition:opacity .2s var(--ease),visibility 0s linear .2s}
+.alert-scrim{position:absolute;inset:0;background:rgba(0,0,0,.28);cursor:pointer}
+.alert{position:relative;width:270px;max-width:calc(100% - 32px);border-radius:16px;overflow:hidden;background:rgba(242,242,247,.88);backdrop-filter:blur(30px) saturate(1.8);-webkit-backdrop-filter:blur(30px) saturate(1.8);
+  text-align:center;color:var(--label);transform:scale(1.12);transition:transform .35s var(--spring)}
+.alert .ab{padding:18px 16px 16px}
+.alert .ab b{display:block;font:600 17px var(--f)}
+.alert .ab p{font-size:13px;margin-top:3px;line-height:1.35}
+.alert .abtn{display:grid;grid-template-columns:1fr 1fr;border-top:.5px solid rgba(60,60,67,.3)}
+.alert .abtn label{padding:11px 0;font:400 17px var(--f);color:#007AFF;cursor:pointer;transition:background .1s}
+.alert .abtn label + label{border-left:.5px solid rgba(60,60,67,.3)}
+.alert .abtn label:active{background:rgba(0,0,0,.08)}
+.alert .abtn .red{color:var(--red);font-weight:600}
+.app:has(#al-unlink:checked) .alert-wrap{opacity:1;visibility:visible;transition:opacity .2s var(--ease),visibility 0s}
+.app:has(#al-unlink:checked) .alert{transform:none}
+
+/* Sheet */
+.scrim{position:absolute;inset:0;z-index:40;background:rgba(0,0,0,.22);opacity:0;visibility:hidden;cursor:pointer;transition:opacity .3s,visibility 0s linear .3s}
+.sheet{position:absolute;left:6px;right:6px;bottom:6px;z-index:41;max-height:88%;display:flex;flex-direction:column;border-radius:38px;background:#F2F2F7;overflow:hidden;
+  transform:translateY(110%);transition:transform .45s var(--out);box-shadow:0 -10px 40px -10px rgba(0,0,0,.25)}
+.app:has(#sh-mem:checked) .scrim{opacity:1;visibility:visible;transition:opacity .3s}
+.app:has(#sh-mem:checked) .sheet{transform:none;transition:transform .55s var(--spring)}
+html:not(.js) .app:has(#mem-added:checked) .sheet{transform:translateY(110%)}
+html:not(.js) .app:has(#mem-added:checked) .scrim{opacity:0;visibility:hidden}
+.sheet-nav{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:14px 16px 8px}
+.sheet-nav b{font:600 17px var(--f)}
+.sn{font:400 17px var(--f);color:var(--kiss);cursor:pointer;justify-self:start;padding:6px 4px;transition:opacity .15s}
+.sn:active{opacity:.4}
+.sn.save{justify-self:end;font-weight:600}
+.sheet-body{overflow-y:auto;scrollbar-width:none;padding:6px 16px 22px;display:flex;flex-direction:column;gap:12px}
+.sheet-body::-webkit-scrollbar{display:none}
+.photos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.photos > *{aspect-ratio:1;border-radius:14px;max-width:100%}
+.ph1{background:linear-gradient(180deg,#FFB27A,#FF6F91 60%,#8C4BE0)}
+.ph2{background:linear-gradient(135deg,#FFD88A,#FF9A5A)}
+.ph-add{display:grid;place-items:center;background:#fff;color:var(--kiss);cursor:pointer}
+.ph-add .ic{width:28px;height:28px}
+
+/* Toast: grows out of the Dynamic Island */
+.island-toast{position:absolute;top:11px;left:50%;z-index:71;display:flex;align-items:center;gap:10px;width:max-content;max-width:calc(100% - 24px);padding:8px 18px 8px 8px;border-radius:999px;
+  background:#000;color:#fff;transform:translateX(-50%) scale(.32,.45);transform-origin:50% 0;opacity:0;pointer-events:none}
+.island-toast .ti{width:34px;height:34px;border-radius:50%;background:var(--kiss);display:grid;place-items:center;flex:none}
+.island-toast .ti .ic{width:18px;height:18px;--fill:1}
+.island-toast b{display:block;font:600 14px var(--f)}
+.island-toast small{display:block;font-size:12px;color:rgba(255,255,255,.65)}
+@keyframes island{0%{transform:translateX(-50%) scale(.32,.45);opacity:0}12%,86%{transform:translateX(-50%) scale(1);opacity:1}100%{transform:translateX(-50%) scale(.32,.45);opacity:0}}
+.app.toasting .island-toast,html:not(.js) .app:has(#mem-added:checked) .island-toast{animation:island 3.4s var(--spring) .15s both}
+.burst{position:absolute;left:50%;top:45%;z-index:45;pointer-events:none}
+.burst i{position:absolute;left:-9px;top:-9px;color:var(--kiss);opacity:0;font-style:normal}
+.burst .ic{width:18px;height:18px;--fill:1}
+.burst i:nth-child(1){--x:-90px;--y:-120px}.burst i:nth-child(2){--x:80px;--y:-140px;color:var(--sunset)}.burst i:nth-child(3){--x:-130px;--y:-20px;color:var(--you)}
+.burst i:nth-child(4){--x:120px;--y:-40px}.burst i:nth-child(5){--x:-40px;--y:-170px;color:var(--sunset)}.burst i:nth-child(6){--x:30px;--y:-90px;color:var(--you)}
+.app.toasting .burst i,html:not(.js) .app:has(#mem-added:checked) .burst i{animation:fly 1.1s var(--out) both}
+@keyframes fly{0%{opacity:1;transform:translate(0,0) scale(.3)}70%{opacity:1}100%{opacity:0;transform:translate(var(--x),var(--y)) scale(1.1)}}
+
+/* Tab bar: floating glass capsule */
+.tabbar{position:absolute;left:14px;right:14px;bottom:16px;z-index:30;display:grid;grid-template-columns:repeat(5,1fr);height:62px;padding:5px;border-radius:999px;
+  background:rgba(255,255,255,.72);backdrop-filter:blur(24px) saturate(1.8);-webkit-backdrop-filter:blur(24px) saturate(1.8);box-shadow:var(--float)}
+.tab-ind{position:absolute;top:5px;bottom:5px;left:5px;width:calc((100% - 10px)/5);border-radius:999px;background:var(--fill-3);transition:transform .5s var(--spring)}
+.app:has(#v-timeline:checked) .tab-ind{transform:translateX(100%)}.app:has(#v-dreams:checked) .tab-ind{transform:translateX(200%)}
+.app:has(#v-insights:checked) .tab-ind{transform:translateX(300%)}.app:has(#v-profile:checked) .tab-ind{transform:translateX(400%)}
+.tab{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font:500 10px var(--f);color:#8E8E93;cursor:pointer;letter-spacing:0;transition:color .2s}
+.tab .ic{width:25px;height:25px;transition:transform .35s var(--snappy)}
+.tab:active .ic{transform:scale(.85)}
+.app:has(#v-home:checked) .tab[for="v-home"],.app:has(#v-timeline:checked) .tab[for="v-timeline"],.app:has(#v-dreams:checked) .tab[for="v-dreams"],
+.app:has(#v-insights:checked) .tab[for="v-insights"],.app:has(#v-profile:checked) .tab[for="v-profile"]{color:var(--kiss)}
+.app:has(#v-home:checked) .tab[for="v-home"] .ic,.app:has(#v-timeline:checked) .tab[for="v-timeline"] .ic,.app:has(#v-dreams:checked) .tab[for="v-dreams"] .ic,
+.app:has(#v-insights:checked) .tab[for="v-insights"] .ic,.app:has(#v-profile:checked) .tab[for="v-profile"] .ic{--fill:1}
+
+/* ============ Ritual phone ============ */
+.ritual .rs{position:absolute;inset:0;padding:74px 16px 26px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;scrollbar-width:none;
+  opacity:0;visibility:hidden;transform:translateX(30px);transition:opacity .3s var(--ease),transform .45s var(--out),visibility 0s linear .3s}
+.ritual .rs::-webkit-scrollbar{display:none}
+.ritual:has(#r1:checked) .rs1,.ritual:has(#r2:checked) .rs2,.ritual:has(#r3:checked) .rs3,.ritual:has(#r4:checked) .rs4,.ritual:has(#r5:checked) .rs5{
+  opacity:1;visibility:visible;transform:none;transition:opacity .35s var(--ease),transform .5s var(--out),visibility 0s}
+.ritual:has(#r1:checked) .status{color:#fff}
+.rprog{position:absolute;top:56px;left:16px;right:16px;z-index:20;display:grid;grid-template-columns:repeat(4,1fr);gap:5px;transition:opacity .3s}
+.rprog i{height:4px;border-radius:4px;background:var(--fill-2);position:relative;overflow:hidden}
+.rprog i::after{content:"";position:absolute;inset:0;background:var(--kiss);transform:scaleX(0);transform-origin:left;transition:transform .5s var(--out)}
+.ritual:has(#r1:checked) .rprog{opacity:0}
+.ritual:has(#r2:checked) .rprog i:nth-child(-n+1)::after,.ritual:has(#r3:checked) .rprog i:nth-child(-n+2)::after,
+.ritual:has(#r4:checked) .rprog i:nth-child(-n+3)::after,.ritual:has(#r5:checked) .rprog i:nth-child(-n+4)::after{transform:none}
+.rs1{padding:0!important;color:#fff;background:radial-gradient(80% 50% at 80% 8%,rgba(255,200,140,.5),transparent 60%),linear-gradient(170deg,#1B0B2E 0%,color-mix(in srgb,var(--kiss) 70%,#2A0B3A) 55%,var(--sunset) 100%)}
+.lock-top{position:relative;text-align:center;margin-top:78px}
+.lock-top .ic{width:18px;height:18px;--fill:1;opacity:.9}
+.lock-top small{display:block;font:600 19px var(--f);opacity:.92;margin-top:4px}
+.lock-top b{display:block;font:700 96px/1 var(--f-round);letter-spacing:-.04em}
+.notifs{position:relative;display:flex;flex-direction:column;gap:8px;padding:0 10px;margin-top:auto;margin-bottom:110px}
+.notif{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:24px;background:rgba(255,255,255,.26);backdrop-filter:blur(30px) saturate(1.6);
+  -webkit-backdrop-filter:blur(30px) saturate(1.6);color:#fff;cursor:pointer;transition:transform .35s var(--snappy)}
+.notif:active{transform:scale(.97)}
+.ritual:has(#r1:checked) .notif.main{animation:nIn .8s var(--spring) .3s both}
+@keyframes nIn{from{opacity:0;transform:translateY(-24px) scale(.95)}}
+.notif.ghost{opacity:.55;transform:scale(.95);cursor:default;margin-top:-4px}
+.n-app{width:38px;height:38px;border-radius:10px;background:var(--kiss);color:#fff;display:grid;place-items:center;flex:none}
+.n-app .ic{width:20px;height:20px;--fill:1}
+.notif .nt{flex:1;min-width:0;font-size:15px;line-height:1.3}
+.notif .nt b{font-weight:600}
+.n-top{display:flex;justify-content:space-between;font-size:13px;opacity:.75;margin-bottom:1px}
+.lock-hint{position:absolute;left:0;right:0;bottom:30px;text-align:center;font:500 14px var(--f);opacity:.75;animation:breathe 2.2s ease-in-out infinite}
+.lock-bar{position:absolute;left:50%;bottom:10px;width:134px;height:5px;border-radius:5px;background:#fff;transform:translateX(-50%)}
+.r-kick{font:600 13px var(--f);color:var(--kiss)}
+.r-q{font:700 28px/1.12 var(--f);letter-spacing:-.035em;text-wrap:balance}
+.sel .cell{min-height:54px;--inset:52px}
+.sel .chk{width:22px;height:22px;color:var(--kiss);opacity:0;transform:scale(.5);transition:opacity .2s,transform .35s var(--spring);--wg:600}
+.sel input:checked + .cell .chk{opacity:1;transform:none}
+.sel input:checked + .cell > .ic:first-child{--fill:1}
+.sel > label.cell:last-child::after{display:none}
+.locked{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--label-2);padding:0 4px}
+.locked .ic{margin-left:auto;width:18px;height:18px}
+.ritual:not(:has([name="ans"]:checked)) .lockin{opacity:.35;pointer-events:none}
+.grow-1{flex:1}
+.r-h{font:700 26px/1.12 var(--f);letter-spacing:-.035em;text-align:center;text-wrap:balance}
+.cards2{display:grid;grid-template-columns:1fr 1fr;gap:10px;perspective:800px}
+.rcard{min-height:150px;border-radius:22px;padding:14px;display:flex;flex-direction:column;justify-content:space-between;color:#fff;backface-visibility:hidden}
+.rcard.you{background:var(--you)}
+.rcard.them{background:var(--kiss)}
+.rcard small{font:600 13px var(--f);opacity:.85}
+.rcard b{display:block;font:700 20px/1.15 var(--f);letter-spacing:-.025em}
+.rcard .av{width:34px;height:34px;font-size:14px;background:rgba(255,255,255,.25);color:#fff}
+.ritual:has(#r3:checked) .rcard.you{animation:flip .8s var(--spring) .1s both}
+.ritual:has(#r3:checked) .rcard.them{animation:flip .8s var(--spring) .3s both}
+@keyframes flip{from{transform:rotateY(-95deg);opacity:0}}
+.ya{display:none}
+.ritual:has(#a1:checked) .ya1,.ritual:has(#a2:checked) .ya2,.ritual:has(#a3:checked) .ya3,.ritual:has(#a4:checked) .ya4{display:inline}
+.verdict{display:none;gap:12px;align-items:center;padding:14px 16px}
+.verdict .vi{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none;color:#fff}
+.verdict .vi .ic{width:18px;height:18px;--fill:1}
+.verdict b{display:block;font:600 16px var(--f)}
+.verdict span{font-size:14px;color:var(--label-2)}
+.v-match .vi{background:var(--green)}.v-diff .vi{background:var(--orange)}
+.ritual:has(#a2:checked) .v-match{display:flex}
+.ritual:has([name="ans"]:checked):not(:has(#a2:checked)) .v-diff{display:flex}
+.ritual:has(#r3:checked) .verdict{animation:rise .5s var(--out) .8s both}
+.confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:5}
+.confetti i{position:absolute;top:-20px;width:8px;height:14px;border-radius:2px;opacity:0;background:var(--kiss)}
+.confetti i:nth-child(3n){background:var(--yellow)}.confetti i:nth-child(3n+1){background:var(--you)}.confetti i:nth-child(4n){background:var(--green)}
+.confetti i:nth-child(1){left:6%}.confetti i:nth-child(2){left:16%;--d:.1s}.confetti i:nth-child(3){left:27%;--d:.25s}.confetti i:nth-child(4){left:38%;--d:.05s}
+.confetti i:nth-child(5){left:49%;--d:.3s}.confetti i:nth-child(6){left:60%;--d:.15s}.confetti i:nth-child(7){left:71%;--d:.35s}.confetti i:nth-child(8){left:82%;--d:.08s}
+.confetti i:nth-child(9){left:92%;--d:.22s}.confetti i:nth-child(10){left:33%;--d:.45s}.confetti i:nth-child(11){left:66%;--d:.5s}.confetti i:nth-child(12){left:11%;--d:.55s}
+.ritual:has(#r3:checked):has(#a2:checked) .confetti i{animation:confetti 2.2s ease-in calc(1s + var(--d,0s)) both}
+@keyframes confetti{0%{opacity:1;transform:translateY(0) rotate(0)}100%{opacity:0;transform:translateY(760px) rotate(540deg)}}
+.flame-wrap{position:relative;display:grid;place-items:center;margin-top:20px;height:140px}
+.flame-wrap::before{content:"";position:absolute;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--orange) 40%,transparent),transparent 68%);animation:breathe 2s ease-in-out infinite}
+.flame{position:relative;transform-origin:50% 90%;animation:flicker 1.4s ease-in-out infinite}
+.flame .ic{width:104px;height:104px;--fill:1}
+.flame .ic::before{background:linear-gradient(0deg,var(--kiss),var(--orange) 60%,var(--yellow));-webkit-background-clip:text;background-clip:text;color:transparent}
+@keyframes flicker{0%,100%{transform:scale(1) rotate(-2deg)}50%{transform:scale(1.05,1.09) rotate(2deg)}}
+.streak-num{text-align:center;font:700 72px/1 var(--f-round);letter-spacing:-.04em}
+.roll{display:inline-block;height:1em;overflow:hidden;vertical-align:bottom}
+.roll i{display:block;font-style:normal}
+.ritual:has(#r4:checked) .streak-num .roll i{animation:rollUp .6s var(--spring) .7s both}
+@keyframes rollUp{to{transform:translateY(-100%)}}
+.streak-l{text-align:center;font:600 17px var(--f);color:var(--label-2);margin-top:-6px}
+.streak-c{text-align:center;font-size:15px;color:var(--label-2);max-width:30ch;margin-inline:auto}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:12px}
+.day{display:flex;flex-direction:column;align-items:center;gap:6px;font:600 12px var(--f);color:var(--label-2)}
+.day i{width:30px;height:30px;border-radius:50%;background:var(--fill-4);display:grid;place-items:center;color:#fff}
+.day i .ic{width:16px;height:16px;--wg:700}
+.day.done i{background:var(--kiss)}
+.day.today{color:var(--kiss)}
+.day.today i{box-shadow:inset 0 0 0 2px var(--kiss);background:#fff}
+.ritual:has(#r4:checked) .day.today i{animation:dayFill .5s var(--spring) 1.2s both}
+@keyframes dayFill{0%{transform:scale(1)}50%{transform:scale(1.25)}100%{background:var(--kiss);box-shadow:none;transform:scale(1)}}
+.idea{overflow:hidden}
+.idea .cv{height:118px;position:relative;background:radial-gradient(60% 80% at 50% 110%,#FFC86B,transparent 70%),linear-gradient(180deg,#22102E,#5A1E4E)}
+.candle{position:absolute;bottom:18px;width:16px;border-radius:4px 4px 2px 2px;background:#FFF0D6}
+.candle::before{content:"";position:absolute;left:50%;top:-18px;width:10px;height:16px;margin-left:-5px;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;
+  background:radial-gradient(circle at 50% 70%,#FFF7C2,#FFB347 60%,#FF6A3D);transform-origin:50% 100%;animation:flicker 1.1s ease-in-out infinite}
+.candle.c1{left:38%;height:40px}.candle.c2{left:48%;height:56px}.candle.c3{left:58%;height:34px}
+.idea .bd{padding:14px 16px;display:flex;flex-direction:column;gap:4px}
+.idea .why{font:600 13px var(--f);color:var(--kiss)}
+.idea h4{font:700 20px/1.2 var(--f);letter-spacing:-.025em}
+.idea p{font-size:15px;color:var(--label-2)}
+.add-date .t2{display:none}
+.add-date:has(input:checked){background:color-mix(in srgb,var(--green) 14%,#fff);color:#1E8E3E}
+.add-date:has(input:checked) .t1{display:none}
+.add-date:has(input:checked) .t2{display:inline-flex;align-items:center;gap:6px;animation:pop .4s var(--spring)}
+
+/* ============ Colour & type ============ */
+.themes{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr));gap:14px}
+.theme-card{display:flex;flex-direction:column;padding:0;border:0;border-radius:20px;overflow:hidden;background:var(--panel);color:var(--fg);text-align:left;cursor:pointer;font:inherit;
+  transition:transform .4s var(--snappy),box-shadow .25s}
+.theme-card:active{transform:scale(.97)}
+.theme-card[aria-pressed="true"]{box-shadow:0 0 0 2px var(--accent)}
+.tc-prev{position:relative;height:110px;background:color-mix(in srgb,var(--k) 5%,#F2F2F7);display:flex;align-items:center;justify-content:center}
+.tc-prev .a1,.tc-prev .a2{width:44px;height:44px;border-radius:50%;border:3px solid #fff}
+.tc-prev .a1{background:color-mix(in srgb,var(--y) 30%,#fff);margin-right:-10px}
+.tc-prev .a2{background:color-mix(in srgb,var(--k) 25%,#fff)}
+.tc-prev .h{position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px;border-radius:50%;background:var(--k);box-shadow:0 0 0 3px #fff;z-index:1}
+.tc-prev .btnp{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);width:84px;height:14px;border-radius:7px;background:var(--k)}
+.tc-body{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 14px}
+.tc-body b{display:block;font:600 16px var(--f)}
+.tc-body small{display:block;font-size:13px;color:var(--muted)}
+.tc-body .ic{width:22px;height:22px;color:var(--accent);--fill:1;opacity:0;transform:scale(.5);transition:opacity .2s,transform .35s var(--spring)}
+.theme-card[aria-pressed="true"] .tc-body .ic{opacity:1;transform:none}
+.typescale{margin-top:clamp(28px,4vw,44px)}
+.ts{display:grid;grid-template-columns:170px minmax(0,1fr) auto;gap:16px;align-items:baseline;padding:14px 18px;position:relative}
+.ts + .ts::before{content:"";position:absolute;top:0;left:18px;right:0;height:1px;background:var(--line)}
+.ts .nm{font:500 14px var(--f);color:var(--muted)}
+.ts .mt{font:500 13px ui-monospace,Consolas,monospace;color:var(--muted);white-space:nowrap}
+.ts .sp{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:640px){.ts{grid-template-columns:1fr;gap:4px}}
+
+/* ============ Components ============ */
+.specs{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,350px),1fr));gap:18px}
+.spec{display:flex;flex-direction:column;gap:14px;padding:20px;border-radius:24px;background:var(--panel);min-width:0}
+.spec h3{font:600 20px var(--f);letter-spacing:-.025em}
+.spec header p{font-size:15px;color:var(--muted);margin-top:3px;line-height:1.4}
+.demo{position:relative;border-radius:18px;padding:16px;background:var(--a-bg);color:var(--label);font:16px/1.38 var(--f);letter-spacing:-.02em;display:flex;flex-direction:column;gap:12px}
+.demo .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.meta{font-size:13px;color:var(--muted)}
+.tb-wrap{padding-top:60px}
+.bubble-row{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.bubble{position:relative;max-width:80%;padding:9px 14px;border-radius:20px;background:#E9E9EB;font-size:16px;cursor:pointer;user-select:none;-webkit-user-select:none}
+.bubble.me{align-self:flex-end;background:var(--kiss);color:#fff;cursor:default}
+.tapbar{position:absolute;left:0;bottom:calc(100% + 8px);display:flex;gap:2px;padding:5px;border-radius:999px;background:#fff;box-shadow:var(--float);opacity:0;visibility:hidden;
+  transform:scale(.6) translateY(10px);transform-origin:20% 100%;transition:opacity .2s,transform .35s var(--spring),visibility 0s linear .35s}
+.tb-wrap:has(#tb-open:checked) .tapbar{opacity:1;visibility:visible;transform:none;transition:opacity .2s,transform .4s var(--spring),visibility 0s}
+.tapbar label{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:20px;cursor:pointer;transition:transform .3s var(--spring),background .15s}
+.tapbar label:hover{transform:scale(1.18)}
+.tapbar input:checked + label{background:var(--tint)}
+.tb-badge{position:absolute;right:-10px;top:-14px;width:30px;height:30px;border-radius:50%;background:#fff;border:2px solid var(--a-bg);display:none;place-items:center;font-size:15px;box-shadow:0 2px 6px rgba(0,0,0,.12)}
+.tb-badge span{display:none}
+.tb-wrap:has([name="tb"]:checked) .tb-badge{display:grid;animation:pop .45s var(--spring)}
+.tb-wrap:has(#tb1:checked) .tb-badge .e1,.tb-wrap:has(#tb2:checked) .tb-badge .e2,.tb-wrap:has(#tb3:checked) .tb-badge .e3,
+.tb-wrap:has(#tb4:checked) .tb-badge .e4,.tb-wrap:has(#tb5:checked) .tb-badge .e5,.tb-wrap:has(#tb6:checked) .tb-badge .e6{display:inline}
+.typing{display:inline-flex;align-items:center;gap:4px;padding:12px 14px;border-radius:20px;background:#E9E9EB}
+.typing i{width:8px;height:8px;border-radius:50%;background:#8E8E93;animation:dot 1.2s ease-in-out infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes dot{0%,60%,100%{opacity:.35;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
+.hug{position:relative;overflow:hidden;isolation:isolate;display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border:0;border-radius:14px;background:#1C1C1E;color:#fff;
+  font:600 17px var(--f);cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
+.hug .fill{position:absolute;inset:0;z-index:-1;background:var(--kiss);transform:scaleX(0);transform-origin:left;transition:transform .3s var(--out)}
+.hug:active .fill{transform:scaleX(1);transition:transform 1.2s linear}
+.hug .t1,.hug .t2{display:inline-flex;align-items:center;gap:6px}
+.hug .t2{display:none}
+.hug.sent .fill{transform:scaleX(1);transition:none}
+.hug.sent .t1{display:none}
+.hug.sent .t2{display:inline-flex}
+.hug .ic{width:20px;height:20px;--fill:1}
+.rings{display:flex;align-items:center;gap:16px}
+.rings svg{width:120px;height:120px;flex:none;transform:rotate(-90deg)}
+.rings circle{fill:none;stroke-width:11;stroke-linecap:round}
+.rings .tr{opacity:.16}
+.rings .pr{stroke-dasharray:var(--v) 100;animation:ringFill 1.4s var(--out) both}
+@keyframes ringFill{from{stroke-dasharray:0 100}}
+.rings ul{list-style:none;margin:0;padding:0;display:grid;gap:8px;font-size:14px}
+.rings li b{display:block;font:700 20px/1.1 var(--f-round)}
+.rings li small{color:var(--label-2);font-size:13px}
+.island-demo{position:relative;height:170px;border-radius:30px;background:linear-gradient(170deg,#1B0B2E,color-mix(in srgb,var(--kiss) 60%,#2A0B3A));overflow:hidden}
+.island-demo .isl{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:100px;height:30px;border-radius:18px;background:#000;transition:width .55s var(--spring),height .55s var(--spring),border-radius .55s var(--spring)}
+.island-demo .isl-c{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:280px;max-width:calc(100% - 20px);display:flex;align-items:center;gap:10px;padding:10px 16px 10px 10px;color:#fff;opacity:0;transition:opacity .2s}
+.island-demo .isl-c .ti{width:38px;height:38px;border-radius:50%;background:var(--kiss);display:grid;place-items:center;flex:none}
+.island-demo .isl-c .ti .ic{width:20px;height:20px;--fill:1}
+.island-demo .isl-c b{display:block;font:600 15px var(--f)}
+.island-demo .isl-c small{font-size:13px;color:rgba(255,255,255,.65)}
+.island-demo:has(#isl-on:checked) .isl{width:280px;max-width:calc(100% - 20px);height:58px;border-radius:30px}
+.island-demo:has(#isl-on:checked) .isl-c{opacity:1;transition:opacity .25s .2s}
+.island-demo .btn{position:absolute;left:12px;right:12px;bottom:12px}
+.island-demo .tg2{display:none}
+.island-demo:has(#isl-on:checked) .tg1{display:none}
+.island-demo:has(#isl-on:checked) .tg2{display:inline}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:22px;background:rgba(255,255,255,.92);box-shadow:var(--float)}
+.banner .n-app{width:36px;height:36px}
+.banner .nt{flex:1;min-width:0;font-size:14px;line-height:1.3}
+.banner .n-top{display:flex;justify-content:space-between;color:var(--label-2);font-size:13px}
+.asheet-demo{position:relative;height:310px;border-radius:24px;background:#fff;overflow:hidden}
+.asheet-demo .bg{padding:16px;display:flex;flex-direction:column;gap:10px}
+.asheet-demo .dim{position:absolute;inset:0;background:rgba(0,0,0,.25);opacity:0;visibility:hidden;transition:opacity .25s,visibility 0s linear .25s;cursor:pointer}
+.asheet{position:absolute;left:8px;right:8px;bottom:8px;display:flex;flex-direction:column;gap:8px;transform:translateY(120%);transition:transform .4s var(--out)}
+.asheet .grp{border-radius:14px;overflow:hidden;background:rgba(250,250,252,.94);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.asheet .grp .ttl{padding:12px;text-align:center;font-size:13px;color:var(--label-2)}
+.asheet label{display:block;padding:14px;text-align:center;font:400 18px var(--f);color:#007AFF;border-top:.5px solid rgba(60,60,67,.25);cursor:pointer;transition:background .1s}
+.asheet label:active{background:rgba(0,0,0,.08)}
+.asheet .red{color:var(--red)}
+.asheet .cancel{border:0;font-weight:600;background:#fff;border-radius:14px}
+.asheet-demo:has(#as-on:checked) .dim{opacity:1;visibility:visible;transition:opacity .25s}
+.asheet-demo:has(#as-on:checked) .asheet{transform:none;transition:transform .5s var(--spring)}
+.alert-demo{position:relative;height:240px;border-radius:24px;background:#fff;overflow:hidden;display:grid;place-items:center}
+.alert-demo:has(#ad-on:checked) .alert-wrap{opacity:1;visibility:visible;transition:opacity .2s,visibility 0s}
+.alert-demo:has(#ad-on:checked) .alert{transform:none}
+.cuv{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cuv > div{border-radius:16px;padding:16px 12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:13px;background:#fff}
+.cuv .before{color:#8E8E93}
+.cuv .before b{font-size:15px;color:#6C6C70}
+.cuv .after .ic{width:36px;height:36px;color:var(--label-3)}
+.cuv .after b{font:700 16px/1.2 var(--f);color:var(--label)}
+.cuv .tag{font:600 11px var(--f);text-transform:uppercase;letter-spacing:.04em;color:var(--label-2)}
+.memcard{position:relative;height:210px;border-radius:22px;overflow:hidden;background:linear-gradient(180deg,#FFB27A 0%,#FF6F91 50%,#8C4BE0 100%);color:#fff;transition:transform .45s var(--snappy)}
+.memcard:hover{transform:scale(1.015)}
+.memcard::before{content:"";position:absolute;width:90px;height:90px;border-radius:50%;left:60%;top:40%;transform:translate(-50%,-50%);background:radial-gradient(circle,#FFF3C4,#FFC86B)}
+.memcard::after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 40%,rgba(0,0,0,.5))}
+.memcard .mc{position:absolute;left:16px;right:16px;bottom:14px;z-index:1;display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+.memcard small{display:block;font:600 12px var(--f);text-transform:uppercase;letter-spacing:.04em;opacity:.85}
+.memcard b{display:block;font:700 24px/1.1 var(--f);letter-spacing:-.03em}
+.memcard .play{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.28);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:grid;place-items:center;flex:none}
+.memcard .play .ic{width:22px;height:22px;--fill:1}
+
+.motion{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:14px}
+.mcard{padding:20px;border-radius:22px;background:var(--panel);display:flex;flex-direction:column;gap:10px;cursor:pointer}
+.mcard h4{font:600 18px var(--f)}
+.mcard p{font-size:15px;color:var(--muted);line-height:1.4}
+.mcard code{font:500 12.5px ui-monospace,Consolas,monospace;color:var(--muted);overflow-wrap:anywhere}
+.track{position:relative;height:44px;border-radius:999px;background:var(--soft)}
+.track i{position:absolute;left:5px;top:5px;width:34px;height:34px;border-radius:50%;background:var(--kiss);transition:left var(--d) var(--e)}
+.mcard:hover .track i,.mcard:active .track i,.mcard:focus-visible .track i{left:calc(100% - 39px)}
+.rules{margin-top:20px}
+footer.foot{border-top:1px solid var(--line);padding-top:28px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:14px}
+
+/* Floating theme picker */
+.theme-fab{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:100;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.tf-btn{display:flex;align-items:center;gap:8px;height:48px;padding:0 18px 0 7px;border:0;border-radius:999px;background:color-mix(in srgb,var(--panel) 78%,transparent);
+  backdrop-filter:blur(20px) saturate(1.8);-webkit-backdrop-filter:blur(20px) saturate(1.8);color:var(--fg);font:600 15px var(--f);box-shadow:var(--float);cursor:pointer;transition:transform .35s var(--snappy)}
+.tf-btn:active{transform:scale(.94)}
+.tf-dot{width:34px;height:34px;border-radius:50%;background:conic-gradient(from 210deg,var(--kiss),var(--sunset),var(--you),var(--kiss));transition:transform .5s var(--spring)}
+.theme-fab.open .tf-dot{transform:rotate(180deg)}
+.tf-menu{width:320px;max-width:calc(100vw - 32px);padding:14px 8px 10px;border-radius:26px;background:color-mix(in srgb,var(--panel) 84%,transparent);
+  backdrop-filter:blur(30px) saturate(1.8);-webkit-backdrop-filter:blur(30px) saturate(1.8);box-shadow:var(--float);
+  transform-origin:bottom right;transform:scale(.6);opacity:0;visibility:hidden;transition:transform .3s var(--out),opacity .2s,visibility 0s linear .3s}
+.theme-fab.open .tf-menu{transform:none;opacity:1;visibility:visible;transition:transform .45s var(--spring),opacity .2s,visibility 0s}
+.tf-title{font:600 13px var(--f);color:var(--muted);padding:0 10px 10px;display:flex;justify-content:space-between}
+.tf-title span{color:var(--fg)}
+.tf-grid{display:flex;flex-wrap:wrap;justify-content:center;row-gap:4px}
+.tf-opt{width:20%;display:flex;flex-direction:column;align-items:center;gap:5px;padding:6px 0;border:0;background:none;color:var(--muted);font:500 11px var(--f);cursor:pointer;letter-spacing:0}
+.tf-sw{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--a),var(--b));transition:transform .35s var(--snappy),box-shadow .2s}
+.tf-opt:active .tf-sw{transform:scale(.88)}
+.tf-sw .ic{width:20px;height:20px;--wg:600;opacity:0;transform:scale(.4);transition:opacity .2s,transform .35s var(--spring)}
+.tf-opt[aria-checked="true"]{color:var(--fg)}
+.tf-opt[aria-checked="true"] .tf-sw{box-shadow:0 0 0 2.5px var(--panel),0 0 0 4.5px var(--fg)}
+.tf-opt[aria-checked="true"] .tf-sw .ic{opacity:1;transform:none}
+.swap .phone{animation:bump .5s var(--spring)}
+@keyframes bump{40%{transform:scale(.98)}}
+
+@media (max-width:980px){
+  .hero{grid-template-columns:1fr}
+  .stage{grid-template-columns:1fr}
+  .phone-col{position:static}
+}
+@media (max-width:440px){
+  .phone{border-radius:50px;padding:8px;height:790px}
+  .screen{border-radius:42px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="bondGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" style="stop-color:var(--you)"/><stop offset=".55" style="stop-color:var(--kiss)"/><stop offset="1" style="stop-color:var(--sunset)"/></linearGradient>
+  </defs>
+  <symbol id="i-sig" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></symbol>
+  <symbol id="i-wifi" viewBox="0 0 16 12"><path d="M8 12 5.6 9.2a3.4 3.4 0 0 1 4.8 0z"/><path d="M8 4.6c2.2 0 4.2.9 5.6 2.3l-1.4 1.6A5.9 5.9 0 0 0 8 6.7a5.9 5.9 0 0 0-4.2 1.8L2.4 6.9A7.9 7.9 0 0 1 8 4.6z"/><path d="M8 0c3.4 0 6.4 1.3 8 3.3l-1.4 1.6A9.9 9.9 0 0 0 8 2.1 9.9 9.9 0 0 0 1.4 4.9L0 3.3C1.6 1.3 4.6 0 8 0z"/></symbol>
+  <symbol id="i-bat" viewBox="0 0 27 13"><rect x=".5" y=".5" width="23" height="12" rx="3.5" fill="none" stroke="currentColor" opacity=".4"/><rect x="2.5" y="2.5" width="16" height="8" rx="2"/><path d="M25 4.5v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+</svg>
+
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="mark"><span class="mark-ic"><span class="ic f" data-i="favorite" aria-hidden="true"></span></span>Between Us <small>Design playground</small></div>
+    <nav class="links" aria-label="Sections">
+      <a href="#screens">Screens</a><a href="#ritual">Daily ritual</a><a href="#colour">Colour &amp; type</a><a href="#components">Components</a><a href="#motion">Motion</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section class="hero">
+    <div>
+      <p class="hero-tag">Between Us, redesigned</p>
+      <h1>Made for two. Built for iOS.</h1>
+      <p class="lede">Every screen, control and transition here follows Apple’s patterns, tuned for a couple app. Everything on this page is live, so tap it.</p>
+    </div>
+    <div class="list">
+      <div class="li"><span class="ic f" data-i="favorite" aria-hidden="true"></span><div class="t"><b>Home opens on the two of you</b><span class="d">The bond between your avatars is the hero, with today’s status on each side.</span></div></div>
+      <div class="li"><span class="ic f" data-i="photo_library" aria-hidden="true"></span><div class="t"><b>Empty screens suggest a first step</b><span class="d">Prompts like “Our first date” replace “Nothing here yet.”</span></div></div>
+      <div class="li"><span class="ic f" data-i="palette" aria-hidden="true"></span><div class="t"><b>13 themes</b><span class="d">Pick one from the Theme button at the bottom right.</span></div></div>
+      <div class="li"><span class="ic f" data-i="nights_stay" aria-hidden="true"></span><div class="t"><b>A nightly ritual</b><span class="d">One question, a reveal, a shared streak and a plan for tomorrow.</span></div></div>
+    </div>
+  </section>
+
+  <!-- ===================== SCREENS ===================== -->
+  <section class="sec" id="screens">
+    <div class="sec-head">
+      <p class="sec-tag">Live prototype</p>
+      <h2>Five tabs. One relationship.</h2>
+      <p>Use the tab bar in the phone or the control on the right. Try holding the heart between the two avatars.</p>
+    </div>
+
+    <div class="stage">
+      <div class="phone-col">
+        <div class="phone">
+          <div class="screen app">
+            <input type="radio" name="view" id="v-home" class="sr" checked>
+            <input type="radio" name="view" id="v-timeline" class="sr">
+            <input type="radio" name="view" id="v-dreams" class="sr">
+            <input type="radio" name="view" id="v-insights" class="sr">
+            <input type="radio" name="view" id="v-profile" class="sr">
+            <input type="checkbox" id="sh-mem" class="sr">
+            <input type="checkbox" id="mem-added" class="sr">
+            <input type="checkbox" id="al-unlink" class="sr">
+
+            <div class="island"></div>
+            <div class="status"><span>9:41</span><span class="st"><svg class="si" width="18" height="12"><use href="#i-sig"/></svg><svg class="si" width="16" height="12"><use href="#i-wifi"/></svg><svg class="si" width="27" height="13"><use href="#i-bat"/></svg></span></div>
+
+            <div class="views">
+
+              <!-- HOME -->
+              <div class="view view-home">
+                <div class="nav">
+                  <span class="dateline">Friday 9 October</span>
+                  <button type="button" class="glass-btn tap" aria-label="Notifications"><span class="ic" data-i="notifications" aria-hidden="true"></span><span class="dot-badge"></span></button>
+                </div>
+
+                <section class="bond" aria-label="You and Redman">
+                  <p class="bond-day">Day</p>
+                  <h2 class="day-count">214</h2>
+                  <p class="bond-names">of Manu &amp; Redman</p>
+                  <div class="bond-row">
+                    <div class="person me">
+                      <div class="orb">
+                        <svg class="orb-ring" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="47"/></svg>
+                        <span class="av av-m">M</span>
+                        <span class="mood-badge" aria-hidden="true"><span class="mb0"><span class="ic" data-i="add"></span></span><span class="mb1">🥰</span><span class="mb2">😊</span><span class="mb3">🙂</span><span class="mb4">😶</span><span class="mb5">🥺</span></span>
+                      </div>
+                      <b>You</b>
+                      <small class="pstate turn">Your turn</small>
+                    </div>
+                    <div class="thread">
+                      <svg class="wire" viewBox="0 0 170 60" preserveAspectRatio="none" aria-hidden="true">
+                        <path id="wire-path" class="w-base" d="M0,30 C48,2 122,58 170,30"/>
+                        <path class="w-flow" d="M0,30 C48,2 122,58 170,30"/>
+                        <path class="w-hug" d="M0,30 C48,2 122,58 170,30"/>
+                        <circle class="w-dot" r="3"><animateMotion dur="2.8s" repeatCount="indefinite"><mpath href="#wire-path"/></animateMotion></circle>
+                        <circle class="w-dot" r="2.4"><animateMotion dur="3.4s" begin="1.2s" repeatCount="indefinite" keyPoints="1;0" keyTimes="0;1" calcMode="linear"><mpath href="#wire-path"/></animateMotion></circle>
+                      </svg>
+                      <button type="button" class="bond-heart" aria-label="Hold to send Redman a hug">
+                        <svg class="hp" viewBox="0 0 68 68" aria-hidden="true"><circle cx="34" cy="34" r="31"/></svg>
+                        <span class="ic" data-i="favorite" aria-hidden="true"></span>
+                      </button>
+                    </div>
+                    <div class="person them">
+                      <div class="orb">
+                        <svg class="orb-ring" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="47"/></svg>
+                        <span class="av av-r">R</span>
+                        <span class="mood-badge" aria-hidden="true"><span style="display:inline">😊</span></span>
+                        <span class="online" title="Online now"></span>
+                      </div>
+                      <b>Redman</b>
+                      <small class="pstate done"><span class="ic" data-i="check" aria-hidden="true"></span>Answered</small>
+                    </div>
+                  </div>
+                  <p class="bond-cap"><span class="c1">Hold the heart to send Redman a hug</span><span class="c2">Hug sent. Redman just felt it.</span></p>
+                  <div class="bond-chips">
+                    <span class="bchip"><span class="ic" data-i="local_fire_department" aria-hidden="true"></span>12-night streak</span>
+                    <span class="bchip"><span class="ic" data-i="auto_awesome" aria-hidden="true"></span>7 months today</span>
+                  </div>
+                </section>
+
+                <article class="card qcard">
+                  <div class="qc-top"><span class="ic" data-i="auto_awesome" aria-hidden="true"></span>Tonight’s question<span class="time">8h left</span></div>
+                  <h3 class="qc-q">What’s a small thing I do that makes you feel loved?</h3>
+                  <div class="qc-lock"><span class="av av-r xs">R</span><span class="blur" aria-hidden="true">When you text me good morning before…</span><span class="ic" data-i="lock" aria-hidden="true"></span></div>
+                  <a href="#ritual" class="btn btn-filled btn-block tap">Answer to unlock Redman’s</a>
+                </article>
+
+                <section class="card mood">
+                  <h4>How are you feeling about us?</h4>
+                  <div class="moods">
+                    <input type="radio" name="mood" id="ma-1" class="sr"><label for="ma-1" aria-label="Glowing">🥰</label>
+                    <input type="radio" name="mood" id="ma-2" class="sr"><label for="ma-2" aria-label="Happy">😊</label>
+                    <input type="radio" name="mood" id="ma-3" class="sr"><label for="ma-3" aria-label="Okay">🙂</label>
+                    <input type="radio" name="mood" id="ma-4" class="sr"><label for="ma-4" aria-label="Distant">😶</label>
+                    <input type="radio" name="mood" id="ma-5" class="sr"><label for="ma-5" aria-label="Hurt">🥺</label>
+                  </div>
+                  <p class="mood-out">
+                    <span class="mo0">Your pick shows on your avatar above. Only Redman sees it.</span>
+                    <span class="mo1">Glowing. Redman will see it on your avatar.</span>
+                    <span class="mo2">Happy. Want to tell Redman why?</span>
+                    <span class="mo3">Okay. Steady days count too.</span>
+                    <span class="mo4">A bit distant. Tonight’s question might help.</span>
+                    <span class="mo5">Hurting. Start a gentle check-in with Redman?</span>
+                  </p>
+                </section>
+
+                <div class="actions">
+                  <button type="button" class="action"><span class="ic" data-i="mail" aria-hidden="true"></span>Note</button>
+                  <button type="button" class="action"><span class="ic" data-i="calendar_month" aria-hidden="true"></span>Date</button>
+                  <label for="sh-mem" class="action"><span class="ic" data-i="photo_camera" aria-hidden="true"></span>Memory</label>
+                  <button type="button" class="action"><span class="ic" data-i="flag" aria-hidden="true"></span>Goals</button>
+                </div>
+
+                <div class="h2"><h4>Coming up</h4><a href="#screens">See all</a></div>
+                <div class="group">
+                  <div class="cell press has-av"><div class="cal"><span>Sat</span><b>10</b></div><div class="grow"><b>Candlelit cook-along</b><small>Date night · You planned it</small></div><span class="ic chev" data-i="chevron_right" aria-hidden="true"></span></div>
+                  <div class="cell press has-av"><div class="cal you"><span>Nov</span><b>9</b></div><div class="grow"><b>8 months together</b><small>In 31 days</small></div><span class="ic chev" data-i="chevron_right" aria-hidden="true"></span></div>
+                </div>
+
+                <div class="h2"><h4>From Redman</h4></div>
+                <div class="group">
+                  <div class="cell has-av"><span class="av av-r">R</span><div class="grow"><b>Added a dream: Weekend in Zanzibar</b><small>3 hours ago</small></div><label class="love" aria-label="Love this"><input type="checkbox" id="fr-1" class="sr"><span class="ic" data-i="favorite" aria-hidden="true"></span><span class="spk"></span></label></div>
+                  <div class="cell has-av"><span class="av av-r">R</span><div class="grow"><b>Loved your answer to yesterday’s question</b><small>Yesterday, 10:14 pm</small></div><label class="love" aria-label="Love this"><input type="checkbox" id="fr-2" class="sr"><span class="ic" data-i="favorite" aria-hidden="true"></span><span class="spk"></span></label></div>
+                </div>
+              </div>
+
+              <!-- TIMELINE -->
+              <div class="view view-timeline">
+                <div class="nav"><span></span><label for="sh-mem" class="glass-btn tap" aria-label="Add a memory"><span class="ic" data-i="add" aria-hidden="true"></span></label></div>
+                <h2 class="lt">Timeline</h2>
+                <div class="seg" style="--n:4">
+                  <input type="radio" name="tls" id="tls-1" class="sr" checked><label for="tls-1">All</label>
+                  <input type="radio" name="tls" id="tls-2" class="sr"><label for="tls-2">Memories</label>
+                  <input type="radio" name="tls" id="tls-3" class="sr"><label for="tls-3">Dates</label>
+                  <input type="radio" name="tls" id="tls-4" class="sr"><label for="tls-4">Milestones</label>
+                  <span class="thumb"></span>
+                </div>
+
+                <article class="card empty">
+                  <span class="ic" data-i="photo_library" aria-hidden="true"></span>
+                  <h3><span class="first">Your story starts with one moment</span><span class="again">What happened next?</span></h3>
+                  <p>Save a photo, a place or a feeling. Redman sees it with tonight’s question.</p>
+                  <div class="chips">
+                    <label for="sh-mem" class="chip tinted">Our first date</label>
+                    <label for="sh-mem" class="chip tinted">Our song</label>
+                    <label for="sh-mem" class="chip tinted">An inside joke</label>
+                  </div>
+                  <label for="sh-mem" class="btn btn-filled btn-sm tap"><span class="ic" data-i="add" aria-hidden="true"></span>Add a Memory</label>
+                </article>
+
+                <p class="gh memory-h">Today</p>
+                <article class="card memory">
+                  <div class="photo"><span class="pin"><span class="ic" data-i="location_on" aria-hidden="true"></span>Elegushi Beach, Lagos</span></div>
+                  <div class="cell"><div class="grow"><b class="mem-title" style="font-weight:600">Sunset at Elegushi</b><small>Cozy · Adventurous · Redman sees it tonight</small></div><label class="love" aria-label="Love this"><input type="checkbox" id="mem-like" class="sr"><span class="ic" data-i="favorite" aria-hidden="true"></span><span class="spk"></span></label></div>
+                </article>
+
+                <p class="gh">9 March 2026 · Day 1</p>
+                <article class="card mile">
+                  <div class="pair"><span class="av av-m xs">M</span><span class="av av-r xs">R</span></div>
+                  <div class="grow"><b>You connected on Between Us</b><small>Manu sent the invite. Redman said yes.</small></div>
+                </article>
+              </div>
+
+              <!-- DREAMS -->
+              <div class="view view-dreams">
+                <div class="nav"><span></span><button type="button" class="glass-btn tap" aria-label="Add a dream"><span class="ic" data-i="add" aria-hidden="true"></span></button></div>
+                <h2 class="lt">Dreams</h2>
+
+                <article class="card dream">
+                  <div class="cover"><span class="glass-chip">In progress</span><span class="sun"></span></div>
+                  <div class="steps">
+                    <label class="cell"><input type="checkbox" class="sr sti" id="st1" checked><span class="rem"></span><span class="grow"><b>Pick a long weekend</b></span></label>
+                    <label class="cell"><input type="checkbox" class="sr sti" id="st2" checked><span class="rem"></span><span class="grow"><b>Book the cable car</b></span></label>
+                    <label class="cell"><input type="checkbox" class="sr sti" id="st3"><span class="rem"></span><span class="grow"><b>Save ₦250k together</b></span></label>
+                    <label class="cell"><input type="checkbox" class="sr sti" id="st4"><span class="rem"></span><span class="grow"><b>Make a road-trip playlist</b></span></label>
+                    <label class="cell"><input type="checkbox" class="sr sti" id="st5"><span class="rem"></span><span class="grow"><b>Find somewhere to stay</b></span></label>
+                  </div>
+                  <div class="dream-head">
+                    <div class="grow"><b>Road trip to Obudu Ranch</b><small>Tick a step to fill the ring</small></div>
+                    <div class="ring"><span></span></div>
+                  </div>
+                </article>
+
+                <div class="h2"><h4>Dream starters</h4><span class="lnk">See all</span></div>
+                <div class="starters">
+                  <label class="card starter" style="--g:linear-gradient(135deg,#7FD3FF,#3A8DFF)"><input type="checkbox" class="sr dchk" id="d1"><div class="sc"><span class="ic" data-i="beach_access" aria-hidden="true"></span></div><div class="sb"><b>Weekend in Zanzibar</b><small>Travel</small><span class="get"><span class="g1">Add</span><span class="g2"><span class="ic" data-i="check" aria-hidden="true"></span>Added</span></span></div></label>
+                  <label class="card starter" style="--g:linear-gradient(135deg,#FFD36E,#FF8A4C)"><input type="checkbox" class="sr dchk" id="d2"><div class="sc"><span class="ic" data-i="ramen_dining" aria-hidden="true"></span></div><div class="sb"><b>Cook 10 cuisines</b><small>At home</small><span class="get"><span class="g1">Add</span><span class="g2"><span class="ic" data-i="check" aria-hidden="true"></span>Added</span></span></div></label>
+                  <label class="card starter" style="--g:linear-gradient(135deg,#C8B4FF,#8456F5)"><input type="checkbox" class="sr dchk" id="d3"><div class="sc"><span class="ic" data-i="nightlife" aria-hidden="true"></span></div><div class="sb"><b>Learn salsa</b><small>Experience</small><span class="get"><span class="g1">Add</span><span class="g2"><span class="ic" data-i="check" aria-hidden="true"></span>Added</span></span></div></label>
+                  <label class="card starter" style="--g:linear-gradient(135deg,#8FE9C5,#1FB884)"><input type="checkbox" class="sr dchk" id="d4"><div class="sc"><span class="ic" data-i="cottage" aria-hidden="true"></span></div><div class="sb"><b>Our first home</b><small>Build</small><span class="get"><span class="g1">Add</span><span class="g2"><span class="ic" data-i="check" aria-hidden="true"></span>Added</span></span></div></label>
+                </div>
+
+                <!-- Placed after the starters so the CSS counter can count them; flex order lifts it up. -->
+                <article class="card board">
+                  <span class="n"></span>
+                  <div class="grow"><b>dreams on your board</b><small>Add a starter and watch this go up</small></div>
+                  <span class="ic" data-i="auto_awesome" aria-hidden="true"></span>
+                </article>
+
+                <div class="group">
+                  <div class="cell has-ic"><span class="ic" data-i="trophy" aria-hidden="true"></span><div class="grow"><b>Completed together</b><small>Your first finished dream gets a celebration here</small></div><span class="val">0</span></div>
+                </div>
+              </div>
+
+              <!-- INSIGHTS -->
+              <div class="view view-insights">
+                <div class="nav"><span></span><button type="button" class="glass-btn tap" aria-label="Edit"><span class="ic" data-i="edit" aria-hidden="true"></span></button></div>
+                <h2 class="lt">Insights</h2>
+                <p class="lt-sub">What you share, and where you differ.</p>
+
+                <article class="card venn">
+                  <div class="venn-art"><span class="vc you">You</span><span class="vc them">Redman</span><span class="vmid">Both introverts</span></div>
+                  <h4>You both recharge in quiet</h4>
+                  <p>Your best dates are small and close: a cook-in, a long walk, a film at home.</p>
+                </article>
+
+                <article class="card trait">
+                  <div class="trait-h"><span>Personality</span><span class="badge b-match"><span class="ic" data-i="check" aria-hidden="true"></span>Match</span></div>
+                  <div class="pair2"><div class="who"><small>You</small><b>Introvert</b></div><div class="who m"><small>Redman</small><b>Introvert</b></div></div>
+                </article>
+
+                <article class="card trait">
+                  <div class="trait-h"><span>In a disagreement</span><span class="badge b-comp">Complementary</span></div>
+                  <div class="pair2"><div class="who"><small>You</small><b>Need reassurance</b></div><div class="who m"><small>Redman</small><b>Need time to think</b></div></div>
+                  <p class="tip"><span class="ic" data-i="lightbulb" aria-hidden="true"></span><span>Agree on a pause word. Redman takes 20 minutes to think and promises to come back to you.</span></p>
+                </article>
+
+                <article class="card ll">
+                  <div class="trait-h"><span>Love languages</span></div>
+                  <div class="legend"><span><i></i>You</span><span class="m"><i></i>Redman</span></div>
+                  <div class="ll-row"><span>Quality time</span><div class="bars"><div class="bar"><i style="--w:90%"></i></div><div class="bar m"><i style="--w:78%"></i></div></div></div>
+                  <div class="ll-row"><span>Words</span><div class="bars"><div class="bar"><i style="--w:82%"></i></div><div class="bar m"><i style="--w:40%"></i></div></div></div>
+                  <div class="ll-row"><span>Touch</span><div class="bars"><div class="bar"><i style="--w:58%"></i></div><div class="bar m"><i style="--w:72%"></i></div></div></div>
+                  <div class="ll-row"><span>Acts of service</span><div class="bars"><div class="bar"><i style="--w:34%"></i></div><div class="bar m"><i style="--w:66%"></i></div></div></div>
+                  <div class="ll-row"><span>Gifts</span><div class="bars"><div class="bar"><i style="--w:20%"></i></div><div class="bar m"><i style="--w:28%"></i></div></div></div>
+                </article>
+
+                <article class="card suggest">
+                  <p class="k">This week, try</p>
+                  <h4>A phone-free evening walk</h4>
+                  <p>Quality time is the top love language for both of you.</p>
+                  <button type="button" class="btn btn-white btn-sm tap" style="align-self:flex-start"><span class="ic" data-i="calendar_month" aria-hidden="true"></span>Add to Dates</button>
+                </article>
+              </div>
+
+              <!-- PROFILE -->
+              <div class="view view-profile">
+                <div class="nav"></div>
+                <h2 class="lt">Profile</h2>
+
+                <div class="group">
+                  <div class="cell press acct"><span class="av av-m lg">EU</span><div class="grow"><b>Emmanuella Ukata</b><small>Manu · Member since March 2026</small></div><span class="ic chev" data-i="chevron_right" aria-hidden="true"></span></div>
+                </div>
+
+                <div class="group">
+                  <div class="cell has-av"><span class="av av-r">R</span><div class="grow"><b>Redman</b><small><span class="live"></span>Online · Sent you love 2 hours ago</small></div><button type="button" class="btn btn-tinted btn-sm tap">Nudge</button></div>
+                </div>
+
+                <p class="gh">Reminders</p>
+                <div class="group">
+                  <label class="cell has-ic"><span class="ic" data-i="notifications" aria-hidden="true"></span><span class="grow"><b>Tonight’s question</b><small>Every day at 8:00 pm</small></span><input type="checkbox" id="pr-1" class="sr" checked><span class="sw"></span></label>
+                  <label class="cell has-ic"><span class="ic" data-i="favorite" aria-hidden="true"></span><span class="grow"><b>When Redman answers</b></span><input type="checkbox" id="pr-2" class="sr" checked><span class="sw"></span></label>
+                  <label class="cell has-ic"><span class="ic" data-i="calendar_month" aria-hidden="true"></span><span class="grow"><b>Anniversary countdown</b></span><input type="checkbox" id="pr-3" class="sr" checked><span class="sw"></span></label>
+                  <label class="cell has-ic"><span class="ic" data-i="ecg_heart" aria-hidden="true"></span><span class="grow"><b>Weekly check-in</b><small>Sundays at 6:00 pm</small></span><input type="checkbox" id="pr-4" class="sr"><span class="sw"></span></label>
+                </div>
+
+                <p class="gh">Your space</p>
+                <div class="group">
+                  <label for="v-timeline" class="cell has-ic"><span class="ic" data-i="schedule" aria-hidden="true"></span><span class="grow"><b>Timeline</b></span><span class="ic chev" data-i="chevron_right" aria-hidden="true"></span></label>
+                  <label for="v-dreams" class="cell has-ic"><span class="ic" data-i="auto_awesome" aria-hidden="true"></span><span class="grow"><b>Dreams</b></span><span class="ic chev" data-i="chevron_right" aria-hidden="true"></span></label>
+                  <div class="cell press has-ic"><span class="ic" data-i="palette" aria-hidden="true"></span><span class="grow"><b>App theme</b></span><span class="val" data-theme-name>Rose</span><span class="ic chev" data-i="chevron_right" aria-hidden="true"></span></div>
+                </div>
+
+                <p class="gh">Relationship</p>
+                <div class="group">
+                  <div class="cell"><span class="grow"><b>Status</b></span><span class="val">Dating</span></div>
+                  <div class="cell"><span class="grow"><b>Together since</b></span><span class="val">9 Mar 2026</span></div>
+                  <label for="al-unlink" class="cell danger">Unlink Partner</label>
+                </div>
+                <p class="gfoot" style="margin-top:0">Unlinking closes your shared space. Memories stay saved for 30 days.</p>
+              </div>
+            </div>
+
+            <nav class="tabbar" aria-label="Tabs">
+              <span class="tab-ind"></span>
+              <label for="v-home" class="tab"><span class="ic" data-i="home" aria-hidden="true"></span>Home</label>
+              <label for="v-timeline" class="tab"><span class="ic" data-i="schedule" aria-hidden="true"></span>Timeline</label>
+              <label for="v-dreams" class="tab"><span class="ic" data-i="auto_awesome" aria-hidden="true"></span>Dreams</label>
+              <label for="v-insights" class="tab"><span class="ic" data-i="join" aria-hidden="true"></span>Insights</label>
+              <label for="v-profile" class="tab"><span class="ic" data-i="person" aria-hidden="true"></span>Profile</label>
+            </nav>
+
+            <label for="sh-mem" class="scrim" aria-label="Close"></label>
+            <div class="sheet" role="dialog" aria-label="New memory">
+              <div class="sheet-nav"><label for="sh-mem" class="sn">Cancel</label><b>New Memory</b><label for="mem-added" class="sn save" id="save-mem">Save</label></div>
+              <div class="sheet-body">
+                <div class="photos"><span class="ph1"></span><span class="ph2"></span><span class="ph-add"><span class="ic" data-i="add_photo_alternate" aria-hidden="true"></span></span></div>
+                <div class="group">
+                  <div class="cell"><input id="mem-title" class="field" type="text" value="Sunset at Elegushi" placeholder="Title" aria-label="Title"></div>
+                  <div class="cell press has-ic"><span class="ic" data-i="location_on" aria-hidden="true"></span><span class="grow"><b>Location</b></span><span class="val">Elegushi Beach</span><span class="ic chev" data-i="chevron_right" aria-hidden="true"></span></div>
+                </div>
+                <p class="gh">When</p>
+                <div class="seg">
+                  <input type="radio" name="mw" id="mw-1" class="sr" checked><label for="mw-1">Today</label>
+                  <input type="radio" name="mw" id="mw-2" class="sr"><label for="mw-2">Yesterday</label>
+                  <input type="radio" name="mw" id="mw-3" class="sr"><label for="mw-3">Earlier</label>
+                  <span class="thumb"></span>
+                </div>
+                <p class="gh">How it felt</p>
+                <div class="chips">
+                  <label class="chip"><input type="checkbox" id="mf-1" class="sr" checked>🥰 Cozy</label>
+                  <label class="chip"><input type="checkbox" id="mf-2" class="sr">😂 Funny</label>
+                  <label class="chip"><input type="checkbox" id="mf-3" class="sr" checked>🌅 Adventurous</label>
+                  <label class="chip"><input type="checkbox" id="mf-4" class="sr">🥹 Tender</label>
+                </div>
+                <div class="group" style="margin-top:4px">
+                  <label class="cell"><span class="grow"><b>Surprise Redman</b></span><input type="checkbox" id="mem-surprise" class="sr" checked><span class="sw"></span></label>
+                </div>
+                <p class="gfoot">Redman sees it with tonight’s question.</p>
+              </div>
+            </div>
+
+            <div class="alert-wrap">
+              <label for="al-unlink" class="alert-scrim" aria-label="Cancel"></label>
+              <div class="alert" role="alertdialog" aria-label="Unlink from Redman?">
+                <div class="ab"><b>Unlink from Redman?</b><p>Your shared space closes. Memories stay saved for 30 days in case you reconnect.</p></div>
+                <div class="abtn"><label for="al-unlink">Cancel</label><label for="al-unlink" class="red">Unlink</label></div>
+              </div>
+            </div>
+
+            <div class="island-toast" role="status"><span class="ti"><span class="ic" data-i="favorite" aria-hidden="true"></span></span><div><b>Saved to your story</b><small>Redman will see it tonight</small></div></div>
+            <div class="burst" aria-hidden="true"><i><span class="ic" data-i="favorite"></span></i><i><span class="ic" data-i="favorite"></span></i><i><span class="ic" data-i="favorite"></span></i><i><span class="ic" data-i="favorite"></span></i><i><span class="ic" data-i="favorite"></span></i><i><span class="ic" data-i="favorite"></span></i></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="notes">
+        <div class="shell-seg" aria-label="Switch screen">
+          <span class="thumb"></span>
+          <label for="v-home"><span class="ic" data-i="home" aria-hidden="true"></span><span class="lbl">Home</span></label>
+          <label for="v-timeline"><span class="ic" data-i="schedule" aria-hidden="true"></span><span class="lbl">Timeline</span></label>
+          <label for="v-dreams"><span class="ic" data-i="auto_awesome" aria-hidden="true"></span><span class="lbl">Dreams</span></label>
+          <label for="v-insights"><span class="ic" data-i="join" aria-hidden="true"></span><span class="lbl">Insights</span></label>
+          <label for="v-profile"><span class="ic" data-i="person" aria-hidden="true"></span><span class="lbl">Profile</span></label>
+        </div>
+
+        <div class="note note-home">
+          <h3>Home is the bond between you</h3>
+          <p class="lead">The two linked avatars were the original idea, so Home is built around them. You see both of you, joined, and how each of you is doing tonight.</p>
+          <div>
+            <p class="gh-shell">What changed</p>
+            <div class="list">
+              <div class="li"><span class="ic" data-i="favorite" aria-hidden="true"></span><div class="t"><b>“Day 214 of Manu &amp; Redman”</b><span class="d">Before: <s>“Good afternoon, Emmanuella.”</s></span></div></div>
+              <div class="li"><span class="ic" data-i="join" aria-hidden="true"></span><div class="t"><b>A live thread between your avatars</b><span class="d">Each side shows that person’s status: your turn or answered, plus mood and online.</span></div></div>
+              <div class="li"><span class="ic" data-i="touch_app" aria-hidden="true"></span><div class="t"><b>The heart in the middle is the hug</b><span class="d">Hold it, the ring fills, and a pulse travels along the thread to Redman.</span></div></div>
+              <div class="li"><span class="ic" data-i="apps" aria-hidden="true"></span><div class="t"><b>Quick actions, Contacts-style</b><span class="d">Before: <s>six pastel tiles, two of which repeated the tab bar.</s></span></div></div>
+            </div>
+          </div>
+          <div>
+            <p class="gh-shell">Try it</p>
+            <div class="list">
+              <div class="li"><span class="ic" data-i="favorite" aria-hidden="true"></span><div class="t"><b>Press and hold the heart</b></div></div>
+              <div class="li"><span class="ic" data-i="mood" aria-hidden="true"></span><div class="t"><b>Pick a mood and watch your avatar update</b></div></div>
+              <div class="li"><span class="ic" data-i="photo_camera" aria-hidden="true"></span><div class="t"><b>Tap Memory, then Save</b><span class="d">The toast grows out of the Dynamic Island.</span></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="note note-timeline">
+          <h3>An empty timeline suggests a first step</h3>
+          <p class="lead">It uses the iOS empty-state pattern: one symbol, a short title, a sentence and an action. Prompt chips make the first memory easy.</p>
+          <div>
+            <p class="gh-shell">What changed</p>
+            <div class="list">
+              <div class="li"><span class="ic" data-i="photo_library" aria-hidden="true"></span><div class="t"><b>“Your story starts with one moment”</b><span class="d">Before: <s>“Nothing here yet.” shown twice.</s></span></div></div>
+              <div class="li"><span class="ic" data-i="add" aria-hidden="true"></span><div class="t"><b>A + button in the nav bar and a sheet with Cancel and Save at the top</b><span class="d">The usual iOS way to create something.</span></div></div>
+              <div class="li"><span class="ic" data-i="view_day" aria-hidden="true"></span><div class="t"><b>A segmented control for filters</b><span class="d">All, Memories, Dates, Milestones.</span></div></div>
+            </div>
+          </div>
+          <div>
+            <p class="gh-shell">Try it</p>
+            <div class="list"><div class="li"><span class="ic" data-i="touch_app" aria-hidden="true"></span><div class="t"><b>Tap “Our first date”, edit the title, then Save</b><span class="d">The memory pops in with the title you typed.</span></div></div></div>
+          </div>
+        </div>
+
+        <div class="note note-dreams">
+          <h3>Dreams you can start in one tap</h3>
+          <p class="lead">A blank board asks couples to come up with something. Starters give them something to say yes to.</p>
+          <div>
+            <p class="gh-shell">What changed</p>
+            <div class="list">
+              <div class="li"><span class="ic" data-i="check_circle" aria-hidden="true"></span><div class="t"><b>Reminders-style steps</b><span class="d">Round checks fill the progress ring.</span></div></div>
+              <div class="li"><span class="ic" data-i="add_circle" aria-hidden="true"></span><div class="t"><b>App Store-style Add buttons</b><span class="d">The board count goes up as you add starters.</span></div></div>
+              <div class="li"><span class="ic" data-i="trophy" aria-hidden="true"></span><div class="t"><b>Completed dreams in one row</b><span class="d">Before: <s>an empty card with its own big heading.</s></span></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="note note-insights">
+          <h3>Insights that compare</h3>
+          <p class="lead">Each trait sits side by side with a verdict and a tip. Your colour and Redman’s stay consistent everywhere.</p>
+          <div>
+            <p class="gh-shell">What changed</p>
+            <div class="list">
+              <div class="li"><span class="ic" data-i="join" aria-hidden="true"></span><div class="t"><b>A Venn of what you share</b><span class="d">The circles slide together when you open the tab.</span></div></div>
+              <div class="li"><span class="ic" data-i="compare_arrows" aria-hidden="true"></span><div class="t"><b>Match and Complementary badges</b><span class="d">Before: <s>two separate lists, one word each.</s></span></div></div>
+              <div class="li"><span class="ic" data-i="bar_chart" aria-hidden="true"></span><div class="t"><b>Love-language bars, Health-style</b></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="note note-profile">
+          <h3>Profile works like Settings</h3>
+          <p class="lead">An account row, grouped lists and switches, and a red destructive row that asks before it does anything.</p>
+          <div>
+            <p class="gh-shell">What changed</p>
+            <div class="list">
+              <div class="li"><span class="ic" data-i="warning" aria-hidden="true"></span><div class="t"><b>Unlink asks first, with an iOS alert</b><span class="d">Before: <s>a big Unlink button right under your connection.</s></span></div></div>
+              <div class="li"><span class="ic" data-i="toggle_on" aria-hidden="true"></span><div class="t"><b>Reminder switches</b><span class="d">These control the nightly ritual.</span></div></div>
+            </div>
+          </div>
+          <div>
+            <p class="gh-shell">Try it</p>
+            <div class="list"><div class="li"><span class="ic" data-i="touch_app" aria-hidden="true"></span><div class="t"><b>Tap Unlink Partner</b><span class="d">Press and hold a switch to see the knob stretch.</span></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== RITUAL ===================== -->
+  <section class="sec" id="ritual">
+    <div class="sec-head">
+      <p class="sec-tag">Retention flow</p>
+      <h2>The nightly ritual.</h2>
+      <p>The reason couples open the app every day: one question, about ten seconds to answer, and a reveal neither of you sees until you’ve both replied.</p>
+    </div>
+    <div class="stage">
+      <div class="phone-col">
+        <div class="phone">
+          <div class="screen ritual">
+            <input type="radio" name="rit" id="r1" class="sr" checked>
+            <input type="radio" name="rit" id="r2" class="sr">
+            <input type="radio" name="rit" id="r3" class="sr">
+            <input type="radio" name="rit" id="r4" class="sr">
+            <input type="radio" name="rit" id="r5" class="sr">
+            <div class="island"></div>
+            <div class="status"><span>8:02</span><span class="st"><svg class="si" width="18" height="12"><use href="#i-sig"/></svg><svg class="si" width="16" height="12"><use href="#i-wifi"/></svg><svg class="si" width="27" height="13"><use href="#i-bat"/></svg></span></div>
+            <div class="rprog" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+
+            <section class="rs rs1">
+              <div class="lock-top"><span class="ic" data-i="lock" aria-hidden="true"></span><small>Friday 9 October</small><b>8:02</b></div>
+              <div class="notifs">
+                <label for="r2" class="notif main">
+                  <span class="n-app"><span class="ic" data-i="favorite" aria-hidden="true"></span></span>
+                  <span class="nt"><span class="n-top"><span>Between Us</span><span>now</span></span><b>Redman answered tonight’s question</b><br>Answer yours to see what they said.</span>
+                </label>
+                <div class="notif ghost">
+                  <span class="n-app" style="background:var(--orange)"><span class="ic" data-i="local_fire_department" aria-hidden="true"></span></span>
+                  <span class="nt"><span class="n-top"><span>Between Us</span><span>1h ago</span></span>12 nights in a row. Keep it going tonight.</span>
+                </div>
+              </div>
+              <p class="lock-hint">Tap the notification</p>
+              <span class="lock-bar"></span>
+            </section>
+
+            <section class="rs rs2">
+              <p class="r-kick">Tonight’s question</p>
+              <h3 class="r-q">What do you want more of from us this month?</h3>
+              <div class="group sel">
+                <input type="radio" name="ans" id="a1" class="sr"><label for="a1" class="cell"><span class="ic" data-i="landscape" aria-hidden="true"></span><span class="grow"><b>Little adventures</b></span><span class="ic chk" data-i="check" aria-hidden="true"></span></label>
+                <input type="radio" name="ans" id="a2" class="sr"><label for="a2" class="cell"><span class="ic" data-i="nights_stay" aria-hidden="true"></span><span class="grow"><b>Quiet nights in</b></span><span class="ic chk" data-i="check" aria-hidden="true"></span></label>
+                <input type="radio" name="ans" id="a3" class="sr"><label for="a3" class="cell"><span class="ic" data-i="forum" aria-hidden="true"></span><span class="grow"><b>Deep talks</b></span><span class="ic chk" data-i="check" aria-hidden="true"></span></label>
+                <input type="radio" name="ans" id="a4" class="sr"><label for="a4" class="cell"><span class="ic" data-i="restaurant" aria-hidden="true"></span><span class="grow"><b>Cooking together</b></span><span class="ic chk" data-i="check" aria-hidden="true"></span></label>
+              </div>
+              <p class="locked"><span class="av av-r xs">R</span>Redman answered 14 minutes ago<span class="ic" data-i="lock" aria-hidden="true"></span></p>
+              <div class="grow-1"></div>
+              <label for="r3" class="btn btn-filled btn-block tap lockin">Lock In Answer</label>
+            </section>
+
+            <section class="rs rs3">
+              <div class="confetti" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <p class="r-kick" style="text-align:center">Revealed</p>
+              <h3 class="r-h">Here’s what you both said</h3>
+              <div class="cards2">
+                <div class="rcard you"><span class="av">M</span><div><small>You</small><b><span class="ya ya1">Little adventures</span><span class="ya ya2">Quiet nights in</span><span class="ya ya3">Deep talks</span><span class="ya ya4">Cooking together</span></b></div></div>
+                <div class="rcard them"><span class="av">R</span><div><small>Redman</small><b>Quiet nights in</b></div></div>
+              </div>
+              <div class="card verdict v-match"><span class="vi"><span class="ic" data-i="favorite" aria-hidden="true"></span></span><div><b>Same answer. You’re in sync.</b><span>We’ve lined up an idea for you both.</span></div></div>
+              <div class="card verdict v-diff"><span class="vi"><span class="ic" data-i="lightbulb" aria-hidden="true"></span></span><div><b>Different answers. That’s useful.</b><span>Ask Redman why they picked quiet nights in.</span></div></div>
+              <div class="group"><div class="cell"><span class="grow"><b>React to Redman’s answer</b></span><label class="love" aria-label="Love Redman's answer"><input type="checkbox" id="rx-heart" class="sr"><span class="ic" data-i="favorite" aria-hidden="true"></span><span class="spk"></span></label></div></div>
+              <div class="grow-1"></div>
+              <label for="r4" class="btn btn-filled btn-block tap">Continue</label>
+            </section>
+
+            <section class="rs rs4">
+              <div class="flame-wrap"><div class="flame"><span class="ic" data-i="local_fire_department" aria-hidden="true"></span></div></div>
+              <div class="streak-num"><span class="roll"><i>12</i><i>13</i></span></div>
+              <p class="streak-l">nights in a row</p>
+              <p class="streak-c">Your longest streak yet. Redman’s goes up too, because you keep it going together.</p>
+              <div class="card week">
+                <div class="day done">M<i><span class="ic" data-i="check"></span></i></div><div class="day done">T<i><span class="ic" data-i="check"></span></i></div>
+                <div class="day done">W<i><span class="ic" data-i="check"></span></i></div><div class="day done">T<i><span class="ic" data-i="check"></span></i></div>
+                <div class="day today">F<i><span class="ic" data-i="check"></span></i></div><div class="day">S<i></i></div><div class="day">S<i></i></div>
+              </div>
+              <div class="group"><div class="cell has-ic"><span class="ic" data-i="ac_unit" aria-hidden="true" style="color:#30B0C7"></span><span class="grow"><b>1 streak freeze</b><small>A busy night won’t reset your streak.</small></span></div></div>
+              <div class="grow-1"></div>
+              <label for="r5" class="btn btn-filled btn-block tap">Continue</label>
+            </section>
+
+            <section class="rs rs5">
+              <p class="r-kick">Make it real</p>
+              <h3 class="r-q">Turn tonight into a plan</h3>
+              <article class="card idea">
+                <div class="cv"><span class="candle c1"></span><span class="candle c2"></span><span class="candle c3"></span></div>
+                <div class="bd"><p class="why">Because Redman wants quiet nights in</p><h4>Candlelit cook-along</h4><p>Pick a recipe neither of you has made. Phones go in a drawer until dessert.</p></div>
+              </article>
+              <label class="btn btn-gray btn-block tap add-date"><input type="checkbox" id="rd-add" class="sr"><span class="t1"><span class="ic" data-i="calendar_month" aria-hidden="true"></span>Add to Saturday</span><span class="t2"><span class="ic" data-i="check_circle" aria-hidden="true"></span>Added to Saturday</span></label>
+              <div class="group"><div class="cell has-ic"><span class="ic" data-i="schedule" aria-hidden="true"></span><span class="grow"><b>Next question at 8:00 pm tomorrow</b><small>It’s about your first impressions of each other.</small></span></div></div>
+              <div class="grow-1"></div>
+              <label for="r1" class="btn btn-plain btn-block tap">Replay the Flow</label>
+            </section>
+          </div>
+        </div>
+      </div>
+
+      <div class="notes">
+        <div class="list flow">
+          <label for="r1" class="fs fs1"><span class="num">1</span><b>A notification with a reason</b><span class="d">It names the partner and hides the answer. “Redman answered” works better than “Don’t forget to check in.”</span></label>
+          <label for="r2" class="fs fs2"><span class="num">2</span><b>Answer from a checklist</b><span class="d">An iOS selection list with no typing. It takes about ten seconds, so there’s no reason to put it off.</span></label>
+          <label for="r3" class="fs fs3"><span class="num">3</span><b>Reveal both answers</b><span class="d">Seeing Redman’s answer is the reward. Pick “Quiet nights in” to see the match confetti.</span></label>
+          <label for="r4" class="fs fs4"><span class="num">4</span><b>A shared streak</b><span class="d">Each of you keeps it going for the other. A streak freeze means one busy night doesn’t wipe out two weeks.</span></label>
+          <label for="r5" class="fs fs5"><span class="num">5</span><b>Leave with a plan</b><span class="d">End with a next step and say exactly when tomorrow’s question unlocks.</span></label>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== COLOUR & TYPE ===================== -->
+  <section class="sec" id="colour">
+    <div class="sec-head">
+      <p class="sec-tag">Colour &amp; type</p>
+      <h2>13 themes. One system.</h2>
+      <p>Each theme sets two colours: one for your partner and the app’s accent, and one for you. Everything else uses iOS system colours, so every theme looks finished.</p>
+    </div>
+    <div class="themes">
+      <button type="button" class="theme-card" data-palette="rose" aria-pressed="true"><span class="tc-prev" style="--k:#FF2E74;--y:#9B6BFF"><span class="a1"></span><span class="a2"></span><span class="h"></span><span class="btnp"></span></span><span class="tc-body"><span><b>Rose</b><small>Warm and romantic</small></span><span class="ic" data-i="check_circle" aria-hidden="true"></span></span></button>
+      <button type="button" class="theme-card" data-palette="sunset" aria-pressed="false"><span class="tc-prev" style="--k:#FF6A3D;--y:#8B6BFF"><span class="a1"></span><span class="a2"></span><span class="h"></span><span class="btnp"></span></span><span class="tc-body"><span><b>Golden hour</b><small>Bright and playful</small></span><span class="ic" data-i="check_circle" aria-hidden="true"></span></span></button>
+      <button type="button" class="theme-card" data-palette="lavender" aria-pressed="false"><span class="tc-prev" style="--k:#8B5CF6;--y:#FF4F8B"><span class="a1"></span><span class="a2"></span><span class="h"></span><span class="btnp"></span></span><span class="tc-body"><span><b>Lavender</b><small>Soft and dreamy</small></span><span class="ic" data-i="check_circle" aria-hidden="true"></span></span></button>
+      <button type="button" class="theme-card" data-palette="ocean" aria-pressed="false"><span class="tc-prev" style="--k:#0891B2;--y:#FF6B6B"><span class="a1"></span><span class="a2"></span><span class="h"></span><span class="btnp"></span></span><span class="tc-body"><span><b>Ocean</b><small>Cool and clear</small></span><span class="ic" data-i="check_circle" aria-hidden="true"></span></span></button>
+      <button type="button" class="theme-card" data-palette="cherry" aria-pressed="false"><span class="tc-prev" style="--k:#E11D48;--y:#9B6BFF"><span class="a1"></span><span class="a2"></span><span class="h"></span><span class="btnp"></span></span><span class="tc-body"><span><b>Cherry</b><small>Bold and passionate</small></span><span class="ic" data-i="check_circle" aria-hidden="true"></span></span></button>
+      <button type="button" class="theme-card" data-palette="berry" aria-pressed="false"><span class="tc-prev" style="--k:#C026D3;--y:#F97316"><span class="a1"></span><span class="a2"></span><span class="h"></span><span class="btnp"></span></span><span class="tc-body"><span><b>Berry</b><small>Electric and fun</small></span><span class="ic" data-i="check_circle" aria-hidden="true"></span></span></button>
+      <button type="button" class="theme-card" data-palette="matcha" aria-pressed="false"><span class="tc-prev" style="--k:#0F9F6E;--y:#FF5C80"><span class="a1"></span><span class="a2"></span><span class="h"></span><span class="btnp"></span></span><span class="tc-body"><span><b>Matcha</b><small>Fresh and grounded</small></span><span class="ic" data-i="check_circle" aria-hidden="true"></span></span></button>
+      <button type="button" class="theme-card" data-palette="mocha" aria-pressed="false"><span class="tc-prev" style="--k:#B45F3C;--y:#7C6BD6"><span class="a1"></span><span class="a2"></span><span class="h"></span><span class="btnp"></span></span><span class="tc-body"><span><b>Mocha</b><small>Cosy and grown-up</small></span><span class="ic" data-i="check_circle" aria-hidden="true"></span></span></button>
+      <button type="button" class="theme-card" data-palette="peach" aria-pressed="false"><span class="tc-prev" style="--k:#FF7A5C;--y:#14B8A6"><span class="a1"></span><span class="a2"></span><span class="h"></span><span class="btnp"></span></span><span class="tc-body"><span><b>Peach</b><small>Soft and sunny</small></span><span class="ic" data-i="check_circle" aria-hidden="true"></span></span></button>
+      <button type="button" class="theme-card" data-palette="indigo" aria-pressed="false"><span class="tc-prev" style="--k:#4F46E5;--y:#F59E0B"><span class="a1"></span><span class="a2"></span><span class="h"></span><span class="btnp"></span></span><span class="tc-body"><span><b>Indigo</b><small>Deep and late-night</small></span><span class="ic" data-i="check_circle" aria-hidden="true"></span></span></button>
+      <button type="button" class="theme-card" data-palette="sage" aria-pressed="false"><span class="tc-prev" style="--k:#5B8A6B;--y:#E26D8A"><span class="a1"></span><span class="a2"></span><span class="h"></span><span class="btnp"></span></span><span class="tc-body"><span><b>Sage</b><small>Quiet and natural</small></span><span class="ic" data-i="check_circle" aria-hidden="true"></span></span></button>
+      <button type="button" class="theme-card" data-palette="bubblegum" aria-pressed="false"><span class="tc-prev" style="--k:#F03FA9;--y:#9B6BFF"><span class="a1"></span><span class="a2"></span><span class="h"></span><span class="btnp"></span></span><span class="tc-body"><span><b>Bubblegum</b><small>Loud and cheeky</small></span><span class="ic" data-i="check_circle" aria-hidden="true"></span></span></button>
+      <button type="button" class="theme-card" data-palette="velvet" aria-pressed="false"><span class="tc-prev" style="--k:#4A2D5C;--y:#D9577A"><span class="a1"></span><span class="a2"></span><span class="h"></span><span class="btnp"></span></span><span class="tc-body"><span><b>Velvet</b><small>Dark plum and gold</small></span><span class="ic" data-i="check_circle" aria-hidden="true"></span></span></button>
+    </div>
+
+    <div class="typescale">
+      <p class="gh-shell">iOS text styles used in the app</p>
+      <div class="list">
+        <div class="ts"><span class="nm">Large Title</span><span class="sp" style="font:700 34px/1.1 var(--f);letter-spacing:-.035em">Timeline</span><span class="mt">34 · Bold</span></div>
+        <div class="ts"><span class="nm">Rounded numerals</span><span class="sp" style="font:700 34px/1.1 var(--f-round);letter-spacing:-.04em;color:var(--accent)">Day 214</span><span class="mt">SF Rounded · Bold</span></div>
+        <div class="ts"><span class="nm">Title 3</span><span class="sp" style="font:700 20px var(--f);letter-spacing:-.025em">Coming up</span><span class="mt">20 · Bold</span></div>
+        <div class="ts"><span class="nm">Headline</span><span class="sp" style="font:600 17px var(--f)">Candlelit cook-along</span><span class="mt">17 · Semibold</span></div>
+        <div class="ts"><span class="nm">Body</span><span class="sp" style="font:400 17px var(--f)">Answer to see what Redman said.</span><span class="mt">17 · Regular</span></div>
+        <div class="ts"><span class="nm">Footnote</span><span class="sp" style="font:400 13px var(--f);color:var(--muted)">Redman sees it with tonight’s question.</span><span class="mt">13 · Regular</span></div>
+        <div class="ts"><span class="nm">Serif (names only)</span><span class="sp" style="font:400 italic 22px var(--f-serif)">Manu &amp; Redman</span><span class="mt">New York · Italic</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== COMPONENTS ===================== -->
+  <section class="sec" id="components">
+    <div class="sec-head">
+      <p class="sec-tag">Components</p>
+      <h2>iOS controls, ready for two.</h2>
+      <p>Every specimen is live. Press, hold, toggle and type. Taps dim and settle on a spring, the way iOS does it.</p>
+    </div>
+    <div class="specs">
+
+      <article class="spec">
+        <header><h3>Buttons</h3><p>Filled for the one main action. Tinted and gray for everything else.</p></header>
+        <div class="demo">
+          <button type="button" class="btn btn-filled btn-block tap">Save to Our Story</button>
+          <div class="row">
+            <button type="button" class="btn btn-tinted tap">Tinted</button>
+            <button type="button" class="btn btn-gray tap">Gray</button>
+            <button type="button" class="btn btn-plain tap">Plain</button>
+          </div>
+          <div class="row">
+            <button type="button" class="btn btn-filled btn-sm tap">Add</button>
+            <button type="button" class="btn btn-tinted btn-sm tap">Nudge</button>
+            <button type="button" class="btn btn-red btn-sm tap">Delete</button>
+            <button type="button" class="glass-btn tap" aria-label="Add"><span class="ic" data-i="add" aria-hidden="true"></span></button>
+            <button type="button" class="glass-btn tap" aria-label="More"><span class="ic" data-i="more_horiz" aria-hidden="true"></span></button>
+          </div>
+        </div>
+        <p class="meta">Press: 97% scale and 72% opacity in 80ms, then a spring back.</p>
+      </article>
+
+      <article class="spec">
+        <header><h3>Inset grouped list</h3><p>The backbone of Profile and the sheets. Rows highlight while pressed.</p></header>
+        <div class="demo">
+          <div class="group">
+            <div class="cell press has-ic"><span class="ic" data-i="favorite" aria-hidden="true"></span><span class="grow"><b>Anniversary</b></span><span class="val">9 Mar</span><span class="ic chev" data-i="chevron_right" aria-hidden="true"></span></div>
+            <label class="cell has-ic"><span class="ic" data-i="notifications" aria-hidden="true"></span><span class="grow"><b>Tonight’s question</b></span><input type="checkbox" id="c-l1" class="sr" checked><span class="sw"></span></label>
+            <div class="cell press has-ic"><span class="ic" data-i="palette" aria-hidden="true"></span><span class="grow"><b>Theme</b></span><span class="val">Rose</span><span class="ic chev" data-i="chevron_right" aria-hidden="true"></span></div>
+            <div class="cell press danger">Unlink Partner</div>
+          </div>
+        </div>
+        <p class="meta">Separators start where the text starts.</p>
+      </article>
+
+      <article class="spec">
+        <header><h3>Switches &amp; segments</h3><p>The knob stretches while pressed. The segment thumb springs into place.</p></header>
+        <div class="demo">
+          <div class="group">
+            <label class="cell"><span class="grow"><b>Weekly check-in</b><small>Sundays at 6:00 pm</small></span><input type="checkbox" id="c-s1" class="sr"><span class="sw"></span></label>
+            <label class="cell"><span class="grow"><b>Surprise Redman</b></span><input type="checkbox" id="c-s2" class="sr" checked><span class="sw"></span></label>
+          </div>
+          <div class="seg">
+            <input type="radio" name="cseg" id="cs-1" class="sr" checked><label for="cs-1">Week</label>
+            <input type="radio" name="cseg" id="cs-2" class="sr"><label for="cs-2">Month</label>
+            <input type="radio" name="cseg" id="cs-3" class="sr"><label for="cs-3">All Time</label>
+            <span class="thumb"></span>
+          </div>
+        </div>
+        <p class="meta">51 × 31 switch · spring 400ms</p>
+      </article>
+
+      <article class="spec">
+        <header><h3>Selection list</h3><p>Pick one; a checkmark marks the choice. Used for the ritual answers.</p></header>
+        <div class="demo">
+          <div class="group sel">
+            <input type="radio" name="csel" id="csel-1" class="sr" checked><label for="csel-1" class="cell"><span class="ic" data-i="nights_stay" aria-hidden="true"></span><span class="grow"><b>Quiet nights in</b></span><span class="ic chk" data-i="check" aria-hidden="true"></span></label>
+            <input type="radio" name="csel" id="csel-2" class="sr"><label for="csel-2" class="cell"><span class="ic" data-i="landscape" aria-hidden="true"></span><span class="grow"><b>Little adventures</b></span><span class="ic chk" data-i="check" aria-hidden="true"></span></label>
+            <input type="radio" name="csel" id="csel-3" class="sr"><label for="csel-3" class="cell"><span class="ic" data-i="forum" aria-hidden="true"></span><span class="grow"><b>Deep talks</b></span><span class="ic chk" data-i="check" aria-hidden="true"></span></label>
+          </div>
+        </div>
+        <p class="meta">The icon fills when its row is chosen.</p>
+      </article>
+
+      <article class="spec">
+        <header><h3>Text input</h3><p>A search field, a field inside a list, and a note to Redman.</p></header>
+        <div class="demo">
+          <label class="search"><span class="ic" data-i="search" aria-hidden="true"></span><input id="c-search" class="field" type="search" placeholder="Search memories" aria-label="Search memories"></label>
+          <div class="group">
+            <div class="cell"><input id="c-title" class="field" type="text" placeholder="Title" aria-label="Title"></div>
+            <div class="cell" style="align-items:flex-start"><textarea id="c-note" class="field" rows="3" aria-label="Note" style="resize:none">Thank you for tonight. Miss you already.</textarea></div>
+          </div>
+          <button type="button" class="btn btn-filled btn-sm tap" style="align-self:flex-end"><span class="ic" data-i="send" aria-hidden="true"></span>Send</button>
+        </div>
+        <p class="meta">Filled fields with no outline.</p>
+      </article>
+
+      <article class="spec">
+        <header><h3>Alert</h3><p>For decisions that can’t be undone. Unlink uses this.</p></header>
+        <div class="demo">
+          <div class="alert-demo">
+            <input type="checkbox" id="ad-on" class="sr">
+            <label for="ad-on" class="btn btn-red tap">Unlink Partner</label>
+            <div class="alert-wrap">
+              <label for="ad-on" class="alert-scrim" aria-label="Cancel"></label>
+              <div class="alert" role="alertdialog" aria-label="Unlink from Redman?">
+                <div class="ab"><b>Unlink from Redman?</b><p>Your shared space closes. Memories stay saved for 30 days.</p></div>
+                <div class="abtn"><label for="ad-on">Cancel</label><label for="ad-on" class="red">Unlink</label></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="meta">Opens at 112% scale and springs to 100%.</p>
+      </article>
+
+      <article class="spec">
+        <header><h3>Action sheet</h3><p>Choices about something you’re looking at, like sharing a memory.</p></header>
+        <div class="demo">
+          <div class="asheet-demo">
+            <input type="checkbox" id="as-on" class="sr">
+            <div class="bg">
+              <div class="memcard" style="height:150px"><div class="mc"><div><small>Today</small><b>Sunset at Elegushi</b></div></div></div>
+              <label for="as-on" class="btn btn-gray btn-sm tap" style="align-self:flex-start"><span class="ic" data-i="ios_share" aria-hidden="true"></span>Share</label>
+            </div>
+            <label for="as-on" class="dim" aria-label="Close"></label>
+            <div class="asheet">
+              <div class="grp"><p class="ttl">Sunset at Elegushi</p><label for="as-on">Send to Redman</label><label for="as-on">Save to Photos</label><label for="as-on" class="red">Delete Memory</label></div>
+              <label for="as-on" class="cancel">Cancel</label>
+            </div>
+          </div>
+        </div>
+        <p class="meta">Cancel always sits apart at the bottom.</p>
+      </article>
+
+      <article class="spec">
+        <header><h3>Reactions</h3><p>iMessage-style: tap the grey bubble, then pick a reaction.</p></header>
+        <div class="demo tb-wrap">
+          <input type="checkbox" id="tb-open" class="sr">
+          <div class="bubble-row">
+            <span class="bubble">
+              <label for="tb-open" style="cursor:pointer">Dinner at 8? I booked the place you liked.</label>
+              <span class="tapbar" role="group" aria-label="Reactions">
+                <input type="radio" name="tb" id="tb1" class="sr"><label for="tb1">❤️</label>
+                <input type="radio" name="tb" id="tb2" class="sr"><label for="tb2">👍</label>
+                <input type="radio" name="tb" id="tb3" class="sr"><label for="tb3">😂</label>
+                <input type="radio" name="tb" id="tb4" class="sr"><label for="tb4">🥹</label>
+                <input type="radio" name="tb" id="tb5" class="sr"><label for="tb5">‼️</label>
+                <input type="radio" name="tb" id="tb6" class="sr"><label for="tb6">🔥</label>
+              </span>
+              <span class="tb-badge" aria-hidden="true"><span class="e1">❤️</span><span class="e2">👍</span><span class="e3">😂</span><span class="e4">🥹</span><span class="e5">‼️</span><span class="e6">🔥</span></span>
+            </span>
+            <span class="bubble me">Yes please 🥹</span>
+            <span class="typing" aria-label="Redman is typing"><i></i><i></i><i></i></span>
+          </div>
+        </div>
+        <p class="meta">The reaction bar springs out of the bubble.</p>
+      </article>
+
+      <article class="spec">
+        <header><h3>Love &amp; hug</h3><p>A heart that bursts into sparks, and a hold-to-send button for something that matters.</p></header>
+        <div class="demo">
+          <div class="row" style="gap:14px"><label class="love big" aria-label="Love"><input type="checkbox" id="c-love" class="sr"><span class="ic" data-i="favorite" aria-hidden="true"></span><span class="spk"></span></label><span style="color:var(--label-2);font-size:15px">Tap to love Redman’s memory</span></div>
+          <button type="button" class="hug"><span class="fill"></span><span class="t1"><span class="ic" data-i="favorite" aria-hidden="true"></span>Hold to Send a Hug</span><span class="t2"><span class="ic" data-i="check" aria-hidden="true"></span>Hug Sent</span></button>
+        </div>
+        <p class="meta">The hug fills over 1.2s. Let go early to cancel.</p>
+      </article>
+
+      <article class="spec">
+        <header><h3>Activity rings</h3><p>Fitness-style progress for the relationship.</p></header>
+        <div class="demo">
+          <div class="rings">
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+              <circle class="tr" cx="60" cy="60" r="50" style="stroke:var(--kiss)"/><circle class="pr" cx="60" cy="60" r="50" pathLength="100" style="stroke:var(--kiss);--v:82"/>
+              <circle class="tr" cx="60" cy="60" r="37" style="stroke:var(--you)"/><circle class="pr" cx="60" cy="60" r="37" pathLength="100" style="stroke:var(--you);--v:64"/>
+              <circle class="tr" cx="60" cy="60" r="24" style="stroke:var(--orange)"/><circle class="pr" cx="60" cy="60" r="24" pathLength="100" style="stroke:var(--orange);--v:40"/>
+            </svg>
+            <ul>
+              <li><b style="color:var(--kiss)">6/7</b><small>Questions this week</small></li>
+              <li><b style="color:var(--you)">4 hrs</b><small>Quality time</small></li>
+              <li><b style="color:var(--orange)">40%</b><small>Obudu dream</small></li>
+            </ul>
+          </div>
+        </div>
+        <p class="meta">Rings fill on a 1.4s ease-out.</p>
+      </article>
+
+      <article class="spec">
+        <header><h3>Mood</h3><p>Five faces. Your choice gets a reply, not a score.</p></header>
+        <div class="demo mood">
+          <div class="moods">
+            <input type="radio" name="cmood" id="cm-1" class="sr"><label for="cm-1" aria-label="Glowing" style="background:#fff">🥰</label>
+            <input type="radio" name="cmood" id="cm-2" class="sr"><label for="cm-2" aria-label="Happy" style="background:#fff">😊</label>
+            <input type="radio" name="cmood" id="cm-3" class="sr"><label for="cm-3" aria-label="Okay" style="background:#fff">🙂</label>
+            <input type="radio" name="cmood" id="cm-4" class="sr"><label for="cm-4" aria-label="Distant" style="background:#fff">😶</label>
+            <input type="radio" name="cmood" id="cm-5" class="sr"><label for="cm-5" aria-label="Hurt" style="background:#fff">🥺</label>
+          </div>
+          <p class="mood-out"><span class="mo0">How are you feeling about us?</span><span class="mo1">Glowing. We’ll let Redman know.</span><span class="mo2">Happy. Want to say why?</span><span class="mo3">Okay. Steady days count too.</span><span class="mo4">A bit distant. Tonight’s question might help.</span><span class="mo5">Hurting. Start a gentle check-in?</span></p>
+        </div>
+        <p class="meta">Selected: tinted fill, 2px ring and a pop.</p>
+      </article>
+
+      <article class="spec">
+        <header><h3>Notifications</h3><p>A banner, and the Dynamic Island growing to show a live moment.</p></header>
+        <div class="demo">
+          <div class="banner"><span class="n-app"><span class="ic" data-i="favorite" aria-hidden="true"></span></span><span class="nt"><span class="n-top"><span>Between Us</span><span>now</span></span><b>Redman loved your memory</b><br>Sunset at Elegushi</span></div>
+          <div class="island-demo">
+            <input type="checkbox" id="isl-on" class="sr">
+            <div class="isl"></div>
+            <div class="isl-c"><span class="ti"><span class="ic" data-i="favorite" aria-hidden="true"></span></span><div><b>Hug from Redman</b><small>Just now</small></div></div>
+            <label for="isl-on" class="btn btn-white btn-sm tap"><span class="tg1">Expand Island</span><span class="tg2">Collapse Island</span></label>
+          </div>
+        </div>
+        <p class="meta">The island resizes on a 550ms spring.</p>
+      </article>
+
+      <article class="spec">
+        <header><h3>Empty state</h3><p>One symbol, a short title, a sentence and an action.</p></header>
+        <div class="demo">
+          <div class="cuv">
+            <div class="before"><span class="tag">Before</span><b>Nothing here yet.</b><span>Your timeline fills in on its own…</span></div>
+            <div class="after"><span class="tag">After</span><span class="ic" data-i="photo_library" aria-hidden="true"></span><b>Your story starts with one moment</b><span class="chip tinted" style="height:28px;font-size:13px">Our first date</span></div>
+          </div>
+        </div>
+        <p class="meta">Always name a first step.</p>
+      </article>
+
+      <article class="spec">
+        <header><h3>Memory card</h3><p>Photos-style: the image fills the card, with the title on top.</p></header>
+        <div class="demo">
+          <div class="memcard"><div class="mc"><div><small>Today · Lagos</small><b>Sunset at Elegushi</b></div><span class="play"><span class="ic" data-i="play_arrow" aria-hidden="true"></span></span></div></div>
+        </div>
+        <p class="meta">Hover for a 1.5% lift.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- ===================== MOTION ===================== -->
+  <section class="sec" id="motion">
+    <div class="sec-head">
+      <p class="sec-tag">Motion</p>
+      <h2>Springs, not slides.</h2>
+      <p>Hover or press each card to run its curve. Taps answer straight away, then things settle on a spring.</p>
+    </div>
+    <div class="motion">
+      <div class="mcard" tabindex="0" style="--d:100ms;--e:ease-out"><h4>Tap</h4><div class="track"><i></i></div><code>80–100ms · dim to 72%</code><p>Instant feedback on press.</p></div>
+      <div class="mcard" tabindex="0" style="--d:400ms;--e:cubic-bezier(.3,1.12,.5,1)"><h4>Snappy spring</h4><div class="track"><i></i></div><code>400ms · cubic-bezier(.3,1.12,.5,1)</code><p>Switches, chips and buttons settling.</p></div>
+      <div class="mcard" tabindex="0" style="--d:550ms;--e:cubic-bezier(.32,1.28,.55,1)"><h4>Bouncy spring</h4><div class="track"><i></i></div><code>550ms · cubic-bezier(.32,1.28,.55,1)</code><p>Sheets, alerts, the island and the tab pill.</p></div>
+      <div class="mcard" tabindex="0" style="--d:900ms;--e:cubic-bezier(.16,1,.3,1)"><h4>Ease out</h4><div class="track"><i></i></div><code>900ms · cubic-bezier(.16,1,.3,1)</code><p>Rings, bars and big reveals.</p></div>
+    </div>
+    <div class="list rules">
+      <div class="li"><span class="ic" data-i="touch_app" aria-hidden="true"></span><div class="t"><b>Every press answers</b><span class="d">Anything tappable dims or highlights on press. There are no ripples; that’s an Android pattern.</span></div></div>
+      <div class="li"><span class="ic" data-i="celebration" aria-hidden="true"></span><div class="t"><b>Celebrate the couple, not the click</b><span class="d">Confetti and bursts are for shared moments: a match, a saved memory, a streak.</span></div></div>
+      <div class="li"><span class="ic" data-i="accessibility_new" aria-hidden="true"></span><div class="t"><b>Respect Reduce Motion</b><span class="d">If Reduce Motion is on, animations and loops turn off.</span></div></div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span>Between Us design playground · HTML, CSS and a little vanilla JavaScript</span>
+    <span>Sample couple: Emmanuella (Manu) &amp; Redman</span>
+  </footer>
+</div>
+
+<div class="theme-fab" id="theme-fab">
+  <div class="tf-menu" id="tf-menu" role="menu" aria-label="Colour theme">
+    <p class="tf-title">Theme <span id="tf-name">Rose</span></p>
+    <div class="tf-grid">
+      <button type="button" class="tf-opt" role="menuitemradio" data-palette="rose" data-name="Rose" aria-checked="true" style="--a:#FF2E74;--b:#FF7A45"><span class="tf-sw"><span class="ic" data-i="check" aria-hidden="true"></span></span>Rose</button>
+      <button type="button" class="tf-opt" role="menuitemradio" data-palette="sunset" data-name="Golden hour" aria-checked="false" style="--a:#FF6A3D;--b:#FFB020"><span class="tf-sw"><span class="ic" data-i="check" aria-hidden="true"></span></span>Golden</button>
+      <button type="button" class="tf-opt" role="menuitemradio" data-palette="lavender" data-name="Lavender" aria-checked="false" style="--a:#8B5CF6;--b:#EC4899"><span class="tf-sw"><span class="ic" data-i="check" aria-hidden="true"></span></span>Lavender</button>
+      <button type="button" class="tf-opt" role="menuitemradio" data-palette="ocean" data-name="Ocean" aria-checked="false" style="--a:#0891B2;--b:#6366F1"><span class="tf-sw"><span class="ic" data-i="check" aria-hidden="true"></span></span>Ocean</button>
+      <button type="button" class="tf-opt" role="menuitemradio" data-palette="cherry" data-name="Cherry" aria-checked="false" style="--a:#E11D48;--b:#9F1239"><span class="tf-sw"><span class="ic" data-i="check" aria-hidden="true"></span></span>Cherry</button>
+      <button type="button" class="tf-opt" role="menuitemradio" data-palette="berry" data-name="Berry" aria-checked="false" style="--a:#C026D3;--b:#7C3AED"><span class="tf-sw"><span class="ic" data-i="check" aria-hidden="true"></span></span>Berry</button>
+      <button type="button" class="tf-opt" role="menuitemradio" data-palette="matcha" data-name="Matcha" aria-checked="false" style="--a:#0F9F6E;--b:#84CC16"><span class="tf-sw"><span class="ic" data-i="check" aria-hidden="true"></span></span>Matcha</button>
+      <button type="button" class="tf-opt" role="menuitemradio" data-palette="mocha" data-name="Mocha" aria-checked="false" style="--a:#B45F3C;--b:#E8A87C"><span class="tf-sw"><span class="ic" data-i="check" aria-hidden="true"></span></span>Mocha</button>
+      <button type="button" class="tf-opt" role="menuitemradio" data-palette="peach" data-name="Peach" aria-checked="false" style="--a:#FF7A5C;--b:#F9A03F"><span class="tf-sw"><span class="ic" data-i="check" aria-hidden="true"></span></span>Peach</button>
+      <button type="button" class="tf-opt" role="menuitemradio" data-palette="indigo" data-name="Indigo" aria-checked="false" style="--a:#4F46E5;--b:#DB2777"><span class="tf-sw"><span class="ic" data-i="check" aria-hidden="true"></span></span>Indigo</button>
+      <button type="button" class="tf-opt" role="menuitemradio" data-palette="sage" data-name="Sage" aria-checked="false" style="--a:#5B8A6B;--b:#C9A66B"><span class="tf-sw"><span class="ic" data-i="check" aria-hidden="true"></span></span>Sage</button>
+      <button type="button" class="tf-opt" role="menuitemradio" data-palette="bubblegum" data-name="Bubblegum" aria-checked="false" style="--a:#F03FA9;--b:#38BDF8"><span class="tf-sw"><span class="ic" data-i="check" aria-hidden="true"></span></span>Bubblegum</button>
+      <button type="button" class="tf-opt" role="menuitemradio" data-palette="velvet" data-name="Velvet" aria-checked="false" style="--a:#4A2D5C;--b:#C9973F"><span class="tf-sw"><span class="ic" data-i="check" aria-hidden="true"></span></span>Velvet</button>
+    </div>
+  </div>
+  <button type="button" class="tf-btn" id="tf-btn" aria-expanded="false" aria-controls="tf-menu"><span class="tf-dot"></span>Theme</button>
+</div>
+
+<script>
+/* Vanilla JS for what CSS can't do well. The page still works without it. */
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  // Themes: floating picker + theme cards, remembered in this browser
+  var KEY = 'between-us-palette', fab = document.getElementById('theme-fab'), fabBtn = document.getElementById('tf-btn');
+  function setPalette(p, animate){
+    if(p === 'rose') root.removeAttribute('data-palette'); else root.setAttribute('data-palette', p);
+    var name = 'Rose';
+    document.querySelectorAll('button[data-palette]').forEach(function(b){
+      var on = b.getAttribute('data-palette') === p;
+      b.setAttribute(b.classList.contains('tf-opt') ? 'aria-checked' : 'aria-pressed', on ? 'true' : 'false');
+      if(on && b.dataset.name) name = b.dataset.name;
+    });
+    document.getElementById('tf-name').textContent = name;
+    document.querySelectorAll('[data-theme-name]').forEach(function(el){ el.textContent = name; });
+    try{ localStorage.setItem(KEY, p); }catch(e){}
+    if(animate){ document.body.classList.remove('swap'); void document.body.offsetWidth; document.body.classList.add('swap'); }
+  }
+  var saved = 'rose';
+  try{ saved = localStorage.getItem(KEY) || 'rose'; }catch(e){}
+  setPalette(saved, false);
+  function openFab(open){ fab.classList.toggle('open', open); fabBtn.setAttribute('aria-expanded', open ? 'true' : 'false'); }
+  fabBtn.addEventListener('click', function(e){ e.stopPropagation(); openFab(!fab.classList.contains('open')); });
+  document.addEventListener('click', function(e){
+    var b = e.target.closest('button[data-palette]');
+    if(b){ setPalette(b.getAttribute('data-palette'), true); if(b.classList.contains('tf-opt')) setTimeout(function(){ openFab(false); }, 250); return; }
+    if(!fab.contains(e.target)) openFab(false);
+  });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') openFab(false); });
+
+  // Hold to hug: the bond heart and the component button
+  document.querySelectorAll('.bond-heart, .hug').forEach(function(btn){
+    var t, host = btn.closest('.bond') || btn;
+    function start(){ host.classList.remove('sent'); t = setTimeout(function(){
+      host.classList.add('sent');
+      if(navigator.vibrate) navigator.vibrate([30,60,30]);
+      setTimeout(function(){ host.classList.remove('sent'); }, 2600);
+    }, 1200); }
+    function cancel(){ clearTimeout(t); }
+    btn.addEventListener('pointerdown', start);
+    ['pointerup','pointerleave','pointercancel'].forEach(function(ev){ btn.addEventListener(ev, cancel); });
+    btn.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+  });
+
+  // Save memory: close the sheet, use the typed title, replay the island toast
+  var app = document.querySelector('.app'), save = document.getElementById('save-mem');
+  var added = document.getElementById('mem-added'), sheet = document.getElementById('sh-mem'), title = document.getElementById('mem-title');
+  save.addEventListener('click', function(e){
+    e.preventDefault();
+    added.checked = true; sheet.checked = false;
+    document.querySelector('.mem-title').textContent = title.value.trim() || 'A moment together';
+    app.classList.remove('toasting'); void app.offsetWidth; app.classList.add('toasting');
+    setTimeout(function(){ app.classList.remove('toasting'); }, 3800);
+  });
+
+  // Reactions: picking one closes the bar
+  document.querySelectorAll('input[name="tb"]').forEach(function(r){
+    r.addEventListener('change', function(){ setTimeout(function(){ document.getElementById('tb-open').checked = false; }, 180); });
+  });
+})();
+</script>
+</body>
+</html>

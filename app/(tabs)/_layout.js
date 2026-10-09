@@ -1,15 +1,27 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 import { Platform, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { PASTELS } from "../../components/Playful";
+import { T } from "../../lib/theme";
 
 /*
- * The bar is a solid surface the screen ends at. It used to
- * be glass, which meant content slid visibly behind the icons
- * as you scrolled and fought with the labels.
+ * A floating frosted capsule, lifted off the content,
+ * with a soft pill behind the tab you are on.
  */
+
+function TabBarBackground() {
+  return (
+    <View style={styles.barWrap}>
+      <View style={styles.barFill} />
+
+      {Platform.OS === "ios" ? (
+        <BlurView intensity={30} tint="light" style={StyleSheet.absoluteFill} />
+      ) : null}
+    </View>
+  );
+}
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
@@ -25,8 +37,10 @@ export default function TabsLayout() {
       screenOptions={({ route }) => ({
         headerShown: false,
 
-        tabBarActiveTintColor: "#8C4F5E",
-        tabBarInactiveTintColor: "#A79B94",
+        tabBarActiveTintColor: T.accent,
+        tabBarInactiveTintColor: T.label2,
+
+        tabBarBackground: () => <TabBarBackground />,
 
         /*
          * A solid bar, not a glass one.
@@ -40,22 +54,22 @@ export default function TabsLayout() {
          */
         tabBarStyle: {
           position: "absolute",
-          left: 0,
-          right: 0,
-          bottom: 0,
-          borderTopWidth: StyleSheet.hairlineWidth,
-          borderTopColor: "rgba(217,69,107,0.16)",
-          backgroundColor: "#FFFFFF",
-          height: 62 + bottomInset,
+          left: 16,
+          right: 16,
+          bottom: Math.max(insets.bottom, 10),
+          height: 62,
+          borderRadius: 31,
+          borderTopWidth: 0,
+          backgroundColor: "transparent",
           paddingTop: 8,
-          paddingBottom: bottomInset + 4,
+          paddingBottom: 8,
+          paddingHorizontal: 6,
 
-          /* Lifts it off the content instead of blending in. */
-          elevation: 18,
-          shadowColor: "#5B2B43",
-          shadowOpacity: 0.12,
-          shadowRadius: 14,
-          shadowOffset: { width: 0, height: -4 },
+          shadowColor: "#000000",
+          shadowOpacity: 0.16,
+          shadowRadius: 22,
+          shadowOffset: { width: 0, height: 10 },
+          elevation: 14,
         },
 
         tabBarLabelStyle: {
@@ -103,6 +117,18 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
+  barWrap: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 31,
+    overflow: "hidden",
+  },
+
+  barFill: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor:
+      Platform.OS === "ios" ? "rgba(255,255,255,0.82)" : "#FFFFFF",
+  },
+
   icon: {
     width: 34,
     height: 30,
@@ -110,13 +136,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  /* A soft lozenge behind the selected tab. */
+  /* The soft pill behind the tab you are on. */
   iconActive: {
-    width: 40,
+    width: 44,
     height: 30,
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: PASTELS.blush.bg,
+    backgroundColor: T.fill4,
   },
 });
