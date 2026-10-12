@@ -185,7 +185,7 @@ export default function TriviaScreen() {
 
             <ActivityIndicator
               size="small"
-              color="#F03FA9"
+              color="#4A2D5C"
               style={styles.loadingIndicator}
             />
           </View>
@@ -532,7 +532,7 @@ const styles = StyleSheet.create({
   headerBackText: {
     fontSize: 30,
     lineHeight: 32,
-    color: "#F03FA9",
+    color: "#4A2D5C",
     marginTop: -3,
   },
 
@@ -561,7 +561,7 @@ const styles = StyleSheet.create({
     height: 42,
     paddingHorizontal: 10,
     borderRadius: 21,
-    backgroundColor: "rgba(240, 63, 169, 0.09)",
+    backgroundColor: "rgba(74, 45, 92, 0.09)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -569,7 +569,7 @@ const styles = StyleSheet.create({
   scoreText: {
     fontSize: 15,
     fontWeight: "800",
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   progressArea: {
@@ -586,7 +586,7 @@ const styles = StyleSheet.create({
   progressFill: {
     height: "100%",
     borderRadius: 3,
-    backgroundColor: "#F03FA9",
+    backgroundColor: "#4A2D5C",
   },
 
   progressText: {
@@ -599,7 +599,7 @@ const styles = StyleSheet.create({
 
   questionCard: {
     marginTop: 25,
-    backgroundColor: "#F03FA9",
+    backgroundColor: "#4A2D5C",
     borderRadius: 23,
     padding: 22,
   },
@@ -616,7 +616,7 @@ const styles = StyleSheet.create({
 
   questionIconText: {
     fontSize: 19,
-    color: "#F2ECF4",
+    color: "#ECEBF2",
   },
 
   questionText: {
@@ -630,7 +630,7 @@ const styles = StyleSheet.create({
     marginTop: 11,
     fontSize: 12,
     lineHeight: 18,
-    color: "#FDE8F5",
+    color: "#E9E6EB",
   },
 
   options: {
@@ -650,18 +650,18 @@ const styles = StyleSheet.create({
   },
 
   optionSelected: {
-    borderColor: "#F03FA9",
+    borderColor: "#4A2D5C",
     backgroundColor: "rgba(255, 255, 255, 0.78)",
   },
 
   optionCorrect: {
-    borderColor: "#F03FA9",
-    backgroundColor: "rgba(240, 63, 169, 0.09)",
+    borderColor: "#4A2D5C",
+    backgroundColor: "rgba(74, 45, 92, 0.09)",
   },
 
   optionWrong: {
     borderColor: "#C98E80",
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
   },
 
   optionCircle: {
@@ -675,11 +675,11 @@ const styles = StyleSheet.create({
   },
 
   optionCircleSelected: {
-    backgroundColor: "#F03FA9",
+    backgroundColor: "#4A2D5C",
   },
 
   optionCircleCorrect: {
-    backgroundColor: "#F03FA9",
+    backgroundColor: "#4A2D5C",
   },
 
   optionCircleWrong: {
@@ -689,7 +689,7 @@ const styles = StyleSheet.create({
   optionLetter: {
     fontSize: 12,
     fontWeight: "800",
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   optionLetterSelected: {
@@ -705,11 +705,11 @@ const styles = StyleSheet.create({
   },
 
   optionTextSelected: {
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   optionTextCorrect: {
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   optionTextWrong: {
@@ -724,17 +724,17 @@ const styles = StyleSheet.create({
   },
 
   correctMessage: {
-    backgroundColor: "rgba(240, 63, 169, 0.09)",
+    backgroundColor: "rgba(74, 45, 92, 0.09)",
   },
 
   wrongMessage: {
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
   },
 
   answerMessageTitle: {
     fontSize: 13,
     fontWeight: "800",
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   answerMessageText: {
@@ -752,7 +752,7 @@ const styles = StyleSheet.create({
   primaryButton: {
     minHeight: 53,
     borderRadius: 14,
-    backgroundColor: "#F03FA9",
+    backgroundColor: "#4A2D5C",
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 18,
@@ -778,14 +778,14 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "rgba(240, 63, 169, 0.09)",
+    backgroundColor: "rgba(74, 45, 92, 0.09)",
     alignItems: "center",
     justifyContent: "center",
   },
 
   loadingHeart: {
     fontSize: 29,
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   loadingTitle: {
@@ -831,7 +831,7 @@ const styles = StyleSheet.create({
   backButtonText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   resultContainer: {
@@ -845,14 +845,14 @@ const styles = StyleSheet.create({
     width: 74,
     height: 74,
     borderRadius: 37,
-    backgroundColor: "rgba(240, 63, 169, 0.09)",
+    backgroundColor: "rgba(74, 45, 92, 0.09)",
     alignItems: "center",
     justifyContent: "center",
   },
 
   resultHeart: {
     fontSize: 38,
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   resultEyebrow: {

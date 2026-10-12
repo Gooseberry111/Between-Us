@@ -17,7 +17,7 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#FDE8F5",
+    borderColor: "#E9E6EB",
     borderRadius: 14,
     paddingVertical: 16,
     paddingHorizontal: 16,
@@ -26,7 +26,7 @@ const styles = StyleSheet.create({
 
   selected: {
     backgroundColor: "#F1EAE5",
-    borderColor: "#F03FA9",
+    borderColor: "#4A2D5C",
   },
 
   text: {
@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
   },
 
   selectedText: {
-    color: "#F03FA9",
+    color: "#4A2D5C",
     fontWeight: "600",
   },
 });

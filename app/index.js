@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 2.5,
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   headerMark: {
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   },
 
   titleAccent: {
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   description: {
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   primaryButton: {
     height: 58,
     borderRadius: 16,
-    backgroundColor: "#F03FA9",
+    backgroundColor: "#4A2D5C",
     paddingHorizontal: 20,
     flexDirection: "row",
     alignItems: "center",
@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
   },
 
   secondaryText: {
-    color: "#F03FA9",
+    color: "#4A2D5C",
     fontSize: 15,
     fontWeight: "600",
   },

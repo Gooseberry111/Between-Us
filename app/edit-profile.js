@@ -131,7 +131,7 @@ export default function EditProfileScreen() {
     return (
       <SafeAreaView style={styles.screen} edges={["top"]}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color="#F03FA9" />
+          <ActivityIndicator size="small" color="#4A2D5C" />
 
           <Text style={styles.loadingText}>Loading your profile...</Text>
         </View>
@@ -288,7 +288,7 @@ export default function EditProfileScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F2ECF4",
+    backgroundColor: "#ECEBF2",
   },
 
   keyboard: {
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -327,7 +327,7 @@ const styles = StyleSheet.create({
   backArrow: {
     fontSize: 31,
     lineHeight: 34,
-    color: "#F03FA9",
+    color: "#4A2D5C",
     marginTop: -3,
   },
 
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 2,
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   title: {
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
    */
 
   introCard: {
-    backgroundColor: "#F03FA9",
+    backgroundColor: "#4A2D5C",
     borderRadius: 22,
     padding: 20,
   },
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 15,
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 13,
     lineHeight: 20,
-    color: "#FDE8F5",
+    color: "#E9E6EB",
   },
 
   /*
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     paddingHorizontal: 17,
     borderWidth: 1,
-    borderColor: "#FDE8F5",
+    borderColor: "#E9E6EB",
   },
 
   inputGroup: {
@@ -431,9 +431,9 @@ const styles = StyleSheet.create({
   input: {
     height: 44,
     borderRadius: 11,
-    backgroundColor: "#F2ECF4",
+    backgroundColor: "#ECEBF2",
     borderWidth: 1,
-    borderColor: "#FDE8F5",
+    borderColor: "#E9E6EB",
     paddingHorizontal: 13,
     fontSize: 14,
     color: "#111114",
@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
 
   divider: {
     height: 1,
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
   },
 
   /*
@@ -459,7 +459,7 @@ const styles = StyleSheet.create({
     height: 54,
     marginTop: 24,
     borderRadius: 14,
-    backgroundColor: "#F03FA9",
+    backgroundColor: "#4A2D5C",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -503,7 +503,7 @@ const styles = StyleSheet.create({
    */
 
   errorBox: {
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
     paddingHorizontal: 14,
     paddingVertical: 11,
     borderRadius: 12,
@@ -527,7 +527,7 @@ const styles = StyleSheet.create({
 
   footerHeart: {
     fontSize: 24,
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   footerText: {
@@ -535,7 +535,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 2,
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   /*

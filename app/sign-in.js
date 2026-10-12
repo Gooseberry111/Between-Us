@@ -375,7 +375,7 @@ export default function SignInScreen() {
 
           <ActivityIndicator
             size="small"
-            color="#F03FA9"
+            color="#4A2D5C"
             style={styles.loader}
           />
         </View>
@@ -599,7 +599,7 @@ export default function SignInScreen() {
 const styles = StyleSheet.create({
   linkAction: {
     textAlign: "center",
-    color: "#F03FA9",
+    color: "#4A2D5C",
     fontSize: 14,
     fontWeight: "600",
     marginTop: 18,
@@ -614,7 +614,7 @@ const styles = StyleSheet.create({
 
   screen: {
     flex: 1,
-    backgroundColor: "#F2ECF4",
+    backgroundColor: "#ECEBF2",
   },
 
   keyboard: {
@@ -646,14 +646,14 @@ const styles = StyleSheet.create({
 
   backArrow: {
     fontSize: 21,
-    color: "#F03FA9",
+    color: "#4A2D5C",
     marginRight: 7,
   },
 
   backText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   /*
@@ -680,7 +680,7 @@ const styles = StyleSheet.create({
   },
 
   titleAccent: {
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   description: {
@@ -718,7 +718,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#111114",
     borderWidth: 1,
-    borderColor: "#FDE8F5",
+    borderColor: "#E9E6EB",
   },
 
   /*
@@ -726,7 +726,7 @@ const styles = StyleSheet.create({
    */
 
   errorBox: {
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
     paddingHorizontal: 13,
     paddingVertical: 11,
     borderRadius: 12,
@@ -746,7 +746,7 @@ const styles = StyleSheet.create({
   signInButton: {
     height: 56,
     borderRadius: 14,
-    backgroundColor: "#F03FA9",
+    backgroundColor: "#4A2D5C",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -796,7 +796,7 @@ const styles = StyleSheet.create({
   },
 
   createText: {
-    color: "#F03FA9",
+    color: "#4A2D5C",
     fontSize: 14,
     fontWeight: "700",
   },
@@ -816,7 +816,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
@@ -824,7 +824,7 @@ const styles = StyleSheet.create({
 
   loadingLogoText: {
     fontSize: 30,
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   loadingTitle: {

@@ -13,11 +13,24 @@ import {
   View,
 } from "react-native";
 import SegmentedControl from "@react-native-segmented-control/segmented-control";
+import {
+  Button as SwiftButton,
+  Host,
+  Toggle as SwiftToggle,
+} from "@expo/ui/swift-ui";
+import {
+  buttonStyle,
+  controlSize,
+  disabled as swiftDisabled,
+  frame,
+  tint,
+} from "@expo/ui/swift-ui/modifiers";
+import { isLiquidGlassAvailable } from "expo-glass-effect";
 import * as Haptics from "expo-haptics";
 import Svg, { Circle } from "react-native-svg";
 
 import { T } from "../../lib/theme";
-import Icon from "./Icon";
+import Icon, { sfSymbol } from "./Icon";
 import { Press } from "./layout";
 
 /*
@@ -132,6 +145,75 @@ export function Cell({
 }
 
 /* .btn — 50pt tall, radius 14; .btn-sm is a 34pt capsule. */
+/* Whether this phone draws Liquid Glass. Asked once. */
+const GLASS = Platform.OS === "ios" && safeGlassCheck();
+
+function safeGlassCheck() {
+  try {
+    return isLiquidGlassAvailable();
+  } catch {
+    return false;
+  }
+}
+
+/*
+ * On iOS the button is SwiftUI's own Button, so it has the
+ * system's press, its accessibility, and on iOS 26 the
+ * Liquid Glass styles -- glassProminent for the one main
+ * action, glass for the rest. Earlier iOS gets the bordered
+ * styles. Android draws the prototype's button.
+ */
+function NativeButton({
+  title,
+  onPress,
+  kind,
+  size,
+  icon,
+  disabled,
+  busy,
+  style,
+  block,
+}) {
+  const style_ = {
+    filled: GLASS ? "glassProminent" : "borderedProminent",
+    tinted: GLASS ? "glass" : "bordered",
+    gray: GLASS ? "glass" : "bordered",
+    white: GLASS ? "glass" : "bordered",
+    plain: "borderless",
+    destructive: GLASS ? "glass" : "bordered",
+  }[kind];
+
+  const modifiers = [
+    buttonStyle(style_),
+    controlSize(size === "large" ? "large" : "regular"),
+    tint(kind === "destructive" ? T.red : T.accent),
+  ];
+
+  if (block && size === "large") modifiers.push(frame({ maxWidth: 2000 }));
+
+  if (disabled || busy) modifiers.push(swiftDisabled(true));
+
+  return (
+    <View style={[block && size === "large" && styles.buttonBlock, style]}>
+      <Host matchContents={{ vertical: true }} style={styles.buttonHost}>
+        <SwiftButton
+          label={busy ? "One moment…" : title}
+          systemImage={icon ? sfSymbol(icon) : undefined}
+          role={kind === "destructive" ? "destructive" : undefined}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(
+              () => {},
+            );
+
+            onPress?.();
+          }}
+          modifiers={modifiers}
+        />
+      </Host>
+    </View>
+  );
+}
+
 export function Button({
   title,
   onPress,
@@ -143,6 +225,22 @@ export function Button({
   style,
   block = true,
 }) {
+  if (Platform.OS === "ios") {
+    return (
+      <NativeButton
+        title={title}
+        onPress={onPress}
+        kind={kind}
+        size={size}
+        icon={icon}
+        disabled={disabled}
+        busy={busy}
+        style={style}
+        block={block}
+      />
+    );
+  }
+
   const palette = {
     filled: { bg: T.accent, fg: "#FFFFFF" },
     tinted: { bg: T.accentTint, fg: T.accentText },
@@ -261,6 +359,18 @@ export function Segmented({ options, value, onChange, style }) {
 
 /* .sw — the system switch, with the accent track. */
 export function Toggle({ value, onChange }) {
+  if (Platform.OS === "ios") {
+    return (
+      <Host matchContents>
+        <SwiftToggle
+          isOn={value}
+          onIsOnChange={onChange}
+          modifiers={[tint(T.accent)]}
+        />
+      </Host>
+    );
+  }
+
   return (
     <NativeSwitch
       value={value}
@@ -577,6 +687,10 @@ const styles = StyleSheet.create({
 
   buttonBlock: {
     marginHorizontal: 16,
+  },
+
+  buttonHost: {
+    alignSelf: "stretch",
   },
 
   buttonLarge: {

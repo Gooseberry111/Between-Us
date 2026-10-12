@@ -159,7 +159,7 @@ export default function CheckInScreen() {
                   activeOpacity={0.8}
                   onPress={() => router.back()}
                 >
-                  <Ionicons name="chevron-back" size={20} color="#F03FA9" />
+                  <Ionicons name="chevron-back" size={20} color="#4A2D5C" />
                 </TouchableOpacity>
 
                 <View style={styles.headerText}>
@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 2,
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   pageTitle: {
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.6,
-    color: "#FDE8F5",
+    color: "#E9E6EB",
   },
 
   panelTitle: {
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
   },
 
   scaleValueActive: {
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   scaleLabel: {
@@ -543,7 +543,7 @@ const styles = StyleSheet.create({
   trendBar: {
     width: "100%",
     borderRadius: 7,
-    backgroundColor: "#F03FA9",
+    backgroundColor: "#4A2D5C",
     opacity: 0.75,
   },
 

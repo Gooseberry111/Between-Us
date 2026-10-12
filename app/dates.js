@@ -17,14 +17,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useFocusEffect, useRouter } from "expo-router";
 
-import { apiFetch } from "../../lib/api";
-import { getCachedData, setCachedData } from "../../lib/dataCache";
-import { GlassBackground, Card, FadeIn } from "../../components/Glass";
-import { PASTELS, Squish, EmptyArt } from "../../components/Playful";
-import { Skeleton, SkeletonList } from "../../components/Skeleton";
-import ConnectFirst from "../../components/ConnectFirst";
-import { useIsConnected } from "../../lib/connection";
-import DateInput from "../../components/DateInput";
+import { apiFetch } from "../lib/api";
+import { getCachedData, setCachedData } from "../lib/dataCache";
+import { GlassBackground, Card, FadeIn } from "../components/Glass";
+import { PASTELS, Squish, EmptyArt } from "../components/Playful";
+import { Skeleton, SkeletonList } from "../components/Skeleton";
+import ConnectFirst from "../components/ConnectFirst";
+import { useIsConnected } from "../lib/connection";
+import DateInput from "../components/DateInput";
+import { GlassButton } from "../components/ui";
 
 /*
  * ==========================================
@@ -292,10 +293,18 @@ export default function DatesScreen() {
                   setRefreshing(true);
                   load();
                 }}
-                tintColor="#F03FA9"
+                tintColor="#4A2D5C"
               />
             }
           >
+            <View style={styles.backRow}>
+              <GlassButton
+                icon="back"
+                label="Back"
+                onPress={() => router.back()}
+              />
+            </View>
+
             <View style={styles.container}>
               <Text style={styles.eyebrow}>THE TWO OF YOU</Text>
 
@@ -494,7 +503,7 @@ export default function DatesScreen() {
                             <Ionicons
                               name="checkmark-circle-outline"
                               size={15}
-                              color="#F03FA9"
+                              color="#4A2D5C"
                             />
 
                             <Text style={styles.doneText}>We did this</Text>
@@ -553,7 +562,7 @@ export default function DatesScreen() {
                       <Ionicons
                         name="calendar-outline"
                         size={15}
-                        color="#F03FA9"
+                        color="#4A2D5C"
                       />
 
                       <Text style={styles.addSpecialText}>
@@ -600,7 +609,7 @@ export default function DatesScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F2ECF4",
+    backgroundColor: "#ECEBF2",
   },
 
   fill: {
@@ -609,19 +618,24 @@ const styles = StyleSheet.create({
 
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 150,
+    paddingBottom: 48,
+  },
+
+  backRow: {
+    paddingHorizontal: 16,
+    paddingTop: 4,
   },
 
   container: {
     paddingHorizontal: 22,
-    paddingTop: 22,
+    paddingTop: 10,
   },
 
   eyebrow: {
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.8,
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   title: {
@@ -646,14 +660,14 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#FDE8F5",
+    borderColor: "#E9E6EB",
   },
 
   addIcon: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#F03FA9",
+    backgroundColor: "#4A2D5C",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 14,
@@ -689,9 +703,9 @@ const styles = StyleSheet.create({
   input: {
     height: 50,
     borderRadius: 14,
-    backgroundColor: "#F2ECF4",
+    backgroundColor: "#ECEBF2",
     borderWidth: 1,
-    borderColor: "#FDE8F5",
+    borderColor: "#E9E6EB",
     paddingHorizontal: 14,
     fontSize: 15,
     color: "#111114",
@@ -720,7 +734,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 48,
     borderRadius: 16,
-    backgroundColor: "#F03FA9",
+    backgroundColor: "#4A2D5C",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -772,7 +786,7 @@ const styles = StyleSheet.create({
   ideaButtonText: {
     fontSize: 13,
     fontWeight: "800",
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   sectionLabel: {
@@ -793,7 +807,7 @@ const styles = StyleSheet.create({
   seeAll: {
     fontSize: 12.5,
     fontWeight: "800",
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   emptyCard: {
@@ -814,13 +828,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     paddingVertical: 5,
     borderRadius: 999,
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
   },
 
   planWhenText: {
     fontSize: 11,
     fontWeight: "800",
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   planTitle: {
@@ -857,13 +871,13 @@ const styles = StyleSheet.create({
     gap: 7,
     height: 42,
     borderRadius: 14,
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
   },
 
   doneText: {
     fontSize: 13.5,
     fontWeight: "800",
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   specialCard: {
@@ -907,13 +921,13 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderStyle: "dashed",
-    borderColor: "#FDE8F5",
+    borderColor: "#E9E6EB",
   },
 
   addSpecialText: {
     fontSize: 13.5,
     fontWeight: "700",
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   pastRow: {

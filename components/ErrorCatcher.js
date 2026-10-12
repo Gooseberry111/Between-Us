@@ -69,7 +69,7 @@ export default class ErrorCatcher extends Component {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F2ECF4",
+    backgroundColor: "#ECEBF2",
     paddingHorizontal: 24,
     paddingTop: 80,
     paddingBottom: 40,
@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
   box: {
     marginTop: 18,
     borderRadius: 14,
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
   },
 
   boxInner: {
@@ -108,6 +108,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 11,
     lineHeight: 16,
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 });

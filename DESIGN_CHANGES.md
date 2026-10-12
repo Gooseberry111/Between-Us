@@ -46,6 +46,17 @@ Shared: `lib/api.js`, `lib/dataCache.js`, `lib/connection.js`, `lib/profileProgr
 - [Ritual] `app/daily-question.js` rebuilt as the four-step loop: answer (theirs sealed until you reply), reveal (both answers, match or difference with a conversation prompt), streak (the count and the week strip), plan (an idea that adds itself to Dates, and when the next question unlocks). Files: `app/daily-question.js`
 - [API] `GET /users/:id/daily-question` now returns `week`: the last seven days with whether each was answered, so the streak strip is real rather than drawn from a guess. Files: `between-us-api/src/index.js`
 
+## Changed (Velvet and native iOS)
+
+- [Theme] Bubblegum replaced by Velvet, from the updated playground: plum `#4A2D5C` for the partner and the accent, rose `#D9577A` for you, gold `#C9973F` as the highlight, ground `#ECEBF2`. The bond thread runs rose → plum → gold. Every screen moved. Files: `lib/theme.js` and 35 screens and components
+- [Tab bar] Replaced the drawn capsule with the system tab bar via `expo-router/unstable-native-tabs`. On iOS 26 this is UIKit's own Liquid Glass bar: it refracts content, minimises on scroll down and adapts its tint with no code from us. SF Symbols on iOS (outline at rest, filled when selected), Material Symbols on Android. Files: `app/(tabs)/_layout.js`
+- [Dates] Moved out of the tab group to `app/dates.js` with a back button; native tabs cannot hold a hidden-but-reachable screen. Every link updated. Files: `app/dates.js`, Home, Profile, Insights, Timeline, ritual
+- [Buttons] On iOS, `Button` is SwiftUI's own `Button` through `@expo/ui`: `glassProminent` for the main action and `glass` for the rest on iOS 26, `borderedProminent` / `bordered` before that. Android keeps the drawn button. Files: `components/ui/parts.js`
+- [Switches] On iOS, `Toggle` is SwiftUI's `Toggle`. Files: `components/ui/parts.js`
+- [Nav buttons] On iOS 26, the 38pt circle buttons are real Liquid Glass (`expo-glass-effect`'s `GlassView`, interactive). Earlier iOS and Android keep the frosted circle. Files: `components/ui/layout.js`
+- [Profile] On iOS, Profile is a SwiftUI `Form` — Sections, Toggles with SF Symbols, `LabeledContent` rows, and destructive buttons — the components Settings is built from. Android keeps the grouped list. Files: `components/ProfileForm.ios.js`, `app/(tabs)/profile.js`
+- [Version] 1.3.0: `@expo/ui` and `expo-glass-effect` are native, so updates must not reach builds without them.
+
 ## Changed
 
 - [Tab bar] Floating frosted capsule inset 14px, 62px tall, radius 999, with a soft `fill-3` pill behind the active tab, 25px icons that fill when active and 10px labels — the playground's values. Tabs are Home, Timeline, Dreams, Insights, Profile. Files: `app/(tabs)/_layout.js`

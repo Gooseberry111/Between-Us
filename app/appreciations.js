@@ -175,7 +175,7 @@ export default function AppreciationsScreen() {
                   setRefreshing(true);
                   load();
                 }}
-                tintColor="#F03FA9"
+                tintColor="#4A2D5C"
               />
             }
             contentContainerStyle={styles.scrollContent}
@@ -187,7 +187,7 @@ export default function AppreciationsScreen() {
                   activeOpacity={0.8}
                   onPress={() => router.back()}
                 >
-                  <Ionicons name="chevron-back" size={20} color="#F03FA9" />
+                  <Ionicons name="chevron-back" size={20} color="#4A2D5C" />
                 </TouchableOpacity>
 
                 <View style={styles.headerText}>
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 2,
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   pageTitle: {
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.6,
-    color: "#FDE8F5",
+    color: "#E9E6EB",
   },
 
   composerTitle: {
@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 8,
-    backgroundColor: "rgba(240, 63, 169, 0.1)",
+    backgroundColor: "rgba(74, 45, 92, 0.1)",
   },
 
   noteBadgeMine: {
@@ -441,7 +441,7 @@ const styles = StyleSheet.create({
     fontSize: 8.5,
     fontWeight: "800",
     letterSpacing: 0.8,
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   noteDate: {

@@ -279,7 +279,7 @@ export default function TimelineScreen() {
                     entry.kind === "Milestones"
                       ? router.push("/special-dates")
                       : entry.kind === "Dates"
-                        ? router.push("/(tabs)/dates")
+                        ? router.push("/dates")
                         : null
                   }
                 >

@@ -424,7 +424,7 @@ export default function SignUpScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F2ECF4",
+    backgroundColor: "#ECEBF2",
   },
 
   scrollContent: {
@@ -443,7 +443,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "#F03FA9",
+    backgroundColor: "#4A2D5C",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 10,
@@ -470,7 +470,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 2,
-    color: "#F03FA9",
+    color: "#4A2D5C",
     marginBottom: 10,
   },
 
@@ -499,7 +499,7 @@ const styles = StyleSheet.create({
     height: 54,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#FDE8F5",
+    borderColor: "#E9E6EB",
     borderRadius: 14,
     paddingHorizontal: 16,
     fontSize: 16,
@@ -509,7 +509,7 @@ const styles = StyleSheet.create({
 
   button: {
     height: 54,
-    backgroundColor: "#F03FA9",
+    backgroundColor: "#4A2D5C",
     borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
@@ -525,20 +525,20 @@ const styles = StyleSheet.create({
   outlineButton: {
     height: 52,
     borderWidth: 1.5,
-    borderColor: "#F03FA9",
+    borderColor: "#4A2D5C",
     borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
   },
 
   outlineButtonText: {
-    color: "#F03FA9",
+    color: "#4A2D5C",
     fontSize: 16,
     fontWeight: "700",
   },
 
   termsLink: {
-    color: "#F03FA9",
+    color: "#4A2D5C",
     fontWeight: "700",
     textDecorationLine: "underline",
   },
@@ -560,7 +560,7 @@ const styles = StyleSheet.create({
   divider: {
     flex: 1,
     height: 1,
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
   },
 
   dividerText: {
@@ -588,7 +588,7 @@ const styles = StyleSheet.create({
 
   secondaryAction: {
     textAlign: "center",
-    color: "#F03FA9",
+    color: "#4A2D5C",
     fontSize: 14,
     fontWeight: "600",
     marginTop: 20,

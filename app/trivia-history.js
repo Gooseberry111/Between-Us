@@ -133,7 +133,7 @@ export default function TriviaHistoryScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              tintColor="#F03FA9"
+              tintColor="#4A2D5C"
             />
           }
           contentContainerStyle={styles.scrollContent}
@@ -147,7 +147,7 @@ export default function TriviaHistoryScreen() {
                 activeOpacity={0.8}
                 onPress={() => router.back()}
               >
-                <Ionicons name="chevron-back" size={20} color="#F03FA9" />
+                <Ionicons name="chevron-back" size={20} color="#4A2D5C" />
               </TouchableOpacity>
 
               <View style={styles.headerText}>
@@ -215,7 +215,7 @@ export default function TriviaHistoryScreen() {
                     <Ionicons
                       name="help-circle-outline"
                       size={24}
-                      color="#F03FA9"
+                      color="#4A2D5C"
                     />
                   </View>
 
@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "rgba(240, 63, 169, 0.09)",
+    backgroundColor: "rgba(74, 45, 92, 0.09)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 11,
@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 2,
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   pageTitle: {
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   statLabel: {
@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     height: 30,
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
   },
 
   section: {
@@ -434,13 +434,13 @@ const styles = StyleSheet.create({
   },
 
   scoreCircleYou: {
-    backgroundColor: "#F03FA9",
+    backgroundColor: "#4A2D5C",
   },
 
   scoreText: {
     fontSize: 14,
     fontWeight: "800",
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   scoreTextYou: {
@@ -477,7 +477,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "rgba(240, 63, 169, 0.09)",
+    backgroundColor: "rgba(74, 45, 92, 0.09)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 15,
@@ -508,7 +508,7 @@ const styles = StyleSheet.create({
   emptyButtonText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   footerCard: {
@@ -524,11 +524,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     fontWeight: "600",
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   errorBox: {
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
     paddingHorizontal: 14,
     paddingVertical: 11,
     borderRadius: 12,

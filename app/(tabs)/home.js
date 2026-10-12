@@ -54,7 +54,7 @@ const MOODS = [
 
 const ACTIONS = [
   { icon: "mail", label: "Note", route: "/appreciations" },
-  { icon: "calendar", label: "Date", route: "/(tabs)/dates" },
+  { icon: "calendar", label: "Date", route: "/dates" },
   { icon: "camera", label: "Memory", route: "/(tabs)/memories" },
   { icon: "flag", label: "Goals", route: "/goals" },
 ];
@@ -504,7 +504,7 @@ export default function HomeScreen() {
 
       <SectionHeader
         action="See all"
-        onAction={() => router.push("/(tabs)/dates")}
+        onAction={() => router.push("/dates")}
       >
         Coming up
       </SectionHeader>
@@ -526,7 +526,7 @@ export default function HomeScreen() {
               title={item.title}
               subtitle={item.subtitle}
               chevron
-              onPress={() => router.push("/(tabs)/dates")}
+              onPress={() => router.push("/dates")}
             />
           ))}
         </Group>
@@ -538,7 +538,7 @@ export default function HomeScreen() {
           action={{
             title: "Plan a Date",
             icon: "add",
-            onPress: () => router.push("/(tabs)/dates"),
+            onPress: () => router.push("/dates"),
           }}
         />
       )}

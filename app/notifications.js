@@ -151,7 +151,7 @@ export default function NotificationsScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              tintColor="#F03FA9"
+              tintColor="#4A2D5C"
             />
           }
           contentContainerStyle={styles.scrollContent}
@@ -165,7 +165,7 @@ export default function NotificationsScreen() {
                 activeOpacity={0.8}
                 onPress={() => router.back()}
               >
-                <Ionicons name="chevron-back" size={20} color="#F03FA9" />
+                <Ionicons name="chevron-back" size={20} color="#4A2D5C" />
               </TouchableOpacity>
 
               <View style={styles.headerText}>
@@ -194,7 +194,7 @@ export default function NotificationsScreen() {
                     <Ionicons
                       name="notifications-outline"
                       size={23}
-                      color="#F03FA9"
+                      color="#4A2D5C"
                     />
                   </View>
 
@@ -334,7 +334,7 @@ function NotificationCard({ notification, userId, onRead }) {
             !notification.is_read && styles.notificationIconUnread,
           ]}
         >
-          <Ionicons name={getIcon()} size={19} color="#F03FA9" />
+          <Ionicons name={getIcon()} size={19} color="#4A2D5C" />
         </View>
 
         <View style={styles.notificationContent}>
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "rgba(240, 63, 169, 0.09)",
+    backgroundColor: "rgba(74, 45, 92, 0.09)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 11,
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 2,
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   pageTitle: {
@@ -453,7 +453,7 @@ const styles = StyleSheet.create({
   },
 
   notificationIconUnread: {
-    backgroundColor: "rgba(240, 63, 169, 0.09)",
+    backgroundColor: "rgba(74, 45, 92, 0.09)",
   },
 
   notificationContent: {
@@ -481,7 +481,7 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: "#F03FA9",
+    backgroundColor: "#4A2D5C",
     marginTop: 6,
     marginLeft: 7,
   },
@@ -513,7 +513,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: "rgba(240, 63, 169, 0.09)",
+    backgroundColor: "rgba(74, 45, 92, 0.09)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 13,
@@ -534,7 +534,7 @@ const styles = StyleSheet.create({
   },
 
   errorBox: {
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
     paddingHorizontal: 13,
     paddingVertical: 10,
     borderRadius: 11,

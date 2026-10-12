@@ -373,7 +373,7 @@ export default function BondHero({
               <Path
                 d={WIRE}
                 fill="none"
-                stroke="rgba(240,63,169,0.12)"
+                stroke="rgba(74,45,92,0.12)"
                 strokeWidth="5"
                 strokeLinecap="round"
               />

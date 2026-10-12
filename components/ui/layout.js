@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import {
   Animated,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -8,6 +9,11 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  GlassView,
+  isGlassEffectAPIAvailable,
+  isLiquidGlassAvailable,
+} from "expo-glass-effect";
 
 import { T } from "../../lib/theme";
 import Icon from "./Icon";
@@ -81,7 +87,7 @@ export function Screen({
   children,
   scroll = true,
   refreshControl,
-  bottom = 150,
+  bottom = 32,
 }) {
   if (!scroll) {
     return (
@@ -93,8 +99,11 @@ export function Screen({
 
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
+      {/* The system tab bar insets the content itself, and on
+          iOS 26 the glass shrinks as this scrolls down. */}
       <ScrollView
         showsVerticalScrollIndicator={false}
+        contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={[styles.content, { paddingBottom: bottom }]}
         refreshControl={refreshControl}
       >
@@ -115,8 +124,45 @@ export function NavBar({ left, children }) {
   );
 }
 
-/* .glass-btn — a 38pt circle with a soft shadow. */
+/* Liquid Glass is drawn only where the system can draw it:
+ * iOS 26 and later, with the API actually present. */
+const LIQUID_GLASS = (() => {
+  if (Platform.OS !== "ios") return false;
+
+  try {
+    return isLiquidGlassAvailable() && isGlassEffectAPIAvailable();
+  } catch {
+    return false;
+  }
+})();
+
+/*
+ * .glass-btn — a 38pt circle. On iOS 26 it is a real
+ * Liquid Glass surface that responds to touch; elsewhere
+ * it is the prototype's frosted circle.
+ */
 export function GlassButton({ icon, onPress, badge, label }) {
+  if (LIQUID_GLASS) {
+    return (
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        hitSlop={6}
+      >
+        <GlassView
+          glassEffectStyle="regular"
+          isInteractive
+          style={styles.liquidButton}
+        >
+          <Icon name={icon} size={20} color={T.label} />
+        </GlassView>
+
+        {badge ? <View style={styles.glassBadge} /> : null}
+      </Pressable>
+    );
+  }
+
   return (
     <Press
       onPress={onPress}
@@ -207,6 +253,14 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     shadowOffset: { width: 0, height: 1 },
     elevation: 2,
+  },
+
+  liquidButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   glassBadge: {

@@ -11,9 +11,9 @@
 <style>
 /* Layout: an Apple-style product page. Frosted top bar, big type, live phones pinned beside grouped-list notes. */
 :root{
-  /* Theme tokens (13 palettes below override only these) */
-  --kiss:#FF2E74; --kiss-d:#D90F57; --kiss-rgb:255,46,116; --sunset:#FF7A45;
-  --you:#9B6BFF; --you-d:#5B35C9; --you-tint:#F0E8FF;
+  /* Theme: Velvet. Plum for the partner and accent, rose for you, gold as the highlight. */
+  --kiss:#4A2D5C; --kiss-d:#321D40; --kiss-rgb:74,45,92; --sunset:#C9973F;
+  --you:#D9577A; --you-d:#A83355; --you-tint:#FBE6EC;
   /* Derived from the theme */
   --tint:color-mix(in srgb,var(--kiss) 12%,#fff);
   --a-bg:color-mix(in srgb,var(--kiss) 3.5%,#F2F2F7);
@@ -35,23 +35,11 @@
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){--bg:#000; --fg:#F5F5F7; --muted:#98989D; --panel:#1C1C1E; --line:rgba(255,255,255,.1); --soft:rgba(255,255,255,.07);
-    --accent:color-mix(in srgb,var(--kiss) 70%,#fff); --frame:#3A3A40; --frame-2:#151517; color-scheme:dark}
+    --accent:#CDB3DD; --frame:#3A3A40; --frame-2:#151517; color-scheme:dark}
 }
 :root[data-theme="dark"]{--bg:#000; --fg:#F5F5F7; --muted:#98989D; --panel:#1C1C1E; --line:rgba(255,255,255,.1); --soft:rgba(255,255,255,.07);
-  --accent:color-mix(in srgb,var(--kiss) 70%,#fff); --frame:#3A3A40; --frame-2:#151517; color-scheme:dark}
+  --accent:#CDB3DD; --frame:#3A3A40; --frame-2:#151517; color-scheme:dark}
 
-:root[data-palette="sunset"]{--kiss:#FF6A3D;--kiss-d:#C9461C;--kiss-rgb:255,106,61;--sunset:#FFB020;--you:#8B6BFF;--you-d:#5532C2;--you-tint:#EFE8FF}
-:root[data-palette="lavender"]{--kiss:#8B5CF6;--kiss-d:#6532E0;--kiss-rgb:139,92,246;--sunset:#EC4899;--you:#FF4F8B;--you-d:#B8124F;--you-tint:#FFE8F0}
-:root[data-palette="ocean"]{--kiss:#0891B2;--kiss-d:#0E7490;--kiss-rgb:8,145,178;--sunset:#6366F1;--you:#FF6B6B;--you-d:#C53030;--you-tint:#FFECEC}
-:root[data-palette="cherry"]{--kiss:#E11D48;--kiss-d:#B3123A;--kiss-rgb:225,29,72;--sunset:#FB7185;--you:#9B6BFF;--you-d:#5B35C9;--you-tint:#F0E8FF}
-:root[data-palette="berry"]{--kiss:#C026D3;--kiss-d:#9A1BAA;--kiss-rgb:192,38,211;--sunset:#F472B6;--you:#F97316;--you-d:#C2410C;--you-tint:#FFEDDF}
-:root[data-palette="matcha"]{--kiss:#0F9F6E;--kiss-d:#0B7A55;--kiss-rgb:15,159,110;--sunset:#84CC16;--you:#FF5C80;--you-d:#C21E4A;--you-tint:#FFE8EE}
-:root[data-palette="mocha"]{--kiss:#B45F3C;--kiss-d:#8C4428;--kiss-rgb:180,95,60;--sunset:#E8A87C;--you:#7C6BD6;--you-d:#4B3BA8;--you-tint:#EEEAFB}
-:root[data-palette="peach"]{--kiss:#FF7A5C;--kiss-d:#D24B2A;--kiss-rgb:255,122,92;--sunset:#F9A03F;--you:#14B8A6;--you-d:#0F766E;--you-tint:#DDF7F3}
-:root[data-palette="indigo"]{--kiss:#4F46E5;--kiss-d:#3730A3;--kiss-rgb:79,70,229;--sunset:#DB2777;--you:#F59E0B;--you-d:#B45309;--you-tint:#FEF3D7}
-:root[data-palette="sage"]{--kiss:#5B8A6B;--kiss-d:#3F6B50;--kiss-rgb:91,138,107;--sunset:#C9A66B;--you:#E26D8A;--you-d:#B23A5A;--you-tint:#FCE8ED}
-:root[data-palette="bubblegum"]{--kiss:#F03FA9;--kiss-d:#C21F82;--kiss-rgb:240,63,169;--sunset:#38BDF8;--you:#9B6BFF;--you-d:#5B35C9;--you-tint:#F0E8FF}
-:root[data-palette="velvet"]{--kiss:#4A2D5C;--kiss-d:#321D40;--kiss-rgb:74,45,92;--sunset:#C9973F;--you:#D9577A;--you-d:#A83355;--you-tint:#FBE6EC}
 
 *,*::before,*::after{box-sizing:border-box}
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
@@ -650,22 +638,12 @@ html:not(.js) .app:has(#mem-added:checked) .scrim{opacity:0;visibility:hidden}
 .add-date:has(input:checked) .t2{display:inline-flex;align-items:center;gap:6px;animation:pop .4s var(--spring)}
 
 /* ============ Colour & type ============ */
-.themes{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr));gap:14px}
-.theme-card{display:flex;flex-direction:column;padding:0;border:0;border-radius:20px;overflow:hidden;background:var(--panel);color:var(--fg);text-align:left;cursor:pointer;font:inherit;
-  transition:transform .4s var(--snappy),box-shadow .25s}
-.theme-card:active{transform:scale(.97)}
-.theme-card[aria-pressed="true"]{box-shadow:0 0 0 2px var(--accent)}
-.tc-prev{position:relative;height:110px;background:color-mix(in srgb,var(--k) 5%,#F2F2F7);display:flex;align-items:center;justify-content:center}
-.tc-prev .a1,.tc-prev .a2{width:44px;height:44px;border-radius:50%;border:3px solid #fff}
-.tc-prev .a1{background:color-mix(in srgb,var(--y) 30%,#fff);margin-right:-10px}
-.tc-prev .a2{background:color-mix(in srgb,var(--k) 25%,#fff)}
-.tc-prev .h{position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px;border-radius:50%;background:var(--k);box-shadow:0 0 0 3px #fff;z-index:1}
-.tc-prev .btnp{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);width:84px;height:14px;border-radius:7px;background:var(--k)}
-.tc-body{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 14px}
-.tc-body b{display:block;font:600 16px var(--f)}
-.tc-body small{display:block;font-size:13px;color:var(--muted)}
-.tc-body .ic{width:22px;height:22px;color:var(--accent);--fill:1;opacity:0;transform:scale(.5);transition:opacity .2s,transform .35s var(--spring)}
-.theme-card[aria-pressed="true"] .tc-body .ic{opacity:1;transform:none}
+.swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,180px),1fr));gap:14px}
+.sw-c{display:flex;flex-direction:column;gap:2px;padding:12px;border-radius:20px;background:var(--panel)}
+.sw-c span{height:84px;border-radius:12px;margin-bottom:8px;box-shadow:inset 0 0 0 1px var(--line)}
+.sw-c b{font:600 16px var(--f)}
+.sw-c code{font:500 13px ui-monospace,Consolas,monospace;color:var(--muted)}
+.sw-c small{font-size:13px;color:var(--muted);line-height:1.35}
 .typescale{margin-top:clamp(28px,4vw,44px)}
 .ts{display:grid;grid-template-columns:170px minmax(0,1fr) auto;gap:16px;align-items:baseline;padding:14px 18px;position:relative}
 .ts + .ts::before{content:"";position:absolute;top:0;left:18px;right:0;height:1px;background:var(--line)}
@@ -780,29 +758,6 @@ html:not(.js) .app:has(#mem-added:checked) .scrim{opacity:0;visibility:hidden}
 .rules{margin-top:20px}
 footer.foot{border-top:1px solid var(--line);padding-top:28px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:14px}
 
-/* Floating theme picker */
-.theme-fab{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:100;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
-.tf-btn{display:flex;align-items:center;gap:8px;height:48px;padding:0 18px 0 7px;border:0;border-radius:999px;background:color-mix(in srgb,var(--panel) 78%,transparent);
-  backdrop-filter:blur(20px) saturate(1.8);-webkit-backdrop-filter:blur(20px) saturate(1.8);color:var(--fg);font:600 15px var(--f);box-shadow:var(--float);cursor:pointer;transition:transform .35s var(--snappy)}
-.tf-btn:active{transform:scale(.94)}
-.tf-dot{width:34px;height:34px;border-radius:50%;background:conic-gradient(from 210deg,var(--kiss),var(--sunset),var(--you),var(--kiss));transition:transform .5s var(--spring)}
-.theme-fab.open .tf-dot{transform:rotate(180deg)}
-.tf-menu{width:320px;max-width:calc(100vw - 32px);padding:14px 8px 10px;border-radius:26px;background:color-mix(in srgb,var(--panel) 84%,transparent);
-  backdrop-filter:blur(30px) saturate(1.8);-webkit-backdrop-filter:blur(30px) saturate(1.8);box-shadow:var(--float);
-  transform-origin:bottom right;transform:scale(.6);opacity:0;visibility:hidden;transition:transform .3s var(--out),opacity .2s,visibility 0s linear .3s}
-.theme-fab.open .tf-menu{transform:none;opacity:1;visibility:visible;transition:transform .45s var(--spring),opacity .2s,visibility 0s}
-.tf-title{font:600 13px var(--f);color:var(--muted);padding:0 10px 10px;display:flex;justify-content:space-between}
-.tf-title span{color:var(--fg)}
-.tf-grid{display:flex;flex-wrap:wrap;justify-content:center;row-gap:4px}
-.tf-opt{width:20%;display:flex;flex-direction:column;align-items:center;gap:5px;padding:6px 0;border:0;background:none;color:var(--muted);font:500 11px var(--f);cursor:pointer;letter-spacing:0}
-.tf-sw{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--a),var(--b));transition:transform .35s var(--snappy),box-shadow .2s}
-.tf-opt:active .tf-sw{transform:scale(.88)}
-.tf-sw .ic{width:20px;height:20px;--wg:600;opacity:0;transform:scale(.4);transition:opacity .2s,transform .35s var(--spring)}
-.tf-opt[aria-checked="true"]{color:var(--fg)}
-.tf-opt[aria-checked="true"] .tf-sw{box-shadow:0 0 0 2.5px var(--panel),0 0 0 4.5px var(--fg)}
-.tf-opt[aria-checked="true"] .tf-sw .ic{opacity:1;transform:none}
-.swap .phone{animation:bump .5s var(--spring)}
-@keyframes bump{40%{transform:scale(.98)}}
 
 @media (max-width:980px){
   .hero{grid-template-columns:1fr}
@@ -849,7 +804,7 @@ footer.foot{border-top:1px solid var(--line);padding-top:28px;display:flex;justi
     <div class="list">
       <div class="li"><span class="ic f" data-i="favorite" aria-hidden="true"></span><div class="t"><b>Home opens on the two of you</b><span class="d">The bond between your avatars is the hero, with today’s status on each side.</span></div></div>
       <div class="li"><span class="ic f" data-i="photo_library" aria-hidden="true"></span><div class="t"><b>Empty screens suggest a first step</b><span class="d">Prompts like “Our first date” replace “Nothing here yet.”</span></div></div>
-      <div class="li"><span class="ic f" data-i="palette" aria-hidden="true"></span><div class="t"><b>13 themes</b><span class="d">Pick one from the Theme button at the bottom right.</span></div></div>
+      <div class="li"><span class="ic f" data-i="palette" aria-hidden="true"></span><div class="t"><b>Velvet: plum and gold</b><span class="d">One calm, grown-up palette with a warm rose for you.</span></div></div>
       <div class="li"><span class="ic f" data-i="nights_stay" aria-hidden="true"></span><div class="t"><b>A nightly ritual</b><span class="d">One question, a reveal, a shared streak and a plan for tomorrow.</span></div></div>
     </div>
   </section>
@@ -1121,7 +1076,6 @@ footer.foot{border-top:1px solid var(--line);padding-top:28px;display:flex;justi
                 <div class="group">
                   <label for="v-timeline" class="cell has-ic"><span class="ic" data-i="schedule" aria-hidden="true"></span><span class="grow"><b>Timeline</b></span><span class="ic chev" data-i="chevron_right" aria-hidden="true"></span></label>
                   <label for="v-dreams" class="cell has-ic"><span class="ic" data-i="auto_awesome" aria-hidden="true"></span><span class="grow"><b>Dreams</b></span><span class="ic chev" data-i="chevron_right" aria-hidden="true"></span></label>
-                  <div class="cell press has-ic"><span class="ic" data-i="palette" aria-hidden="true"></span><span class="grow"><b>App theme</b></span><span class="val" data-theme-name>Rose</span><span class="ic chev" data-i="chevron_right" aria-hidden="true"></span></div>
                 </div>
 
                 <p class="gh">Relationship</p>
@@ -1393,23 +1347,17 @@ footer.foot{border-top:1px solid var(--line);padding-top:28px;display:flex;justi
   <section class="sec" id="colour">
     <div class="sec-head">
       <p class="sec-tag">Colour &amp; type</p>
-      <h2>13 themes. One system.</h2>
-      <p>Each theme sets two colours: one for your partner and the app’s accent, and one for you. Everything else uses iOS system colours, so every theme looks finished.</p>
+      <h2>Velvet. Plum and gold.</h2>
+      <p>Plum is your partner and the app’s accent. Rose is you. Gold is the highlight. Everything else uses iOS system colours.</p>
     </div>
-    <div class="themes">
-      <button type="button" class="theme-card" data-palette="rose" aria-pressed="true"><span class="tc-prev" style="--k:#FF2E74;--y:#9B6BFF"><span class="a1"></span><span class="a2"></span><span class="h"></span><span class="btnp"></span></span><span class="tc-body"><span><b>Rose</b><small>Warm and romantic</small></span><span class="ic" data-i="check_circle" aria-hidden="true"></span></span></button>
-      <button type="button" class="theme-card" data-palette="sunset" aria-pressed="false"><span class="tc-prev" style="--k:#FF6A3D;--y:#8B6BFF"><span class="a1"></span><span class="a2"></span><span class="h"></span><span class="btnp"></span></span><span class="tc-body"><span><b>Golden hour</b><small>Bright and playful</small></span><span class="ic" data-i="check_circle" aria-hidden="true"></span></span></button>
-      <button type="button" class="theme-card" data-palette="lavender" aria-pressed="false"><span class="tc-prev" style="--k:#8B5CF6;--y:#FF4F8B"><span class="a1"></span><span class="a2"></span><span class="h"></span><span class="btnp"></span></span><span class="tc-body"><span><b>Lavender</b><small>Soft and dreamy</small></span><span class="ic" data-i="check_circle" aria-hidden="true"></span></span></button>
-      <button type="button" class="theme-card" data-palette="ocean" aria-pressed="false"><span class="tc-prev" style="--k:#0891B2;--y:#FF6B6B"><span class="a1"></span><span class="a2"></span><span class="h"></span><span class="btnp"></span></span><span class="tc-body"><span><b>Ocean</b><small>Cool and clear</small></span><span class="ic" data-i="check_circle" aria-hidden="true"></span></span></button>
-      <button type="button" class="theme-card" data-palette="cherry" aria-pressed="false"><span class="tc-prev" style="--k:#E11D48;--y:#9B6BFF"><span class="a1"></span><span class="a2"></span><span class="h"></span><span class="btnp"></span></span><span class="tc-body"><span><b>Cherry</b><small>Bold and passionate</small></span><span class="ic" data-i="check_circle" aria-hidden="true"></span></span></button>
-      <button type="button" class="theme-card" data-palette="berry" aria-pressed="false"><span class="tc-prev" style="--k:#C026D3;--y:#F97316"><span class="a1"></span><span class="a2"></span><span class="h"></span><span class="btnp"></span></span><span class="tc-body"><span><b>Berry</b><small>Electric and fun</small></span><span class="ic" data-i="check_circle" aria-hidden="true"></span></span></button>
-      <button type="button" class="theme-card" data-palette="matcha" aria-pressed="false"><span class="tc-prev" style="--k:#0F9F6E;--y:#FF5C80"><span class="a1"></span><span class="a2"></span><span class="h"></span><span class="btnp"></span></span><span class="tc-body"><span><b>Matcha</b><small>Fresh and grounded</small></span><span class="ic" data-i="check_circle" aria-hidden="true"></span></span></button>
-      <button type="button" class="theme-card" data-palette="mocha" aria-pressed="false"><span class="tc-prev" style="--k:#B45F3C;--y:#7C6BD6"><span class="a1"></span><span class="a2"></span><span class="h"></span><span class="btnp"></span></span><span class="tc-body"><span><b>Mocha</b><small>Cosy and grown-up</small></span><span class="ic" data-i="check_circle" aria-hidden="true"></span></span></button>
-      <button type="button" class="theme-card" data-palette="peach" aria-pressed="false"><span class="tc-prev" style="--k:#FF7A5C;--y:#14B8A6"><span class="a1"></span><span class="a2"></span><span class="h"></span><span class="btnp"></span></span><span class="tc-body"><span><b>Peach</b><small>Soft and sunny</small></span><span class="ic" data-i="check_circle" aria-hidden="true"></span></span></button>
-      <button type="button" class="theme-card" data-palette="indigo" aria-pressed="false"><span class="tc-prev" style="--k:#4F46E5;--y:#F59E0B"><span class="a1"></span><span class="a2"></span><span class="h"></span><span class="btnp"></span></span><span class="tc-body"><span><b>Indigo</b><small>Deep and late-night</small></span><span class="ic" data-i="check_circle" aria-hidden="true"></span></span></button>
-      <button type="button" class="theme-card" data-palette="sage" aria-pressed="false"><span class="tc-prev" style="--k:#5B8A6B;--y:#E26D8A"><span class="a1"></span><span class="a2"></span><span class="h"></span><span class="btnp"></span></span><span class="tc-body"><span><b>Sage</b><small>Quiet and natural</small></span><span class="ic" data-i="check_circle" aria-hidden="true"></span></span></button>
-      <button type="button" class="theme-card" data-palette="bubblegum" aria-pressed="false"><span class="tc-prev" style="--k:#F03FA9;--y:#9B6BFF"><span class="a1"></span><span class="a2"></span><span class="h"></span><span class="btnp"></span></span><span class="tc-body"><span><b>Bubblegum</b><small>Loud and cheeky</small></span><span class="ic" data-i="check_circle" aria-hidden="true"></span></span></button>
-      <button type="button" class="theme-card" data-palette="velvet" aria-pressed="false"><span class="tc-prev" style="--k:#4A2D5C;--y:#D9577A"><span class="a1"></span><span class="a2"></span><span class="h"></span><span class="btnp"></span></span><span class="tc-body"><span><b>Velvet</b><small>Dark plum and gold</small></span><span class="ic" data-i="check_circle" aria-hidden="true"></span></span></button>
+    <div class="swatches">
+      <div class="sw-c"><span style="background:#4A2D5C"></span><b>Plum</b><code>#4A2D5C</code><small>Accent, partner, primary buttons</small></div>
+      <div class="sw-c"><span style="background:#321D40"></span><b>Deep plum</b><code>#321D40</code><small>Accent text on light fills</small></div>
+      <div class="sw-c"><span style="background:#C9973F"></span><b>Gold</b><code>#C9973F</code><small>Highlights, the bond thread, lock screen</small></div>
+      <div class="sw-c"><span style="background:#D9577A"></span><b>Rose</b><code>#D9577A</code><small>You: avatar ring, comparisons</small></div>
+      <div class="sw-c"><span style="background:#FBE6EC"></span><b>Rose tint</b><code>#FBE6EC</code><small>Your avatar fill</small></div>
+      <div class="sw-c"><span style="background:#E9E6EB"></span><b>Plum tint</b><code>#E9E6EB</code><small>Tinted buttons, chips, partner avatar</small></div>
+      <div class="sw-c"><span style="background:#ECEBF2"></span><b>Background</b><code>#ECEBF2</code><small>App screens</small></div>
     </div>
 
     <div class="typescale">
@@ -1461,7 +1409,7 @@ footer.foot{border-top:1px solid var(--line);padding-top:28px;display:flex;justi
           <div class="group">
             <div class="cell press has-ic"><span class="ic" data-i="favorite" aria-hidden="true"></span><span class="grow"><b>Anniversary</b></span><span class="val">9 Mar</span><span class="ic chev" data-i="chevron_right" aria-hidden="true"></span></div>
             <label class="cell has-ic"><span class="ic" data-i="notifications" aria-hidden="true"></span><span class="grow"><b>Tonight’s question</b></span><input type="checkbox" id="c-l1" class="sr" checked><span class="sw"></span></label>
-            <div class="cell press has-ic"><span class="ic" data-i="palette" aria-hidden="true"></span><span class="grow"><b>Theme</b></span><span class="val">Rose</span><span class="ic chev" data-i="chevron_right" aria-hidden="true"></span></div>
+            <div class="cell press has-ic"><span class="ic" data-i="calendar_month" aria-hidden="true"></span><span class="grow"><b>Date night</b></span><span class="val">Saturdays</span><span class="ic chev" data-i="chevron_right" aria-hidden="true"></span></div>
             <div class="cell press danger">Unlink Partner</div>
           </div>
         </div>
@@ -1675,60 +1623,11 @@ footer.foot{border-top:1px solid var(--line);padding-top:28px;display:flex;justi
   </footer>
 </div>
 
-<div class="theme-fab" id="theme-fab">
-  <div class="tf-menu" id="tf-menu" role="menu" aria-label="Colour theme">
-    <p class="tf-title">Theme <span id="tf-name">Rose</span></p>
-    <div class="tf-grid">
-      <button type="button" class="tf-opt" role="menuitemradio" data-palette="rose" data-name="Rose" aria-checked="true" style="--a:#FF2E74;--b:#FF7A45"><span class="tf-sw"><span class="ic" data-i="check" aria-hidden="true"></span></span>Rose</button>
-      <button type="button" class="tf-opt" role="menuitemradio" data-palette="sunset" data-name="Golden hour" aria-checked="false" style="--a:#FF6A3D;--b:#FFB020"><span class="tf-sw"><span class="ic" data-i="check" aria-hidden="true"></span></span>Golden</button>
-      <button type="button" class="tf-opt" role="menuitemradio" data-palette="lavender" data-name="Lavender" aria-checked="false" style="--a:#8B5CF6;--b:#EC4899"><span class="tf-sw"><span class="ic" data-i="check" aria-hidden="true"></span></span>Lavender</button>
-      <button type="button" class="tf-opt" role="menuitemradio" data-palette="ocean" data-name="Ocean" aria-checked="false" style="--a:#0891B2;--b:#6366F1"><span class="tf-sw"><span class="ic" data-i="check" aria-hidden="true"></span></span>Ocean</button>
-      <button type="button" class="tf-opt" role="menuitemradio" data-palette="cherry" data-name="Cherry" aria-checked="false" style="--a:#E11D48;--b:#9F1239"><span class="tf-sw"><span class="ic" data-i="check" aria-hidden="true"></span></span>Cherry</button>
-      <button type="button" class="tf-opt" role="menuitemradio" data-palette="berry" data-name="Berry" aria-checked="false" style="--a:#C026D3;--b:#7C3AED"><span class="tf-sw"><span class="ic" data-i="check" aria-hidden="true"></span></span>Berry</button>
-      <button type="button" class="tf-opt" role="menuitemradio" data-palette="matcha" data-name="Matcha" aria-checked="false" style="--a:#0F9F6E;--b:#84CC16"><span class="tf-sw"><span class="ic" data-i="check" aria-hidden="true"></span></span>Matcha</button>
-      <button type="button" class="tf-opt" role="menuitemradio" data-palette="mocha" data-name="Mocha" aria-checked="false" style="--a:#B45F3C;--b:#E8A87C"><span class="tf-sw"><span class="ic" data-i="check" aria-hidden="true"></span></span>Mocha</button>
-      <button type="button" class="tf-opt" role="menuitemradio" data-palette="peach" data-name="Peach" aria-checked="false" style="--a:#FF7A5C;--b:#F9A03F"><span class="tf-sw"><span class="ic" data-i="check" aria-hidden="true"></span></span>Peach</button>
-      <button type="button" class="tf-opt" role="menuitemradio" data-palette="indigo" data-name="Indigo" aria-checked="false" style="--a:#4F46E5;--b:#DB2777"><span class="tf-sw"><span class="ic" data-i="check" aria-hidden="true"></span></span>Indigo</button>
-      <button type="button" class="tf-opt" role="menuitemradio" data-palette="sage" data-name="Sage" aria-checked="false" style="--a:#5B8A6B;--b:#C9A66B"><span class="tf-sw"><span class="ic" data-i="check" aria-hidden="true"></span></span>Sage</button>
-      <button type="button" class="tf-opt" role="menuitemradio" data-palette="bubblegum" data-name="Bubblegum" aria-checked="false" style="--a:#F03FA9;--b:#38BDF8"><span class="tf-sw"><span class="ic" data-i="check" aria-hidden="true"></span></span>Bubblegum</button>
-      <button type="button" class="tf-opt" role="menuitemradio" data-palette="velvet" data-name="Velvet" aria-checked="false" style="--a:#4A2D5C;--b:#C9973F"><span class="tf-sw"><span class="ic" data-i="check" aria-hidden="true"></span></span>Velvet</button>
-    </div>
-  </div>
-  <button type="button" class="tf-btn" id="tf-btn" aria-expanded="false" aria-controls="tf-menu"><span class="tf-dot"></span>Theme</button>
-</div>
-
 <script>
 /* Vanilla JS for what CSS can't do well. The page still works without it. */
 (function(){
   var root = document.documentElement;
   root.classList.add('js');
-
-  // Themes: floating picker + theme cards, remembered in this browser
-  var KEY = 'between-us-palette', fab = document.getElementById('theme-fab'), fabBtn = document.getElementById('tf-btn');
-  function setPalette(p, animate){
-    if(p === 'rose') root.removeAttribute('data-palette'); else root.setAttribute('data-palette', p);
-    var name = 'Rose';
-    document.querySelectorAll('button[data-palette]').forEach(function(b){
-      var on = b.getAttribute('data-palette') === p;
-      b.setAttribute(b.classList.contains('tf-opt') ? 'aria-checked' : 'aria-pressed', on ? 'true' : 'false');
-      if(on && b.dataset.name) name = b.dataset.name;
-    });
-    document.getElementById('tf-name').textContent = name;
-    document.querySelectorAll('[data-theme-name]').forEach(function(el){ el.textContent = name; });
-    try{ localStorage.setItem(KEY, p); }catch(e){}
-    if(animate){ document.body.classList.remove('swap'); void document.body.offsetWidth; document.body.classList.add('swap'); }
-  }
-  var saved = 'rose';
-  try{ saved = localStorage.getItem(KEY) || 'rose'; }catch(e){}
-  setPalette(saved, false);
-  function openFab(open){ fab.classList.toggle('open', open); fabBtn.setAttribute('aria-expanded', open ? 'true' : 'false'); }
-  fabBtn.addEventListener('click', function(e){ e.stopPropagation(); openFab(!fab.classList.contains('open')); });
-  document.addEventListener('click', function(e){
-    var b = e.target.closest('button[data-palette]');
-    if(b){ setPalette(b.getAttribute('data-palette'), true); if(b.classList.contains('tf-opt')) setTimeout(function(){ openFab(false); }, 250); return; }
-    if(!fab.contains(e.target)) openFab(false);
-  });
-  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') openFab(false); });
 
   // Hold to hug: the bond heart and the component button
   document.querySelectorAll('.bond-heart, .hug').forEach(function(btn){

@@ -595,11 +595,11 @@ const styles = StyleSheet.create({
   },
 
   sideYou: {
-    backgroundColor: "rgba(155,107,255,0.10)",
+    backgroundColor: "rgba(217,87,122,0.10)",
   },
 
   sideThem: {
-    backgroundColor: "rgba(240,63,169,0.09)",
+    backgroundColor: "rgba(74,45,92,0.09)",
   },
 
   sideHead: {

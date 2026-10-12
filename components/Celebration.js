@@ -20,7 +20,7 @@ const PIECES = [
   { x: -60, y: -240, delay: 60, color: "#E0B58F", size: 8 },
   { x: 0, y: -270, delay: 20, color: "#7FA383", size: 13 },
   { x: 70, y: -230, delay: 90, color: "#B98BA6", size: 9 },
-  { x: 130, y: -180, delay: 40, color: "#F03FA9", size: 10 },
+  { x: 130, y: -180, delay: 40, color: "#4A2D5C", size: 10 },
   { x: -160, y: -110, delay: 110, color: "#E0B58F", size: 7 },
   { x: 160, y: -100, delay: 75, color: "#C4796A", size: 12 },
   { x: -100, y: -50, delay: 140, color: "#7FA383", size: 8 },

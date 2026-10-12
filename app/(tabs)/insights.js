@@ -395,7 +395,7 @@ export default function InsightsScreen() {
                 kind="tinted"
                 size="small"
                 style={styles.suggestButton}
-                onPress={() => router.push("/(tabs)/dates")}
+                onPress={() => router.push("/dates")}
               />
             </Card>
           ) : null}
@@ -433,13 +433,13 @@ const styles = StyleSheet.create({
   },
 
   vennYou: {
-    backgroundColor: "rgba(155,107,255,0.14)",
+    backgroundColor: "rgba(217,87,122,0.14)",
     marginRight: -34,
     paddingRight: 26,
   },
 
   vennThem: {
-    backgroundColor: "rgba(240,63,169,0.14)",
+    backgroundColor: "rgba(74,45,92,0.14)",
     paddingLeft: 26,
   },
 
@@ -525,13 +525,13 @@ const styles = StyleSheet.create({
 
   who: {
     flex: 1,
-    backgroundColor: "rgba(155,107,255,0.10)",
+    backgroundColor: "rgba(217,87,122,0.10)",
     borderRadius: 14,
     padding: 12,
   },
 
   whoThem: {
-    backgroundColor: "rgba(240,63,169,0.09)",
+    backgroundColor: "rgba(74,45,92,0.09)",
   },
 
   whoLabel: {

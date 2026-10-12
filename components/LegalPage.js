@@ -70,7 +70,7 @@ export default function LegalPage({ title, updated, intro, sections }) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F2ECF4",
+    backgroundColor: "#ECEBF2",
   },
 
   header: {
@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
 
   backArrow: {
     fontSize: 24,
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   title: {

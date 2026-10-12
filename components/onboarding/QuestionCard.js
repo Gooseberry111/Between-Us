@@ -186,7 +186,7 @@ function OtherOption({
 const styles = StyleSheet.create({
   otherWrap: {
     borderWidth: 1.5,
-    borderColor: "#F03FA9",
+    borderColor: "#4A2D5C",
     backgroundColor: "#FFFFFF",
     borderRadius: 14,
     paddingHorizontal: 16,
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 1.2,
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   otherInput: {
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#FDE8F5",
+    borderColor: "#E9E6EB",
     borderRadius: 14,
     paddingHorizontal: 16,
     height: 56,

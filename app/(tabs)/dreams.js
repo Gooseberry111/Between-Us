@@ -269,7 +269,7 @@ export default function DreamsScreen() {
         ) : featured ? (
           <Card style={styles.dream} padded={false}>
             <LinearGradient
-              colors={["#FFC2E4", "#F03FA9"]}
+              colors={["#FFC2E4", "#4A2D5C"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.cover}

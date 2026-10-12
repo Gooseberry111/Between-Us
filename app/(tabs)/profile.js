@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import { Alert, RefreshControl, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  Platform,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth, useClerk, useUser } from "@clerk/expo";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -27,6 +35,7 @@ import {
   Toggle,
 } from "../../components/ui";
 import { SkeletonList } from "../../components/Skeleton";
+import ProfileForm from "../../components/ProfileForm";
 
 /*
  * ==========================================
@@ -43,22 +52,26 @@ const REMINDERS = [
   {
     type: "daily_question",
     icon: "notifications",
+    sf: "bell.fill",
     title: "Tonight's question",
     subtitle: "Every evening",
   },
   {
     type: "daily_question_answered",
     icon: "heart",
+    sf: "heart.fill",
     title: "When they answer",
   },
   {
     type: "anniversary",
     icon: "calendar",
+    sf: "calendar",
     title: "Anniversary countdown",
   },
   {
     type: "inactivity",
     icon: "pulse",
+    sf: "waveform.path.ecg",
     title: "Weekly check-in",
     subtitle: "Sundays",
   },
@@ -264,6 +277,69 @@ export default function ProfileScreen() {
   const partnerName =
     partner?.nickname?.trim() || partner?.first_name?.trim() || "Your person";
 
+  const relationship = connection?.relationship_type
+    ? `${connection.relationship_type.charAt(0).toUpperCase()}${connection.relationship_type.slice(1)}`
+    : "Linked";
+
+  const togetherSince = connection?.connected_at
+    ? new Date(connection.connected_at).toLocaleDateString(undefined, {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    : "—";
+
+  const signOutPrompt = () =>
+    Alert.alert("Sign out?", "You can sign back in any time.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Sign Out",
+        style: "destructive",
+        onPress: async () => {
+          await signOut();
+          router.replace("/");
+        },
+      },
+    ]);
+
+  /* On iOS, Profile is drawn by SwiftUI's Form: Settings,
+   * made of the same parts Settings is. */
+  if (Platform.OS === "ios") {
+    return (
+      <SafeAreaView style={styles.iosScreen} edges={["top"]}>
+        <LargeTitle style={styles.iosTitle}>Profile</LargeTitle>
+
+        {loading ? (
+          <View style={{ paddingHorizontal: 16 }}>
+            <SkeletonList count={4} />
+          </View>
+        ) : (
+          <ProfileForm
+            fullName={fullName}
+            subtitle={[nickname, user?.primaryEmailAddress?.emailAddress]
+              .filter(Boolean)
+              .join(" · ")}
+            partnerName={partnerName}
+            relationship={relationship}
+            togetherSince={togetherSince}
+            connected={Boolean(connection)}
+            reminders={REMINDERS}
+            prefs={prefs}
+            busy={busy}
+            onAccount={() => router.push("/edit-profile")}
+            onNudge={() => router.push("/daily-question")}
+            onFindPerson={() => router.push("/find-person")}
+            onReminder={setReminder}
+            onOpen={(route) => router.push(route)}
+            onUnlink={busy ? () => {} : unlink}
+            onSignOut={signOutPrompt}
+            onDelete={deleteAccount}
+          />
+        )}
+      </SafeAreaView>
+    );
+  }
+
   return (
     <Screen
       refreshControl={
@@ -387,7 +463,7 @@ export default function ProfileScreen() {
               leading={<Ionicons name="calendar" size={21} color={T.accent} />}
               title="Dates"
               chevron
-              onPress={() => router.push("/(tabs)/dates")}
+              onPress={() => router.push("/dates")}
             />
 
             <Cell
@@ -509,6 +585,16 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  iosScreen: {
+    flex: 1,
+    backgroundColor: T.appBackground,
+  },
+
+  iosTitle: {
+    marginTop: 8,
+    marginBottom: 4,
+  },
+
   value: {
     fontSize: 16,
     color: T.label2,

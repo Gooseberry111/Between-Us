@@ -268,7 +268,7 @@ export default function NotificationSettingsScreen() {
                 activeOpacity={0.8}
                 onPress={() => router.back()}
               >
-                <Ionicons name="chevron-back" size={20} color="#F03FA9" />
+                <Ionicons name="chevron-back" size={20} color="#4A2D5C" />
               </TouchableOpacity>
 
               <View style={styles.headerText}>
@@ -309,7 +309,7 @@ export default function NotificationSettingsScreen() {
                         <Switch
                           value={preferences[item.type] !== false}
                           onValueChange={(value) => toggle(item.type, value)}
-                          trackColor={{ false: "#DDD4CE", true: "#F03FA9" }}
+                          trackColor={{ false: "#DDD4CE", true: "#4A2D5C" }}
                           thumbColor="#FFFFFF"
                         />
                       </View>
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "rgba(240, 63, 169, 0.09)",
+    backgroundColor: "rgba(74, 45, 92, 0.09)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 11,
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 2,
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   pageTitle: {
@@ -435,7 +435,7 @@ const styles = StyleSheet.create({
 
   divider: {
     height: 1,
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
   },
 
   noteCard: {
@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
   },
 
   errorBox: {
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
     paddingHorizontal: 14,
     paddingVertical: 11,
     borderRadius: 12,

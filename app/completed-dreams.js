@@ -163,7 +163,7 @@ export default function CompletedDreamsScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              tintColor="#F03FA9"
+              tintColor="#4A2D5C"
             />
           }
           contentContainerStyle={styles.scrollContent}
@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(240, 63, 169, 0.09)",
+    backgroundColor: "rgba(74, 45, 92, 0.09)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 11,
@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
 
   backButtonText: {
     fontSize: 22,
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   headerText: {
@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 2,
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   pageTitle: {
@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
     width: 45,
     height: 45,
     borderRadius: 23,
-    backgroundColor: "rgba(240, 63, 169, 0.09)",
+    backgroundColor: "rgba(74, 45, 92, 0.09)",
     justifyContent: "center",
     alignItems: "center",
     marginLeft: 8,
@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
 
   headerIconText: {
     fontSize: 20,
-    color: "#F03FA9",
+    color: "#4A2D5C",
     fontWeight: "700",
   },
 
@@ -453,7 +453,7 @@ const styles = StyleSheet.create({
   summaryNumber: {
     fontSize: 29,
     fontWeight: "700",
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   summaryText: {
@@ -511,7 +511,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "rgba(240, 63, 169, 0.09)",
+    backgroundColor: "rgba(74, 45, 92, 0.09)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -519,21 +519,21 @@ const styles = StyleSheet.create({
   dreamNumberText: {
     fontSize: 10,
     fontWeight: "800",
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   completedBadge: {
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 9,
-    backgroundColor: "rgba(240, 63, 169, 0.09)",
+    backgroundColor: "rgba(74, 45, 92, 0.09)",
   },
 
   completedBadgeText: {
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 0.8,
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   dreamTitle: {
@@ -553,7 +553,7 @@ const styles = StyleSheet.create({
 
   dateContainer: {
     marginTop: 14,
-    backgroundColor: "rgba(240, 63, 169, 0.07)",
+    backgroundColor: "rgba(74, 45, 92, 0.07)",
     borderRadius: 11,
     padding: 11,
   },
@@ -569,7 +569,7 @@ const styles = StyleSheet.create({
     marginTop: 3,
     fontSize: 12,
     fontWeight: "600",
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   completedContainer: {
@@ -590,12 +590,12 @@ const styles = StyleSheet.create({
     marginTop: 3,
     fontSize: 12,
     fontWeight: "700",
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   dreamDivider: {
     height: 1,
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
     marginVertical: 16,
   },
 
@@ -608,7 +608,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "#F03FA9",
+    backgroundColor: "#4A2D5C",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -623,7 +623,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 11,
     fontWeight: "600",
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   emptyCard: {
@@ -639,7 +639,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "rgba(240, 63, 169, 0.09)",
+    backgroundColor: "rgba(74, 45, 92, 0.09)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 15,
@@ -647,7 +647,7 @@ const styles = StyleSheet.create({
 
   emptyIconText: {
     fontSize: 25,
-    color: "#F03FA9",
+    color: "#4A2D5C",
     fontWeight: "700",
   },
 
@@ -677,7 +677,7 @@ const styles = StyleSheet.create({
   backToDreamsText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   footerCard: {
@@ -693,7 +693,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 21,
     fontWeight: "600",
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   footerText: {
@@ -705,7 +705,7 @@ const styles = StyleSheet.create({
   },
 
   errorBox: {
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
     paddingHorizontal: 14,
     paddingVertical: 11,
     borderRadius: 12,

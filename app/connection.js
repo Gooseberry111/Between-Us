@@ -77,7 +77,7 @@ export default function ConnectionScreen() {
     return (
       <SafeAreaView style={styles.screen} edges={["top"]}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color="#F03FA9" />
+          <ActivityIndicator size="small" color="#4A2D5C" />
 
           <Text style={styles.loadingText}>Loading your space...</Text>
         </View>
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#FDE8F5",
+    borderColor: "#E9E6EB",
   },
 
   featureIcon: {
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
 
   featureIconText: {
     fontSize: 21,
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   featureContent: {
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   },
   screen: {
     flex: 1,
-    backgroundColor: "#F2ECF4",
+    backgroundColor: "#ECEBF2",
   },
 
   container: {
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 35,
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
 
   backText: {
     fontSize: 22,
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   eyebrow: {
@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
 
   profileCard: {
     marginTop: 28,
-    backgroundColor: "#F03FA9",
+    backgroundColor: "#4A2D5C",
     borderRadius: 20,
     padding: 18,
     flexDirection: "row",
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
   relationship: {
     marginTop: 3,
     fontSize: 12,
-    color: "#FDE8F5",
+    color: "#E9E6EB",
   },
 
   connectedDot: {
@@ -380,12 +380,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 21,
     borderWidth: 1,
-    borderColor: "#FDE8F5",
+    borderColor: "#E9E6EB",
   },
 
   cardIcon: {
     fontSize: 29,
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   cardTitle: {
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
   },
 
   errorBox: {
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
     paddingHorizontal: 14,
     paddingVertical: 11,
     borderRadius: 12,

@@ -62,6 +62,18 @@ const MAP = {
   snow: ["snowflake", "snow-outline", "snow"],
 };
 
+/* The SF Symbol behind one of our names, for native
+ * SwiftUI controls that take a system image directly. */
+export function sfSymbol(name, filled) {
+  const entry = MAP[name];
+
+  if (!entry) return undefined;
+
+  return filled && !entry[0].endsWith(".fill") && name !== "sparkle"
+    ? `${entry[0]}.fill`
+    : entry[0];
+}
+
 export default function Icon({ name, size = 20, color = T.label, filled }) {
   const entry = MAP[name];
 

@@ -66,7 +66,7 @@ function SearchEmptyState({ query, searching, hasRequests }) {
   if (searching) {
     return (
       <View style={styles.searchingState}>
-        <ActivityIndicator size="small" color="#F03FA9" />
+        <ActivityIndicator size="small" color="#4A2D5C" />
 
         <Text style={styles.searchingText}>Looking...</Text>
       </View>
@@ -89,7 +89,7 @@ function SearchEmptyState({ query, searching, hasRequests }) {
     return (
       <View style={styles.emptyState}>
         <View style={styles.emptyIcon}>
-          <Ionicons name="person-outline" size={26} color="#F03FA9" />
+          <Ionicons name="person-outline" size={26} color="#4A2D5C" />
         </View>
 
         <Text style={styles.emptyTitle}>No one called "{trimmed}"</Text>
@@ -474,7 +474,7 @@ export default function FindPersonScreen() {
     return (
       <SafeAreaView style={styles.screen} edges={["top"]}>
         <View style={styles.loadingScreen}>
-          <ActivityIndicator size="small" color="#F03FA9" />
+          <ActivityIndicator size="small" color="#4A2D5C" />
 
           <Text style={styles.loadingText}>Preparing...</Text>
         </View>
@@ -591,7 +591,7 @@ export default function FindPersonScreen() {
         </View>
 
         {isSending ? (
-          <ActivityIndicator size="small" color="#F03FA9" />
+          <ActivityIndicator size="small" color="#4A2D5C" />
         ) : sent ? (
           <View style={styles.statePill}>
             <Ionicons name="checkmark" size={12} color="#7C7280" />
@@ -630,7 +630,7 @@ export default function FindPersonScreen() {
               style={styles.backButton}
               activeOpacity={0.7}
             >
-              <Ionicons name="chevron-back" size={20} color="#F03FA9" />
+              <Ionicons name="chevron-back" size={20} color="#4A2D5C" />
             </TouchableOpacity>
 
             <Text style={styles.title}>Find your person</Text>
@@ -665,7 +665,7 @@ export default function FindPersonScreen() {
             {searching ? (
               <ActivityIndicator
                 size="small"
-                color="#F03FA9"
+                color="#4A2D5C"
                 style={styles.searchSpinner}
               />
             ) : null}
@@ -718,7 +718,7 @@ export default function FindPersonScreen() {
 
           {loadingRequests ? (
             <View style={styles.requestLoading}>
-              <ActivityIndicator size="small" color="#F03FA9" />
+              <ActivityIndicator size="small" color="#4A2D5C" />
 
               <Text style={styles.requestLoadingText}>
                 Checking for requests...
@@ -830,7 +830,7 @@ export default function FindPersonScreen() {
                 disabled={processingRequest}
               >
                 {processingRequest ? (
-                  <ActivityIndicator size="small" color="#F03FA9" />
+                  <ActivityIndicator size="small" color="#4A2D5C" />
                 ) : (
                   <Text style={styles.rejectButtonText}>Reject</Text>
                 )}
@@ -948,7 +948,7 @@ export default function FindPersonScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F2ECF4",
+    backgroundColor: "#ECEBF2",
   },
 
   container: {
@@ -988,7 +988,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#FDE8F5",
+    borderColor: "#E9E6EB",
   },
 
   title: {
@@ -1010,7 +1010,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.6,
-    color: "#F03FA9",
+    color: "#4A2D5C",
     marginBottom: 10,
   },
 
@@ -1020,8 +1020,8 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#FDE8F5",
-    shadowColor: "#F03FA9",
+    borderColor: "#E9E6EB",
+    shadowColor: "#4A2D5C",
     shadowOpacity: 0.07,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
@@ -1037,13 +1037,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 999,
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
   },
 
   relationshipPillText: {
     fontSize: 11,
     fontWeight: "800",
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   requestActionsRow: {
@@ -1061,7 +1061,7 @@ const styles = StyleSheet.create({
   requestAvatarText: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   requestInfo: {
@@ -1089,7 +1089,7 @@ const styles = StyleSheet.create({
   },
 
   requestViewButtonText: {
-    color: "#F03FA9",
+    color: "#4A2D5C",
     fontSize: 12,
     fontWeight: "700",
   },
@@ -1118,7 +1118,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     backgroundColor: "#FFFFFF",
     paddingHorizontal: 18,
-    shadowColor: "#F03FA9",
+    shadowColor: "#4A2D5C",
     shadowOpacity: 0.1,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 6 },
@@ -1162,7 +1162,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 18,
     borderWidth: 1,
-    borderColor: "#FDE8F5",
+    borderColor: "#E9E6EB",
   },
 
   tipsHeading: {
@@ -1213,7 +1213,7 @@ const styles = StyleSheet.create({
    */
 
   errorBox: {
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
     borderRadius: 12,
     paddingHorizontal: 13,
     paddingVertical: 11,
@@ -1269,7 +1269,7 @@ const styles = StyleSheet.create({
   },
 
   statePillActive: {
-    backgroundColor: "#F03FA9",
+    backgroundColor: "#4A2D5C",
   },
 
   statePillText: {
@@ -1298,8 +1298,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#FDE8F5",
-    shadowColor: "#F03FA9",
+    borderColor: "#E9E6EB",
+    shadowColor: "#4A2D5C",
     shadowOpacity: 0.06,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 3 },
@@ -1317,7 +1317,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 9,
     borderRadius: 999,
-    backgroundColor: "#F03FA9",
+    backgroundColor: "#4A2D5C",
   },
 
   connectButtonText: {
@@ -1369,7 +1369,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 17,
@@ -1396,7 +1396,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 6,
     borderWidth: 1,
-    borderColor: "#FDE8F5",
+    borderColor: "#E9E6EB",
   },
 
   detailRow: {
@@ -1441,14 +1441,14 @@ const styles = StyleSheet.create({
   rejectButtonText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   acceptButton: {
     flex: 1,
     height: 52,
     borderRadius: 14,
-    backgroundColor: "#F03FA9",
+    backgroundColor: "#4A2D5C",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1473,7 +1473,7 @@ const styles = StyleSheet.create({
   },
 
   modal: {
-    backgroundColor: "#F2ECF4",
+    backgroundColor: "#ECEBF2",
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 24,
@@ -1497,7 +1497,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
     justifyContent: "center",
     alignItems: "center",
     zIndex: 2,
@@ -1505,7 +1505,7 @@ const styles = StyleSheet.create({
 
   modalCloseText: {
     fontSize: 23,
-    color: "#F03FA9",
+    color: "#4A2D5C",
     lineHeight: 25,
   },
 
@@ -1513,7 +1513,7 @@ const styles = StyleSheet.create({
     width: 66,
     height: 66,
     borderRadius: 33,
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
     justifyContent: "center",
     alignItems: "center",
     alignSelf: "center",
@@ -1523,7 +1523,7 @@ const styles = StyleSheet.create({
   modalAvatarText: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   modalTitle: {
@@ -1563,12 +1563,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#FDE8F5",
+    borderColor: "#E9E6EB",
   },
 
   relationshipSelected: {
-    backgroundColor: "#F03FA9",
-    borderColor: "#F03FA9",
+    backgroundColor: "#4A2D5C",
+    borderColor: "#4A2D5C",
   },
 
   relationshipText: {
@@ -1584,7 +1584,7 @@ const styles = StyleSheet.create({
   connectButton: {
     height: 55,
     borderRadius: 14,
-    backgroundColor: "#F03FA9",
+    backgroundColor: "#4A2D5C",
     justifyContent: "center",
     alignItems: "center",
     marginTop: 22,

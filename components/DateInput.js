@@ -103,9 +103,9 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#FDE8F5",
+    borderTopColor: "#E9E6EB",
   },
 
   doneButton: {
@@ -116,6 +116,6 @@ const styles = StyleSheet.create({
   doneText: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 });

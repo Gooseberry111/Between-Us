@@ -107,7 +107,7 @@ async function registerForPushNotificationsAsync(userId) {
         name: "default",
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
-        lightColor: "#F03FA9",
+        lightColor: "#4A2D5C",
       });
     }
 
@@ -469,7 +469,7 @@ const missingKeyStyles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 32,
-    backgroundColor: "#F2ECF4",
+    backgroundColor: "#ECEBF2",
   },
 
   title: {

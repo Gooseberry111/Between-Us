@@ -249,7 +249,7 @@ export default function SpecialDatesScreen() {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={handleRefresh}
-                tintColor="#F03FA9"
+                tintColor="#4A2D5C"
               />
             }
             contentContainerStyle={styles.scrollContent}
@@ -263,7 +263,7 @@ export default function SpecialDatesScreen() {
                   activeOpacity={0.8}
                   onPress={() => router.back()}
                 >
-                  <Ionicons name="chevron-back" size={20} color="#F03FA9" />
+                  <Ionicons name="chevron-back" size={20} color="#4A2D5C" />
                 </TouchableOpacity>
 
                 <View style={styles.headerText}>
@@ -382,7 +382,7 @@ export default function SpecialDatesScreen() {
                       <Ionicons
                         name="calendar-outline"
                         size={24}
-                        color="#F03FA9"
+                        color="#4A2D5C"
                       />
                     </View>
 
@@ -440,7 +440,7 @@ function SpecialDateCard({ specialDate, onDelete }) {
   return (
     <Card style={styles.dateCard}>
       <View style={styles.dateCardIcon}>
-        <Ionicons name="calendar-outline" size={19} color="#F03FA9" />
+        <Ionicons name="calendar-outline" size={19} color="#4A2D5C" />
       </View>
 
       <View style={styles.dateCardContent}>
@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "rgba(240, 63, 169, 0.09)",
+    backgroundColor: "rgba(74, 45, 92, 0.09)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 11,
@@ -499,7 +499,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 2,
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   pageTitle: {
@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
     width: 43,
     height: 43,
     borderRadius: 22,
-    backgroundColor: "#F03FA9",
+    backgroundColor: "#4A2D5C",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -562,7 +562,7 @@ const styles = StyleSheet.create({
 
   addArrow: {
     fontSize: 20,
-    color: "#F03FA9",
+    color: "#4A2D5C",
     marginLeft: 8,
   },
 
@@ -608,7 +608,7 @@ const styles = StyleSheet.create({
 
   closeButtonText: {
     fontSize: 22,
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   inputLabel: {
@@ -622,7 +622,7 @@ const styles = StyleSheet.create({
   input: {
     minHeight: 49,
     borderRadius: 12,
-    backgroundColor: "rgba(240, 63, 169, 0.07)",
+    backgroundColor: "rgba(74, 45, 92, 0.07)",
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.9)",
     paddingHorizontal: 14,
@@ -635,7 +635,7 @@ const styles = StyleSheet.create({
   saveButton: {
     height: 50,
     borderRadius: 13,
-    backgroundColor: "#F03FA9",
+    backgroundColor: "#4A2D5C",
     alignItems: "center",
     justifyContent: "center",
     marginTop: 4,
@@ -706,14 +706,14 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 11,
     fontWeight: "600",
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   deleteButton: {
     paddingHorizontal: 11,
     paddingVertical: 8,
     borderRadius: 9,
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
     marginLeft: 10,
   },
 
@@ -736,7 +736,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "rgba(240, 63, 169, 0.09)",
+    backgroundColor: "rgba(74, 45, 92, 0.09)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 15,
@@ -767,7 +767,7 @@ const styles = StyleSheet.create({
   emptyButtonText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   footerCard: {
@@ -783,11 +783,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 21,
     fontWeight: "600",
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 
   errorBox: {
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
     paddingHorizontal: 14,
     paddingVertical: 11,
     borderRadius: 12,

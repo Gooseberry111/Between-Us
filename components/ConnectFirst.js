@@ -33,7 +33,7 @@ export default function ConnectFirst({
               activeOpacity={0.8}
               onPress={() => router.back()}
             >
-              <Ionicons name="chevron-back" size={20} color="#F03FA9" />
+              <Ionicons name="chevron-back" size={20} color="#4A2D5C" />
             </TouchableOpacity>
           ) : null}
 
@@ -59,7 +59,7 @@ export default function ConnectFirst({
               >
                 <Text style={styles.buttonText}>Find your person</Text>
 
-                <Ionicons name="arrow-forward" size={16} color="#F03FA9" />
+                <Ionicons name="arrow-forward" size={16} color="#4A2D5C" />
               </TouchableOpacity>
             </GlassPanel>
           </FadeIn>
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 1.6,
-    color: "#FDE8F5",
+    color: "#E9E6EB",
   },
 
   title: {
@@ -143,6 +143,6 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 14,
     fontWeight: "800",
-    color: "#F03FA9",
+    color: "#4A2D5C",
   },
 });

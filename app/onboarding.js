@@ -311,7 +311,7 @@ export default function OnboardingScreen() {
     return (
       <SafeAreaView style={styles.screen} edges={["top"]}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color="#F03FA9" />
+          <ActivityIndicator size="small" color="#4A2D5C" />
 
           <Text style={styles.loadingText}>Preparing your profile...</Text>
         </View>
@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
 
   screen: {
     flex: 1,
-    backgroundColor: "#F2ECF4",
+    backgroundColor: "#ECEBF2",
   },
 
   container: {
@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
   },
 
   skipButtonLocked: {
@@ -506,7 +506,7 @@ const styles = StyleSheet.create({
   },
 
   skipText: {
-    color: "#F03FA9",
+    color: "#4A2D5C",
     fontSize: 14,
     fontWeight: "700",
   },
@@ -532,7 +532,7 @@ const styles = StyleSheet.create({
   },
 
   errorBox: {
-    backgroundColor: "#FDE8F5",
+    backgroundColor: "#E9E6EB",
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderRadius: 12,
@@ -555,7 +555,7 @@ const styles = StyleSheet.create({
   },
 
   backText: {
-    color: "#F03FA9",
+    color: "#4A2D5C",
     fontWeight: "600",
     fontSize: 15,
   },
@@ -563,7 +563,7 @@ const styles = StyleSheet.create({
   nextButton: {
     height: 56,
     borderRadius: 14,
-    backgroundColor: "#F03FA9",
+    backgroundColor: "#4A2D5C",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -627,7 +627,7 @@ const styles = StyleSheet.create({
     height: 50,
     paddingHorizontal: 32,
     borderRadius: 14,
-    backgroundColor: "#F03FA9",
+    backgroundColor: "#4A2D5C",
     justifyContent: "center",
     alignItems: "center",
   },
