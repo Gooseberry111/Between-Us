@@ -78,6 +78,7 @@ export default function DailyQuestionScreen() {
   const [daily, setDaily] = useState(null);
   const [loading, setLoading] = useState(true);
   const [answer, setAnswer] = useState("");
+  const [index, setIndex] = useState(0);
   const [saving, setSaving] = useState(false);
   const [step, setStep] = useState("answer");
   const [addedDate, setAddedDate] = useState(false);
@@ -98,12 +99,18 @@ export default function DailyQuestionScreen() {
       if (!response.ok) throw new Error(data?.error || "Unable to load.");
 
       setDaily(data);
-      setAnswer(data?.your_answer || "");
 
-      /* Already answered and so have they: go straight to the
-       * reveal, which is what they came back for. */
-      if (data?.your_answer) {
-        setStep(data?.partner_answered ? "reveal" : "waiting");
+      const list = Array.isArray(data?.questions) ? data.questions : [];
+
+      /* Open on the first one still unanswered. */
+      const next = list.findIndex((item) => !item.your_answer);
+
+      setIndex(next === -1 ? 0 : next);
+      setAnswer(next === -1 ? "" : list[next]?.your_answer || "");
+
+      /* All three answered: they came back for the reveal. */
+      if (next === -1 && list.length > 0) {
+        setStep(list.some((item) => item.partner_answered) ? "reveal" : "waiting");
       }
     } catch (err) {
       console.log("DAILY LOAD ERROR:", err);
@@ -142,13 +149,18 @@ export default function DailyQuestionScreen() {
   const lockIn = async () => {
     if (!answer.trim() || saving) return;
 
+    const current = questions[index];
+
     try {
       setSaving(true);
 
       const response = await apiFetch(`/users/${userId}/daily-question`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answer: answer.trim() }),
+        body: JSON.stringify({
+          answer: answer.trim(),
+          question_key: current?.key,
+        }),
       });
 
       const data = await response.json();
@@ -160,16 +172,25 @@ export default function DailyQuestionScreen() {
       setDaily(data);
       clearCachedData(`home:${userId}`);
 
-      if (data?.partner_answered) {
-        const same =
-          String(data.partner_answer || "").trim().toLowerCase() ===
-          answer.trim().toLowerCase();
+      const list = Array.isArray(data?.questions) ? data.questions : [];
+      const next = list.findIndex((item) => !item.your_answer);
 
-        setCelebrate(same);
-        setStep("reveal");
-      } else {
-        setStep("waiting");
+      /* Another question waiting: stay here and move on to it. */
+      if (next !== -1) {
+        setIndex(next);
+        setAnswer("");
+        return;
       }
+
+      const matched = list.some(
+        (item) =>
+          item.partner_answer &&
+          String(item.partner_answer).trim().toLowerCase() ===
+            String(item.your_answer).trim().toLowerCase(),
+      );
+
+      setCelebrate(matched);
+      setStep(list.some((item) => item.partner_answer) ? "reveal" : "waiting");
     } catch (err) {
       Alert.alert("We couldn't save that", err?.message || "Please try again.");
     } finally {
@@ -200,6 +221,8 @@ export default function DailyQuestionScreen() {
   }
 
   const partnerName = daily?.partner_name?.trim() || "Your person";
+  const questions = Array.isArray(daily?.questions) ? daily.questions : [];
+  const current = questions[index];
   const streak = Number(daily?.streak || 0);
   const week = Array.isArray(daily?.week) ? daily.week : [];
   const idea = ideaOfTheNight();
@@ -243,9 +266,13 @@ export default function DailyQuestionScreen() {
           ) : step === "answer" ? (
             /* ---------- 1. ANSWER ---------- */
             <>
-              <Text style={styles.kicker}>Tonight&apos;s question</Text>
+              <Text style={styles.kicker}>
+                Question {index + 1} of {questions.length || 3}
+              </Text>
 
-              <Text style={styles.question}>{daily?.question}</Text>
+              <Text style={styles.question}>
+                {current?.question || daily?.question}
+              </Text>
 
               <Card style={styles.answerCard}>
                 <TextInput
@@ -260,7 +287,7 @@ export default function DailyQuestionScreen() {
                 />
               </Card>
 
-              {daily?.partner_answered ? (
+              {current?.partner_answered ? (
                 <View style={styles.sealed}>
                   <Avatar name={partnerName} who="them" size={26} />
 
@@ -278,12 +305,31 @@ export default function DailyQuestionScreen() {
               )}
 
               <Button
-                title="Lock In Answer"
+                title={
+                  index + 1 < (questions.length || 3)
+                    ? "Lock In and Continue"
+                    : "Lock In Answer"
+                }
                 onPress={lockIn}
                 busy={saving}
                 disabled={!answer.trim()}
                 style={styles.action}
               />
+
+              {questions.length > 1 ? (
+                <View style={styles.dots}>
+                  {questions.map((item, dot) => (
+                    <View
+                      key={item.key}
+                      style={[
+                        styles.dot,
+                        item.your_answer && styles.dotDone,
+                        dot === index && styles.dotNow,
+                      ]}
+                    />
+                  ))}
+                </View>
+              ) : null}
             </>
           ) : step === "waiting" ? (
             /* ---------- WAITING ---------- */
@@ -294,11 +340,17 @@ export default function DailyQuestionScreen() {
                 Now we wait for {partnerName}.
               </Text>
 
-              <Card style={styles.answerCard}>
-                <Text style={styles.yourAnswerLabel}>You said</Text>
+              {questions
+                .filter((item) => item.your_answer)
+                .map((item) => (
+                  <Card key={item.key} style={styles.answerCard}>
+                    <Text style={styles.yourAnswerLabel}>
+                      {item.question}
+                    </Text>
 
-                <Text style={styles.yourAnswer}>{daily?.your_answer}</Text>
-              </Card>
+                    <Text style={styles.yourAnswer}>{item.your_answer}</Text>
+                  </Card>
+                ))}
 
               <Text style={styles.hint}>
                 We&apos;ll let you know the moment they answer, and you&apos;ll
@@ -334,29 +386,36 @@ export default function DailyQuestionScreen() {
                   ],
                 }}
               >
-                <Card style={[styles.revealCard, styles.revealYou]}>
-                  <Avatar name="You" who="you" size={38} />
+                {questions.map((item) => (
+                  <View key={item.key} style={styles.revealGroup}>
+                    <Text style={styles.revealQuestion}>{item.question}</Text>
 
-                  <View style={styles.revealText}>
-                    <Text style={styles.revealWho}>You</Text>
+                    <Card style={[styles.revealCard, styles.revealYou]}>
+                      <Avatar name="You" who="you" size={34} />
 
-                    <Text style={styles.revealAnswer}>
-                      {daily?.your_answer}
-                    </Text>
+                      <View style={styles.revealText}>
+                        <Text style={styles.revealWho}>You</Text>
+
+                        <Text style={styles.revealAnswer}>
+                          {item.your_answer || "You skipped this one"}
+                        </Text>
+                      </View>
+                    </Card>
+
+                    <Card style={[styles.revealCard, styles.revealThem]}>
+                      <Avatar name={partnerName} who="them" size={34} />
+
+                      <View style={styles.revealText}>
+                        <Text style={styles.revealWho}>{partnerName}</Text>
+
+                        <Text style={styles.revealAnswer}>
+                          {item.partner_answer ||
+                            `${partnerName} hasn't answered this one`}
+                        </Text>
+                      </View>
+                    </Card>
                   </View>
-                </Card>
-
-                <Card style={[styles.revealCard, styles.revealThem]}>
-                  <Avatar name={partnerName} who="them" size={38} />
-
-                  <View style={styles.revealText}>
-                    <Text style={styles.revealWho}>{partnerName}</Text>
-
-                    <Text style={styles.revealAnswer}>
-                      {daily?.partner_answer}
-                    </Text>
-                  </View>
-                </Card>
+                ))}
               </Animated.View>
 
               <Card
@@ -614,6 +673,39 @@ const styles = StyleSheet.create({
 
   action: {
     marginTop: 4,
+  },
+
+  dots: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: 4,
+  },
+
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: T.fill3,
+  },
+
+  dotDone: {
+    backgroundColor: T.accentTint,
+  },
+
+  dotNow: {
+    backgroundColor: T.accent,
+  },
+
+  revealGroup: {
+    marginBottom: 18,
+  },
+
+  revealQuestion: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: T.label2,
+    marginBottom: 8,
   },
 
   revealCard: {

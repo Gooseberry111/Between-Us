@@ -57,6 +57,7 @@ export default function BondHero({
   mood,
   partnerOnline,
   onHug,
+  onPickMood,
 }) {
   const [sent, setSent] = useState(false);
   const [animate, setAnimate] = useState(true);
@@ -316,13 +317,20 @@ export default function BondHero({
               </Text>
             </View>
 
-            <View style={styles.moodBadge}>
+            {/* Tap it to pick how you are feeling. */}
+            <Pressable
+              onPress={onPickMood}
+              hitSlop={10}
+              style={styles.moodBadge}
+              accessibilityRole="button"
+              accessibilityLabel={mood ? "Change your mood" : "Add a mood"}
+            >
               {mood ? (
                 <Text style={styles.moodEmoji}>{mood}</Text>
               ) : (
                 <Ionicons name="add" size={15} color={T.youText} />
               )}
-            </View>
+            </Pressable>
           </View>
 
           <Text style={styles.personName}>You</Text>

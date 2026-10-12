@@ -374,6 +374,18 @@ async function ensureSchema(sql) {
 			ON daily_answers (user_id, question_date)
 	`;
 
+	/*
+	 * Three questions a night means three answers a night, so
+	 * the key is the question, not the date. The old index is
+	 * dropped once the new one exists.
+	 */
+	await sql`
+		CREATE UNIQUE INDEX IF NOT EXISTS daily_answers_user_question_idx
+			ON daily_answers (user_id, question_date, question_key)
+	`;
+
+	await sql`DROP INDEX IF EXISTS daily_answers_user_date_idx`;
+
 	await sql`
 		CREATE INDEX IF NOT EXISTS daily_answers_connection_date_idx
 			ON daily_answers (connection_id, question_date DESC)
@@ -463,12 +475,34 @@ function slugifyQuestion(text) {
 /*
  * The question for a given day, rotating by day of year.
  */
+const QUESTIONS_PER_NIGHT = 3;
+
 function questionForDate(date) {
+	return questionsForDate(date)[0];
+}
+
+/*
+ * Three a night, spaced far apart in the list so they are
+ * not three versions of the same question, and the same
+ * three for both people on the same day.
+ */
+function questionsForDate(date) {
 	const startOfYear = new Date(date.getFullYear(), 0, 0);
 	const dayOfYear = Math.floor((date - startOfYear) / MS_PER_DAY);
-	const text = DAILY_QUESTIONS[dayOfYear % DAILY_QUESTIONS.length];
+	const total = DAILY_QUESTIONS.length;
+	const stride = Math.floor(total / QUESTIONS_PER_NIGHT) || 1;
 
-	return { key: slugifyQuestion(text), text };
+	const picked = [];
+
+	for (let index = 0; index < QUESTIONS_PER_NIGHT; index++) {
+		const text = DAILY_QUESTIONS[(dayOfYear * QUESTIONS_PER_NIGHT + index * stride) % total];
+
+		if (!picked.some((item) => item.text === text)) {
+			picked.push({ key: slugifyQuestion(text), text });
+		}
+	}
+
+	return picked;
 }
 
 function toIsoDate(value) {
@@ -2024,7 +2058,9 @@ SET
 				const users = await sql`
           SELECT
             id,
-            clerk_id
+            clerk_id,
+            push_token,
+            notification_preferences
           FROM users
           WHERE clerk_id IN (
             ${from_clerk_id},
@@ -2075,6 +2111,45 @@ SET
           ORDER BY created_at DESC
           LIMIT 1
         `;
+
+				if (existing.length > 0 && existing[0].status === 'ended') {
+					/*
+					 * These two have been here before. Bring the old
+					 * link back as a pending request rather than
+					 * starting a new one, so everything they made
+					 * together comes back when it is accepted.
+					 */
+					const revived = await sql`
+            UPDATE connections
+            SET
+              status = 'pending',
+              requester_id = ${sender.id},
+              recipient_id = ${receiver.id},
+              relationship_type = ${relationship_type},
+              updated_at = NOW()
+            WHERE id = ${existing[0].id}
+            RETURNING id, status, relationship_type
+          `;
+
+					await notifyUser(sql, {
+						userId: receiver.id,
+						pushToken: receiver.push_token,
+						preferences: receiver.notification_preferences,
+						type: 'connection_request',
+						title: 'Someone wants to reconnect',
+						message: 'Open Between Us to see the request.',
+						dedupeKey: `reconnect-${revived[0].id}`,
+					});
+
+					return Response.json(
+						{
+							message: 'Connection request sent',
+							connection: revived[0],
+							reconnecting: true,
+						},
+						{ status: 201 },
+					);
+				}
 
 				if (existing.length > 0) {
 					const connection = existing[0];
@@ -2269,6 +2344,7 @@ VALUES (
       c.relationship_type,
       c.status,
       c.created_at,
+      c.connected_at,
 
       CASE
         WHEN c.user_one = ${userId}
@@ -2740,43 +2816,20 @@ VALUES (
         `;
 
 				/*
-				 * Everything the two of them made together goes with
-				 * the link. Leaving it behind meant the next person
-				 * you connect with inherits the last one's special
-				 * dates and memories, which is nobody's idea of a
-				 * fresh start.
-				 */
-				/* Memories predate connection_id: they are keyed by
-				 * the two people instead. */
-				await sql`
-          DELETE FROM memories
-          WHERE (user_one = ${userId} AND user_two = ${partnerId})
-             OR (user_one = ${partnerId} AND user_two = ${userId})
-        `;
-				await sql`DELETE FROM dreams WHERE connection_id = ${connection.id}`;
-				await sql`DELETE FROM relationship_goals WHERE connection_id = ${connection.id}`;
-				await sql`DELETE FROM daily_answers WHERE connection_id = ${connection.id}`;
-				await sql`DELETE FROM appreciations WHERE connection_id = ${connection.id}`;
-				await sql`DELETE FROM checkins WHERE connection_id = ${connection.id}`;
-				await sql`DELETE FROM trivia_sessions WHERE connection_id = ${connection.id}`;
-				await sql`DELETE FROM date_plans WHERE connection_id = ${connection.id}`;
-
-				/*
-				 * Special dates hang off the person rather than the
-				 * connection, so clear both sides' -- they were saved
-				 * for a relationship that has ended.
+				 * Nothing is deleted. The link is marked ended, which
+				 * hides the shared space everywhere (every query asks
+				 * for an accepted connection), and if the two of them
+				 * link again the same row comes back with all of it
+				 * still attached. A different person means a
+				 * different row, so that starts empty.
 				 */
 				await sql`
-          DELETE FROM special_dates
-          WHERE user_id IN (${userId}, ${partnerId})
-        `;
-
-				await sql`
-          DELETE FROM connections
+          UPDATE connections
+          SET status = 'ended', updated_at = NOW()
           WHERE id = ${connection.id}
         `;
 
-				console.log('CONNECTION ENDED AND SHARED DATA CLEARED:', connection.id);
+				console.log('CONNECTION ENDED, HISTORY KEPT:', connection.id);
 
 				return Response.json({
 					message: 'Connection ended successfully',
@@ -5796,7 +5849,7 @@ VALUES (
 
 				const today = new Date();
 				const todayIso = today.toISOString().slice(0, 10);
-				const question = questionForDate(today);
+				const questions = questionsForDate(today);
 
 				const connectionResult = await sql`
           SELECT id, user_one, user_two
@@ -5824,8 +5877,16 @@ VALUES (
 
 					const answer = body?.answer?.trim();
 
+					/* Which of tonight's three. Defaults to the first,
+					 * so an older app still works. */
+					const questionKey = String(body?.question_key || questions[0].key);
+
 					if (!answer) {
 						return Response.json({ error: 'answer is required' }, { status: 400 });
+					}
+
+					if (!questions.some((item) => item.key === questionKey)) {
+						return Response.json({ error: 'That is not one of tonight\'s questions.' }, { status: 400 });
 					}
 
 					await sql`
@@ -5840,10 +5901,10 @@ VALUES (
               ${connection.id},
               ${userId},
               ${todayIso},
-              ${question.key},
+              ${questionKey},
               ${answer}
             )
-            ON CONFLICT (user_id, question_date)
+            ON CONFLICT (user_id, question_date, question_key)
             DO UPDATE SET
               answer = EXCLUDED.answer,
               updated_at = NOW()
@@ -5882,11 +5943,14 @@ VALUES (
 				}
 
 				const answers = await sql`
-          SELECT user_id, answer, updated_at
+          SELECT user_id, question_key, answer, updated_at
           FROM daily_answers
           WHERE question_date = ${todayIso}
             AND user_id IN (${userId}, ${partnerId})
         `;
+
+				const answerFor = (key, who) =>
+					answers.find((row) => row.question_key === key && row.user_id === who) || null;
 
 				const mine = answers.find((row) => row.user_id === userId) || null;
 				const theirs = answers.find((row) => row.user_id === partnerId) || null;
@@ -5908,8 +5972,31 @@ VALUES (
 
 				return Response.json({
 					date: todayIso,
-					question: question.text,
-					question_key: question.key,
+
+					/*
+					 * Three a night. Each carries both answers, and
+					 * theirs stays null until you have answered that
+					 * one -- the lock is per question, not per night.
+					 */
+					questions: questions.map((item) => {
+						const yours = answerFor(item.key, userId);
+						const partners = answerFor(item.key, partnerId);
+
+						return {
+							key: item.key,
+							question: item.text,
+							your_answer: yours?.answer || null,
+							partner_answer: yours ? partners?.answer || null : null,
+							partner_answered: Boolean(partners),
+						};
+					}),
+
+					answered_count: questions.filter((item) => answerFor(item.key, userId)).length,
+					total_questions: questions.length,
+
+					/* The first question, flat, for older copies of the app. */
+					question: questions[0].text,
+					question_key: questions[0].key,
 					your_answer: mine?.answer || null,
 					/*
 					 * Withheld on purpose until you answer.

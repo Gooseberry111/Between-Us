@@ -25,13 +25,26 @@ const ICONS = {
 };
 
 function TabBarBackground() {
+  /*
+   * Glass: the content behind it blurs through rather than
+   * being hidden by a white slab. Android has no real blur,
+   * so it gets the closest honest thing -- a light pane that
+   * still lets the tint of the page show.
+   */
   return (
     <View style={styles.bar}>
+      <BlurView
+        intensity={Platform.OS === "ios" ? 60 : 24}
+        tint="light"
+        experimentalBlurMethod={
+          Platform.OS === "android" ? "dimezisBlurView" : undefined
+        }
+        style={StyleSheet.absoluteFill}
+      />
+
       <View style={styles.barFill} />
 
-      {Platform.OS === "ios" ? (
-        <BlurView intensity={30} tint="light" style={StyleSheet.absoluteFill} />
-      ) : null}
+      <View style={styles.barEdge} />
     </View>
   );
 }
@@ -115,8 +128,18 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor:
       Platform.OS === "ios"
-        ? "rgba(255,255,255,0.72)"
-        : "rgba(255,255,255,0.97)",
+        ? "rgba(255,255,255,0.62)"
+        : "rgba(255,255,255,0.78)",
+  },
+
+  /* The bright lip along the top of the glass. */
+  barEdge: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: "rgba(255,255,255,0.9)",
   },
 
   icon: {

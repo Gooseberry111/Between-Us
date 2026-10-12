@@ -433,13 +433,13 @@ const styles = StyleSheet.create({
   },
 
   vennYou: {
-    backgroundColor: "rgba(155,107,255,0.20)",
+    backgroundColor: "rgba(155,107,255,0.14)",
     marginRight: -34,
     paddingRight: 26,
   },
 
   vennThem: {
-    backgroundColor: "rgba(240,63,169,0.20)",
+    backgroundColor: "rgba(240,63,169,0.14)",
     paddingLeft: 26,
   },
 
@@ -525,13 +525,13 @@ const styles = StyleSheet.create({
 
   who: {
     flex: 1,
-    backgroundColor: T.youTint,
+    backgroundColor: "rgba(155,107,255,0.10)",
     borderRadius: 14,
     padding: 12,
   },
 
   whoThem: {
-    backgroundColor: T.accentTint,
+    backgroundColor: "rgba(240,63,169,0.09)",
   },
 
   whoLabel: {
@@ -616,7 +616,7 @@ const styles = StyleSheet.create({
 
   suggest: {
     padding: 16,
-    backgroundColor: T.accent,
+    backgroundColor: T.surface,
   },
 
   suggestKicker: {
@@ -624,21 +624,21 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 0.6,
-    color: "rgba(255,255,255,0.75)",
+    color: T.accentText,
   },
 
   suggestTitle: {
     fontSize: 20,
     fontWeight: "700",
     letterSpacing: -0.4,
-    color: "#FFFFFF",
+    color: T.label,
     marginTop: 8,
   },
 
   suggestText: {
     fontSize: 14,
     lineHeight: 20,
-    color: "rgba(255,255,255,0.85)",
+    color: T.label2,
     marginTop: 4,
   },
 

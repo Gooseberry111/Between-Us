@@ -23,6 +23,7 @@ import {
   Press,
   Screen,
   SectionHeader,
+  Sheet,
 } from "../../components/ui";
 import BondHero from "../../components/BondHero";
 import { SkeletonList } from "../../components/Skeleton";
@@ -89,6 +90,7 @@ export default function HomeScreen() {
 
   /* Needs backend: the mood never leaves this phone yet. */
   const [mood, setMood] = useState(null);
+  const [moodSheet, setMoodSheet] = useState(false);
   const [loved, setLoved] = useState({});
 
   const loadHome = useCallback(async () => {
@@ -311,8 +313,18 @@ export default function HomeScreen() {
    * ==========================================
    */
 
-  const youAnswered = Boolean(daily?.your_answer);
-  const partnerAnswered = Boolean(daily?.partner_answered);
+  const tonight = Array.isArray(daily?.questions) ? daily.questions : [];
+
+  const answeredTonight = tonight.filter((item) => item.your_answer).length;
+  const totalTonight = tonight.length || 3;
+
+  /* The one they would answer next. */
+  const nextQuestion =
+    tonight.find((item) => !item.your_answer) || tonight[0] || null;
+
+  const youAnswered = answeredTonight >= totalTonight;
+
+  const partnerAnswered = tonight.some((item) => item.partner_answered);
   const hoursLeft = Math.max(1, 24 - new Date().getHours());
 
   const moodLine = mood
@@ -362,6 +374,7 @@ export default function HomeScreen() {
         streak={Number(daily?.streak || 0)}
         mood={MOODS.find((item) => item.key === mood)?.emoji}
         onHug={() => {}}
+        onPickMood={() => setMoodSheet(true)}
       />
 
       {/* TONIGHT'S QUESTION */}
@@ -371,13 +384,19 @@ export default function HomeScreen() {
           <View style={styles.qTop}>
             <Icon name="sparkle" size={18} color={T.accent} filled />
 
-            <Text style={styles.qLabel}>Tonight&apos;s question</Text>
+            <Text style={styles.qLabel}>
+              {answeredTonight > 0 && answeredTonight < totalTonight
+                ? `${totalTonight - answeredTonight} question${totalTonight - answeredTonight === 1 ? "" : "s"} left`
+                : "Tonight's questions"}
+            </Text>
 
             <Text style={styles.qTime}>{hoursLeft}h left</Text>
           </View>
 
           <Text style={styles.question}>
-            {daily?.question || "Loading tonight's question…"}
+            {nextQuestion?.question ||
+              daily?.question ||
+              "Loading tonight's questions…"}
           </Text>
 
           <View style={styles.lock}>
@@ -386,7 +405,7 @@ export default function HomeScreen() {
             {youAnswered ? (
               <Text style={styles.lockText} numberOfLines={1}>
                 {partnerAnswered
-                  ? daily?.partner_answer
+                  ? tonight.find((item) => item.partner_answer)?.partner_answer
                   : `${partnerName} hasn't answered yet`}
               </Text>
             ) : (
@@ -408,9 +427,11 @@ export default function HomeScreen() {
             title={
               youAnswered
                 ? partnerAnswered
-                  ? `See ${partnerName}'s answer`
-                  : "See your answer"
-                : `Answer to unlock ${partnerName}'s`
+                  ? `See ${partnerName}'s answers`
+                  : "See your answers"
+                : answeredTonight > 0
+                  ? "Carry on answering"
+                  : `Answer to unlock ${partnerName}'s`
             }
             onPress={() => router.push("/daily-question")}
             block={false}
@@ -505,6 +526,50 @@ export default function HomeScreen() {
           }}
         />
       )}
+
+      {/* HOW YOU'RE FEELING */}
+
+      <Sheet
+        visible={moodSheet}
+        title="How are you?"
+        onCancel={() => setMoodSheet(false)}
+        onSave={() => setMoodSheet(false)}
+        saveLabel="Done"
+      >
+        <Text style={styles.sheetHint}>
+          It shows on your avatar. Only {partnerName} sees it.
+        </Text>
+
+        <Group inset={16}>
+          {MOODS.map((item) => (
+            <Cell
+              key={item.key}
+              leading={<Text style={styles.sheetFace}>{item.emoji}</Text>}
+              title={item.line.replace("{name}", partnerName).split(".")[0]}
+              trailing={
+                mood === item.key ? (
+                  <Icon name="check" size={18} color={T.accent} />
+                ) : null
+              }
+              onPress={() => {
+                setMood(item.key);
+                setMoodSheet(false);
+              }}
+            />
+          ))}
+        </Group>
+
+        {mood ? (
+          <Button
+            title="Clear it"
+            kind="plain"
+            onPress={() => {
+              setMood(null);
+              setMoodSheet(false);
+            }}
+          />
+        ) : null}
+      </Sheet>
 
       {/* FROM THEM */}
 
@@ -681,5 +746,16 @@ const styles = StyleSheet.create({
   cal: {
     width: 40,
     alignItems: "center",
+  },
+
+  sheetHint: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: T.label2,
+    paddingHorizontal: 16,
+  },
+
+  sheetFace: {
+    fontSize: 26,
   },
 });
