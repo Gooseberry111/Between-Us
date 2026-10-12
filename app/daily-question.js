@@ -1,67 +1,89 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
+  Alert,
   Animated,
-  RefreshControl,
+  Easing,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useFocusEffect, useRouter } from "expo-router";
-import { GlassBackground, GlassCard, GlassPanel } from "../components/Glass";
-import { Skeleton } from "../components/Skeleton";
-import { getCachedData, setCachedData } from "../lib/dataCache";
+
 import { apiFetch } from "../lib/api";
-import ConnectFirst from "../components/ConnectFirst";
+import { clearCachedData } from "../lib/dataCache";
 import { useIsConnected } from "../lib/connection";
+import { T } from "../lib/theme";
+import {
+  Avatar,
+  Button,
+  Card,
+  Cell,
+  Group,
+  Press,
+  motionAllowed,
+} from "../components/ui";
+import ConnectFirst from "../components/ConnectFirst";
+import { SkeletonList } from "../components/Skeleton";
+
+/*
+ * ==========================================
+ * THE NIGHTLY RITUAL
+ * ==========================================
+ *
+ * One question a night, in four steps:
+ *
+ *   answer  -> say your piece, theirs stays sealed
+ *   reveal  -> both answers together, match or not
+ *   streak  -> the nights you have kept going
+ *   plan    -> leave with something to do
+ *
+ * Answering is the whole retention loop, so it is the
+ * fastest thing in the app: type a line, lock it in.
+ */
+
+const STEPS = ["answer", "reveal", "streak", "plan"];
+
+/* A plan to suggest when the two of you are in step. */
+const IDEAS = [
+  {
+    title: "Candlelit cook-along",
+    text: "Pick a recipe neither of you has made. Phones in a drawer until dessert.",
+  },
+  {
+    title: "A walk with no phones",
+    text: "Twenty minutes, no destination. The talking does itself.",
+  },
+  {
+    title: "Breakfast somewhere new",
+    text: "Before work, so the day starts with each other.",
+  },
+];
+
+function ideaOfTheNight() {
+  return IDEAS[Math.floor(Date.now() / 86400000) % IDEAS.length];
+}
 
 export default function DailyQuestionScreen() {
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
   const connected = useIsConnected();
 
-  const cacheKey = userId ? `daily-question:${userId}` : null;
-  const cached = cacheKey ? getCachedData(cacheKey) : undefined;
-
-  const [data, setData] = useState(cached ?? null);
-  const [loading, setLoading] = useState(!cached);
+  const [daily, setDaily] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [answer, setAnswer] = useState("");
   const [saving, setSaving] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [draft, setDraft] = useState(cached?.your_answer || "");
-  const [editing, setEditing] = useState(false);
-  const [justSaved, setJustSaved] = useState(false);
-  const [error, setError] = useState("");
+  const [step, setStep] = useState("answer");
+  const [addedDate, setAddedDate] = useState(false);
+  const [celebrate, setCelebrate] = useState(false);
 
-  /* Entrance animation, replayed when the answer unlocks. */
-  const fade = useRef(new Animated.Value(0)).current;
-  const lift = useRef(new Animated.Value(18)).current;
-
-  const runReveal = useCallback(() => {
-    fade.setValue(0);
-    lift.setValue(18);
-
-    Animated.parallel([
-      Animated.timing(fade, {
-        toValue: 1,
-        duration: 450,
-        useNativeDriver: true,
-      }),
-      Animated.spring(lift, {
-        toValue: 0,
-        friction: 8,
-        tension: 60,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [fade, lift]);
+  const reveal = useRef(new Animated.Value(0)).current;
 
   const load = useCallback(async () => {
     if (!isLoaded || !isSignedIn || !userId) {
@@ -70,321 +92,402 @@ export default function DailyQuestionScreen() {
     }
 
     try {
-      setError("");
-
       const response = await apiFetch(`/users/${userId}/daily-question`);
-      const json = await response.json();
+      const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(json?.error || "Unable to load today's question.");
+      if (!response.ok) throw new Error(data?.error || "Unable to load.");
+
+      setDaily(data);
+      setAnswer(data?.your_answer || "");
+
+      /* Already answered and so have they: go straight to the
+       * reveal, which is what they came back for. */
+      if (data?.your_answer) {
+        setStep(data?.partner_answered ? "reveal" : "waiting");
       }
-
-      setData(json);
-      setDraft(json.your_answer || "");
-
-      if (cacheKey) setCachedData(cacheKey, json);
     } catch (err) {
-      console.log("DAILY QUESTION LOAD ERROR:", err);
-      setError(err?.message || "Unable to load today's question.");
+      console.log("DAILY LOAD ERROR:", err);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
-  }, [isLoaded, isSignedIn, userId, cacheKey]);
+  }, [isLoaded, isSignedIn, userId]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  /*
-   * Re-check on focus. Your partner may have answered
-   * since you last looked, and without this the screen
-   * would keep insisting they hadn't.
-   */
   useFocusEffect(
     useCallback(() => {
       load();
     }, [load]),
   );
 
+  /* The reveal cards flip in once. */
   useEffect(() => {
-    if (!loading) runReveal();
-  }, [loading, runReveal]);
+    if (step !== "reveal") return;
 
-  const submit = async () => {
-    const answer = draft.trim();
+    reveal.setValue(0);
 
-    if (!answer || saving || !userId) return;
+    motionAllowed().then((allowed) => {
+      if (!allowed) {
+        reveal.setValue(1);
+        return;
+      }
+
+      Animated.timing(reveal, {
+        toValue: 1,
+        duration: 650,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    });
+  }, [step, reveal]);
+
+  const lockIn = async () => {
+    if (!answer.trim() || saving) return;
 
     try {
       setSaving(true);
-      setError("");
 
       const response = await apiFetch(`/users/${userId}/daily-question`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answer }),
+        body: JSON.stringify({ answer: answer.trim() }),
       });
 
-      const json = await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(json?.error || "Unable to save your answer.");
+        throw new Error(data?.error || "Unable to save your answer.");
       }
 
-      setData(json);
+      setDaily(data);
+      clearCachedData(`home:${userId}`);
 
-      if (cacheKey) setCachedData(cacheKey, json);
+      if (data?.partner_answered) {
+        const same =
+          String(data.partner_answer || "").trim().toLowerCase() ===
+          answer.trim().toLowerCase();
 
-      /*
-       * Saving used to change nothing on screen, because the
-       * answer was already sitting in the box you typed it
-       * into. Drop out of edit mode and say it landed.
-       */
-      setEditing(false);
-      setJustSaved(true);
-      setTimeout(() => setJustSaved(false), 2200);
-
-      /* Replay the reveal so unlocking feels like something. */
-      runReveal();
+        setCelebrate(same);
+        setStep("reveal");
+      } else {
+        setStep("waiting");
+      }
     } catch (err) {
-      console.log("DAILY QUESTION SAVE ERROR:", err);
-      setError(err?.message || "Unable to save your answer.");
+      Alert.alert("We couldn't save that", err?.message || "Please try again.");
     } finally {
       setSaving(false);
     }
   };
 
-  const answered = Boolean(data?.your_answer);
-  const partnerName = data?.partner_name || "Your partner";
+  const addToDates = async () => {
+    const idea = ideaOfTheNight();
+
+    try {
+      const response = await apiFetch(`/users/${userId}/date-plans`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: idea.title, notes: idea.text }),
+      });
+
+      if (!response.ok) throw new Error("Unable to add this to your dates.");
+
+      setAddedDate(true);
+    } catch (err) {
+      Alert.alert("We couldn't add that", err?.message || "Please try again.");
+    }
+  };
 
   if (connected === false) {
-    return <ConnectFirst feature="Daily question" showBack={true} />;
+    return <ConnectFirst feature="Tonight's question" showBack={true} />;
   }
+
+  const partnerName = daily?.partner_name?.trim() || "Your person";
+  const streak = Number(daily?.streak || 0);
+  const week = Array.isArray(daily?.week) ? daily.week : [];
+  const idea = ideaOfTheNight();
+
+  const stepIndex = STEPS.indexOf(step);
 
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
-      <GlassBackground>
-        <KeyboardAvoidingView
-          style={styles.fill}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-        >
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={() => {
-                  setRefreshing(true);
-                  load();
-                }}
-                tintColor="#F03FA9"
+      <KeyboardAvoidingView
+        style={styles.fill}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        {/* Where you are in the ritual. */}
+        <View style={styles.topBar}>
+          <Press onPress={() => router.back()} style={styles.close}>
+            <Ionicons name="chevron-down" size={20} color={T.label} />
+          </Press>
+
+          <View style={styles.progress}>
+            {STEPS.map((name, index) => (
+              <View
+                key={name}
+                style={[
+                  styles.progressBar,
+                  index <= stepIndex && styles.progressBarOn,
+                ]}
               />
-            }
-            contentContainerStyle={styles.scrollContent}
-          >
-            <View style={styles.container}>
-              {/* HEADER */}
+            ))}
+          </View>
 
-              <View style={styles.header}>
-                <TouchableOpacity
-                  style={styles.backButton}
-                  activeOpacity={0.8}
-                  onPress={() => router.back()}
-                >
-                  <Ionicons name="chevron-back" size={20} color="#F03FA9" />
-                </TouchableOpacity>
+          <View style={styles.close} />
+        </View>
 
-                <View style={styles.headerText}>
-                  <Text style={styles.brand}>TODAY</Text>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {loading ? (
+            <SkeletonList count={3} />
+          ) : step === "answer" ? (
+            /* ---------- 1. ANSWER ---------- */
+            <>
+              <Text style={styles.kicker}>Tonight&apos;s question</Text>
 
-                  <Text style={styles.pageTitle}>Daily question</Text>
-                </View>
+              <Text style={styles.question}>{daily?.question}</Text>
 
-                {data?.streak > 0 ? (
-                  <View style={styles.streakPill}>
-                    <Text style={styles.streakFlame}>✦</Text>
+              <Card style={styles.answerCard}>
+                <TextInput
+                  value={answer}
+                  onChangeText={setAnswer}
+                  placeholder="Say it in a line…"
+                  placeholderTextColor={T.label3}
+                  style={styles.input}
+                  multiline
+                  autoFocus
+                  textAlignVertical="top"
+                />
+              </Card>
 
-                    <Text style={styles.streakText}>{data.streak}</Text>
-                  </View>
-                ) : null}
-              </View>
+              {daily?.partner_answered ? (
+                <View style={styles.sealed}>
+                  <Avatar name={partnerName} who="them" size={26} />
 
-              {error ? (
-                <View style={styles.errorBox}>
-                  <Text style={styles.errorText}>{error}</Text>
-                </View>
-              ) : null}
+                  <Text style={styles.sealedText}>
+                    {partnerName} has answered
+                  </Text>
 
-              {loading ? (
-                <View>
-                  <Skeleton width="90%" height={24} radius={9} />
-
-                  <Skeleton
-                    width="70%"
-                    height={24}
-                    radius={9}
-                    style={{ marginTop: 10 }}
-                  />
-
-                  <Skeleton
-                    width="100%"
-                    height={120}
-                    radius={18}
-                    style={{ marginTop: 24 }}
-                  />
+                  <Ionicons name="lock-closed" size={15} color={T.label3} />
                 </View>
               ) : (
-                <Animated.View
-                  style={{ opacity: fade, transform: [{ translateY: lift }] }}
-                >
-                  {/* THE QUESTION */}
+                <Text style={styles.hint}>
+                  {partnerName} hasn&apos;t answered yet. Yours stays sealed
+                  until they do.
+                </Text>
+              )}
 
-                  <GlassPanel style={styles.questionPanel}>
-                    <Text style={styles.questionLabel}>TODAY</Text>
+              <Button
+                title="Lock In Answer"
+                onPress={lockIn}
+                busy={saving}
+                disabled={!answer.trim()}
+                style={styles.action}
+              />
+            </>
+          ) : step === "waiting" ? (
+            /* ---------- WAITING ---------- */
+            <>
+              <Text style={styles.kicker}>Locked in</Text>
 
-                    <Text style={styles.questionText}>{data?.question}</Text>
-                  </GlassPanel>
+              <Text style={styles.question}>
+                Now we wait for {partnerName}.
+              </Text>
 
-                  {/* YOUR ANSWER */}
+              <Card style={styles.answerCard}>
+                <Text style={styles.yourAnswerLabel}>You said</Text>
 
-                  <GlassCard style={styles.card}>
-                    <View style={styles.cardHead}>
-                      <Text style={styles.cardLabel}>YOUR ANSWER</Text>
+                <Text style={styles.yourAnswer}>{daily?.your_answer}</Text>
+              </Card>
 
-                      {justSaved ? (
-                        <View style={styles.savedPill}>
-                          <Ionicons
-                            name="checkmark"
-                            size={12}
-                            color="#4F7A56"
-                          />
+              <Text style={styles.hint}>
+                We&apos;ll let you know the moment they answer, and you&apos;ll
+                both see it at once.
+              </Text>
 
-                          <Text style={styles.savedPillText}>Saved</Text>
-                        </View>
-                      ) : null}
-                    </View>
+              <Button
+                title="See the Streak"
+                kind="tinted"
+                onPress={() => setStep("streak")}
+                style={styles.action}
+              />
+            </>
+          ) : step === "reveal" ? (
+            /* ---------- 2. REVEAL ---------- */
+            <>
+              <Text style={[styles.kicker, styles.centre]}>Revealed</Text>
 
-                    {answered && !editing ? (
-                      <View>
-                        <Text style={styles.savedAnswer}>
-                          {data?.your_answer}
-                        </Text>
+              <Text style={[styles.question, styles.centre]}>
+                Here&apos;s what you both said
+              </Text>
 
-                        <TouchableOpacity
-                          style={styles.editButton}
-                          activeOpacity={0.8}
-                          onPress={() => {
-                            setDraft(data?.your_answer || "");
-                            setEditing(true);
-                          }}
-                        >
-                          <Text style={styles.editButtonText}>Edit answer</Text>
-                        </TouchableOpacity>
-                      </View>
-                    ) : (
-                      <View>
-                        <TextInput
-                          value={draft}
-                          onChangeText={setDraft}
-                          placeholder="Say what you actually think..."
-                          placeholderTextColor="rgba(60,60,67,0.3)"
-                          style={styles.input}
-                          multiline
-                          textAlignVertical="top"
-                        />
+              <Animated.View
+                style={{
+                  opacity: reveal,
+                  transform: [
+                    {
+                      translateY: reveal.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [16, 0],
+                      }),
+                    },
+                  ],
+                }}
+              >
+                <Card style={[styles.revealCard, styles.revealYou]}>
+                  <Avatar name="You" who="you" size={38} />
 
-                        <TouchableOpacity
-                          style={[
-                            styles.saveButton,
-                            (!draft.trim() || saving) &&
-                              styles.saveButtonDisabled,
-                          ]}
-                          activeOpacity={0.85}
-                          onPress={submit}
-                          disabled={!draft.trim() || saving}
-                        >
-                          {saving ? (
-                            <ActivityIndicator size="small" color="#FFFFFF" />
-                          ) : (
-                            <Text style={styles.saveButtonText}>
-                              {answered ? "Save changes" : "Answer & unlock"}
-                            </Text>
-                          )}
-                        </TouchableOpacity>
+                  <View style={styles.revealText}>
+                    <Text style={styles.revealWho}>You</Text>
 
-                        {answered ? (
-                          <TouchableOpacity
-                            style={styles.cancelButton}
-                            activeOpacity={0.8}
-                            onPress={() => {
-                              setDraft(data?.your_answer || "");
-                              setEditing(false);
-                            }}
-                          >
-                            <Text style={styles.cancelButtonText}>Cancel</Text>
-                          </TouchableOpacity>
+                    <Text style={styles.revealAnswer}>
+                      {daily?.your_answer}
+                    </Text>
+                  </View>
+                </Card>
+
+                <Card style={[styles.revealCard, styles.revealThem]}>
+                  <Avatar name={partnerName} who="them" size={38} />
+
+                  <View style={styles.revealText}>
+                    <Text style={styles.revealWho}>{partnerName}</Text>
+
+                    <Text style={styles.revealAnswer}>
+                      {daily?.partner_answer}
+                    </Text>
+                  </View>
+                </Card>
+              </Animated.View>
+
+              <Card
+                style={[
+                  styles.verdict,
+                  celebrate ? styles.verdictMatch : styles.verdictDiff,
+                ]}
+              >
+                <View style={styles.verdictIcon}>
+                  <Ionicons
+                    name={celebrate ? "heart" : "bulb"}
+                    size={17}
+                    color="#FFFFFF"
+                  />
+                </View>
+
+                <View style={styles.verdictText}>
+                  <Text style={styles.verdictTitle}>
+                    {celebrate
+                      ? "Same answer. You're in sync."
+                      : "Different answers. That's useful."}
+                  </Text>
+
+                  <Text style={styles.verdictSub}>
+                    {celebrate
+                      ? "There's an idea waiting for you both."
+                      : `Ask ${partnerName} why they said what they said.`}
+                  </Text>
+                </View>
+              </Card>
+
+              <Button
+                title="Continue"
+                onPress={() => setStep("streak")}
+                style={styles.action}
+              />
+            </>
+          ) : step === "streak" ? (
+            /* ---------- 3. STREAK ---------- */
+            <>
+              <View style={styles.flameWrap}>
+                <Ionicons name="flame" size={38} color={T.orange} />
+              </View>
+
+              <Text style={styles.streakNumber}>{streak}</Text>
+
+              <Text style={[styles.streakLabel, styles.centre]}>
+                {streak === 1 ? "night" : "nights"} in a row
+              </Text>
+
+              <Text style={[styles.hint, styles.centre]}>
+                {streak > 1
+                  ? `${partnerName}'s goes up too, because you keep it going together.`
+                  : `Answer again tomorrow and this becomes a streak.`}
+              </Text>
+
+              {week.length > 0 ? (
+                <Card style={styles.week}>
+                  {week.map((day) => (
+                    <View key={day.date} style={styles.day}>
+                      <Text style={styles.dayLetter}>
+                        {new Date(`${day.date}T00:00:00`)
+                          .toLocaleDateString(undefined, { weekday: "short" })
+                          .charAt(0)}
+                      </Text>
+
+                      <View
+                        style={[
+                          styles.dayDot,
+                          day.answered && styles.dayDotOn,
+                          day.today && !day.answered && styles.dayDotToday,
+                        ]}
+                      >
+                        {day.answered ? (
+                          <Ionicons name="checkmark" size={13} color="#FFFFFF" />
                         ) : null}
                       </View>
-                    )}
-                  </GlassCard>
+                    </View>
+                  ))}
+                </Card>
+              ) : null}
 
-                  {/* PARTNER ANSWER */}
+              <Button
+                title="Continue"
+                onPress={() => setStep("plan")}
+                style={styles.action}
+              />
+            </>
+          ) : (
+            /* ---------- 4. PLAN ---------- */
+            <>
+              <Text style={styles.kicker}>Make it real</Text>
 
-                  <GlassCard style={styles.card}>
-                    <Text style={styles.cardLabel}>
-                      {partnerName.toUpperCase()}
-                    </Text>
+              <Text style={styles.question}>Turn tonight into a plan</Text>
 
-                    {!answered ? (
-                      <View style={styles.lockedBox}>
-                        <Ionicons
-                          name="lock-closed-outline"
-                          size={22}
-                          color="#F03FA9"
-                        />
+              <Card style={styles.idea}>
+                <Text style={styles.ideaWhy}>
+                  Because of what you both said tonight
+                </Text>
 
-                        <Text style={styles.lockedTitle}>
-                          {data?.partner_answered
-                            ? `${partnerName} has answered.`
-                            : `Waiting on ${partnerName}.`}
-                        </Text>
+                <Text style={styles.ideaTitle}>{idea.title}</Text>
 
-                        <Text style={styles.lockedText}>
-                          Answer yours first, so you say what you really think
-                          instead of echoing them.
-                        </Text>
-                      </View>
-                    ) : data?.partner_answer ? (
-                      <Text style={styles.answerText}>
-                        {data.partner_answer}
-                      </Text>
-                    ) : (
-                      <View style={styles.lockedBox}>
-                        <Ionicons
-                          name="time-outline"
-                          size={22}
-                          color="#F03FA9"
-                        />
+                <Text style={styles.ideaText}>{idea.text}</Text>
+              </Card>
 
-                        <Text style={styles.lockedTitle}>
-                          {partnerName} hasn't answered yet.
-                        </Text>
+              <Button
+                title={addedDate ? "Added to Dates" : "Add to Dates"}
+                icon={addedDate ? "checkmark-circle" : "calendar-outline"}
+                kind={addedDate ? "gray" : "tinted"}
+                onPress={addedDate ? undefined : addToDates}
+                style={styles.action}
+              />
 
-                        <Text style={styles.lockedText}>
-                          We've let them know yours is in. Pull down to check
-                          again.
-                        </Text>
-                      </View>
-                    )}
-                  </GlassCard>
-                </Animated.View>
-              )}
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </GlassBackground>
+              <Group inset={52}>
+                <Cell
+                  leading={<Ionicons name="time" size={21} color={T.accent} />}
+                  title="Next question at midnight"
+                  subtitle="One a night, every night."
+                />
+              </Group>
+
+              <Button
+                title="Done"
+                kind="plain"
+                onPress={() => router.back()}
+                style={styles.action}
+              />
+            </>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -392,243 +495,289 @@ export default function DailyQuestionScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
+    backgroundColor: T.appBackground,
   },
 
   fill: {
     flex: 1,
   },
 
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 120,
-  },
-
-  container: {
-    paddingHorizontal: 22,
-    paddingTop: 22,
-  },
-
-  header: {
+  topBar: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 22,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 12,
   },
 
-  backButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "rgba(240, 63, 169, 0.09)",
+  close: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.85)",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 11,
   },
 
-  headerText: {
+  progress: {
     flex: 1,
+    flexDirection: "row",
+    gap: 5,
   },
 
-  brand: {
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 2,
-    color: "#F03FA9",
+  progressBar: {
+    flex: 1,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: T.fill3,
   },
 
-  pageTitle: {
-    marginTop: 5,
+  progressBarOn: {
+    backgroundColor: T.accent,
+  },
+
+  content: {
+    padding: 16,
+    paddingBottom: 60,
+    gap: 14,
+  },
+
+  centre: {
+    textAlign: "center",
+  },
+
+  kicker: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: T.accent,
+  },
+
+  question: {
     fontSize: 26,
     lineHeight: 31,
     fontWeight: "700",
-    color: "#111114",
+    letterSpacing: -0.7,
+    color: T.label,
+    marginTop: -6,
   },
 
-  streakPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: "rgba(255, 255, 255, 0.6)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.8)",
-  },
-
-  streakFlame: {
-    fontSize: 13,
-    color: "#F03FA9",
-  },
-
-  streakText: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#F03FA9",
-  },
-
-  questionPanel: {
-    marginBottom: 14,
-  },
-
-  questionLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 1.6,
-    color: "#FDE8F5",
-  },
-
-  questionText: {
-    marginTop: 12,
-    fontSize: 22,
-    lineHeight: 30,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-
-  card: {
-    marginBottom: 14,
-  },
-
-  cardHead: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-
-  savedPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: "rgba(127, 163, 131, 0.18)",
-  },
-
-  savedPillText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#4F7A56",
-  },
-
-  /* Written down rather than left in a text box,
-   * so it actually reads as saved. */
-  savedAnswer: {
-    marginTop: 12,
-    fontSize: 15.5,
-    lineHeight: 23,
-    color: "#111114",
-  },
-
-  editButton: {
-    alignSelf: "flex-start",
-    marginTop: 14,
-    paddingHorizontal: 13,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: "rgba(240, 63, 169, 0.1)",
-  },
-
-  editButtonText: {
-    fontSize: 11.5,
-    fontWeight: "700",
-    color: "#F03FA9",
-  },
-
-  cancelButton: {
-    alignSelf: "center",
-    marginTop: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-  },
-
-  cancelButtonText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  cardLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 1.5,
-    color: "rgba(60,60,67,0.6)",
+  answerCard: {
+    marginHorizontal: 0,
+    padding: 4,
   },
 
   input: {
-    marginTop: 12,
-    minHeight: 110,
-    borderRadius: 14,
-    backgroundColor: "rgba(255, 255, 255, 0.5)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.7)",
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 14,
-    lineHeight: 20,
-    color: "#111114",
+    minHeight: 120,
+    fontSize: 17,
+    lineHeight: 24,
+    color: T.label,
+    padding: 14,
   },
 
-  saveButton: {
-    marginTop: 14,
-    height: 50,
+  yourAnswerLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+    color: T.label2,
+    paddingHorizontal: 10,
+    paddingTop: 8,
+  },
+
+  yourAnswer: {
+    fontSize: 17,
+    lineHeight: 24,
+    color: T.label,
+    padding: 10,
+  },
+
+  sealed: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    padding: 12,
     borderRadius: 14,
-    backgroundColor: "#F03FA9",
+    backgroundColor: T.fill4,
+  },
+
+  sealedText: {
+    flex: 1,
+    fontSize: 14,
+    color: T.label2,
+  },
+
+  hint: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: T.label2,
+  },
+
+  action: {
+    marginTop: 4,
+  },
+
+  revealCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    marginHorizontal: 0,
+    marginBottom: 10,
+    padding: 14,
+  },
+
+  revealYou: {
+    backgroundColor: T.youTint,
+  },
+
+  revealThem: {
+    backgroundColor: T.accentTint,
+  },
+
+  revealText: {
+    flex: 1,
+  },
+
+  revealWho: {
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+    color: T.label2,
+  },
+
+  revealAnswer: {
+    fontSize: 16,
+    lineHeight: 22,
+    color: T.label,
+    marginTop: 3,
+  },
+
+  verdict: {
+    flexDirection: "row",
+    gap: 12,
+    marginHorizontal: 0,
+    padding: 14,
+  },
+
+  verdictMatch: {
+    backgroundColor: "rgba(52,199,89,0.12)",
+  },
+
+  verdictDiff: {
+    backgroundColor: T.fill4,
+  },
+
+  verdictIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: T.accent,
     alignItems: "center",
     justifyContent: "center",
   },
 
-  saveButtonDisabled: {
-    opacity: 0.45,
+  verdictText: {
+    flex: 1,
   },
 
-  saveButtonText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "800",
-  },
-
-  lockedBox: {
-    marginTop: 14,
-    alignItems: "center",
-    paddingVertical: 14,
-  },
-
-  lockedTitle: {
-    marginTop: 10,
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#111114",
-    textAlign: "center",
-  },
-
-  lockedText: {
-    marginTop: 6,
-    fontSize: 12,
-    lineHeight: 18,
-    color: "rgba(60,60,67,0.6)",
-    textAlign: "center",
-    maxWidth: 260,
-  },
-
-  answerText: {
-    marginTop: 12,
+  verdictTitle: {
     fontSize: 15,
-    lineHeight: 23,
-    color: "#111114",
+    fontWeight: "600",
+    color: T.label,
   },
 
-  errorBox: {
-    backgroundColor: "rgba(243, 227, 223, 0.85)",
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderRadius: 12,
-    marginBottom: 15,
+  verdictSub: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: T.label2,
+    marginTop: 2,
   },
 
-  errorText: {
+  flameWrap: {
+    alignSelf: "center",
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: "rgba(255,149,0,0.14)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 20,
+  },
+
+  streakNumber: {
+    fontSize: 72,
+    lineHeight: 78,
+    fontWeight: "700",
+    letterSpacing: -3,
+    color: T.accent,
+    textAlign: "center",
+    marginTop: 6,
+  },
+
+  streakLabel: {
+    fontSize: 17,
+    color: T.label2,
+    marginTop: -8,
+  },
+
+  week: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginHorizontal: 0,
+    padding: 14,
+  },
+
+  day: {
+    alignItems: "center",
+    gap: 7,
+  },
+
+  dayLetter: {
     fontSize: 12,
-    lineHeight: 17,
-    color: "#FF3B30",
+    color: T.label2,
+  },
+
+  dayDot: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: T.fill4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  dayDotOn: {
+    backgroundColor: T.accent,
+  },
+
+  dayDotToday: {
+    borderWidth: 2,
+    borderColor: T.accent,
+  },
+
+  idea: {
+    marginHorizontal: 0,
+    padding: 16,
+  },
+
+  ideaWhy: {
+    fontSize: 12.5,
+    fontWeight: "600",
+    color: T.accentText,
+  },
+
+  ideaTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    letterSpacing: -0.4,
+    color: T.label,
+    marginTop: 6,
+  },
+
+  ideaText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: T.label2,
+    marginTop: 4,
   },
 });

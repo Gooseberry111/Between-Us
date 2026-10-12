@@ -5921,6 +5921,30 @@ VALUES (
 						history.map((row) => row.question_date),
 						todayIso,
 					),
+					/*
+					 * The last seven days, oldest first, so the app
+					 * can draw the week strip without guessing.
+					 */
+					week: (() => {
+						const answered = new Set(history.map((row) => toIsoDate(row.question_date)));
+						const days = [];
+
+						for (let back = 6; back >= 0; back--) {
+							const day = new Date(today);
+
+							day.setUTCDate(day.getUTCDate() - back);
+
+							const iso = day.toISOString().slice(0, 10);
+
+							days.push({
+								date: iso,
+								answered: answered.has(iso),
+								today: iso === todayIso,
+							});
+						}
+
+						return days;
+					})(),
 				});
 			}
 

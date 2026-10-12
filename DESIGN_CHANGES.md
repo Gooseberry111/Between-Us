@@ -14,7 +14,7 @@ What exists today, and where it lands in the new design.
 | Insights | `app/(tabs)/insights.js` | Done: Venn, trait comparisons with Match/Complementary, love-language bars, weekly suggestion |
 | Profile | `app/(tabs)/profile.js` | Done: account row, partner row with Nudge, reminder switches, Your space, Relationship ending in the red unlink row |
 | Memories | `app/(tabs)/memories.js` | Done: Timeline tab with segmented filter, grouped by day, empty state with prompt chips, New Memory sheet |
-| Daily question | `app/daily-question.js` | Nightly ritual: answer, reveal, streak, plan — pending |
+| Daily question | `app/daily-question.js` | Done: the nightly ritual — answer, reveal, streak, plan — with a step bar across the top |
 | Appreciations | `app/appreciations.js` | Reached as the Note quick action |
 | Check-in | `app/check-in.js` | Folded into the Home mood check-in; screen stays reachable |
 | Goals, special dates, trivia, connection, find person, notifications, onboarding, legal | various | Restyle pending; all stay reachable |
@@ -40,6 +40,11 @@ Shared: `lib/api.js`, `lib/dataCache.js`, `lib/connection.js`, `lib/profileProgr
 - [Dreams] Board counter, featured dream with a Fitness-style ring, horizontally scrolling starters with App Store-style Add buttons. Files: `app/(tabs)/dreams.js` · **Needs backend: steps within a dream; the starters are local suggestions**
 - [Insights] Venn of the shared trait, comparison cards with Match / Complementary badges and a tip when you differ, love-language bars in both colours, and a weekly suggestion that adds to Dates. Files: `app/(tabs)/insights.js`
 - [Profile] Reminder switches wired to the notification preferences endpoint, Your space links, Relationship group, and the unlink alert naming what is lost. Files: `app/(tabs)/profile.js`
+
+## Added (third pass)
+
+- [Ritual] `app/daily-question.js` rebuilt as the four-step loop: answer (theirs sealed until you reply), reveal (both answers, match or difference with a conversation prompt), streak (the count and the week strip), plan (an idea that adds itself to Dates, and when the next question unlocks). Files: `app/daily-question.js`
+- [API] `GET /users/:id/daily-question` now returns `week`: the last seven days with whether each was answered, so the streak strip is real rather than drawn from a guess. Files: `between-us-api/src/index.js`
 
 ## Changed
 
