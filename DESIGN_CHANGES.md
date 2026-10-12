@@ -54,6 +54,8 @@ Shared: `lib/api.js`, `lib/dataCache.js`, `lib/connection.js`, `lib/profileProgr
 - Photos: memories and dreams can take one from the library. It is stored in the media store and shown back with the session token.
 - `SheetHeader` and `Check` added to the library. `GlassButton` gained `prominent` and `disabled`.
 
+- Activity: "From {partner}" on Home is now a real feed of what they did: sent a note, answered tonight's questions, added or finished a dream, added a memory, planned a date, started a repair, played trivia. It no longer shows the app's own reminders. Each row has a time, an unread dot, opens what it refers to (a dream opens its own sheet), and a heart that is saved and tells them once. See All opens Activity, with their side and yours, and which of yours they loved.
+
 ## Changed (fourth pass)
 
 - All sheets now share one header: the grabber, a 52pt bar with xmark and checkmark circle buttons on iOS (Cancel and Save on Android), a truly centred title, an optional subtitle, and a scrolling body with room at the bottom. Dreams and Memories no longer draw their own. Daily Question and Repair use the same header.
