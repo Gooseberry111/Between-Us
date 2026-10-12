@@ -13,6 +13,11 @@ import {
 import { useSignUp } from "@clerk/expo";
 import { Link, useRouter } from "expo-router";
 
+import PasswordField, {
+  PASSWORD_MINIMUM,
+  passwordProblem,
+} from "../components/ui/PasswordField";
+
 /*
  * ==========================================
  * FLAKY CONNECTIONS
@@ -118,8 +123,10 @@ export default function SignUpScreen() {
       return;
     }
 
-    if (password.length < 8) {
-      setError("Your password needs at least 8 characters.");
+    const problem = passwordProblem(password);
+
+    if (problem) {
+      setError(`Your password is too short. ${problem}`);
       return;
     }
 
@@ -354,15 +361,14 @@ export default function SignUpScreen() {
             onChangeText={setEmailAddress}
           />
 
-          <Text style={styles.label}>Password</Text>
-
-          <TextInput
-            style={styles.input}
-            placeholder="Create a password"
-            placeholderTextColor="rgba(60,60,67,0.6)"
-            secureTextEntry
+          <PasswordField
+            label="Password"
             value={password}
             onChangeText={setPassword}
+            placeholder={`At least ${PASSWORD_MINIMUM} characters`}
+            autoComplete="new-password"
+            textContentType="newPassword"
+            showRule
           />
 
           {error ? <Text style={styles.error}>{error}</Text> : null}

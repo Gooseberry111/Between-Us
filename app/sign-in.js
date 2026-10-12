@@ -15,6 +15,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useSignIn, useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 
+import PasswordField from "../components/ui/PasswordField";
+
 export default function SignInScreen() {
   const router = useRouter();
 
@@ -512,23 +514,14 @@ export default function SignInScreen() {
                 {/* PASSWORD */}
 
                 <View style={styles.field}>
-                  <Text style={styles.label}>Password</Text>
-
-                  <TextInput
+                  <PasswordField
+                    label="Password"
                     value={password}
                     onChangeText={(value) => {
                       setPassword(value);
                       setError("");
                     }}
                     placeholder="Enter your password"
-                    placeholderTextColor="rgba(60,60,67,0.3)"
-                    secureTextEntry
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    autoComplete="password"
-                    editable={!loading}
-                    style={styles.input}
-                    returnKeyType="done"
                     onSubmitEditing={handleSignIn}
                   />
                 </View>

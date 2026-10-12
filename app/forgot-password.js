@@ -1,27 +1,35 @@
 import { useState } from "react";
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { useSignIn } from "@clerk/expo";
 import { useRouter } from "expo-router";
+
+import { T } from "../lib/theme";
+import { Button, Card, Press, Icon } from "../components/ui";
+import PasswordField, {
+  PASSWORD_MINIMUM,
+  passwordProblem,
+} from "../components/ui/PasswordField";
 
 /*
  * ==========================================
  * FORGOT PASSWORD
  * ==========================================
  *
- * Three steps on one screen: ask for the email,
- * take the code from it, then set a new password.
- * Clerk signs the person in once the password is
- * changed, so the auth guard takes it from there.
+ * One thing per screen: the email, then the code,
+ * then the new password.
+ *
+ * All three used to be two fields on one screen, and
+ * people typed the emailed code into the password box
+ * and were told the code was missing. One field at a
+ * time cannot be got wrong.
  */
 
 export default function ForgotPasswordScreen() {
@@ -45,24 +53,16 @@ export default function ForgotPasswordScreen() {
       return "We couldn't reach the server. Check your connection and try again.";
     }
 
-    return err?.errors?.[0]?.message || err?.message || fallback;
+    return (
+      err?.errors?.[0]?.longMessage ||
+      err?.errors?.[0]?.message ||
+      err?.message ||
+      fallback
+    );
   };
 
+  /* 1. ask for the email and send a code */
   const sendCode = async () => {
-    const result = await signIn.create({ identifier: cleanEmail });
-
-    if (result?.error) {
-      throw new Error(result.error.message || "We couldn't find that account.");
-    }
-
-    const sent = await signIn.resetPasswordEmailCode.sendCode();
-
-    if (sent?.error) {
-      throw new Error(sent.error.message || "We couldn't send the code.");
-    }
-  };
-
-  const handleSendCode = async () => {
     if (busy) return;
 
     setError("");
@@ -76,10 +76,23 @@ export default function ForgotPasswordScreen() {
     try {
       setBusy(true);
 
-      await sendCode();
+      const created = await signIn.create({ identifier: cleanEmail });
 
-      setStage("reset");
-      setNotice(`We've sent a code to ${cleanEmail}.`);
+      if (created?.error) {
+        throw new Error(
+          created.error.message || "We couldn't find that account.",
+        );
+      }
+
+      const sent = await signIn.resetPasswordEmailCode.sendCode();
+
+      if (sent?.error) {
+        throw new Error(sent.error.message || "We couldn't send the code.");
+      }
+
+      setCode("");
+      setStage("code");
+      setNotice(`We've emailed a code to ${cleanEmail}.`);
     } catch (err) {
       console.log("RESET SEND ERROR:", err);
 
@@ -94,41 +107,17 @@ export default function ForgotPasswordScreen() {
     }
   };
 
-  const handleResend = async () => {
+  /* 2. check the code on its own */
+  const checkCode = async () => {
     if (busy) return;
 
     setError("");
     setNotice("");
 
-    try {
-      setBusy(true);
+    const entered = code.replace(/\D/g, "");
 
-      await sendCode();
-
-      setCode("");
-      setNotice("A new code is on its way.");
-    } catch (err) {
-      console.log("RESET RESEND ERROR:", err);
-
-      setError(readableError(err, "We couldn't send a new code."));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleReset = async () => {
-    if (busy) return;
-
-    setError("");
-    setNotice("");
-
-    if (code.trim().length < 4) {
-      setError("Enter the code from your email.");
-      return;
-    }
-
-    if (password.length < 8) {
-      setError("Your new password needs at least 8 characters.");
+    if (entered.length < 6) {
+      setError("That code is six digits. Check your email again.");
       return;
     }
 
@@ -136,7 +125,7 @@ export default function ForgotPasswordScreen() {
       setBusy(true);
 
       const verified = await signIn.resetPasswordEmailCode.verifyCode({
-        code: code.trim(),
+        code: entered,
       });
 
       if (verified?.error) {
@@ -145,10 +134,43 @@ export default function ForgotPasswordScreen() {
         );
       }
 
+      setStage("password");
+      setNotice("Code accepted. Now choose a new password.");
+    } catch (err) {
+      console.log("RESET VERIFY ERROR:", err);
+
+      setError(
+        readableError(
+          err,
+          "That code didn't work. It may have expired — send yourself a new one.",
+        ),
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /* 3. set the new password */
+  const setNewPassword = async () => {
+    if (busy) return;
+
+    setError("");
+    setNotice("");
+
+    const problem = passwordProblem(password);
+
+    if (problem) {
+      setError(problem);
+      return;
+    }
+
+    try {
+      setBusy(true);
+
       const submitted = await signIn.resetPasswordEmailCode.submitPassword({
         password,
-        /* Anyone signed in elsewhere with the old password
-         * loses that session, which is the point of a reset. */
+        /* Anyone signed in elsewhere with the old password loses
+         * that session, which is the point of a reset. */
         signOutOfOtherSessions: true,
       });
 
@@ -160,15 +182,38 @@ export default function ForgotPasswordScreen() {
 
       await signIn.finalize();
 
-      /* The auth guard in _layout.js routes from here. */
+      /* The auth guard routes from here. */
     } catch (err) {
-      console.log("RESET ERROR:", err);
+      console.log("RESET SAVE ERROR:", err);
 
-      setError(readableError(err, "We couldn't reset your password."));
+      setError(readableError(err, "We couldn't set that password."));
     } finally {
       setBusy(false);
     }
   };
+
+  const resend = async () => {
+    setError("");
+    setNotice("");
+
+    try {
+      setBusy(true);
+
+      const sent = await signIn.resetPasswordEmailCode.sendCode();
+
+      if (sent?.error) throw new Error(sent.error.message);
+
+      setCode("");
+      setNotice("A new code is on its way.");
+    } catch (err) {
+      setError(readableError(err, "We couldn't send a new code."));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const steps = ["email", "code", "password"];
+  const stepIndex = steps.indexOf(stage);
 
   return (
     <KeyboardAvoidingView
@@ -176,105 +221,153 @@ export default function ForgotPasswordScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.header}>
-          <View style={styles.logoCircle}>
-            <Text style={styles.logoText}>B</Text>
+        <View style={styles.nav}>
+          <Press
+            onPress={() =>
+              stage === "email"
+                ? router.replace("/sign-in")
+                : setStage(steps[stepIndex - 1])
+            }
+            style={styles.back}
+          >
+            <Icon name="back" size={20} color={T.label} />
+          </Press>
+
+          <View style={styles.progress}>
+            {steps.map((name, index) => (
+              <View
+                key={name}
+                style={[styles.bar, index <= stepIndex && styles.barOn]}
+              />
+            ))}
           </View>
 
-          <Text style={styles.brand}>Between Us</Text>
+          <View style={styles.back} />
         </View>
 
-        <View style={styles.content}>
-          <Text style={styles.eyebrow}>
-            {stage === "email" ? "FORGOT PASSWORD" : "ALMOST THERE"}
-          </Text>
+        {stage === "email" ? (
+          <>
+            <Text style={styles.kicker}>Forgot password</Text>
 
-          <Text style={styles.title}>
-            {stage === "email" ? "Let's get you back in" : "Set a new password"}
-          </Text>
+            <Text style={styles.title}>Let&apos;s get you back in</Text>
 
-          <Text style={styles.subtitle}>
-            {stage === "email"
-              ? "Tell us the email on your account and we'll send you a code."
-              : "Enter the code we emailed you, then choose a new password."}
-          </Text>
+            <Text style={styles.lede}>
+              Tell us the email on your account and we&apos;ll send a six-digit
+              code.
+            </Text>
 
-          {stage === "email" ? (
-            <>
-              <Text style={styles.label}>Email address</Text>
-
+            <Card padded={false} style={styles.card}>
               <TextInput
-                style={styles.input}
+                value={emailAddress}
+                onChangeText={setEmailAddress}
                 placeholder="you@example.com"
-                placeholderTextColor="rgba(60,60,67,0.6)"
+                placeholderTextColor={T.label3}
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="email-address"
-                value={emailAddress}
-                onChangeText={setEmailAddress}
+                autoComplete="email"
+                textContentType="emailAddress"
+                style={styles.field}
+                onSubmitEditing={sendCode}
               />
-            </>
-          ) : (
-            <>
-              <Text style={styles.label}>Code from your email</Text>
+            </Card>
 
+            {notice ? <Text style={styles.notice}>{notice}</Text> : null}
+
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+
+            <Button title="Send Me a Code" onPress={sendCode} busy={busy} />
+          </>
+        ) : stage === "code" ? (
+          <>
+            <Text style={styles.kicker}>Step 2 of 3</Text>
+
+            <Text style={styles.title}>Enter the code</Text>
+
+            <Text style={styles.lede}>
+              We emailed six digits to {cleanEmail}. Nothing else to fill in on
+              this screen.
+            </Text>
+
+            <Card padded={false} style={styles.card}>
               <TextInput
-                style={styles.input}
-                placeholder="Enter the code"
-                placeholderTextColor="rgba(60,60,67,0.6)"
-                keyboardType="number-pad"
                 value={code}
-                onChangeText={setCode}
+                onChangeText={(value) =>
+                  setCode(value.replace(/\D/g, "").slice(0, 6))
+                }
+                placeholder="123456"
+                placeholderTextColor={T.label3}
+                keyboardType="number-pad"
+                textContentType="oneTimeCode"
+                autoComplete="sms-otp"
+                autoFocus
+                maxLength={6}
+                style={[styles.field, styles.code]}
+                onSubmitEditing={checkCode}
               />
+            </Card>
 
-              <Text style={styles.label}>New password</Text>
+            {notice ? <Text style={styles.notice}>{notice}</Text> : null}
 
-              <TextInput
-                style={styles.input}
-                placeholder="At least 8 characters"
-                placeholderTextColor="rgba(60,60,67,0.6)"
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-              />
-            </>
-          )}
+            {error ? <Text style={styles.error}>{error}</Text> : null}
 
-          {notice ? <Text style={styles.notice}>{notice}</Text> : null}
+            <Button
+              title="Check the Code"
+              onPress={checkCode}
+              busy={busy}
+              disabled={code.length < 6}
+            />
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+            <Button
+              title="Send me a new code"
+              kind="plain"
+              onPress={resend}
+              disabled={busy}
+            />
+          </>
+        ) : (
+          <>
+            <Text style={styles.kicker}>Step 3 of 3</Text>
 
-          <TouchableOpacity
-            style={[styles.button, busy && styles.buttonBusy]}
-            onPress={stage === "email" ? handleSendCode : handleReset}
-            disabled={busy}
-            activeOpacity={0.8}
-          >
-            {busy ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Text style={styles.buttonText}>
-                {stage === "email" ? "Send me a code" : "Change my password"}
-              </Text>
-            )}
-          </TouchableOpacity>
+            <Text style={styles.title}>Choose a new password</Text>
 
-          {stage === "reset" ? (
-            <TouchableOpacity onPress={handleResend} disabled={busy}>
-              <Text style={styles.secondaryAction}>Send me a new code</Text>
-            </TouchableOpacity>
-          ) : null}
+            <Text style={styles.lede}>
+              At least {PASSWORD_MINIMUM} characters. You can tap the eye to
+              check what you typed.
+            </Text>
 
-          <TouchableOpacity
-            onPress={() => router.replace("/sign-in")}
-            disabled={busy}
-          >
-            <Text style={styles.secondaryAction}>Back to sign in</Text>
-          </TouchableOpacity>
-        </View>
+            <PasswordField
+              value={password}
+              onChangeText={setPassword}
+              placeholder={`At least ${PASSWORD_MINIMUM} characters`}
+              autoComplete="new-password"
+              textContentType="newPassword"
+              showRule
+              onSubmitEditing={setNewPassword}
+            />
+
+            {notice ? <Text style={styles.notice}>{notice}</Text> : null}
+
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+
+            <Button
+              title="Change My Password"
+              onPress={setNewPassword}
+              busy={busy}
+              disabled={Boolean(passwordProblem(password))}
+            />
+          </>
+        )}
+
+        <Button
+          title="Back to sign in"
+          kind="plain"
+          onPress={() => router.replace("/sign-in")}
+          disabled={busy}
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -283,127 +376,96 @@ export default function ForgotPasswordScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F2ECF4",
-  },
-
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 28,
-    paddingTop: 70,
-    paddingBottom: 40,
-  },
-
-  header: {
-    alignItems: "center",
-    marginBottom: 46,
-  },
-
-  logoCircle: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: "#F03FA9",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-
-  logoText: {
-    color: "#FFFFFF",
-    fontSize: 25,
-    fontWeight: "700",
-  },
-
-  brand: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#111114",
-    letterSpacing: 0.3,
+    backgroundColor: T.appBackground,
   },
 
   content: {
-    width: "100%",
+    padding: 16,
+    paddingTop: 54,
+    paddingBottom: 48,
+    gap: 14,
   },
 
-  eyebrow: {
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 2,
-    color: "#F03FA9",
-    marginBottom: 10,
+  nav: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 6,
+  },
+
+  back: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.85)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  progress: {
+    flex: 1,
+    flexDirection: "row",
+    gap: 5,
+  },
+
+  bar: {
+    flex: 1,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: T.fill3,
+  },
+
+  barOn: {
+    backgroundColor: T.accent,
+  },
+
+  kicker: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: T.accent,
   },
 
   title: {
-    fontSize: 30,
+    fontSize: 28,
+    lineHeight: 33,
     fontWeight: "700",
-    color: "#111114",
-    marginBottom: 12,
+    letterSpacing: -0.8,
+    color: T.label,
+    marginTop: -6,
   },
 
-  subtitle: {
+  lede: {
     fontSize: 15,
-    lineHeight: 23,
-    color: "#766D67",
-    marginBottom: 28,
+    lineHeight: 21,
+    color: T.label2,
   },
 
-  label: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#111114",
-    marginBottom: 8,
+  card: {
+    marginHorizontal: 0,
   },
 
-  input: {
-    height: 54,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#FDE8F5",
-    borderRadius: 14,
+  field: {
+    height: 52,
     paddingHorizontal: 16,
     fontSize: 16,
-    color: "#111114",
-    marginBottom: 18,
+    color: T.label,
+  },
+
+  code: {
+    fontSize: 24,
+    letterSpacing: 8,
+    fontWeight: "600",
   },
 
   notice: {
-    color: "#4F6F52",
     fontSize: 13,
     lineHeight: 19,
-    marginBottom: 12,
+    color: "#1E8E3E",
   },
 
   error: {
-    color: "#FF3B30",
     fontSize: 13,
     lineHeight: 19,
-    marginBottom: 12,
-  },
-
-  button: {
-    height: 54,
-    backgroundColor: "#F03FA9",
-    borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 4,
-  },
-
-  buttonBusy: {
-    opacity: 0.7,
-  },
-
-  buttonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-
-  secondaryAction: {
-    textAlign: "center",
-    color: "#F03FA9",
-    fontSize: 14,
-    fontWeight: "600",
-    marginTop: 20,
+    color: T.red,
   },
 });
