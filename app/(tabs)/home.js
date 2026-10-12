@@ -18,14 +18,15 @@ import {
   Group,
   Icon,
   LargeTitle,
-  LoveButton,
   NavBar,
   Press,
   Screen,
   SectionHeader,
   Sheet,
 } from "../../components/ui";
+import ActivityRow from "../../components/ActivityRow";
 import BondHero from "../../components/BondHero";
+import { activityHandlers, loadActivity } from "../../lib/activity";
 import { SkeletonList } from "../../components/Skeleton";
 
 /*
@@ -92,7 +93,10 @@ export default function HomeScreen() {
   const [daily, setDaily] = useState(cached?.daily ?? null);
   const [reminders, setReminders] = useState(cached?.reminders ?? []);
   const [plans, setPlans] = useState(cached?.plans ?? []);
-  const [activity, setActivity] = useState(cached?.activity ?? []);
+  /* Rows from before activity had a kind were notifications. */
+  const [activity, setActivity] = useState(
+    (cached?.activity ?? []).filter((item) => item.kind),
+  );
   const [answeredCount, setAnsweredCount] = useState(
     cached?.answeredCount ?? null,
   );
@@ -103,7 +107,6 @@ export default function HomeScreen() {
   /* Needs backend: the mood never leaves this phone yet. */
   const [mood, setMood] = useState(null);
   const [moodSheet, setMoodSheet] = useState(false);
-  const [loved, setLoved] = useState({});
 
   const loadHome = useCallback(async () => {
     if (!isLoaded || !isSignedIn || !userId) {
@@ -118,6 +121,7 @@ export default function HomeScreen() {
         remindersData,
         notificationsData,
         onboardingData,
+        activityData,
       ] = await Promise.all([
         apiFetch(`/users/${userId}/profile`),
         apiFetch(`/users/${userId}/connections`),
@@ -130,6 +134,7 @@ export default function HomeScreen() {
         apiFetch(`/users/${userId}/onboarding`)
           .then((r) => (r.ok ? r.json() : null))
           .catch(() => null),
+        loadActivity(userId, { limit: 3 }).catch(() => null),
       ]);
 
       const profileData = await profileResponse.json();
@@ -150,7 +155,7 @@ export default function HomeScreen() {
         : [];
 
       setHasUnread(notifications.some((item) => item.is_read === false));
-      setActivity(notifications.slice(0, 2));
+      if (activityData) setActivity(activityData.items);
 
       const connections = Array.isArray(connectionData) ? connectionData : [];
 
@@ -222,6 +227,8 @@ export default function HomeScreen() {
     answeredCount,
     hasUnread,
   ]);
+
+  const feed = activityHandlers({ userId, setItems: setActivity, router });
 
   const refresh = (
     <RefreshControl
@@ -591,27 +598,26 @@ export default function HomeScreen() {
         ) : null}
       </Sheet>
 
-      {/* FROM THEM */}
+      {/* FROM THEM: what they did, newest first. Tap to open
+          it, heart it to tell them. */}
 
       {activity.length > 0 ? (
         <>
-          <SectionHeader>From {partnerName}</SectionHeader>
+          <SectionHeader
+            action="See All"
+            onAction={() => router.push("/activity")}
+          >
+            From {partnerName}
+          </SectionHeader>
 
-          <Group inset={64}>
+          <Group inset={68}>
             {activity.map((item) => (
-              <Cell
+              <ActivityRow
                 key={item.id}
-                leading={<Avatar name={partnerName} who="them" size={40} />}
-                title={item.title}
-                subtitle={item.message}
-                trailing={
-                  <LoveButton
-                    value={Boolean(loved[item.id])}
-                    onChange={(value) =>
-                      setLoved((current) => ({ ...current, [item.id]: value }))
-                    }
-                  />
-                }
+                item={item}
+                name={partnerName}
+                onPress={() => feed.open(item)}
+                onLove={(value) => feed.love(item, value)}
               />
             ))}
           </Group>

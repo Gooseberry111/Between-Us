@@ -373,6 +373,32 @@ function cleanKey(raw) {
 	return /^[A-Za-z0-9-]{1,64}$/.test(value) ? value : null;
 }
 
+/*
+ * Records something one partner did, for the other's feed.
+ * Never allowed to fail the action it describes.
+ */
+async function recordActivity(sql, { connectionId, actorId, kind, title, detail = null, targetId = null, dedupeKey = null }) {
+	try {
+		await ensureSchema(sql);
+
+		await sql`
+			INSERT INTO activity (connection_id, actor_id, kind, title, detail, target_id, dedupe_key)
+			VALUES (
+				${connectionId},
+				${actorId},
+				${kind},
+				${String(title).slice(0, 200)},
+				${detail ? String(detail).slice(0, 280) : null},
+				${targetId ? String(targetId) : null},
+				${dedupeKey}
+			)
+			ON CONFLICT (dedupe_key) DO NOTHING
+		`;
+	} catch (error) {
+		console.error('ACTIVITY ERROR:', kind, error?.message || error);
+	}
+}
+
 async function ensureSchema(sql) {
 	if (schemaReady) return;
 
@@ -447,6 +473,40 @@ async function ensureSchema(sql) {
 	await sql`ALTER TABLE dreams ADD COLUMN IF NOT EXISTS photo_id TEXT`;
 	await sql`ALTER TABLE dreams ADD COLUMN IF NOT EXISTS steps JSONB NOT NULL DEFAULT '[]'::jsonb`;
 	await sql`ALTER TABLE dreams ADD COLUMN IF NOT EXISTS focused_at TIMESTAMPTZ`;
+
+	/*
+	 * Activity: what one of the two did, for the other's
+	 * Home. Not notifications -- those include the app's own
+	 * reminders. Each row has one actor; the other person can
+	 * love it (loved_at) and has seen it (read_at).
+	 */
+	await sql`
+		CREATE TABLE IF NOT EXISTS activity (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			connection_id UUID NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
+			actor_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			kind TEXT NOT NULL,
+			title TEXT NOT NULL,
+			detail TEXT,
+			target_id TEXT,
+			dedupe_key TEXT,
+			loved_at TIMESTAMPTZ,
+			read_at TIMESTAMPTZ,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+		)
+	`;
+
+	/* Not partial, so a plain ON CONFLICT (dedupe_key) infers
+	 * it. NULL keys never clash, so undeduped rows are fine. */
+	await sql`
+		CREATE UNIQUE INDEX IF NOT EXISTS activity_dedupe_idx
+			ON activity (dedupe_key)
+	`;
+
+	await sql`
+		CREATE INDEX IF NOT EXISTS activity_connection_idx
+			ON activity (connection_id, actor_id, created_at DESC)
+	`;
 
 	/*
 	 * Dates the two of them are actually planning, as opposed
@@ -3103,6 +3163,7 @@ VALUES (
 
 				const connectionResult = await sql`
     SELECT
+      id,
       user_one,
       user_two
     FROM connections
@@ -3159,6 +3220,16 @@ VALUES (
       created_at,
       updated_at
   `;
+
+				await recordActivity(sql, {
+					connectionId: connection.id,
+					actorId: userId,
+					kind: 'memory',
+					title: `Added a memory: ${result[0].title}`,
+					detail: result[0].description,
+					targetId: result[0].id,
+					dedupeKey: `memory:${result[0].id}`,
+				});
 
 				return Response.json(
 					{
@@ -3890,6 +3961,15 @@ VALUES (
       updated_at
   `;
 
+				await recordActivity(sql, {
+					connectionId: connection.id,
+					actorId: userId,
+					kind: 'dream_added',
+					title: `Added a dream: ${result[0].title}`,
+					targetId: result[0].id,
+					dedupeKey: `dream_added:${result[0].id}`,
+				});
+
 				return Response.json(
 					{
 						dream: result[0],
@@ -4070,6 +4150,17 @@ VALUES (
       created_at,
       updated_at
   `;
+
+				if (newIsCompleted && !dream.is_completed) {
+					await recordActivity(sql, {
+						connectionId: dream.connection_id,
+						actorId: userId,
+						kind: 'dream_done',
+						title: `Finished a dream: ${result[0].title}`,
+						targetId: result[0].id,
+						dedupeKey: `dream_done:${result[0].id}:${newCompletedAt}`,
+					});
+				}
 
 				return Response.json({
 					message: 'Dream updated successfully',
@@ -4933,6 +5024,15 @@ VALUES (
 					message: `${playerName} just played couple trivia and scored ${score}/${totalQuestions}. Your turn!`,
 					dedupeKey: `trivia_played:${session.id}`,
 					data: { sessionId: session.id },
+				});
+
+				await recordActivity(sql, {
+					connectionId: connection.id,
+					actorId: userId,
+					kind: 'trivia',
+					title: `Played trivia and scored ${score}/${totalQuestions}`,
+					targetId: session.id,
+					dedupeKey: `trivia:${session.id}`,
 				});
 
 				return Response.json(
@@ -6093,6 +6193,15 @@ VALUES (
 						message: 'Answer yours to see what they said.',
 						dedupeKey: `daily_answered:${userId}:${todayIso}`,
 					});
+
+					await recordActivity(sql, {
+						connectionId: connection.id,
+						actorId: userId,
+						kind: 'answered',
+						title: "Answered tonight's questions",
+						detail: 'Answer yours to see what they said',
+						dedupeKey: `answered:${userId}:${todayIso}`,
+					});
 				}
 
 				const answers = await sql`
@@ -6269,6 +6378,14 @@ VALUES (
 						title: `${myName} appreciated something`,
 						message,
 						dedupeKey: `appreciation:${userId}:${Date.now()}`,
+					});
+
+					await recordActivity(sql, {
+						connectionId: connection.id,
+						actorId: userId,
+						kind: 'note',
+						title: 'Sent you a note',
+						detail: message,
 					});
 				}
 
@@ -6537,6 +6654,16 @@ VALUES (
 						dedupeKey: `date-plan-${created[0].id}`,
 					});
 
+					await recordActivity(sql, {
+						connectionId: connection.id,
+						actorId: userId,
+						kind: 'date',
+						title: `Planned a date: ${title}`,
+						detail: created[0].place,
+						targetId: created[0].id,
+						dedupeKey: `date:${created[0].id}`,
+					});
+
 					return Response.json({ plan: created[0] }, { status: 201 });
 				}
 
@@ -6610,6 +6737,155 @@ VALUES (
 						planner_name: row.planner_nickname?.trim() || row.planner_first_name?.trim() || 'Someone',
 					})),
 				});
+			}
+
+			/*
+			 * ==========================================
+			 * ACTIVITY
+			 * ==========================================
+			 *
+			 * GET   /users/:clerkId/activity?who=partner|me&limit=20
+			 * PATCH /users/:clerkId/activity/:id   { loved?, read? }
+			 *
+			 * "partner" is what they did, for your Home. "me" is
+			 * what you did, with whether they loved it. Only the
+			 * person who did not do a thing can love it or mark
+			 * it read; loving it tells the one who did, once.
+			 */
+
+			const activityMatch = url.pathname.match(/^\/users\/([^/]+)\/activity$/);
+			const activityItemMatch = url.pathname.match(/^\/users\/([^/]+)\/activity\/([0-9a-f-]{36})$/);
+
+			if ((activityMatch && request.method === 'GET') || (activityItemMatch && request.method === 'PATCH')) {
+				await ensureSchema(sql);
+
+				const clerkId = (activityMatch || activityItemMatch)[1];
+
+				const userResult = await sql`
+          SELECT id FROM users WHERE clerk_id = ${clerkId} LIMIT 1
+        `;
+
+				if (userResult.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const userId = userResult[0].id;
+
+				const connectionResult = await sql`
+          SELECT id, user_one, user_two
+          FROM connections
+          WHERE (user_one = ${userId} OR user_two = ${userId})
+            AND status = 'accepted'
+          LIMIT 1
+        `;
+
+				if (connectionResult.length === 0) {
+					return activityMatch
+						? Response.json({ items: [], unread: 0 })
+						: Response.json({ error: 'You are not connected to anyone yet.' }, { status: 404 });
+				}
+
+				const connection = connectionResult[0];
+				const partnerId = connection.user_one === userId ? connection.user_two : connection.user_one;
+
+				const shape = (row) => ({
+					id: row.id,
+					kind: row.kind,
+					title: row.title,
+					detail: row.detail,
+					target_id: row.target_id,
+					created_at: row.created_at,
+					loved: Boolean(row.loved_at),
+					read: Boolean(row.read_at),
+				});
+
+				if (activityMatch) {
+					const who = url.searchParams.get('who') === 'me' ? 'me' : 'partner';
+					const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get('limit'), 10) || 20));
+					const actorId = who === 'me' ? userId : partnerId;
+
+					const rows = await sql`
+            SELECT id, kind, title, detail, target_id, loved_at, read_at, created_at
+            FROM activity
+            WHERE connection_id = ${connection.id} AND actor_id = ${actorId}
+            ORDER BY created_at DESC
+            LIMIT ${limit}
+          `;
+
+					const unread =
+						who === 'partner'
+							? (
+									await sql`
+                  SELECT COUNT(*)::int AS n
+                  FROM activity
+                  WHERE connection_id = ${connection.id}
+                    AND actor_id = ${partnerId}
+                    AND read_at IS NULL
+                `
+								)[0].n
+							: 0;
+
+					return Response.json({ items: rows.map(shape), unread });
+				}
+
+				const itemId = activityItemMatch[2];
+
+				const found = await sql`
+          SELECT id, actor_id, kind, title, detail, target_id, loved_at, read_at, created_at
+          FROM activity
+          WHERE id = ${itemId} AND connection_id = ${connection.id}
+          LIMIT 1
+        `;
+
+				if (found.length === 0) {
+					return Response.json({ error: 'Not found' }, { status: 404 });
+				}
+
+				const item = found[0];
+
+				if (item.actor_id === userId) {
+					return Response.json({ error: 'That one is yours.' }, { status: 403 });
+				}
+
+				const body = await request.json().catch(() => ({}));
+				const now = new Date().toISOString();
+
+				const lovedAt = body?.loved === undefined ? item.loved_at : body.loved ? item.loved_at || now : null;
+				const readAt = body?.read || body?.loved ? item.read_at || now : item.read_at;
+
+				const updated = await sql`
+          UPDATE activity
+          SET loved_at = ${lovedAt}, read_at = ${readAt}
+          WHERE id = ${item.id}
+          RETURNING id, kind, title, detail, target_id, loved_at, read_at, created_at
+        `;
+
+				/* The first heart tells them. Taking it back and giving
+				 * it again does not tell them twice. */
+				if (lovedAt && !item.loved_at) {
+					const actorRow = await sql`
+            SELECT push_token, notification_preferences FROM users WHERE id = ${item.actor_id} LIMIT 1
+          `;
+
+					const meRow = await sql`
+            SELECT first_name, nickname FROM profiles WHERE user_id = ${userId} LIMIT 1
+          `;
+
+					const myName = meRow[0]?.nickname?.trim() || meRow[0]?.first_name?.trim() || 'Your partner';
+
+					await notifyUser(sql, {
+						userId: item.actor_id,
+						pushToken: actorRow[0]?.push_token,
+						preferences: actorRow[0]?.notification_preferences,
+						type: 'love',
+						title: `${myName} loved this`,
+						message: item.title,
+						dedupeKey: `love:${item.id}`,
+						data: { activityId: item.id },
+					});
+				}
+
+				return Response.json({ item: shape(updated[0]) });
 			}
 
 			/*
@@ -6819,6 +7095,16 @@ VALUES (
 						title: `${myName} wants to sort things out`,
 						message: `Take ${minutes} minutes, then write your side.`,
 						dedupeKey: `repair-${created[0].id}`,
+					});
+
+					await recordActivity(sql, {
+						connectionId: connection.id,
+						actorId: userId,
+						kind: 'repair',
+						title: 'Wants to talk something through',
+						detail: 'Take a pause, then write your side',
+						targetId: created[0].id,
+						dedupeKey: `repair:${created[0].id}`,
 					});
 
 					return Response.json({ repair: created[0] }, { status: 201 });

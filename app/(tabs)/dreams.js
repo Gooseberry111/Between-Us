@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   RefreshControl,
@@ -8,7 +8,7 @@ import {
   View,
 } from "react-native";
 import { useAuth } from "@clerk/expo";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 
 import { apiFetch } from "../../lib/api";
 import { getCachedData, setCachedData } from "../../lib/dataCache";
@@ -66,6 +66,7 @@ const SHEET_HANDOFF_MS = 450;
 
 export default function DreamsScreen() {
   const router = useRouter();
+  const { open: openId } = useLocalSearchParams();
   const { isLoaded, isSignedIn, userId } = useAuth();
   const connected = useIsConnected();
 
@@ -77,6 +78,7 @@ export default function DreamsScreen() {
   const [done, setDone] = useState(cached?.done ?? 0);
   const [loading, setLoading] = useState(!cached);
   const [refreshing, setRefreshing] = useState(false);
+  const [fresh, setFresh] = useState(false);
 
   /* The dream sheet: { dream } to edit, { starter } or {} for new. */
   const [editor, setEditor] = useState(null);
@@ -111,6 +113,7 @@ export default function DreamsScreen() {
     } catch (err) {
       console.log("DREAMS LOAD ERROR:", err);
     } finally {
+      setFresh(true);
       setLoading(false);
       setRefreshing(false);
     }
@@ -121,6 +124,22 @@ export default function DreamsScreen() {
       load();
     }, [load]),
   );
+
+  /* Arriving from a row on Home ("Added a dream: …") opens
+   * that dream's sheet, once. */
+  useEffect(() => {
+    if (!openId) return;
+
+    const match = dreams.find((dream) => String(dream.id) === String(openId));
+
+    /* The cached board may not have it yet; wait for the
+     * fresh one before giving up. */
+    if (!match && !fresh) return;
+
+    if (match) setEditor({ dream: match });
+
+    router.setParams({ open: undefined });
+  }, [openId, fresh, dreams, router]);
 
   const endCelebration = useCallback(() => setCelebrating(null), []);
 

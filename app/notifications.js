@@ -281,7 +281,11 @@ function NotificationCard({ notification, userId, onRead }) {
         return "help-circle-outline";
 
       case "appreciation":
+      case "love":
         return "heart-outline";
+
+      case "repair":
+        return "chatbubbles-outline";
 
       case "date_idea":
         return "restaurant-outline";
