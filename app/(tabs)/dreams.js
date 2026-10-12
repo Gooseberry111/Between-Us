@@ -1,124 +1,68 @@
 import { useCallback, useState } from "react";
 import {
   Alert,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import Svg, { Circle } from "react-native-svg";
 import { useAuth } from "@clerk/expo";
 import { useFocusEffect, useRouter } from "expo-router";
 
 import { apiFetch } from "../../lib/api";
 import { getCachedData, setCachedData } from "../../lib/dataCache";
 import { useIsConnected } from "../../lib/connection";
+import { STARTERS, coverFor, hopingFor, progressOf } from "../../lib/dreams";
 import { T } from "../../lib/theme";
 import {
-  Button,
   Card,
   Cell,
+  Check,
   Empty,
   GlassButton,
   Group,
+  Icon,
   LargeTitle,
   NavBar,
   Press,
+  Ring,
   Screen,
   SectionHeader,
+  Sheet,
 } from "../../components/ui";
+import Celebration from "../../components/Celebration";
 import ConnectFirst from "../../components/ConnectFirst";
+import DreamCover from "../../components/DreamCover";
+import DreamSheet from "../../components/DreamSheet";
 import { SkeletonList } from "../../components/Skeleton";
-import DateInput from "../../components/DateInput";
 
 /*
  * ==========================================
  * DREAMS
  * ==========================================
  *
- * A board of things the two of you want to do, led by
- * the one in progress, with starters for when neither
- * of you can think of anything.
+ * A board of things the two of you want to do.
  *
- * Needs backend: steps within a dream, and the source
- * for the starter cards (these are local suggestions).
+ *   the board      how many dreams are on it
+ *   in progress    the one you are focused on: its cover,
+ *                  Reminders-style steps you tick right
+ *                  here, and a ring that fills as you do
+ *   the rest       every other dream, a tap from its sheet
+ *   starters       dreams to say yes to, cover and first
+ *                  steps already written; Add opens them
+ *                  ready to save, See all lists them all
+ *   completed      the ones you have finished together
+ *
+ * Tick the last step and it offers to mark the dream
+ * done, with a celebration when you do.
  */
 
-const STARTERS = [
-  {
-    id: "zanzibar",
-    title: "Weekend in Zanzibar",
-    kind: "Travel",
-    icon: "umbrella",
-    colours: ["#7FD3FF", "#3A8DFF"],
-  },
-  {
-    id: "cuisines",
-    title: "Cook 10 cuisines",
-    kind: "At home",
-    icon: "restaurant",
-    colours: ["#FFD36E", "#FF8A4C"],
-  },
-  {
-    id: "salsa",
-    title: "Learn salsa",
-    kind: "Experience",
-    icon: "musical-notes",
-    colours: ["#C8B4FF", "#8456F5"],
-  },
-  {
-    id: "home",
-    title: "Our first home",
-    kind: "Build",
-    icon: "home",
-    colours: ["#8FE9C5", "#1FB884"],
-  },
-];
+const SHOWN_STEPS = 5;
 
-/* Fitness-style ring. */
-function Ring({ value, size = 54 }) {
-  const r = size / 2 - 5;
-  const circumference = 2 * Math.PI * r;
-
-  return (
-    <View style={{ width: size, height: size }}>
-      <Svg width={size} height={size}>
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          stroke={T.accentTint}
-          strokeWidth="6"
-          fill="none"
-        />
-
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          stroke={T.accent}
-          strokeWidth="6"
-          strokeLinecap="round"
-          fill="none"
-          strokeDasharray={circumference}
-          strokeDashoffset={circumference * (1 - value)}
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        />
-      </Svg>
-
-      <View style={styles.ringLabel}>
-        <Text style={styles.ringText}>{Math.round(value * 100)}%</Text>
-      </View>
-    </View>
-  );
-}
+/* After one sheet closes, wait for it to finish sliding
+ * away before another opens, or iOS drops the second. */
+const SHEET_HANDOFF_MS = 450;
 
 export default function DreamsScreen() {
   const router = useRouter();
@@ -129,15 +73,15 @@ export default function DreamsScreen() {
   const cached = cacheKey ? getCachedData(cacheKey) : undefined;
 
   const [dreams, setDreams] = useState(cached?.dreams ?? []);
+  const [titles, setTitles] = useState(cached?.titles ?? []);
   const [done, setDone] = useState(cached?.done ?? 0);
   const [loading, setLoading] = useState(!cached);
   const [refreshing, setRefreshing] = useState(false);
 
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [targetDate, setTargetDate] = useState("");
+  /* The dream sheet: { dream } to edit, { starter } or {} for new. */
+  const [editor, setEditor] = useState(null);
+  const [allStarters, setAllStarters] = useState(false);
+  const [celebrating, setCelebrating] = useState(null);
 
   const load = useCallback(async () => {
     if (!isLoaded || !isSignedIn || !userId) {
@@ -153,11 +97,17 @@ export default function DreamsScreen() {
 
       const open = all.filter((dream) => !dream.is_completed);
       const closed = all.length - open.length;
+      const names = all.map((dream) =>
+        String(dream.title).trim().toLowerCase(),
+      );
 
       setDreams(open);
       setDone(closed);
+      setTitles(names);
 
-      if (cacheKey) setCachedData(cacheKey, { dreams: open, done: closed });
+      if (cacheKey) {
+        setCachedData(cacheKey, { dreams: open, done: closed, titles: names });
+      }
     } catch (err) {
       console.log("DREAMS LOAD ERROR:", err);
     } finally {
@@ -172,43 +122,83 @@ export default function DreamsScreen() {
     }, [load]),
   );
 
-  const saveDream = async (preset) => {
-    const name = (preset || title).trim();
+  const endCelebration = useCallback(() => setCelebrating(null), []);
 
-    if (!name || saving) return;
+  const celebrate = useCallback((name) => {
+    setTimeout(() => setCelebrating(name || "Done"), SHEET_HANDOFF_MS);
+  }, []);
 
+  /* ---------- finishing a dream ---------- */
+
+  const complete = async (dream) => {
     try {
-      setSaving(true);
-
-      const response = await apiFetch(`/users/${userId}/dreams`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          clerk_id: userId,
-          title: name,
-          description: preset ? null : description.trim() || null,
-          target_date: preset ? null : targetDate.trim() || null,
-          category: "Other",
-        }),
+      const response = await apiFetch(`/users/${userId}/dreams/${dream.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ clerk_id: userId, is_completed: true }),
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data?.error || "Unable to save this dream.");
-      }
-
-      setTitle("");
-      setDescription("");
-      setTargetDate("");
-      setSheetOpen(false);
+      if (!response.ok) throw new Error("Unable to mark it done.");
 
       await load();
+
+      celebrate(dream.title);
     } catch (err) {
-      Alert.alert("We couldn't save that", err?.message || "Please try again.");
-    } finally {
-      setSaving(false);
+      Alert.alert("We couldn't do that", err?.message || "Please try again.");
     }
+  };
+
+  /* ---------- ticking a step on the board ---------- */
+
+  const toggleStep = async (dream, stepId) => {
+    const before = dream.steps || [];
+
+    const steps = before.map((step) =>
+      step.id === stepId ? { ...step, done: !step.done } : step,
+    );
+
+    const swap = (list) =>
+      setDreams((current) =>
+        current.map((item) =>
+          item.id === dream.id ? { ...item, steps: list } : item,
+        ),
+      );
+
+    swap(steps);
+
+    try {
+      const response = await apiFetch(`/users/${userId}/dreams/${dream.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ clerk_id: userId, steps }),
+      });
+
+      if (!response.ok) throw new Error("That step didn't save.");
+    } catch (err) {
+      swap(before);
+
+      Alert.alert("We couldn't save that", err?.message || "Please try again.");
+      return;
+    }
+
+    const ticked = steps.find((step) => step.id === stepId)?.done;
+
+    if (ticked && steps.every((step) => step.done)) {
+      Alert.alert("That's every step", `Mark “${dream.title}” as done?`, [
+        { text: "Not Yet", style: "cancel" },
+        { text: "Mark as Done", onPress: () => complete(dream) },
+      ]);
+    }
+  };
+
+  /* ---------- starters ---------- */
+
+  const added = (starter) => titles.includes(starter.title.toLowerCase());
+
+  const openStarter = (starter) => setEditor({ starter });
+
+  const openStarterFromList = (starter) => {
+    setAllStarters(false);
+
+    setTimeout(() => setEditor({ starter }), SHEET_HANDOFF_MS);
   };
 
   if (connected === false) {
@@ -217,6 +207,9 @@ export default function DreamsScreen() {
 
   const featured = dreams[0];
   const rest = dreams.slice(1);
+  const progress = progressOf(featured);
+  const shownSteps = (featured?.steps || []).slice(0, SHOWN_STEPS);
+  const hiddenSteps = (featured?.steps || []).length - shownSteps.length;
 
   return (
     <>
@@ -236,7 +229,7 @@ export default function DreamsScreen() {
           <GlassButton
             icon="add"
             label="Add a dream"
-            onPress={() => setSheetOpen(true)}
+            onPress={() => setEditor({})}
           />
         </NavBar>
 
@@ -259,222 +252,308 @@ export default function DreamsScreen() {
             </Text>
           </View>
 
-          <Ionicons name="sparkles" size={20} color={T.accent} />
+          <Icon name="sparkle" size={26} color={T.accent} />
         </Card>
 
+        {/* IN PROGRESS */}
+
         {loading ? (
-          <View style={{ paddingHorizontal: 16 }}>
+          <View style={styles.loading}>
             <SkeletonList count={2} />
           </View>
         ) : featured ? (
           <Card style={styles.dream} padded={false}>
-            <LinearGradient
-              colors={["#FFC2E4", "#4A2D5C"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.cover}
+            <Press
+              onPress={() => setEditor({ dream: featured })}
+              scaleTo={0.99}
+              accessibilityLabel={`Open ${featured.title}`}
             >
-              <View style={styles.coverChip}>
-                <Text style={styles.coverChipText}>In progress</Text>
+              <DreamCover
+                cover={coverFor(featured)}
+                photoId={featured.photo_id}
+                height={130}
+                iconSize={34}
+              >
+                <View style={styles.coverChip}>
+                  <Text style={styles.coverChipText}>In progress</Text>
+                </View>
+              </DreamCover>
+            </Press>
+
+            {/* Reminders-style steps, ticked right here. */}
+            <Group inset={50} style={styles.steps}>
+              {[
+                ...shownSteps.map((step) => (
+                  <View key={step.id} style={styles.stepRow}>
+                    <Check
+                      on={step.done}
+                      onPress={() => toggleStep(featured, step.id)}
+                      label={step.title}
+                    />
+
+                    <Text
+                      style={[styles.stepText, step.done && styles.stepDone]}
+                      numberOfLines={2}
+                    >
+                      {step.title}
+                    </Text>
+                  </View>
+                )),
+
+                hiddenSteps > 0 ? (
+                  <Cell
+                    key="more"
+                    title={`${hiddenSteps} more ${hiddenSteps === 1 ? "step" : "steps"}`}
+                    chevron
+                    onPress={() => setEditor({ dream: featured })}
+                  />
+                ) : null,
+
+                shownSteps.length === 0 ? (
+                  <Cell
+                    key="first"
+                    leading={<Icon name="add" size={18} color={T.accent} />}
+                    title="Add the first step"
+                    onPress={() => setEditor({ dream: featured })}
+                  />
+                ) : null,
+              ]}
+            </Group>
+
+            <Press
+              onPress={() => setEditor({ dream: featured })}
+              scaleTo={0.99}
+            >
+              <View style={styles.dreamHead}>
+                <View style={styles.dreamText}>
+                  <Text style={styles.dreamTitle} numberOfLines={2}>
+                    {featured.title}
+                  </Text>
+
+                  <Text style={styles.dreamSub}>
+                    {progress.total
+                      ? hopingFor(featured.target_date)
+                        ? `Hoping for ${hopingFor(featured.target_date)}`
+                        : "Tick a step to fill the ring"
+                      : "Break it into steps to start the ring"}
+                  </Text>
+                </View>
+
+                <Ring
+                  value={progress.value}
+                  size={52}
+                  label={`${progress.done}/${progress.total}`}
+                />
               </View>
-            </LinearGradient>
-
-            <View style={styles.dreamHead}>
-              <View style={styles.dreamText}>
-                <Text style={styles.dreamTitle}>{featured.title}</Text>
-
-                <Text style={styles.dreamSub}>
-                  {featured.target_date
-                    ? `Hoping for ${new Date(featured.target_date).toLocaleDateString(undefined, { month: "long", year: "numeric" })}`
-                    : "No date on it yet"}
-                </Text>
-              </View>
-
-              <Ring
-                value={dreams.length ? 1 / (dreams.length + done || 1) : 0}
-              />
-            </View>
-
-            {featured.description ? (
-              <Text style={styles.dreamNote}>{featured.description}</Text>
-            ) : null}
+            </Press>
           </Card>
         ) : (
           <Empty
-            icon="sparkles-outline"
+            icon="dreams"
             title="What are you two dreaming of?"
             text="Put one thing on the board. It can be small."
+            chips={STARTERS.slice(0, 3).map((starter) => ({
+              label: starter.title,
+              onPress: () => openStarter(starter),
+            }))}
             action={{
               title: "Add a Dream",
               icon: "add",
-              onPress: () => setSheetOpen(true),
+              onPress: () => setEditor({}),
             }}
           />
         )}
 
+        {/* THE REST */}
+
         {rest.length > 0 ? (
-          <Group inset={16}>
-            {rest.map((dream) => (
-              <Cell
-                key={dream.id}
-                title={dream.title}
-                subtitle={dream.description}
-                leading={
-                  <Ionicons name="ellipse-outline" size={22} color={T.accent} />
-                }
-                chevron
-                onPress={() => router.push("/(tabs)/dreams")}
-              />
-            ))}
-          </Group>
+          <>
+            <SectionHeader>Also on the board</SectionHeader>
+
+            <Group inset={70}>
+              {rest.map((dream) => {
+                const own = progressOf(dream);
+                const when = hopingFor(dream.target_date);
+
+                return (
+                  <Cell
+                    key={dream.id}
+                    leading={
+                      <DreamCover
+                        cover={coverFor(dream)}
+                        photoId={dream.photo_id}
+                        height={42}
+                        iconSize={16}
+                        radius={10}
+                        style={styles.thumb}
+                      />
+                    }
+                    title={dream.title}
+                    subtitle={[
+                      own.total
+                        ? `${own.done} of ${own.total} steps`
+                        : "No steps yet",
+                      when,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                    chevron
+                    onPress={() => setEditor({ dream })}
+                  />
+                );
+              })}
+            </Group>
+          </>
         ) : null}
 
         {/* STARTERS */}
 
-        <SectionHeader>Dream starters</SectionHeader>
+        <SectionHeader action="See All" onAction={() => setAllStarters(true)}>
+          Dream starters
+        </SectionHeader>
 
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.starters}
+          decelerationRate="fast"
+          snapToInterval={164}
         >
-          {STARTERS.map((starter) => (
-            <Card key={starter.id} style={styles.starter} padded={false}>
-              <LinearGradient
-                colors={starter.colours}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.starterCover}
-              >
-                <Ionicons name={starter.icon} size={26} color="#FFFFFF" />
-              </LinearGradient>
+          {STARTERS.slice(0, 6).map((starter) => (
+            <Press
+              key={starter.id}
+              onPress={() => openStarter(starter)}
+              scaleTo={0.96}
+              accessibilityLabel={`Add ${starter.title}`}
+            >
+              <Card style={styles.starter} padded={false} inset={false}>
+                <DreamCover
+                  cover={starter.cover}
+                  icon={starter.icon}
+                  height={92}
+                  iconSize={28}
+                />
 
-              <View style={styles.starterBody}>
-                <Text style={styles.starterTitle} numberOfLines={2}>
-                  {starter.title}
-                </Text>
+                <View style={styles.starterBody}>
+                  <Text style={styles.starterTitle} numberOfLines={2}>
+                    {starter.title}
+                  </Text>
 
-                <Text style={styles.starterKind}>{starter.kind}</Text>
+                  <Text style={styles.starterKind}>{starter.kind}</Text>
 
-                <Press
-                  onPress={() => saveDream(starter.title)}
-                  scaleTo={0.92}
-                  style={styles.starterAdd}
-                >
-                  <Text style={styles.starterAddText}>ADD</Text>
-                </Press>
-              </View>
-            </Card>
+                  <GetPill added={added(starter)} />
+                </View>
+              </Card>
+            </Press>
           ))}
         </ScrollView>
+
+        {/* COMPLETED */}
 
         <Group inset={52}>
           <Cell
             title="Completed together"
             subtitle={
               done > 0
-                ? "Opens the ones you have finished"
+                ? "Every dream you have finished"
                 : "Your first finished dream gets a celebration here"
             }
-            leading={<Ionicons name="trophy" size={22} color={T.accent} />}
-            trailing={<Text style={styles.value}>{done}</Text>}
+            leading={<Icon name="trophy" size={22} color={T.secondary} />}
+            value={String(done)}
             chevron
             onPress={() => router.push("/completed-dreams")}
           />
         </Group>
       </Screen>
 
-      {/* NEW DREAM SHEET */}
+      {/* A DREAM, NEW OR OLD */}
 
-      <Modal
-        visible={sheetOpen}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setSheetOpen(false)}
+      <DreamSheet
+        visible={Boolean(editor)}
+        userId={userId}
+        dream={editor?.dream}
+        starter={editor?.starter}
+        isFocused={editor?.dream?.id === featured?.id}
+        onClose={() => setEditor(null)}
+        onChanged={load}
+        onCompleted={celebrate}
+      />
+
+      {/* EVERY STARTER */}
+
+      <Sheet
+        visible={allStarters}
+        title="Dream Starters"
+        subtitle="Each comes with a cover and its first steps. Change anything before you save."
+        onCancel={() => setAllStarters(false)}
       >
-        <KeyboardAvoidingView
-          style={styles.sheet}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
-          <View style={styles.sheetNav}>
-            <Text
-              style={styles.sheetCancel}
-              onPress={() => setSheetOpen(false)}
-            >
-              Cancel
-            </Text>
-
-            <Text style={styles.sheetTitle}>New Dream</Text>
-
-            <Text
-              style={[styles.sheetSave, !title.trim() && styles.sheetSaveOff]}
-              onPress={() => saveDream()}
-            >
-              Save
-            </Text>
-          </View>
-
-          <View style={styles.sheetBody}>
-            <Card padded={false}>
-              <TextInput
-                value={title}
-                onChangeText={setTitle}
-                placeholder="What do you want to do together?"
-                placeholderTextColor={T.label3}
-                style={styles.field}
-              />
-
-              <View style={styles.fieldLine} />
-
-              <TextInput
-                value={description}
-                onChangeText={setDescription}
-                placeholder="Why it matters (optional)"
-                placeholderTextColor={T.label3}
-                style={[styles.field, styles.fieldTall]}
-                multiline
-                textAlignVertical="top"
-              />
-
-              <View style={styles.fieldLine} />
-
-              <DateInput
-                value={targetDate}
-                onChangeText={setTargetDate}
-                placeholder="By when? YYYY-MM-DD (optional)"
-                style={styles.field}
-              />
-            </Card>
-
-            <Button
-              title="Add to the Board"
-              onPress={() => saveDream()}
-              busy={saving}
-              disabled={!title.trim()}
-              style={styles.sheetButton}
+        <Group inset={74}>
+          {STARTERS.map((starter) => (
+            <Cell
+              key={starter.id}
+              leading={
+                <DreamCover
+                  cover={starter.cover}
+                  icon={starter.icon}
+                  height={46}
+                  iconSize={18}
+                  radius={11}
+                  style={styles.thumbLarge}
+                />
+              }
+              title={starter.title}
+              subtitle={`${starter.kind} · ${starter.steps.length} steps`}
+              trailing={<GetPill added={added(starter)} />}
+              onPress={() => openStarterFromList(starter)}
             />
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+          ))}
+        </Group>
+      </Sheet>
+
+      <Celebration
+        visible={Boolean(celebrating)}
+        title="Dream complete"
+        message={
+          celebrating && celebrating !== "Done"
+            ? `“${celebrating}”, done together.`
+            : "Something you dreamed up together, done."
+        }
+        onDone={endCelebration}
+      />
     </>
   );
 }
 
+/* The App Store's GET button: Add, or a check once it is on the board. */
+function GetPill({ added }) {
+  return (
+    <View style={[styles.get, added && styles.getAdded]}>
+      {added ? <Icon name="check" size={12} color={T.accentText} /> : null}
+
+      <Text style={styles.getText}>{added ? "Added" : "Add"}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  loading: {
+    paddingHorizontal: 16,
+  },
+
   board: {
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
-    padding: 16,
   },
 
   boardNumber: {
-    fontSize: 40,
-    lineHeight: 44,
+    fontFamily: "ui-rounded",
+    fontSize: 48,
+    lineHeight: 52,
     fontWeight: "700",
-    letterSpacing: -1.6,
+    letterSpacing: -1.9,
     color: T.accent,
-    minWidth: 46,
+    minWidth: 30,
   },
 
   boardText: {
@@ -490,48 +569,75 @@ const styles = StyleSheet.create({
   boardSub: {
     fontSize: 13,
     color: T.label2,
-    marginTop: 1,
+    marginTop: 2,
   },
 
   dream: {
     overflow: "hidden",
   },
 
-  cover: {
-    height: 130,
-    justifyContent: "flex-start",
-    alignItems: "flex-start",
-    padding: 12,
-  },
-
   coverChip: {
-    paddingHorizontal: 11,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.82)",
+    position: "absolute",
+    left: 12,
+    top: 12,
+    height: 26,
+    paddingHorizontal: 10,
+    borderRadius: 13,
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.28)",
   },
 
   coverChipText: {
     fontSize: 12,
     fontWeight: "600",
-    color: T.accentText,
+    color: "#FFFFFF",
+  },
+
+  steps: {
+    marginHorizontal: 0,
+    borderRadius: 0,
+  },
+
+  stepRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    minHeight: 48,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+
+  stepText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "500",
+    color: T.label,
+  },
+
+  stepDone: {
+    color: T.label2,
   },
 
   dreamHead: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
-    padding: 16,
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: T.separator,
   },
 
   dreamText: {
     flex: 1,
+    minWidth: 0,
   },
 
   dreamTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    letterSpacing: -0.4,
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: "600",
     color: T.label,
   },
 
@@ -541,140 +647,63 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  dreamNote: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: T.label2,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    marginTop: -6,
+  thumb: {
+    width: 42,
   },
 
-  ringLabel: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  ringText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: T.accentText,
+  thumbLarge: {
+    width: 46,
   },
 
   starters: {
     paddingHorizontal: 16,
+    paddingVertical: 2,
     gap: 12,
   },
 
   starter: {
-    width: 180,
-    marginHorizontal: 0,
+    width: 152,
     overflow: "hidden",
-  },
-
-  starterCover: {
-    height: 92,
-    alignItems: "center",
-    justifyContent: "center",
   },
 
   starterBody: {
     padding: 12,
+    paddingTop: 10,
   },
 
   starterTitle: {
     fontSize: 15,
+    lineHeight: 19,
     fontWeight: "600",
     color: T.label,
+    minHeight: 38,
   },
 
   starterKind: {
-    fontSize: 13,
+    fontSize: 12,
     color: T.label2,
     marginTop: 2,
   },
 
-  starterAdd: {
-    marginTop: 10,
+  get: {
     alignSelf: "flex-start",
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: T.fill3,
-  },
-
-  starterAddText: {
-    fontSize: 13,
-    fontWeight: "700",
-    letterSpacing: 0.3,
-    color: T.accentText,
-  },
-
-  value: {
-    fontSize: 16,
-    color: T.label2,
-  },
-
-  sheet: {
-    flex: 1,
-    backgroundColor: T.appBackground,
-  },
-
-  sheetNav: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    gap: 4,
+    height: 28,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    backgroundColor: T.fill3,
+    marginTop: 10,
   },
 
-  sheetCancel: {
-    fontSize: 17,
+  getAdded: {
+    backgroundColor: T.accentTint,
+  },
+
+  getText: {
+    fontSize: 14,
+    fontWeight: "700",
     color: T.accent,
-    width: 70,
-  },
-
-  sheetTitle: {
-    fontSize: 17,
-    fontWeight: "600",
-    color: T.label,
-  },
-
-  sheetSave: {
-    fontSize: 17,
-    fontWeight: "600",
-    color: T.accent,
-    width: 70,
-    textAlign: "right",
-  },
-
-  sheetSaveOff: {
-    color: T.label3,
-  },
-
-  sheetBody: {
-    gap: 16,
-  },
-
-  field: {
-    fontSize: 16,
-    color: T.label,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-
-  fieldTall: {
-    minHeight: 92,
-  },
-
-  fieldLine: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: T.separator,
-    marginLeft: 16,
-  },
-
-  sheetButton: {
-    marginHorizontal: 16,
   },
 });

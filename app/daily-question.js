@@ -28,7 +28,7 @@ import {
   Group,
   Press,
   motionAllowed,
-  GlassButton,
+  SheetHeader,
 } from "../components/ui";
 import ConnectFirst from "../components/ConnectFirst";
 import { SkeletonList } from "../components/Skeleton";
@@ -239,27 +239,23 @@ export default function DailyQuestionScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         {/* Where you are in the ritual. */}
-        <View style={styles.topBar}>
-          <GlassButton
-            icon="chevronDown"
-            label="Close"
-            onPress={() => router.back()}
-          />
-
-          <View style={styles.progress}>
-            {STEPS.map((name, index) => (
-              <View
-                key={name}
-                style={[
-                  styles.progressBar,
-                  index <= stepIndex && styles.progressBarOn,
-                ]}
-              />
-            ))}
-          </View>
-
-          <View style={styles.close} />
-        </View>
+        <SheetHeader
+          onClose={() => router.back()}
+          closeIcon="chevronDown"
+          centre={
+            <View style={styles.progress}>
+              {STEPS.map((name, index) => (
+                <View
+                  key={name}
+                  style={[
+                    styles.progressBar,
+                    index <= stepIndex && styles.progressBarOn,
+                  ]}
+                />
+              ))}
+            </View>
+          }
+        />
 
         <ScrollView
           contentContainerStyle={styles.content}
@@ -586,7 +582,7 @@ const styles = StyleSheet.create({
   },
 
   progress: {
-    flex: 1,
+    width: 150,
     flexDirection: "row",
     gap: 5,
   },

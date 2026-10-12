@@ -1,6 +1,18 @@
-import { useCallback, useState } from "react";
-import { RefreshControl, StyleSheet, Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Animated,
+  Easing,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import Svg, {
+  Circle,
+  Defs,
+  LinearGradient as SvgGradient,
+  Stop,
+} from "react-native-svg";
 import { useAuth } from "@clerk/expo";
 import { useFocusEffect, useRouter } from "expo-router";
 
@@ -9,14 +21,21 @@ import { getCachedData, setCachedData } from "../../lib/dataCache";
 import { useIsConnected } from "../../lib/connection";
 import { T } from "../../lib/theme";
 import {
+  Avatar,
   Button,
   Card,
+  Cell,
   Empty,
   GlassButton,
+  Group,
+  GroupFooter,
+  GroupHeader,
+  Icon,
   LargeTitle,
   NavBar,
   Screen,
   SubTitle,
+  motionAllowed,
 } from "../../components/ui";
 import ConnectFirst from "../../components/ConnectFirst";
 import { SkeletonList } from "../../components/Skeleton";
@@ -26,10 +45,17 @@ import { SkeletonList } from "../../components/Skeleton";
  * INSIGHTS
  * ==========================================
  *
- * What the two of you share, and where you differ,
- * read straight off the onboarding answers. Your
- * colour on the left, theirs on the right, every
- * time, so a glance is enough.
+ * Built around one question: how in sync are you, and
+ * where do you differ? Read straight from what you each
+ * said when you joined.
+ *
+ *   the score       a ring: how many traits you share
+ *   in sync         the ones that match, at a glance
+ *   different       the ones that don't, each with a
+ *                   way to work with the difference
+ *   love languages  side by side, yours in rose and
+ *                   theirs in plum
+ *   this week       one thing to try, straight into Dates
  */
 
 const LOVE_LANGUAGES = [
@@ -40,7 +66,7 @@ const LOVE_LANGUAGES = [
   "Gifts",
 ];
 
-/* A rough strength for each language: picked ones lead. */
+/* How much each language matters, read from the order picked. */
 function strengths(picked) {
   const chosen = (picked || []).map((item) => String(item).toLowerCase());
 
@@ -50,66 +76,134 @@ function strengths(picked) {
 
     return {
       language,
-      value: hit === -1 ? 0.18 : Math.max(0.45, 0.95 - hit * 0.18),
+      value: hit === -1 ? 0.12 : Math.max(0.45, 0.95 - hit * 0.18),
+      picked: hit !== -1,
     };
   });
 }
 
-function Trait({ label, mine, theirs, tip, partnerName }) {
-  if (!mine && !theirs) return null;
+const TRAITS = [
+  {
+    key: "personality",
+    label: "Personality",
+    mine: (d) => d.mine?.personality_type,
+    theirs: (d) => d.theirs?.personality_type,
+    tip: "One of you recharges alone and the other with people. Plan one of each this month.",
+  },
+  {
+    key: "conflict",
+    label: "In a disagreement",
+    mine: (d) => d.mine?.conflict_style,
+    theirs: (d) => d.theirs?.conflict_style,
+    tip: "Agree on a pause word. Whoever needs time takes twenty minutes and promises to come back.",
+  },
+  {
+    key: "affection",
+    label: "Showing affection",
+    mine: (d) => d.myPrefs?.affection_style,
+    theirs: (d) => d.theirPrefs?.affection_style,
+    tip: "You show love differently. Say out loud what you each notice most.",
+  },
+  {
+    key: "touch",
+    label: "Staying in touch",
+    mine: (d) => d.myPrefs?.communication_frequency,
+    theirs: (d) => d.theirPrefs?.communication_frequency,
+    tip: "Different rhythms are fine as long as neither of you is guessing. Name a time you both check in.",
+  },
+];
 
-  const match =
-    mine && theirs && mine.trim().toLowerCase() === theirs.trim().toLowerCase();
+const IDEAS = {
+  "Quality time": "A phone-free evening walk",
+  Words: "Tell each other one specific thing",
+  Touch: "Ten unhurried minutes on the sofa",
+  "Acts of service": "Each take a chore the other dislikes",
+  Gifts: "Something small, chosen on purpose",
+};
+
+function same(a, b) {
+  return (
+    Boolean(a) &&
+    Boolean(b) &&
+    String(a).trim().toLowerCase() === String(b).trim().toLowerCase()
+  );
+}
+
+/*
+ * The score ring: rose into plum, the same colours the
+ * bond thread uses, filling to the share of traits you
+ * have in common.
+ */
+function SyncRing({ value, size = 132 }) {
+  const stroke = 12;
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+
+  const fill = useRef(new Animated.Value(0)).current;
+  const [shown, setShown] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    let listener = null;
+
+    motionAllowed().then((allowed) => {
+      if (cancelled) return;
+
+      if (!allowed) {
+        setShown(value);
+        return;
+      }
+
+      fill.setValue(0);
+
+      listener = fill.addListener(({ value: v }) => setShown(v));
+
+      Animated.timing(fill, {
+        toValue: value,
+        duration: 900,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }).start();
+    });
+
+    return () => {
+      cancelled = true;
+
+      if (listener) fill.removeListener(listener);
+    };
+  }, [value, fill]);
 
   return (
-    <Card style={styles.trait}>
-      <View style={styles.traitHead}>
-        <Text style={styles.traitLabel}>{label}</Text>
+    <Svg width={size} height={size}>
+      <Defs>
+        <SvgGradient id="sync" x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0" stopColor={T.you} />
+          <Stop offset="1" stopColor={T.accent} />
+        </SvgGradient>
+      </Defs>
 
-        <View
-          style={[styles.badge, match ? styles.badgeMatch : styles.badgeComp]}
-        >
-          {match ? (
-            <Ionicons name="checkmark" size={12} color="#1E8E3E" />
-          ) : null}
+      <Circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        stroke={T.fill3}
+        strokeWidth={stroke}
+        fill="none"
+      />
 
-          <Text
-            style={[
-              styles.badgeText,
-              { color: match ? "#1E8E3E" : T.accentText },
-            ]}
-          >
-            {match ? "Match" : "Complementary"}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.pair}>
-        <View style={styles.who}>
-          <Text style={styles.whoLabel}>You</Text>
-
-          <Text style={[styles.whoValue, { color: T.youText }]}>
-            {mine || "Not set"}
-          </Text>
-        </View>
-
-        <View style={[styles.who, styles.whoThem]}>
-          <Text style={styles.whoLabel}>{partnerName}</Text>
-
-          <Text style={[styles.whoValue, { color: T.accentText }]}>
-            {theirs || "Not set"}
-          </Text>
-        </View>
-      </View>
-
-      {!match && tip ? (
-        <View style={styles.tip}>
-          <Ionicons name="bulb" size={15} color={T.orange} />
-
-          <Text style={styles.tipText}>{tip}</Text>
-        </View>
-      ) : null}
-    </Card>
+      <Circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        stroke="url(#sync)"
+        strokeWidth={stroke}
+        strokeLinecap="round"
+        fill="none"
+        strokeDasharray={circumference}
+        strokeDashoffset={circumference * (1 - shown)}
+        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+      />
+    </Svg>
   );
 }
 
@@ -148,21 +242,21 @@ export default function InsightsScreen() {
           .catch(() => null),
       ]);
 
-      setMine(insightsData?.insights || null);
-      setMyPrefs(prefsData?.preferences || prefsData || null);
-      setTheirs(partnerData?.insights || null);
-      setTheirPrefs(partnerData?.preferences || null);
-      setPartner(partnerData?.partner || null);
+      const next = {
+        mine: insightsData?.insights || null,
+        myPrefs: prefsData?.preferences || prefsData || null,
+        theirs: partnerData?.insights || null,
+        theirPrefs: partnerData?.preferences || null,
+        partner: partnerData?.partner || null,
+      };
 
-      if (cacheKey) {
-        setCachedData(cacheKey, {
-          mine: insightsData?.insights || null,
-          myPrefs: prefsData?.preferences || prefsData || null,
-          theirs: partnerData?.insights || null,
-          theirPrefs: partnerData?.preferences || null,
-          partner: partnerData?.partner || null,
-        });
-      }
+      setMine(next.mine);
+      setMyPrefs(next.myPrefs);
+      setTheirs(next.theirs);
+      setTheirPrefs(next.theirPrefs);
+      setPartner(next.partner);
+
+      if (cacheKey) setCachedData(cacheKey, next);
     } catch (err) {
       console.log("INSIGHTS LOAD ERROR:", err);
     } finally {
@@ -184,19 +278,50 @@ export default function InsightsScreen() {
   const partnerName =
     partner?.nickname?.trim() || partner?.first_name?.trim() || "Them";
 
-  const samePersonality =
-    mine?.personality_type &&
-    theirs?.personality_type &&
-    mine.personality_type === theirs.personality_type;
+  const data = { mine, myPrefs, theirs, theirPrefs };
+
+  /* Only traits you have both answered can be compared. */
+  const compared = TRAITS.map((trait) => ({
+    ...trait,
+    you: trait.mine(data),
+    them: trait.theirs(data),
+  })).filter((trait) => trait.you && trait.them);
+
+  const inSync = compared.filter((trait) => same(trait.you, trait.them));
+  const different = compared.filter((trait) => !same(trait.you, trait.them));
+
+  const score = compared.length ? inSync.length / compared.length : 0;
 
   const myLanguages = strengths(myPrefs?.love_languages);
   const theirLanguages = strengths(theirPrefs?.love_languages);
 
-  const topShared = myLanguages.find(
-    (item, index) => item.value > 0.4 && theirLanguages[index].value > 0.4,
-  );
+  /* A language you both picked, strongest first. */
+  const shared = myLanguages
+    .map((item, index) => ({
+      language: item.language,
+      both: item.picked && theirLanguages[index].picked,
+      weight: item.value + theirLanguages[index].value,
+    }))
+    .filter((item) => item.both)
+    .sort((a, b) => b.weight - a.weight)[0];
 
   const nothingYet = !mine && !theirs && !myPrefs && !theirPrefs;
+
+  const headline =
+    compared.length === 0
+      ? "Not enough answers yet"
+      : inSync.length === compared.length
+        ? "In sync on everything"
+        : inSync.length === 0
+          ? "Opposites, usefully"
+          : `In sync on ${inSync.length} of ${compared.length}`;
+
+  const summary =
+    compared.length === 0
+      ? `Once you and ${partnerName} both answer, this fills in.`
+      : inSync.length >= different.length
+        ? "More alike than not. The differences below are where you grow."
+        : "You balance each other out. Each difference comes with a way in.";
 
   return (
     <Screen
@@ -213,7 +338,7 @@ export default function InsightsScreen() {
     >
       <NavBar>
         <GlassButton
-          icon="create-outline"
+          icon="edit"
           label="Edit your answers"
           onPress={() => router.push("/onboarding")}
         />
@@ -224,100 +349,123 @@ export default function InsightsScreen() {
       <SubTitle>What you share, and where you differ.</SubTitle>
 
       {loading ? (
-        <View style={{ paddingHorizontal: 16 }}>
+        <View style={styles.loading}>
           <SkeletonList count={3} />
         </View>
       ) : nothingYet ? (
         <Empty
-          icon="git-compare-outline"
+          icon="insights"
           title="Answer a few questions first"
           text="Insights come from what you each said when you joined."
           action={{
             title: "Finish Your Answers",
-            icon: "create-outline",
+            icon: "edit",
             onPress: () => router.push("/onboarding"),
           }}
         />
       ) : (
         <>
-          {/* THE OVERLAP */}
+          {/* THE SCORE */}
 
-          {samePersonality ? (
-            <Card style={styles.venn}>
-              <View style={styles.vennArt}>
-                <View style={styles.vennPair}>
-                  <View style={[styles.vennCircle, styles.vennYou]}>
-                    <Text style={[styles.vennLabel, { color: T.youText }]}>
-                      You
-                    </Text>
-                  </View>
+          <Card style={styles.hero}>
+            <View style={styles.ringWrap}>
+              <SyncRing value={score} />
 
-                  <View style={[styles.vennCircle, styles.vennThem]}>
-                    <Text
-                      style={[styles.vennLabel, { color: T.accentText }]}
-                      numberOfLines={1}
-                    >
-                      {partnerName}
-                    </Text>
-                  </View>
+              <View style={styles.ringCentre}>
+                <View style={styles.pair}>
+                  <Avatar name="You" who="you" size={34} />
+
+                  <Avatar
+                    name={partnerName}
+                    who="them"
+                    size={34}
+                    style={styles.pairThem}
+                  />
                 </View>
 
-                <View style={styles.vennMid}>
-                  <Text style={styles.vennMidText}>
-                    Both {String(mine.personality_type).toLowerCase()}
-                  </Text>
-                </View>
+                <Text style={styles.percent}>{Math.round(score * 100)}%</Text>
               </View>
+            </View>
 
-              <Text style={styles.vennTitle}>
-                You are both {String(mine.personality_type).toLowerCase()}
-              </Text>
+            <Text style={styles.headline}>{headline}</Text>
 
-              <Text style={styles.vennText}>
-                The dates that suit you are the ones that suit you both.
-              </Text>
-            </Card>
+            <Text style={styles.summary}>{summary}</Text>
+          </Card>
+
+          {/* IN SYNC */}
+
+          {inSync.length > 0 ? (
+            <>
+              <GroupHeader>In sync</GroupHeader>
+
+              <Group inset={54}>
+                {inSync.map((trait) => (
+                  <Cell
+                    key={trait.key}
+                    leading={
+                      <View style={styles.markSync}>
+                        <Icon name="check" size={14} color="#1E8E3E" />
+                      </View>
+                    }
+                    title={trait.label}
+                    value={trait.you}
+                  />
+                ))}
+              </Group>
+            </>
           ) : null}
 
-          <Trait
-            label="Personality"
-            mine={mine?.personality_type}
-            theirs={theirs?.personality_type}
-            partnerName={partnerName}
-            tip={`One of you recharges alone and the other with people. Plan one of each this month.`}
-          />
+          {/* DIFFERENT */}
 
-          <Trait
-            label="In a disagreement"
-            mine={mine?.conflict_style}
-            theirs={theirs?.conflict_style}
-            partnerName={partnerName}
-            tip={`Agree on a pause word. Whoever needs time takes twenty minutes and promises to come back.`}
-          />
+          {different.length > 0 ? (
+            <>
+              <GroupHeader>Different, and that&apos;s useful</GroupHeader>
 
-          <Trait
-            label="Showing affection"
-            mine={myPrefs?.affection_style}
-            theirs={theirPrefs?.affection_style}
-            partnerName={partnerName}
-            tip={`You show love differently. Say out loud what you each notice most.`}
-          />
+              {different.map((trait) => (
+                <Card key={trait.key} padded={false} style={styles.diff}>
+                  <Text style={styles.diffLabel}>{trait.label}</Text>
 
-          <Trait
-            label="Staying in touch"
-            mine={myPrefs?.communication_frequency}
-            theirs={theirPrefs?.communication_frequency}
-            partnerName={partnerName}
-            tip={`Different rhythms are fine as long as neither of you is guessing. Name a time you both check in.`}
-          />
+                  <View style={styles.sides}>
+                    <View style={styles.side}>
+                      <View style={[styles.dot, { backgroundColor: T.you }]} />
+
+                      <View style={styles.sideText}>
+                        <Text style={styles.sideWho}>You</Text>
+
+                        <Text style={styles.sideValue}>{trait.you}</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.sideRule} />
+
+                    <View style={styles.side}>
+                      <View
+                        style={[styles.dot, { backgroundColor: T.accent }]}
+                      />
+
+                      <View style={styles.sideText}>
+                        <Text style={styles.sideWho}>{partnerName}</Text>
+
+                        <Text style={styles.sideValue}>{trait.them}</Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={styles.tip}>
+                    <Icon name="bulb" size={15} color={T.secondary} filled />
+
+                    <Text style={styles.tipText}>{trait.tip}</Text>
+                  </View>
+                </Card>
+              ))}
+            </>
+          ) : null}
 
           {/* LOVE LANGUAGES */}
 
-          <Card style={styles.languages}>
-            <View style={styles.traitHead}>
-              <Text style={styles.traitLabel}>Love languages</Text>
-            </View>
+          <GroupHeader>Love languages</GroupHeader>
 
+          <Card style={styles.love}>
             <View style={styles.legend}>
               <View style={styles.legendItem}>
                 <View style={[styles.legendDot, { backgroundColor: T.you }]} />
@@ -334,12 +482,21 @@ export default function InsightsScreen() {
               </View>
             </View>
 
-            {myLanguages.map((item, index) => (
-              <View key={item.language} style={styles.llRow}>
-                <Text style={styles.llLabel}>{item.language}</Text>
+            {myLanguages.map((item, index) => {
+              const them = theirLanguages[index];
+              const bothPicked = item.picked && them.picked;
 
-                <View style={styles.bars}>
-                  <View style={styles.barTrack}>
+              return (
+                <View key={item.language} style={styles.llRow}>
+                  <View style={styles.llHead}>
+                    <Text style={styles.llLabel}>{item.language}</Text>
+
+                    {bothPicked ? (
+                      <Text style={styles.llBoth}>Both</Text>
+                    ) : null}
+                  </View>
+
+                  <View style={styles.track}>
                     <View
                       style={[
                         styles.bar,
@@ -351,53 +508,56 @@ export default function InsightsScreen() {
                     />
                   </View>
 
-                  <View style={styles.barTrack}>
+                  <View style={styles.track}>
                     <View
                       style={[
                         styles.bar,
                         {
-                          width: `${theirLanguages[index].value * 100}%`,
+                          width: `${them.value * 100}%`,
                           backgroundColor: T.accent,
                         },
                       ]}
                     />
                   </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
           </Card>
+
+          <GroupFooter>
+            Longer bars are the ones each of you put first.
+          </GroupFooter>
 
           {/* THIS WEEK */}
 
-          {topShared ? (
-            <Card style={styles.suggest}>
-              <Text style={styles.suggestKicker}>This week, try</Text>
+          {shared ? (
+            <>
+              <GroupHeader>This week, try</GroupHeader>
 
-              <Text style={styles.suggestTitle}>
-                {topShared.language === "Quality time"
-                  ? "A phone-free evening walk"
-                  : topShared.language === "Words"
-                    ? "Telling each other one specific thing"
-                    : topShared.language === "Touch"
-                      ? "Ten unhurried minutes on the sofa"
-                      : topShared.language === "Gifts"
-                        ? "Something small, picked on purpose"
-                        : "Doing one chore the other hates"}
-              </Text>
+              <Card style={styles.week}>
+                <View style={styles.weekIcon}>
+                  <Icon name="sparkle" size={20} color={T.secondary} />
+                </View>
 
-              <Text style={styles.suggestText}>
-                {topShared.language} matters to both of you.
-              </Text>
+                <Text style={styles.weekTitle}>
+                  {IDEAS[shared.language] || "Something small, together"}
+                </Text>
 
-              <Button
-                title="Add to Dates"
-                icon="calendar-outline"
-                kind="tinted"
-                size="small"
-                style={styles.suggestButton}
-                onPress={() => router.push("/dates")}
-              />
-            </Card>
+                <Text style={styles.weekText}>
+                  {shared.language} matters to both of you.
+                </Text>
+
+                <Button
+                  title="Add to Dates"
+                  icon="calendar"
+                  kind="tinted"
+                  size="small"
+                  block={false}
+                  style={styles.weekButton}
+                  onPress={() => router.push("/dates")}
+                />
+              </Card>
+            </>
           ) : null}
         </>
       )}
@@ -406,169 +566,153 @@ export default function InsightsScreen() {
 }
 
 const styles = StyleSheet.create({
-  venn: {
-    padding: 16,
+  loading: {
+    paddingHorizontal: 16,
   },
 
-  vennArt: {
+  hero: {
     alignItems: "center",
-    paddingVertical: 8,
-    marginBottom: 14,
+    paddingVertical: 24,
   },
 
-  /* Two circles that genuinely overlap, each labelled
-     inside its own half so nothing sits on top of
-     anything else. */
-  vennPair: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  vennCircle: {
-    width: 118,
-    height: 118,
-    borderRadius: 59,
+  ringWrap: {
+    width: 132,
+    height: 132,
     alignItems: "center",
     justifyContent: "center",
   },
 
-  vennYou: {
-    backgroundColor: "rgba(217,87,122,0.14)",
-    marginRight: -34,
-    paddingRight: 26,
+  ringCentre: {
+    ...StyleSheet.absoluteFill,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
-  vennThem: {
-    backgroundColor: "rgba(74,45,92,0.14)",
-    paddingLeft: 26,
+  pair: {
+    flexDirection: "row",
   },
 
-  vennLabel: {
-    fontSize: 13,
+  pairThem: {
+    marginLeft: -10,
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+  },
+
+  percent: {
+    fontSize: 17,
     fontWeight: "700",
-    maxWidth: 74,
+    letterSpacing: -0.4,
+    color: T.label,
+    marginTop: 6,
+  },
+
+  headline: {
+    fontSize: 22,
+    lineHeight: 27,
+    fontWeight: "700",
+    letterSpacing: -0.5,
+    color: T.label,
+    marginTop: 18,
     textAlign: "center",
   },
 
-  vennMid: {
-    marginTop: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: T.fill4,
-  },
-
-  vennMidText: {
-    fontSize: 12.5,
-    fontWeight: "600",
-    color: T.label,
-  },
-
-  vennTitle: {
-    fontSize: 17,
-    fontWeight: "600",
-    color: T.label,
-  },
-
-  vennText: {
-    fontSize: 14,
-    lineHeight: 20,
+  summary: {
+    fontSize: 15,
+    lineHeight: 21,
     color: T.label2,
-    marginTop: 4,
+    marginTop: 6,
+    textAlign: "center",
+    paddingHorizontal: 12,
   },
 
-  trait: {
-    padding: 16,
-  },
-
-  traitHead: {
-    flexDirection: "row",
+  markSync: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "rgba(52,199,89,0.14)",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
   },
 
-  traitLabel: {
+  diff: {
+    overflow: "hidden",
+  },
+
+  diffLabel: {
     fontSize: 13,
     fontWeight: "600",
     textTransform: "uppercase",
     letterSpacing: 0.4,
     color: T.label2,
+    paddingHorizontal: 16,
+    paddingTop: 14,
   },
 
-  badge: {
+  sides: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 999,
+    alignItems: "stretch",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
 
-  badgeMatch: {
-    backgroundColor: "rgba(52,199,89,0.14)",
-  },
-
-  badgeComp: {
-    backgroundColor: T.accentTint,
-  },
-
-  badgeText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-
-  pair: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 14,
-  },
-
-  who: {
+  side: {
     flex: 1,
-    backgroundColor: "rgba(217,87,122,0.10)",
-    borderRadius: 14,
-    padding: 12,
+    flexDirection: "row",
+    gap: 9,
   },
 
-  whoThem: {
-    backgroundColor: "rgba(74,45,92,0.09)",
+  sideRule: {
+    width: StyleSheet.hairlineWidth,
+    backgroundColor: T.separator,
+    marginHorizontal: 12,
   },
 
-  whoLabel: {
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginTop: 6,
+  },
+
+  sideText: {
+    flex: 1,
+  },
+
+  sideWho: {
     fontSize: 12,
     color: T.label2,
   },
 
-  whoValue: {
-    fontSize: 15,
+  sideValue: {
+    fontSize: 16,
     fontWeight: "600",
-    marginTop: 3,
+    color: T.label,
+    marginTop: 2,
   },
 
   tip: {
     flexDirection: "row",
-    gap: 8,
-    marginTop: 14,
-    padding: 12,
-    borderRadius: 14,
+    gap: 9,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: T.fill4,
   },
 
   tipText: {
     flex: 1,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 13.5,
+    lineHeight: 19,
     color: T.label2,
   },
 
-  languages: {
-    padding: 16,
+  love: {
+    paddingTop: 14,
   },
 
   legend: {
     flexDirection: "row",
-    gap: 16,
-    marginTop: 12,
+    gap: 18,
+    marginBottom: 4,
   },
 
   legendItem: {
@@ -590,59 +734,69 @@ const styles = StyleSheet.create({
 
   llRow: {
     marginTop: 14,
-  },
-
-  llLabel: {
-    fontSize: 14,
-    color: T.label,
-    marginBottom: 6,
-  },
-
-  bars: {
     gap: 5,
   },
 
-  barTrack: {
-    height: 8,
-    borderRadius: 4,
+  llHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 2,
+  },
+
+  llLabel: {
+    fontSize: 15,
+    color: T.label,
+  },
+
+  llBoth: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: T.secondary,
+  },
+
+  track: {
+    height: 6,
+    borderRadius: 3,
     backgroundColor: T.fill4,
     overflow: "hidden",
   },
 
   bar: {
-    height: 8,
-    borderRadius: 4,
+    height: 6,
+    borderRadius: 3,
   },
 
-  suggest: {
-    padding: 16,
-    backgroundColor: T.surface,
+  week: {
+    padding: 18,
   },
 
-  suggestKicker: {
-    fontSize: 12,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
-    color: T.accentText,
+  weekIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(201,151,63,0.14)",
+    alignItems: "center",
+    justifyContent: "center",
   },
 
-  suggestTitle: {
+  weekTitle: {
     fontSize: 20,
+    lineHeight: 25,
     fontWeight: "700",
     letterSpacing: -0.4,
     color: T.label,
-    marginTop: 8,
+    marginTop: 12,
   },
 
-  suggestText: {
+  weekText: {
     fontSize: 14,
     lineHeight: 20,
     color: T.label2,
     marginTop: 4,
   },
 
-  suggestButton: {
+  weekButton: {
     alignSelf: "flex-start",
     marginTop: 14,
   },

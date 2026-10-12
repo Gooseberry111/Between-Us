@@ -4,9 +4,11 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Switch as NativeSwitch,
   Text,
@@ -31,7 +33,7 @@ import Svg, { Circle } from "react-native-svg";
 
 import { T } from "../../lib/theme";
 import Icon, { sfSymbol } from "./Icon";
-import { Press } from "./layout";
+import { GlassButton, Press } from "./layout";
 
 /*
  * ==========================================
@@ -318,6 +320,29 @@ export function Chip({ label, selected, tinted, onPress, style }) {
   );
 }
 
+/*
+ * .rem — the round check Reminders uses: an empty ring,
+ * or the accent with a white gap around a filled dot.
+ */
+export function Check({ on, onPress, label }) {
+  return (
+    <Press
+      onPress={() => {
+        Haptics.selectionAsync().catch(() => {});
+
+        onPress?.();
+      }}
+      scaleTo={0.85}
+      hitSlop={10}
+      accessibilityLabel={label}
+    >
+      <View style={[styles.check, on && styles.checkOn]}>
+        {on ? <View style={styles.checkDot} /> : null}
+      </View>
+    </Press>
+  );
+}
+
 /* .seg — the real iOS control on iOS. */
 export function Segmented({ options, value, onChange, style }) {
   if (Platform.OS === "ios") {
@@ -419,10 +444,7 @@ export function DateBlock({ date, tone = "them" }) {
   return (
     <View style={styles.cal}>
       <Text
-        style={[
-          styles.calMonth,
-          { color: tone === "you" ? T.youText : T.red },
-        ]}
+        style={[styles.calMonth, { color: tone === "you" ? T.youText : T.red }]}
       >
         {value.toLocaleDateString(undefined, { month: "short" })}
       </Text>
@@ -512,10 +534,97 @@ export function Empty({ icon, title, text, chips, action }) {
   );
 }
 
-/* .sheet — Cancel left, title centre, Save right. */
+/*
+ * .sheet-nav — the top of every sheet and every screen
+ * presented as one.
+ *
+ * The grabber, then a 52pt bar: close on the left, the
+ * title truly centred, the confirming action on the
+ * right. On iOS the two actions are the system's circle
+ * buttons -- an xmark in glass and a checkmark filled
+ * with the accent -- which is how iOS 26 tops a sheet.
+ * Android keeps the prototype's Cancel and Save.
+ *
+ * `centre` replaces the title with anything else (the
+ * daily question's progress bars). `subtitle` is a line
+ * of context under the bar, with room to breathe.
+ */
+export function SheetHeader({
+  title,
+  subtitle,
+  centre,
+  onClose,
+  closeIcon = "close",
+  onDone,
+  doneLabel = "Save",
+  doneDisabled,
+}) {
+  const ios = Platform.OS === "ios";
+
+  const close = onClose ? (
+    ios ? (
+      <GlassButton icon={closeIcon} label="Cancel" onPress={onClose} />
+    ) : (
+      <Text style={styles.sheetCancel} onPress={onClose}>
+        Cancel
+      </Text>
+    )
+  ) : null;
+
+  const done = onDone ? (
+    ios ? (
+      <GlassButton
+        icon="check"
+        label={doneLabel}
+        prominent
+        disabled={doneDisabled}
+        onPress={onDone}
+      />
+    ) : (
+      <Text
+        style={[styles.sheetSave, doneDisabled && styles.sheetSaveOff]}
+        onPress={doneDisabled ? undefined : onDone}
+      >
+        {doneLabel}
+      </Text>
+    )
+  ) : null;
+
+  return (
+    <View style={styles.sheetHead}>
+      {/* The grabber iOS puts on a page sheet. */}
+      {ios ? <View style={styles.sheetGrabber} /> : null}
+
+      <View style={styles.sheetNav}>
+        <View style={styles.sheetSide}>{close}</View>
+
+        <View style={styles.sheetCentre}>
+          {centre ||
+            (title ? (
+              <Text style={styles.sheetTitle} numberOfLines={1}>
+                {title}
+              </Text>
+            ) : null)}
+        </View>
+
+        <View style={[styles.sheetSide, styles.sheetSideEnd]}>{done}</View>
+      </View>
+
+      {subtitle ? <Text style={styles.sheetSubtitle}>{subtitle}</Text> : null}
+    </View>
+  );
+}
+
+/*
+ * .sheet — a page sheet with the header above and the
+ * body scrolling beneath it, lifted clear of the
+ * keyboard. Cards and groups inside carry their own
+ * 16pt sides, as they do on every other screen.
+ */
 export function Sheet({
   visible,
   title,
+  subtitle,
   onCancel,
   onSave,
   saveLabel = "Save",
@@ -529,27 +638,28 @@ export function Sheet({
       presentationStyle="pageSheet"
       onRequestClose={onCancel}
     >
-      <View style={styles.sheet}>
-        {/* The grabber iOS puts on a page sheet. */}
-        <View style={styles.sheetGrabber} />
+      <KeyboardAvoidingView
+        style={styles.sheet}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <SheetHeader
+          title={title}
+          subtitle={subtitle}
+          onClose={onCancel}
+          onDone={onSave}
+          doneLabel={saveLabel}
+          doneDisabled={saveDisabled}
+        />
 
-        <View style={styles.sheetNav}>
-          <Text style={styles.sheetCancel} onPress={onCancel}>
-            Cancel
-          </Text>
-
-          <Text style={styles.sheetTitle}>{title}</Text>
-
-          <Text
-            style={[styles.sheetSave, saveDisabled && styles.sheetSaveOff]}
-            onPress={saveDisabled ? undefined : onSave}
-          >
-            {saveLabel}
-          </Text>
-        </View>
-
-        <View style={styles.sheetBody}>{children}</View>
-      </View>
+        <ScrollView
+          contentContainerStyle={styles.sheetBody}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          showsVerticalScrollIndicator={false}
+        >
+          {children}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -875,42 +985,96 @@ const styles = StyleSheet.create({
     backgroundColor: T.appBackground,
   },
 
+  check: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.5,
+    borderColor: T.label3,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  checkOn: {
+    borderColor: T.accent,
+  },
+
+  checkDot: {
+    width: 13,
+    height: 13,
+    borderRadius: 7,
+    backgroundColor: T.accent,
+  },
+
+  sheetHead: {
+    paddingBottom: 10,
+  },
+
   sheetGrabber: {
     alignSelf: "center",
     width: 36,
     height: 5,
     borderRadius: 3,
-    backgroundColor: T.fill2,
-    marginTop: 8,
+    backgroundColor: T.label3,
+    marginTop: 6,
   },
 
   sheetNav: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    minHeight: 52,
     paddingHorizontal: 16,
-    paddingTop: 18,
-    paddingBottom: 16,
+    paddingTop: Platform.OS === "ios" ? 12 : 16,
+    gap: 12,
+  },
+
+  /* Both sides the same width, so the title sits on the
+   * true centre whatever the buttons are. */
+  sheetSide: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  sheetSideEnd: {
+    justifyContent: "flex-end",
+  },
+
+  sheetCentre: {
+    flexShrink: 1,
+    alignItems: "center",
   },
 
   sheetCancel: {
     fontSize: 17,
     color: T.accent,
-    width: 72,
+    paddingVertical: 6,
+    paddingRight: 8,
   },
 
   sheetTitle: {
     fontSize: 17,
+    lineHeight: 22,
     fontWeight: "600",
+    letterSpacing: -0.4,
     color: T.label,
+  },
+
+  sheetSubtitle: {
+    fontSize: 15,
+    lineHeight: 21,
+    color: T.label2,
+    textAlign: "center",
+    paddingHorizontal: 32,
+    marginTop: 10,
   },
 
   sheetSave: {
     fontSize: 17,
     fontWeight: "600",
     color: T.accent,
-    width: 72,
-    textAlign: "right",
+    paddingVertical: 6,
+    paddingLeft: 8,
   },
 
   sheetSaveOff: {
@@ -918,7 +1082,9 @@ const styles = StyleSheet.create({
   },
 
   sheetBody: {
-    gap: 16,
+    paddingTop: 12,
+    paddingBottom: 40,
+    gap: 14,
   },
 
   ringLabel: {

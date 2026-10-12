@@ -558,11 +558,8 @@ export default function HomeScreen() {
         onCancel={() => setMoodSheet(false)}
         onSave={() => setMoodSheet(false)}
         saveLabel="Done"
+        subtitle={`It shows on your avatar. Only ${partnerName} sees it.`}
       >
-        <Text style={styles.sheetHint}>
-          It shows on your avatar. Only {partnerName} sees it.
-        </Text>
-
         <Group inset={16}>
           {MOODS.map((item) => (
             <Cell
@@ -778,13 +775,6 @@ const styles = StyleSheet.create({
   cal: {
     width: 40,
     alignItems: "center",
-  },
-
-  sheetHint: {
-    fontSize: 13,
-    lineHeight: 18,
-    color: T.label2,
-    paddingHorizontal: 16,
   },
 
   sheetFace: {

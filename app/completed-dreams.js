@@ -1,23 +1,50 @@
-import { useCallback, useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { GlassBackground, Card } from "../components/Glass";
+import { useCallback, useState } from "react";
+import { Alert, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useAuth } from "@clerk/expo";
-import { useRouter } from "expo-router";
-import { getCachedData, setCachedData } from "../lib/dataCache";
-import { Skeleton, SkeletonList } from "../components/Skeleton";
+import { useFocusEffect, useRouter } from "expo-router";
+
 import { apiFetch } from "../lib/api";
-import ConnectFirst from "../components/ConnectFirst";
+import { getCachedData, setCachedData } from "../lib/dataCache";
 import { useIsConnected } from "../lib/connection";
+import { coverFor, progressOf } from "../lib/dreams";
+import { T } from "../lib/theme";
+import {
+  Button,
+  Card,
+  Empty,
+  GlassButton,
+  LargeTitle,
+  NavBar,
+  Screen,
+  SubTitle,
+} from "../components/ui";
+import ConnectFirst from "../components/ConnectFirst";
+import DreamCover from "../components/DreamCover";
+import { SkeletonList } from "../components/Skeleton";
+
+/*
+ * ==========================================
+ * COMPLETED DREAMS
+ * ==========================================
+ *
+ * Everything the two of you have finished, newest
+ * first, each with its cover and when it was done. One
+ * that was ticked off too soon can go back on the board.
+ */
+
+function finishedOn(date) {
+  if (!date) return "Finished together";
+
+  const parsed = new Date(date);
+
+  if (Number.isNaN(parsed.getTime())) return "Finished together";
+
+  return `Finished ${parsed.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  })}`;
+}
 
 export default function CompletedDreamsScreen() {
   const router = useRouter();
@@ -25,708 +52,256 @@ export default function CompletedDreamsScreen() {
   const connected = useIsConnected();
 
   const cacheKey = userId ? `completed-dreams:${userId}` : null;
-  const cachedDreams = cacheKey ? getCachedData(cacheKey) : undefined;
+  const cached = cacheKey ? getCachedData(cacheKey) : undefined;
 
-  const [dreams, setDreams] = useState(cachedDreams || []);
-  const [loading, setLoading] = useState(!cachedDreams);
+  const [dreams, setDreams] = useState(cached || []);
+  const [loading, setLoading] = useState(!cached);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState("");
+  const [moving, setMoving] = useState(null);
 
-  const loadDreams = useCallback(async () => {
+  const load = useCallback(async () => {
     if (!isLoaded || !isSignedIn || !userId) {
       setLoading(false);
       return;
     }
 
-    const cached = cacheKey ? getCachedData(cacheKey) : undefined;
-
-    if (cached) {
-      setDreams(cached);
-      setLoading(false);
-    }
-
     try {
-      setError("");
-
       const response = await apiFetch(`/users/${userId}/dreams`);
       const data = await response.json();
-
-      console.log("COMPLETED DREAMS RESPONSE:", data);
 
       if (!response.ok) {
         throw new Error(data?.error || "Unable to load completed dreams.");
       }
 
-      const completedDreams = Array.isArray(data?.dreams)
-        ? data.dreams.filter((dream) => dream.is_completed)
-        : [];
+      const finished = (Array.isArray(data?.dreams) ? data.dreams : [])
+        .filter((dream) => dream.is_completed)
+        .sort(
+          (a, b) =>
+            new Date(b.completed_at || 0).getTime() -
+            new Date(a.completed_at || 0).getTime(),
+        );
 
-      setDreams(completedDreams);
+      setDreams(finished);
 
-      if (cacheKey) setCachedData(cacheKey, completedDreams);
+      if (cacheKey) setCachedData(cacheKey, finished);
     } catch (err) {
       console.log("COMPLETED DREAMS LOAD ERROR:", err);
-
-      if (!cached) {
-        setError(err?.message || "Unable to load completed dreams.");
-      }
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   }, [isLoaded, isSignedIn, userId, cacheKey]);
 
-  useEffect(() => {
-    loadDreams();
-  }, [loadDreams]);
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    loadDreams();
+  const goBack = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)/dreams");
   };
 
-  const markIncomplete = async (dream) => {
-    if (!userId) return;
+  const putBack = (dream) => {
+    Alert.alert(
+      "Put it back on the board?",
+      `“${dream.title}” moves back to your dreams, steps and all.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Put Back",
+          onPress: async () => {
+            try {
+              setMoving(dream.id);
 
-    try {
-      const response = await apiFetch(`/users/${userId}/dreams/${dream.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
+              const response = await apiFetch(
+                `/users/${userId}/dreams/${dream.id}`,
+                {
+                  method: "PUT",
+                  body: JSON.stringify({
+                    clerk_id: userId,
+                    is_completed: false,
+                  }),
+                },
+              );
+
+              if (!response.ok) {
+                const data = await response.json().catch(() => null);
+                throw new Error(data?.error || "Unable to move it back.");
+              }
+
+              setDreams((current) => {
+                const next = current.filter((item) => item.id !== dream.id);
+
+                if (cacheKey) setCachedData(cacheKey, next);
+
+                return next;
+              });
+            } catch (err) {
+              Alert.alert(
+                "We couldn't do that",
+                err?.message || "Please try again.",
+              );
+            } finally {
+              setMoving(null);
+            }
+          },
         },
-        body: JSON.stringify({
-          is_completed: false,
-        }),
-      });
-
-      const data = await response.json();
-
-      console.log("MARK INCOMPLETE RESPONSE:", data);
-
-      if (!response.ok) {
-        throw new Error(data?.error || "Unable to move dream back.");
-      }
-
-      setDreams((current) => {
-        const next = current.filter((item) => item.id !== dream.id);
-        if (cacheKey) setCachedData(cacheKey, next);
-        return next;
-      });
-    } catch (err) {
-      console.log("MARK INCOMPLETE ERROR:", err);
-
-      Alert.alert(
-        "Something went wrong",
-        err?.message || "Unable to move dream back.",
-      );
-    }
+      ],
+    );
   };
 
   if (connected === false) {
-    return <ConnectFirst feature="Completed dreams" showBack={true} />;
-  }
-
-  if (loading) {
-    /*
-     * Cold load only (nothing cached yet). Mirrors the
-     * real layout so the page appears at once and fills
-     * in, instead of blocking on a spinner.
-     */
-    return (
-      <SafeAreaView style={styles.screen} edges={["top"]}>
-        <GlassBackground>
-          <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
-            <Skeleton width={96} height={11} radius={6} />
-            <Skeleton
-              width="62%"
-              height={26}
-              radius={9}
-              style={{ marginTop: 12 }}
-            />
-            <Skeleton width="80%" height={12} style={{ marginTop: 10 }} />
-
-            <View style={{ marginTop: 26 }}>
-              <SkeletonList count={3} />
-            </View>
-          </View>
-        </GlassBackground>
-      </SafeAreaView>
-    );
+    return <ConnectFirst feature="Completed dreams" showBack />;
   }
 
   return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
-      <GlassBackground>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor="#4A2D5C"
-            />
-          }
-          contentContainerStyle={styles.scrollContent}
-        >
-          <View style={styles.container}>
-            {/* HEADER */}
+    <Screen
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => {
+            setRefreshing(true);
+            load();
+          }}
+          tintColor={T.accent}
+        />
+      }
+    >
+      <NavBar
+        left={<GlassButton icon="back" label="Back" onPress={goBack} />}
+      />
 
-            <View style={styles.header}>
-              <TouchableOpacity
-                style={styles.backButton}
-                onPress={() =>
-                  /*
-                   * Straight back to the dream board, not wherever
-                   * the tab stack thinks it left off. Dreams is a
-                   * tab, so a plain back() surfaces on Home.
-                   */
-                  router.replace("/(tabs)/dreams")
-                }
+      <LargeTitle>Completed</LargeTitle>
+
+      <SubTitle>
+        {dreams.length === 1
+          ? "One dream, done together."
+          : dreams.length > 1
+            ? `${dreams.length} dreams, done together.`
+            : "Everything you finish together lands here."}
+      </SubTitle>
+
+      {loading ? (
+        <View style={styles.loading}>
+          <SkeletonList count={3} />
+        </View>
+      ) : dreams.length === 0 ? (
+        <Empty
+          icon="trophy"
+          title="Nothing finished yet"
+          text="Tick the last step on a dream and it comes here, with a celebration."
+          action={{
+            title: "Back to Dreams",
+            icon: "dreams",
+            onPress: goBack,
+          }}
+        />
+      ) : (
+        dreams.map((dream) => {
+          const steps = progressOf(dream);
+
+          return (
+            <Card key={dream.id} padded={false} style={styles.card}>
+              <DreamCover
+                cover={coverFor(dream)}
+                photoId={dream.photo_id}
+                height={110}
+                iconSize={30}
               >
-                <Text style={styles.backButtonText}>←</Text>
-              </TouchableOpacity>
+                <View style={styles.doneChip}>
+                  <Text style={styles.doneChipText}>✓ Done</Text>
+                </View>
+              </DreamCover>
 
-              <View style={styles.headerText}>
-                <Text style={styles.brand}>BETWEEN US</Text>
+              <View style={styles.body}>
+                <Text style={styles.title}>{dream.title}</Text>
 
-                <Text style={styles.pageTitle}>Completed Dreams</Text>
-
-                <Text style={styles.pageSubtitle}>
-                  Everything you have already achieved together.
-                </Text>
-              </View>
-
-              <View style={styles.headerIcon}>
-                <Text style={styles.headerIconText}>✓</Text>
-              </View>
-            </View>
-
-            {error ? (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            ) : null}
-
-            {/* SUMMARY */}
-
-            <Card style={styles.summaryCard}>
-              <Text style={styles.summaryNumber}>{dreams.length}</Text>
-
-              <View style={styles.summaryText}>
-                <Text style={styles.summaryTitle}>
-                  {dreams.length === 1 ? "Dream completed" : "Dreams completed"}
+                <Text style={styles.meta}>
+                  {[
+                    finishedOn(dream.completed_at),
+                    steps.total ? `${steps.total} steps` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </Text>
 
-                <Text style={styles.summarySubtitle}>
-                  Keep building your story together.
-                </Text>
+                {dream.description ? (
+                  <Text style={styles.note}>{dream.description}</Text>
+                ) : null}
+
+                <Button
+                  title="Put Back on the Board"
+                  icon="undo"
+                  kind="gray"
+                  size="small"
+                  block={false}
+                  busy={moving === dream.id}
+                  onPress={() => putBack(dream)}
+                  style={styles.putBack}
+                />
               </View>
             </Card>
-
-            {/* DREAMS */}
-
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>YOUR ACHIEVEMENTS</Text>
-
-              <Text style={styles.sectionTitle}>
-                {dreams.length === 0
-                  ? "Nothing completed yet."
-                  : `${dreams.length} ${
-                      dreams.length === 1 ? "dream" : "dreams"
-                    } achieved together.`}
-              </Text>
-
-              {dreams.length === 0 ? (
-                <Card style={styles.emptyCard}>
-                  <View style={styles.emptyIcon}>
-                    <Text style={styles.emptyIconText}>✓</Text>
-                  </View>
-
-                  <Text style={styles.emptyTitle}>
-                    Your completed dreams will appear here.
-                  </Text>
-
-                  <Text style={styles.emptyText}>
-                    When you mark a dream as completed, it will move here
-                    automatically.
-                  </Text>
-
-                  <TouchableOpacity
-                    style={styles.backToDreamsButton}
-                    onPress={() =>
-                      /*
-                       * Straight back to the dream board, not wherever
-                       * the tab stack thinks it left off. Dreams is a
-                       * tab, so a plain back() surfaces on Home.
-                       */
-                      router.replace("/(tabs)/dreams")
-                    }
-                    activeOpacity={0.85}
-                  >
-                    <Text style={styles.backToDreamsText}>Back to dreams</Text>
-                  </TouchableOpacity>
-                </Card>
-              ) : (
-                dreams.map((dream, index) => (
-                  <CompletedDreamCard
-                    key={dream.id}
-                    dream={dream}
-                    index={index}
-                    onMarkIncomplete={() => markIncomplete(dream)}
-                  />
-                ))
-              )}
-            </View>
-
-            {dreams.length > 0 ? (
-              <Card style={styles.footerCard}>
-                <Text style={styles.footerQuote}>"One dream at a time."</Text>
-
-                <Text style={styles.footerText}>
-                  Look back at what you have already built together.
-                </Text>
-              </Card>
-            ) : null}
-          </View>
-        </ScrollView>
-      </GlassBackground>
-    </SafeAreaView>
-  );
-}
-
-function CompletedDreamCard({ dream, index, onMarkIncomplete }) {
-  const targetDate = dream.target_date
-    ? new Date(dream.target_date).toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      })
-    : null;
-
-  const completedDate = dream.completed_at
-    ? new Date(dream.completed_at).toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      })
-    : null;
-
-  return (
-    <Card style={styles.dreamCard}>
-      <View style={styles.dreamTop}>
-        <View style={styles.dreamNumber}>
-          <Text style={styles.dreamNumberText}>
-            {String(index + 1).padStart(2, "0")}
-          </Text>
-        </View>
-
-        <View style={styles.completedBadge}>
-          <Text style={styles.completedBadgeText}>COMPLETED</Text>
-        </View>
-      </View>
-
-      <Text style={styles.dreamTitle}>{dream.title}</Text>
-
-      {dream.description ? (
-        <Text style={styles.dreamDescription}>{dream.description}</Text>
-      ) : null}
-
-      {targetDate ? (
-        <View style={styles.dateContainer}>
-          <Text style={styles.dateLabel}>TARGET DATE</Text>
-          <Text style={styles.dateText}>{targetDate}</Text>
-        </View>
-      ) : null}
-
-      {completedDate ? (
-        <View style={styles.completedContainer}>
-          <Text style={styles.completedLabel}>COMPLETED ON</Text>
-          <Text style={styles.completedDate}>{completedDate}</Text>
-        </View>
-      ) : null}
-
-      <View style={styles.dreamDivider} />
-
-      <TouchableOpacity
-        style={styles.incompleteButton}
-        onPress={onMarkIncomplete}
-        activeOpacity={0.8}
-      >
-        <View style={styles.checkCircle}>
-          <Text style={styles.checkText}>✓</Text>
-        </View>
-
-        <Text style={styles.incompleteText}>Move back to dreams</Text>
-      </TouchableOpacity>
-    </Card>
+          );
+        })
+      )}
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-  },
-
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 120,
-  },
-
-  container: {
-    paddingHorizontal: 22,
-    paddingTop: 22,
-  },
-
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 22,
-  },
-
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(74, 45, 92, 0.09)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 11,
-  },
-
-  backButtonText: {
-    fontSize: 22,
-    color: "#4A2D5C",
-  },
-
-  headerText: {
-    flex: 1,
-  },
-
-  brand: {
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 2,
-    color: "#4A2D5C",
-  },
-
-  pageTitle: {
-    marginTop: 5,
-    fontSize: 26,
-    lineHeight: 32,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  pageSubtitle: {
-    marginTop: 4,
-    fontSize: 12,
-    lineHeight: 18,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  headerIcon: {
-    width: 45,
-    height: 45,
-    borderRadius: 23,
-    backgroundColor: "rgba(74, 45, 92, 0.09)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: 8,
-  },
-
-  headerIconText: {
-    fontSize: 20,
-    color: "#4A2D5C",
-    fontWeight: "700",
-  },
-
-  summaryCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 18,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  summaryNumber: {
-    fontSize: 29,
-    fontWeight: "700",
-    color: "#4A2D5C",
-  },
-
-  summaryText: {
-    marginLeft: 14,
-  },
-
-  summaryTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  summarySubtitle: {
-    marginTop: 3,
-    fontSize: 11,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  section: {
-    marginTop: 30,
-  },
-
-  sectionLabel: {
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1.7,
-    color: "rgba(60,60,67,0.6)",
-    marginBottom: 7,
-  },
-
-  sectionTitle: {
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: "700",
-    color: "#111114",
-    marginBottom: 13,
-  },
-
-  dreamCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    marginBottom: 13,
-  },
-
-  dreamTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-
-  dreamNumber: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "rgba(74, 45, 92, 0.09)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  dreamNumberText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#4A2D5C",
-  },
-
-  completedBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 9,
-    backgroundColor: "rgba(74, 45, 92, 0.09)",
-  },
-
-  completedBadgeText: {
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 0.8,
-    color: "#4A2D5C",
-  },
-
-  dreamTitle: {
-    marginTop: 16,
-    fontSize: 20,
-    lineHeight: 25,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  dreamDescription: {
-    marginTop: 8,
-    fontSize: 13,
-    lineHeight: 20,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  dateContainer: {
-    marginTop: 14,
-    backgroundColor: "rgba(74, 45, 92, 0.07)",
-    borderRadius: 11,
-    padding: 11,
-  },
-
-  dateLabel: {
-    fontSize: 8,
-    fontWeight: "800",
-    letterSpacing: 1.2,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  dateText: {
-    marginTop: 3,
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#4A2D5C",
-  },
-
-  completedContainer: {
-    marginTop: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 11,
-    padding: 11,
-  },
-
-  completedLabel: {
-    fontSize: 8,
-    fontWeight: "800",
-    letterSpacing: 1.2,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  completedDate: {
-    marginTop: 3,
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#4A2D5C",
-  },
-
-  dreamDivider: {
-    height: 1,
-    backgroundColor: "#E9E6EB",
-    marginVertical: 16,
-  },
-
-  incompleteButton: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  checkCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#4A2D5C",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  checkText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
-  },
-
-  incompleteText: {
-    marginLeft: 8,
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#4A2D5C",
-  },
-
-  emptyCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 20,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    alignItems: "center",
-  },
-
-  emptyIcon: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: "rgba(74, 45, 92, 0.09)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 15,
-  },
-
-  emptyIconText: {
-    fontSize: 25,
-    color: "#4A2D5C",
-    fontWeight: "700",
-  },
-
-  emptyTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#111114",
-    textAlign: "center",
-  },
-
-  emptyText: {
-    marginTop: 8,
-    fontSize: 13,
-    lineHeight: 20,
-    color: "rgba(60,60,67,0.6)",
-    textAlign: "center",
-  },
-
-  backToDreamsButton: {
-    marginTop: 17,
+  loading: {
     paddingHorizontal: 16,
-    paddingVertical: 11,
-    borderRadius: 11,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
   },
 
-  backToDreamsText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#4A2D5C",
+  card: {
+    overflow: "hidden",
   },
 
-  footerCard: {
-    marginTop: 17,
-    padding: 20,
-    borderRadius: 18,
-    backgroundColor: "#FBEEF2",
-    alignItems: "center",
-  },
-
-  footerQuote: {
-    textAlign: "center",
-    fontSize: 14,
-    lineHeight: 21,
-    fontWeight: "600",
-    color: "#4A2D5C",
-  },
-
-  footerText: {
-    marginTop: 7,
-    textAlign: "center",
-    fontSize: 11,
-    lineHeight: 17,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  errorBox: {
-    backgroundColor: "#E9E6EB",
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderRadius: 12,
-    marginBottom: 15,
-  },
-
-  errorText: {
-    fontSize: 12,
-    lineHeight: 17,
-    color: "#FF3B30",
-  },
-
-  loadingContainer: {
-    flex: 1,
-    alignItems: "center",
+  doneChip: {
+    position: "absolute",
+    left: 12,
+    top: 12,
+    height: 26,
+    paddingHorizontal: 10,
+    borderRadius: 13,
     justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.28)",
   },
 
-  loadingText: {
-    marginTop: 12,
+  doneChipText: {
     fontSize: 12,
-    color: "rgba(60,60,67,0.6)",
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
+
+  body: {
+    padding: 16,
+  },
+
+  title: {
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: "600",
+    color: T.label,
+  },
+
+  meta: {
+    fontSize: 13,
+    color: T.label2,
+    marginTop: 2,
+  },
+
+  note: {
+    fontSize: 15,
+    lineHeight: 21,
+    color: T.label,
+    marginTop: 10,
+  },
+
+  putBack: {
+    alignSelf: "flex-start",
+    marginTop: 14,
   },
 });

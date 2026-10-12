@@ -349,6 +349,30 @@ const DAILY_QUESTIONS = [
  */
 let schemaReady = false;
 
+/*
+ * What a dream's steps, cover and photo may hold. Steps
+ * are short, there are at most thirty, and anything that
+ * is not one of these shapes is dropped rather than stored.
+ */
+function cleanSteps(raw) {
+	if (!Array.isArray(raw)) return null;
+
+	return raw
+		.slice(0, 30)
+		.map((step) => ({
+			id: String(step?.id || crypto.randomUUID()).slice(0, 64),
+			title: String(step?.title || '').trim().slice(0, 140),
+			done: Boolean(step?.done),
+		}))
+		.filter((step) => step.title);
+}
+
+function cleanKey(raw) {
+	const value = String(raw ?? '').trim();
+
+	return /^[A-Za-z0-9-]{1,64}$/.test(value) ? value : null;
+}
+
 async function ensureSchema(sql) {
 	if (schemaReady) return;
 
@@ -412,6 +436,17 @@ async function ensureSchema(sql) {
 
 	/* The key of a photo in the media store, if there is one. */
 	await sql`ALTER TABLE memories ADD COLUMN IF NOT EXISTS photo_id TEXT`;
+
+	/*
+	 * Dreams carry a cover (one of the app's drawn covers,
+	 * by key, or a photo from the media store), the steps
+	 * that fill their ring, and when one of the two last
+	 * chose to focus on it.
+	 */
+	await sql`ALTER TABLE dreams ADD COLUMN IF NOT EXISTS cover TEXT`;
+	await sql`ALTER TABLE dreams ADD COLUMN IF NOT EXISTS photo_id TEXT`;
+	await sql`ALTER TABLE dreams ADD COLUMN IF NOT EXISTS steps JSONB NOT NULL DEFAULT '[]'::jsonb`;
+	await sql`ALTER TABLE dreams ADD COLUMN IF NOT EXISTS focused_at TIMESTAMPTZ`;
 
 	/*
 	 * Dates the two of them are actually planning, as opposed
@@ -3035,6 +3070,9 @@ VALUES (
 				const body = await request.json();
 
 				const { title, description, memory_date } = body;
+				const photoId = cleanKey(body?.photo_id);
+
+				await ensureSchema(sql);
 
 				if (!title || !String(title).trim()) {
 					return Response.json(
@@ -3097,7 +3135,8 @@ VALUES (
       created_by,
       title,
       description,
-      memory_date
+      memory_date,
+      photo_id
     )
     VALUES (
       ${userId},
@@ -3105,7 +3144,8 @@ VALUES (
       ${userId},
       ${String(title).trim()},
       ${description ? String(description).trim() : null},
-      ${memory_date || new Date().toISOString().slice(0, 10)}
+      ${memory_date || new Date().toISOString().slice(0, 10)},
+      ${photoId}
     )
     RETURNING
       id,
@@ -3115,6 +3155,7 @@ VALUES (
       title,
       description,
       memory_date,
+      photo_id,
       created_at,
       updated_at
   `;
@@ -3496,6 +3537,8 @@ VALUES (
 			if (memoriesMatch && request.method === 'GET') {
 				const clerkId = memoriesMatch[1];
 
+				await ensureSchema(sql);
+
 				// Find current user
 				const userResult = await sql`
     SELECT id
@@ -3546,6 +3589,7 @@ VALUES (
       title,
       description,
       memory_date,
+      photo_id,
       created_at,
       updated_at
     FROM memories
@@ -3680,6 +3724,8 @@ VALUES (
 			if (dreamsMatch && request.method === 'GET') {
 				const clerkId = dreamsMatch[1];
 
+				await ensureSchema(sql);
+
 				// Find current user
 				const userResult = await sql`
     SELECT id
@@ -3725,12 +3771,17 @@ VALUES (
       target_date,
       is_completed,
       completed_at,
+      cover,
+      photo_id,
+      steps,
+      focused_at,
       created_at,
       updated_at
     FROM dreams
     WHERE connection_id = ${connection.id}
     ORDER BY
       is_completed ASC,
+      focused_at DESC NULLS LAST,
       target_date ASC NULLS LAST,
       created_at DESC
   `;
@@ -3755,6 +3806,11 @@ VALUES (
 				const category = body?.category?.trim() || 'Other';
 				const description = body?.description?.trim() || null;
 				const targetDate = body?.target_date || null;
+				const cover = cleanKey(body?.cover);
+				const photoId = cleanKey(body?.photo_id);
+				const steps = cleanSteps(body?.steps) || [];
+
+				await ensureSchema(sql);
 
 				if (!title) {
 					return Response.json({ error: 'title is required' }, { status: 400 });
@@ -3800,7 +3856,10 @@ VALUES (
       title,
       category,
       description,
-      target_date
+      target_date,
+      cover,
+      photo_id,
+      steps
     )
     VALUES (
       ${connection.id},
@@ -3808,7 +3867,10 @@ VALUES (
       ${title},
       ${category},
       ${description},
-      ${targetDate}
+      ${targetDate},
+      ${cover},
+      ${photoId},
+      ${JSON.stringify(steps)}::jsonb
     )
     RETURNING
       id,
@@ -3820,6 +3882,10 @@ VALUES (
       target_date,
       is_completed,
       completed_at,
+      cover,
+      photo_id,
+      steps,
+      focused_at,
       created_at,
       updated_at
   `;
@@ -3862,6 +3928,14 @@ VALUES (
 
 				const isCompleted = body?.is_completed !== undefined ? Boolean(body.is_completed) : null;
 
+				/* Cover and photo can be cleared by sending null. */
+				const coverGiven = body?.cover !== undefined;
+				const photoGiven = body?.photo_id !== undefined;
+				const steps = body?.steps !== undefined ? cleanSteps(body.steps) : null;
+				const focus = body?.focus === true;
+
+				await ensureSchema(sql);
+
 				/*
 				 * Find current user
 				 */
@@ -3891,7 +3965,11 @@ VALUES (
       description,
       target_date,
       is_completed,
-      completed_at
+      completed_at,
+      cover,
+      photo_id,
+      steps,
+      focused_at
     FROM dreams
     WHERE id = ${dreamId}
     LIMIT 1
@@ -3939,6 +4017,14 @@ VALUES (
 
 				const newIsCompleted = isCompleted !== null ? isCompleted : dream.is_completed;
 
+				const newCover = coverGiven ? cleanKey(body.cover) : dream.cover;
+
+				const newPhotoId = photoGiven ? cleanKey(body.photo_id) : dream.photo_id;
+
+				const newSteps = steps !== null ? steps : dream.steps || [];
+
+				const newFocusedAt = focus ? new Date().toISOString() : dream.focused_at;
+
 				/*
 				 * Set completed_at automatically.
 				 */
@@ -3961,6 +4047,10 @@ VALUES (
       target_date = ${newTargetDate},
       is_completed = ${newIsCompleted},
       completed_at = ${newCompletedAt},
+      cover = ${newCover},
+      photo_id = ${newPhotoId},
+      steps = ${JSON.stringify(newSteps)}::jsonb,
+      focused_at = ${newFocusedAt},
       updated_at = NOW()
     WHERE id = ${dreamId}
     RETURNING
@@ -3973,6 +4063,10 @@ VALUES (
       target_date,
       is_completed,
       completed_at,
+      cover,
+      photo_id,
+      steps,
+      focused_at,
       created_at,
       updated_at
   `;

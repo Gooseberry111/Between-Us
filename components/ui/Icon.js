@@ -60,6 +60,24 @@ const MAP = {
   pulse: ["waveform.path.ecg", "pulse-outline", "pulse"],
   sparkle: ["sparkles", "sparkles-outline", "sparkles"],
   snow: ["snowflake", "snow-outline", "snow"],
+  trash: ["trash", "trash-outline", "trash"],
+  photo: ["photo", "image-outline", "image"],
+  target: ["scope", "locate-outline", "locate"],
+  undo: ["arrow.uturn.backward", "arrow-undo-outline", "arrow-undo"],
+
+  /* dream covers */
+  beach: ["beach.umbrella", "umbrella-outline", "umbrella"],
+  food: ["fork.knife", "restaurant-outline", "restaurant"],
+  music: ["music.note", "musical-notes-outline", "musical-notes"],
+  house: ["house", "home-outline", "home"],
+  car: ["car", "car-outline", "car"],
+  moon: ["moon.stars", "moon-outline", "moon"],
+  run: ["figure.run", "walk-outline", "walk"],
+  book: ["book", "book-outline", "book"],
+  savings: ["banknote", "cash-outline", "cash"],
+  hands: ["hands.sparkles", "hand-left-outline", "hand-left"],
+  plane: ["airplane", "airplane-outline", "airplane"],
+  leaf: ["leaf", "leaf-outline", "leaf"],
 };
 
 /* The SF Symbol behind one of our names, for native

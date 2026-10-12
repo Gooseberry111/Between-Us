@@ -18,7 +18,8 @@ import {
   buttonBorderShape,
   buttonStyle,
   controlSize,
-  labelsHidden,
+  disabled as swiftDisabled,
+  labelStyle,
   tint,
 } from "@expo/ui/swift-ui/modifiers";
 
@@ -153,10 +154,38 @@ const LIQUID_GLASS = (() => {
  * the finger, which read as a distorted button; the
  * system button keeps its shape and does its own press.
  *
+ * `prominent` is the one confirming action, filled with
+ * the accent: the checkmark at the top of a sheet.
+ *
  * Android draws the prototype's frosted circle.
  */
-export function GlassButton({ icon, onPress, badge, label }) {
+export function GlassButton({
+  icon,
+  onPress,
+  badge,
+  label,
+  prominent,
+  disabled,
+}) {
   if (Platform.OS === "ios") {
+    const look = prominent
+      ? LIQUID_GLASS
+        ? "glassProminent"
+        : "borderedProminent"
+      : LIQUID_GLASS
+        ? "glass"
+        : "bordered";
+
+    const modifiers = [
+      buttonStyle(look),
+      buttonBorderShape("circle"),
+      controlSize("large"),
+      labelStyle("iconOnly"),
+      tint(prominent ? T.accent : T.label),
+    ];
+
+    if (disabled) modifiers.push(swiftDisabled(true));
+
     return (
       <View>
         <Host matchContents>
@@ -164,13 +193,7 @@ export function GlassButton({ icon, onPress, badge, label }) {
             label={label || icon}
             systemImage={sfSymbol(icon)}
             onPress={onPress}
-            modifiers={[
-              buttonStyle(LIQUID_GLASS ? "glass" : "bordered"),
-              buttonBorderShape("circle"),
-              controlSize("large"),
-              labelsHidden(),
-              tint(T.label),
-            ]}
+            modifiers={modifiers}
           />
         </Host>
 
@@ -182,11 +205,16 @@ export function GlassButton({ icon, onPress, badge, label }) {
   return (
     <Press
       onPress={onPress}
-      style={styles.glassButton}
+      disabled={disabled}
+      style={[
+        styles.glassButton,
+        prominent && styles.glassButtonProminent,
+        disabled && styles.glassButtonOff,
+      ]}
       accessibilityLabel={label}
       scaleTo={0.92}
     >
-      <Icon name={icon} size={22} color={T.label} />
+      <Icon name={icon} size={22} color={prominent ? "#FFFFFF" : T.label} />
 
       {badge ? <View style={styles.glassBadge} /> : null}
     </Press>
@@ -269,6 +297,14 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     shadowOffset: { width: 0, height: 1 },
     elevation: 2,
+  },
+
+  glassButtonProminent: {
+    backgroundColor: T.accent,
+  },
+
+  glassButtonOff: {
+    opacity: 0.4,
   },
 
   glassBadge: {

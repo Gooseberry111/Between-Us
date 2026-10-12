@@ -46,6 +46,20 @@ Shared: `lib/api.js`, `lib/dataCache.js`, `lib/connection.js`, `lib/profileProgr
 - [Ritual] `app/daily-question.js` rebuilt as the four-step loop: answer (theirs sealed until you reply), reveal (both answers, match or difference with a conversation prompt), streak (the count and the week strip), plan (an idea that adds itself to Dates, and when the next question unlocks). Files: `app/daily-question.js`
 - [API] `GET /users/:id/daily-question` now returns `week`: the last seven days with whether each was answered, so the streak strip is real rather than drawn from a guess. Files: `between-us-api/src/index.js`
 
+## Added (fourth pass)
+
+- Dreams, wired end to end. The dream in focus shows its cover, Reminders-style steps you tick on the board, and a ring counting them (2/5). Tick the last step and it offers to mark the dream done, with a celebration. Every other dream is listed with its cover and progress. One sheet creates and edits a dream: cover, photo, title, why, date, kind and steps, plus Mark as Done, Focus on This One and Delete.
+- Starters carry covers and their first steps. Add opens them in the sheet, ready to change and save. They show Added once they are on the board, and See All lists ten.
+- Completed Dreams rebuilt on the component library, with covers and Put Back on the Board.
+- Photos: memories and dreams can take one from the library. It is stored in the media store and shown back with the session token.
+- `SheetHeader` and `Check` added to the library. `GlassButton` gained `prominent` and `disabled`.
+
+## Changed (fourth pass)
+
+- All sheets now share one header: the grabber, a 52pt bar with xmark and checkmark circle buttons on iOS (Cancel and Save on Android), a truly centred title, an optional subtitle, and a scrolling body with room at the bottom. Dreams and Memories no longer draw their own. Daily Question and Repair use the same header.
+- Glass buttons use the icon-only label style, so their names no longer show next to the symbol.
+- Insights rebuilt: an in-sync ring, the traits you share as a list, each difference as a card with a way in, love languages side by side, and one thing to try this week.
+
 ## Changed (Velvet and native iOS)
 
 - [Theme] Bubblegum replaced by Velvet, from the updated playground: plum `#4A2D5C` for the partner and the accent, rose `#D9577A` for you, gold `#C9973F` as the highlight, ground `#ECEBF2`. The bond thread runs rose → plum → gold. Every screen moved. Files: `lib/theme.js` and 35 screens and components

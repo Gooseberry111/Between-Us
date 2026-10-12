@@ -18,6 +18,7 @@
  *   .card       -> Card
  *   .group/.cell-> Group + Cell
  *   .btn        -> Button
+ *   .rem        -> Check
  *   .chip       -> Chip
  *   .seg        -> Segmented
  *   .sw         -> Toggle
@@ -25,7 +26,7 @@
  *   .cal        -> DateBlock
  *   .love       -> LoveButton
  *   .empty      -> Empty
- *   .sheet      -> Sheet
+ *   .sheet      -> Sheet + SheetHeader
  *   .ring       -> Ring
  */
 
@@ -48,6 +49,7 @@ export {
   Group,
   Cell,
   Button,
+  Check,
   Chip,
   Segmented,
   Toggle,
@@ -56,6 +58,7 @@ export {
   LoveButton,
   Empty,
   Sheet,
+  SheetHeader,
   Ring,
   motionAllowed,
 } from "./parts";

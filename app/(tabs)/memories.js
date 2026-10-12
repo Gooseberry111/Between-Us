@@ -1,9 +1,7 @@
 import { useCallback, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
   RefreshControl,
   StyleSheet,
   Text,
@@ -29,10 +27,17 @@ import {
   Press,
   Screen,
   Segmented,
+  Sheet,
 } from "../../components/ui";
 import ConnectFirst from "../../components/ConnectFirst";
 import { SkeletonList } from "../../components/Skeleton";
 import DateInput from "../../components/DateInput";
+import {
+  RemotePhoto,
+  photosAvailable,
+  pickPhoto,
+  uploadPhoto,
+} from "../../components/Photo";
 
 /*
  * ==========================================
@@ -88,6 +93,9 @@ export default function TimelineScreen() {
   const [title, setTitle] = useState("");
   const [note, setNote] = useState("");
   const [when, setWhen] = useState("");
+  const [photoId, setPhotoId] = useState(null);
+  const [localUri, setLocalUri] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   const load = useCallback(async () => {
     if (!isLoaded || !isSignedIn || !userId) {
@@ -115,6 +123,7 @@ export default function TimelineScreen() {
           title: item.title,
           note: item.description,
           date: item.memory_date,
+          photoId: item.photo_id || null,
         }),
       );
 
@@ -159,8 +168,36 @@ export default function TimelineScreen() {
     }, [load]),
   );
 
+  const choosePhoto = async () => {
+    try {
+      const picked = await pickPhoto({ aspect: [4, 3] });
+
+      if (!picked) return;
+
+      setLocalUri(picked.uri);
+      setUploading(true);
+
+      setPhotoId(await uploadPhoto(userId, picked.base64));
+    } catch (err) {
+      setLocalUri(null);
+
+      Alert.alert(
+        "That photo didn't go up",
+        err?.message || "Please try again.",
+      );
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const closeSheet = () => {
+    setSheetOpen(false);
+    setPhotoId(null);
+    setLocalUri(null);
+  };
+
   const saveMemory = async () => {
-    if (!title.trim() || saving) return;
+    if (!title.trim() || saving || uploading) return;
 
     try {
       setSaving(true);
@@ -173,6 +210,7 @@ export default function TimelineScreen() {
           title: title.trim(),
           description: note.trim() || null,
           memory_date: when.trim() || new Date().toISOString().slice(0, 10),
+          photo_id: photoId,
         }),
       });
 
@@ -185,7 +223,7 @@ export default function TimelineScreen() {
       setTitle("");
       setNote("");
       setWhen("");
-      setSheetOpen(false);
+      closeSheet();
 
       await load();
     } catch (err) {
@@ -283,37 +321,43 @@ export default function TimelineScreen() {
                         : null
                   }
                 >
-                  <Card style={styles.entry}>
-                    <View
-                      style={[
-                        styles.entryIcon,
-                        entry.kind === "Dates" && styles.entryIconDate,
-                        entry.kind === "Milestones" && styles.entryIconMile,
-                      ]}
-                    >
-                      <Ionicons
-                        name={
-                          entry.kind === "Dates"
-                            ? "calendar"
-                            : entry.kind === "Milestones"
-                              ? "heart"
-                              : "camera"
-                        }
-                        size={17}
-                        color={
-                          entry.kind === "Milestones" ? T.accentText : T.you
-                        }
-                      />
-                    </View>
+                  <Card padded={false} style={styles.entryCard}>
+                    {entry.photoId ? (
+                      <RemotePhoto id={entry.photoId} style={styles.photo} />
+                    ) : null}
 
-                    <View style={styles.entryText}>
-                      <Text style={styles.entryTitle}>{entry.title}</Text>
+                    <View style={styles.entry}>
+                      <View
+                        style={[
+                          styles.entryIcon,
+                          entry.kind === "Dates" && styles.entryIconDate,
+                          entry.kind === "Milestones" && styles.entryIconMile,
+                        ]}
+                      >
+                        <Ionicons
+                          name={
+                            entry.kind === "Dates"
+                              ? "calendar"
+                              : entry.kind === "Milestones"
+                                ? "heart"
+                                : "camera"
+                          }
+                          size={17}
+                          color={
+                            entry.kind === "Milestones" ? T.accentText : T.you
+                          }
+                        />
+                      </View>
 
-                      {entry.note ? (
-                        <Text style={styles.entryNote} numberOfLines={2}>
-                          {entry.note}
-                        </Text>
-                      ) : null}
+                      <View style={styles.entryText}>
+                        <Text style={styles.entryTitle}>{entry.title}</Text>
+
+                        {entry.note ? (
+                          <Text style={styles.entryNote} numberOfLines={2}>
+                            {entry.note}
+                          </Text>
+                        ) : null}
+                      </View>
                     </View>
                   </Card>
                 </Press>
@@ -325,76 +369,86 @@ export default function TimelineScreen() {
 
       {/* NEW MEMORY SHEET */}
 
-      <Modal
+      <Sheet
         visible={sheetOpen}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setSheetOpen(false)}
+        title="New Memory"
+        onCancel={closeSheet}
+        onSave={saveMemory}
+        saveDisabled={!title.trim() || saving || uploading}
       >
-        <KeyboardAvoidingView
-          style={styles.sheet}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
-          <View style={styles.sheetNav}>
-            <Text
-              style={styles.sheetCancel}
-              onPress={() => setSheetOpen(false)}
-            >
-              Cancel
-            </Text>
+        {/* The photo first, as in the prototype. */}
+        {photosAvailable ? (
+          <Press
+            onPress={choosePhoto}
+            scaleTo={0.98}
+            outerStyle={styles.photoPress}
+          >
+            {localUri || photoId ? (
+              <View style={styles.photoPicked}>
+                <RemotePhoto
+                  id={photoId}
+                  localUri={localUri}
+                  style={StyleSheet.absoluteFill}
+                />
 
-            <Text style={styles.sheetTitle}>New Memory</Text>
+                {uploading ? (
+                  <View style={styles.photoBusy}>
+                    <ActivityIndicator color="#FFFFFF" />
+                  </View>
+                ) : null}
 
-            <Text
-              style={[styles.sheetSave, !title.trim() && styles.sheetSaveOff]}
-              onPress={saveMemory}
-            >
-              Save
-            </Text>
-          </View>
+                <View style={styles.photoPill}>
+                  <Text style={styles.photoPillText}>Change Photo</Text>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.photoAdd}>
+                <Ionicons name="image-outline" size={26} color={T.accent} />
 
-          <View style={styles.sheetBody}>
-            <Card>
-              <TextInput
-                value={title}
-                onChangeText={setTitle}
-                placeholder="What happened?"
-                placeholderTextColor={T.label3}
-                style={styles.field}
-              />
+                <Text style={styles.photoAddText}>Add a Photo</Text>
+              </View>
+            )}
+          </Press>
+        ) : null}
 
-              <View style={styles.fieldLine} />
+        <Card padded={false}>
+          <TextInput
+            value={title}
+            onChangeText={setTitle}
+            placeholder="What happened?"
+            placeholderTextColor={T.label3}
+            style={styles.field}
+          />
 
-              <TextInput
-                value={note}
-                onChangeText={setNote}
-                placeholder="Say a little more (optional)"
-                placeholderTextColor={T.label3}
-                style={[styles.field, styles.fieldTall]}
-                multiline
-                textAlignVertical="top"
-              />
+          <View style={styles.fieldLine} />
 
-              <View style={styles.fieldLine} />
+          <TextInput
+            value={note}
+            onChangeText={setNote}
+            placeholder="Say a little more (optional)"
+            placeholderTextColor={T.label3}
+            style={[styles.field, styles.fieldTall]}
+            multiline
+            textAlignVertical="top"
+          />
 
-              <DateInput
-                value={when}
-                onChangeText={setWhen}
-                placeholder="When? YYYY-MM-DD (optional)"
-                style={styles.field}
-              />
-            </Card>
+          <View style={styles.fieldLine} />
 
-            <Button
-              title="Save Memory"
-              onPress={saveMemory}
-              busy={saving}
-              disabled={!title.trim()}
-              style={styles.sheetButton}
-            />
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+          <DateInput
+            value={when}
+            onChangeText={setWhen}
+            placeholder="When? YYYY-MM-DD (optional)"
+            style={styles.field}
+          />
+        </Card>
+
+        <Button
+          title="Save Memory"
+          onPress={saveMemory}
+          busy={saving}
+          disabled={!title.trim() || uploading}
+        />
+      </Sheet>
     </>
   );
 }
@@ -445,46 +499,66 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  sheet: {
-    flex: 1,
-    backgroundColor: T.appBackground,
+  entryCard: {
+    overflow: "hidden",
   },
 
-  sheetNav: {
-    flexDirection: "row",
+  photo: {
+    width: "100%",
+    height: 190,
+  },
+
+  photoPress: {
+    marginHorizontal: 16,
+  },
+
+  photoAdd: {
+    height: 120,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    borderColor: T.label3,
+    backgroundColor: T.surface,
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    justifyContent: "center",
+    gap: 6,
   },
 
-  sheetCancel: {
-    fontSize: 17,
-    color: T.accent,
-    width: 70,
-  },
-
-  sheetTitle: {
-    fontSize: 17,
-    fontWeight: "600",
-    color: T.label,
-  },
-
-  sheetSave: {
-    fontSize: 17,
+  photoAddText: {
+    fontSize: 15,
     fontWeight: "600",
     color: T.accent,
-    width: 70,
-    textAlign: "right",
   },
 
-  sheetSaveOff: {
-    color: T.label3,
+  photoPicked: {
+    height: 220,
+    borderRadius: 20,
+    overflow: "hidden",
+    backgroundColor: T.fill3,
   },
 
-  sheetBody: {
-    padding: 0,
-    gap: 16,
+  photoBusy: {
+    ...StyleSheet.absoluteFill,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.25)",
+  },
+
+  photoPill: {
+    position: "absolute",
+    right: 12,
+    bottom: 12,
+    height: 32,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.38)",
+  },
+
+  photoPillText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#FFFFFF",
   },
 
   field: {
@@ -502,9 +576,5 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     backgroundColor: T.separator,
     marginLeft: 16,
-  },
-
-  sheetButton: {
-    marginHorizontal: 16,
   },
 });

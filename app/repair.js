@@ -27,7 +27,7 @@ import {
   GroupHeader,
   Icon,
   Press,
-  GlassButton,
+  SheetHeader,
 } from "../components/ui";
 import ConnectFirst from "../components/ConnectFirst";
 import { SkeletonList } from "../components/Skeleton";
@@ -234,13 +234,11 @@ export default function RepairScreen() {
         style={styles.fill}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View style={styles.nav}>
-          <GlassButton
-            icon="chevronDown"
-            label="Close"
-            onPress={() => router.back()}
-          />
-        </View>
+        <SheetHeader
+          onClose={() => router.back()}
+          closeIcon="chevronDown"
+          title="Repair"
+        />
 
         <ScrollView
           contentContainerStyle={styles.content}
