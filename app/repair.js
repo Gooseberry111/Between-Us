@@ -27,6 +27,7 @@ import {
   GroupHeader,
   Icon,
   Press,
+  GlassButton,
 } from "../components/ui";
 import ConnectFirst from "../components/ConnectFirst";
 import { SkeletonList } from "../components/Skeleton";
@@ -234,9 +235,11 @@ export default function RepairScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <View style={styles.nav}>
-          <Press onPress={() => router.back()} style={styles.close}>
-            <Icon name="chevronDown" size={20} color={T.label} />
-          </Press>
+          <GlassButton
+            icon="chevronDown"
+            label="Close"
+            onPress={() => router.back()}
+          />
         </View>
 
         <ScrollView
@@ -395,13 +398,11 @@ export default function RepairScreen() {
                 <Icon name="lock" size={28} color={T.accent} />
               </View>
 
-              <Text style={[styles.title, styles.centre]}>
-                Yours is sealed
-              </Text>
+              <Text style={[styles.title, styles.centre]}>Yours is sealed</Text>
 
               <Text style={[styles.lede, styles.centre]}>
-                You&apos;ll both see them together as soon as they write
-                theirs. We&apos;ve let them know.
+                You&apos;ll both see them together as soon as they write theirs.
+                We&apos;ve let them know.
               </Text>
 
               <Button

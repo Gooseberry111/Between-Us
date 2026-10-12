@@ -45,11 +45,23 @@ import { SkeletonList } from "../../components/Skeleton";
  */
 
 const MOODS = [
-  { key: "glowing", emoji: "🥰", line: "Glowing. {name} will see it on your avatar." },
+  {
+    key: "glowing",
+    emoji: "🥰",
+    line: "Glowing. {name} will see it on your avatar.",
+  },
   { key: "happy", emoji: "😊", line: "Happy. Want to tell {name} why?" },
   { key: "okay", emoji: "🙂", line: "Okay. Steady days count too." },
-  { key: "distant", emoji: "😶", line: "A bit distant. Tonight's question might help." },
-  { key: "hurt", emoji: "🥺", line: "Hurting. Start a gentle check-in with {name}?" },
+  {
+    key: "distant",
+    emoji: "😶",
+    line: "A bit distant. Tonight's question might help.",
+  },
+  {
+    key: "hurt",
+    emoji: "🥺",
+    line: "Hurting. Start a gentle check-in with {name}?",
+  },
 ];
 
 const ACTIONS = [
@@ -379,66 +391,66 @@ export default function HomeScreen() {
 
       {/* TONIGHT'S QUESTION */}
 
-      <Press onPress={() => router.push("/daily-question")}>
-        <Card>
-          <View style={styles.qTop}>
-            <Icon name="sparkle" size={18} color={T.accent} filled />
+      {/* Not tappable as a whole: the button inside is the
+          action. With both, one tap opened the sheet twice. */}
+      <Card>
+        <View style={styles.qTop}>
+          <Icon name="sparkle" size={18} color={T.accent} filled />
 
-            <Text style={styles.qLabel}>
-              {answeredTonight > 0 && answeredTonight < totalTonight
-                ? `${totalTonight - answeredTonight} question${totalTonight - answeredTonight === 1 ? "" : "s"} left`
-                : "Tonight's questions"}
-            </Text>
-
-            <Text style={styles.qTime}>{hoursLeft}h left</Text>
-          </View>
-
-          <Text style={styles.question}>
-            {nextQuestion?.question ||
-              daily?.question ||
-              "Loading tonight's questions…"}
+          <Text style={styles.qLabel}>
+            {answeredTonight > 0 && answeredTonight < totalTonight
+              ? `${totalTonight - answeredTonight} question${totalTonight - answeredTonight === 1 ? "" : "s"} left`
+              : "Tonight's questions"}
           </Text>
 
-          <View style={styles.lock}>
-            <Avatar name={partnerName} who="them" size={30} />
+          <Text style={styles.qTime}>{hoursLeft}h left</Text>
+        </View>
 
-            {youAnswered ? (
-              <Text style={styles.lockText} numberOfLines={1}>
+        <Text style={styles.question}>
+          {nextQuestion?.question ||
+            daily?.question ||
+            "Loading tonight's questions…"}
+        </Text>
+
+        <View style={styles.lock}>
+          <Avatar name={partnerName} who="them" size={30} />
+
+          {youAnswered ? (
+            <Text style={styles.lockText} numberOfLines={1}>
+              {partnerAnswered
+                ? tonight.find((item) => item.partner_answer)?.partner_answer
+                : `${partnerName} hasn't answered yet`}
+            </Text>
+          ) : (
+            <>
+              <Text style={styles.lockBlur} numberOfLines={1}>
                 {partnerAnswered
-                  ? tonight.find((item) => item.partner_answer)?.partner_answer
+                  ? "▇▇▇▇ ▇▇▇▇▇▇ ▇▇▇ ▇▇▇▇▇▇▇"
                   : `${partnerName} hasn't answered yet`}
               </Text>
-            ) : (
-              <>
-                <Text style={styles.lockBlur} numberOfLines={1}>
-                  {partnerAnswered
-                    ? "▇▇▇▇ ▇▇▇▇▇▇ ▇▇▇ ▇▇▇▇▇▇▇"
-                    : `${partnerName} hasn't answered yet`}
-                </Text>
 
-                {partnerAnswered ? (
-                  <Icon name="lock" size={18} color={T.label2} />
-                ) : null}
-              </>
-            )}
-          </View>
+              {partnerAnswered ? (
+                <Icon name="lock" size={18} color={T.label2} />
+              ) : null}
+            </>
+          )}
+        </View>
 
-          <Button
-            title={
-              youAnswered
-                ? partnerAnswered
-                  ? `See ${partnerName}'s answers`
-                  : "See your answers"
-                : answeredTonight > 0
-                  ? "Carry on answering"
-                  : `Answer to unlock ${partnerName}'s`
-            }
-            onPress={() => router.push("/daily-question")}
-            block={false}
-            style={styles.qButton}
-          />
-        </Card>
-      </Press>
+        <Button
+          title={
+            youAnswered
+              ? partnerAnswered
+                ? `See ${partnerName}'s answers`
+                : "See your answers"
+              : answeredTonight > 0
+                ? "Carry on answering"
+                : `Answer to unlock ${partnerName}'s`
+          }
+          onPress={() => router.push("/daily-question")}
+          block={false}
+          style={styles.qButton}
+        />
+      </Card>
 
       {/* MOOD */}
 
@@ -452,9 +464,7 @@ export default function HomeScreen() {
               scaleTo={0.9}
               onPress={() => setMood(mood === item.key ? null : item.key)}
             >
-              <View
-                style={[styles.mood, mood === item.key && styles.moodOn]}
-              >
+              <View style={[styles.mood, mood === item.key && styles.moodOn]}>
                 <Text style={styles.moodFace}>{item.emoji}</Text>
               </View>
             </Press>
@@ -502,10 +512,7 @@ export default function HomeScreen() {
 
       {/* COMING UP */}
 
-      <SectionHeader
-        action="See all"
-        onAction={() => router.push("/dates")}
-      >
+      <SectionHeader action="See all" onAction={() => router.push("/dates")}>
         Coming up
       </SectionHeader>
 

@@ -28,6 +28,7 @@ import {
   Group,
   Press,
   motionAllowed,
+  GlassButton,
 } from "../components/ui";
 import ConnectFirst from "../components/ConnectFirst";
 import { SkeletonList } from "../components/Skeleton";
@@ -110,7 +111,9 @@ export default function DailyQuestionScreen() {
 
       /* All three answered: they came back for the reveal. */
       if (next === -1 && list.length > 0) {
-        setStep(list.some((item) => item.partner_answered) ? "reveal" : "waiting");
+        setStep(
+          list.some((item) => item.partner_answered) ? "reveal" : "waiting",
+        );
       }
     } catch (err) {
       console.log("DAILY LOAD ERROR:", err);
@@ -237,9 +240,11 @@ export default function DailyQuestionScreen() {
       >
         {/* Where you are in the ritual. */}
         <View style={styles.topBar}>
-          <Press onPress={() => router.back()} style={styles.close}>
-            <Ionicons name="chevron-down" size={20} color={T.label} />
-          </Press>
+          <GlassButton
+            icon="chevronDown"
+            label="Close"
+            onPress={() => router.back()}
+          />
 
           <View style={styles.progress}>
             {STEPS.map((name, index) => (
@@ -344,9 +349,7 @@ export default function DailyQuestionScreen() {
                 .filter((item) => item.your_answer)
                 .map((item) => (
                   <Card key={item.key} style={styles.answerCard}>
-                    <Text style={styles.yourAnswerLabel}>
-                      {item.question}
-                    </Text>
+                    <Text style={styles.yourAnswerLabel}>{item.question}</Text>
 
                     <Text style={styles.yourAnswer}>{item.your_answer}</Text>
                   </Card>
@@ -490,7 +493,11 @@ export default function DailyQuestionScreen() {
                         ]}
                       >
                         {day.answered ? (
-                          <Ionicons name="checkmark" size={13} color="#FFFFFF" />
+                          <Ionicons
+                            name="checkmark"
+                            size={13}
+                            color="#FFFFFF"
+                          />
                         ) : null}
                       </View>
                     </View>

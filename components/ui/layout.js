@@ -10,13 +10,20 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-  GlassView,
   isGlassEffectAPIAvailable,
   isLiquidGlassAvailable,
 } from "expo-glass-effect";
+import { Button as SwiftButton, Host } from "@expo/ui/swift-ui";
+import {
+  buttonBorderShape,
+  buttonStyle,
+  controlSize,
+  labelsHidden,
+  tint,
+} from "@expo/ui/swift-ui/modifiers";
 
 import { T } from "../../lib/theme";
-import Icon from "./Icon";
+import Icon, { sfSymbol } from "./Icon";
 
 /*
  * ==========================================
@@ -137,29 +144,38 @@ const LIQUID_GLASS = (() => {
 })();
 
 /*
- * .glass-btn — a 38pt circle. On iOS 26 it is a real
- * Liquid Glass surface that responds to touch; elsewhere
- * it is the prototype's frosted circle.
+ * .glass-btn — a circle holding one symbol.
+ *
+ * On iOS it is SwiftUI's own button with a circular
+ * border shape: the glass style on iOS 26, bordered
+ * before that. Drawing it from a GlassView wrapped in a
+ * touch handler let the glass stretch and morph under
+ * the finger, which read as a distorted button; the
+ * system button keeps its shape and does its own press.
+ *
+ * Android draws the prototype's frosted circle.
  */
 export function GlassButton({ icon, onPress, badge, label }) {
-  if (LIQUID_GLASS) {
+  if (Platform.OS === "ios") {
     return (
-      <Pressable
-        onPress={onPress}
-        accessibilityRole="button"
-        accessibilityLabel={label}
-        hitSlop={6}
-      >
-        <GlassView
-          glassEffectStyle="regular"
-          isInteractive
-          style={styles.liquidButton}
-        >
-          <Icon name={icon} size={20} color={T.label} />
-        </GlassView>
+      <View>
+        <Host matchContents>
+          <SwiftButton
+            label={label || icon}
+            systemImage={sfSymbol(icon)}
+            onPress={onPress}
+            modifiers={[
+              buttonStyle(LIQUID_GLASS ? "glass" : "bordered"),
+              buttonBorderShape("circle"),
+              controlSize("large"),
+              labelsHidden(),
+              tint(T.label),
+            ]}
+          />
+        </Host>
 
-        {badge ? <View style={styles.glassBadge} /> : null}
-      </Pressable>
+        {badge ? <View style={styles.glassBadge} pointerEvents="none" /> : null}
+      </View>
     );
   }
 
@@ -253,14 +269,6 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     shadowOffset: { width: 0, height: 1 },
     elevation: 2,
-  },
-
-  liquidButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
   },
 
   glassBadge: {

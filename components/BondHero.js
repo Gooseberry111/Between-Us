@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import Svg, {
   Circle,
   Defs,
@@ -40,6 +41,35 @@ import { motionAllowed } from "./ui";
  */
 
 const HOLD_MS = 1200;
+
+/*
+ * What the hug feels like in the hand, using the system
+ * haptic engine (the Taptic Engine on iPhone):
+ *
+ *   touch down      a selection click, so the press registers
+ *   while holding   three taps that grow -- soft, light,
+ *                   medium -- as the ring fills, the way a
+ *                   long-press builds on iOS
+ *   ring full       the success pattern: it's sent
+ *   it lands        a light tap as their avatar takes it
+ *
+ * Letting go early is silent: you just let go.
+ */
+const BUILD_UP = [
+  { at: 300, style: Haptics.ImpactFeedbackStyle.Soft },
+  { at: 600, style: Haptics.ImpactFeedbackStyle.Light },
+  { at: 900, style: Haptics.ImpactFeedbackStyle.Medium },
+];
+
+/* Haptics can be unavailable (some Android devices, low
+ * power mode); the hug must never fail because of that. */
+function feel(run) {
+  try {
+    run()?.catch?.(() => {});
+  } catch {
+    /* no haptics on this device */
+  }
+}
 const WIRE = "M0,30 C48,2 122,58 170,30";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -156,8 +186,26 @@ export default function BondHero({
     };
   }, [animate, youAnswered, beat, spin, breathe]);
 
+  const ticks = useRef([]);
+
+  const clearTicks = () => {
+    ticks.current.forEach(clearTimeout);
+    ticks.current = [];
+  };
+
+  /* No stray taps if the screen goes while someone holds. */
+  useEffect(() => clearTicks, []);
+
   const startHold = () => {
     if (sent) return;
+
+    feel(() => Haptics.selectionAsync());
+
+    clearTicks();
+
+    ticks.current = BUILD_UP.map(({ at, style }) =>
+      setTimeout(() => feel(() => Haptics.impactAsync(style)), at),
+    );
 
     Animated.timing(hold, {
       toValue: 1,
@@ -165,7 +213,13 @@ export default function BondHero({
       easing: Easing.linear,
       useNativeDriver: false,
     }).start(({ finished }) => {
+      clearTicks();
+
       if (!finished) return;
+
+      feel(() =>
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success),
+      );
 
       setSent(true);
       onHug?.();
@@ -180,6 +234,8 @@ export default function BondHero({
         Animated.delay(60),
       ]).start(() => {
         /* Their avatar takes the hug. */
+        feel(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
+
         Animated.sequence([
           Animated.spring(themPop, {
             toValue: 1.22,
@@ -206,6 +262,8 @@ export default function BondHero({
 
   const cancelHold = () => {
     if (sent) return;
+
+    clearTicks();
 
     Animated.timing(hold, {
       toValue: 0,
