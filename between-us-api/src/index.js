@@ -370,20 +370,17 @@ async function ensureSchema(sql) {
 	 * so a plain ON CONFLICT can infer them.
 	 */
 	await sql`
-		CREATE UNIQUE INDEX IF NOT EXISTS daily_answers_user_date_idx
-			ON daily_answers (user_id, question_date)
-	`;
-
-	/*
-	 * Three questions a night means three answers a night, so
-	 * the key is the question, not the date. The old index is
-	 * dropped once the new one exists.
-	 */
-	await sql`
 		CREATE UNIQUE INDEX IF NOT EXISTS daily_answers_user_question_idx
 			ON daily_answers (user_id, question_date, question_key)
 	`;
 
+	/*
+	 * Three questions a night means three answers a night. The
+	 * old index allowed one row per user per day, so the second
+	 * answer of the night failed on it -- and ON CONFLICT for
+	 * the new key never saw it coming. It goes first, before
+	 * anything tries to write a second answer.
+	 */
 	await sql`DROP INDEX IF EXISTS daily_answers_user_date_idx`;
 
 	await sql`
@@ -412,6 +409,9 @@ async function ensureSchema(sql) {
 	 * and that is what Home shows.
 	 */
 	await sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS nickname TEXT`;
+
+	/* The key of a photo in the media store, if there is one. */
+	await sql`ALTER TABLE memories ADD COLUMN IF NOT EXISTS photo_id TEXT`;
 
 	/*
 	 * Dates the two of them are actually planning, as opposed
@@ -1208,8 +1208,14 @@ export default {
 			 * ==========================================
 			 */
 
+			/* Who the token says this is, for handlers that need
+			 * to know without taking it from the path. */
+			let callerClerkId = null;
+
 			if (!PUBLIC_PATHS.has(url.pathname)) {
 				const callerId = await verifySessionToken(request, env);
+
+				callerClerkId = callerId;
 
 				if (!callerId) {
 					return unauthorized('Sign in to continue.');
@@ -5930,26 +5936,38 @@ VALUES (
 						return Response.json({ error: 'That is not one of tonight\'s questions.' }, { status: 400 });
 					}
 
-					await sql`
-            INSERT INTO daily_answers (
-              connection_id,
-              user_id,
-              question_date,
-              question_key,
-              answer
-            )
-            VALUES (
-              ${connection.id},
-              ${userId},
-              ${todayIso},
-              ${questionKey},
-              ${answer}
-            )
-            ON CONFLICT (user_id, question_date, question_key)
-            DO UPDATE SET
-              answer = EXCLUDED.answer,
-              updated_at = NOW()
+					/*
+					 * Update first, insert if there was nothing to
+					 * update. Plain statements, so this cannot break
+					 * again on the shape of an index.
+					 */
+					const updated = await sql`
+            UPDATE daily_answers
+            SET answer = ${answer}, updated_at = NOW()
+            WHERE user_id = ${userId}
+              AND question_date = ${todayIso}
+              AND question_key = ${questionKey}
+            RETURNING id
           `;
+
+					if (updated.length === 0) {
+						await sql`
+              INSERT INTO daily_answers (
+                connection_id,
+                user_id,
+                question_date,
+                question_key,
+                answer
+              )
+              VALUES (
+                ${connection.id},
+                ${userId},
+                ${todayIso},
+                ${questionKey},
+                ${answer}
+              )
+            `;
+					}
 
 					/*
 					 * Let the partner know there is something
@@ -6497,6 +6515,123 @@ VALUES (
 						mine: row.created_by === userId,
 						planner_name: row.planner_nickname?.trim() || row.planner_first_name?.trim() || 'Someone',
 					})),
+				});
+			}
+
+			/*
+			 * ==========================================
+			 * PHOTOS
+			 * ==========================================
+			 *
+			 * POST /users/:clerkId/media   upload one
+			 * GET  /media/:id              read one back
+			 *
+			 * Images live in Workers KV rather than a bucket:
+			 * R2 needs a card on file, KV does not, and a couple's
+			 * photos fit inside the free tier many times over.
+			 *
+			 * A photo is readable by the person who uploaded it and
+			 * by whoever they are linked with -- checked on every
+			 * read, not guessed from the id.
+			 */
+
+			const mediaUploadMatch = url.pathname.match(/^\/users\/([^/]+)\/media$/);
+
+			if (mediaUploadMatch && request.method === 'POST') {
+				const clerkId = mediaUploadMatch[1];
+
+				if (!env.MEDIA) {
+					return Response.json({ error: 'Photo storage is not set up.' }, { status: 503 });
+				}
+
+				const userResult = await sql`
+          SELECT id FROM users WHERE clerk_id = ${clerkId} LIMIT 1
+        `;
+
+				if (userResult.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const body = await request.json();
+
+				const base64 = String(body?.data || '');
+				const contentType = ['image/jpeg', 'image/png', 'image/webp'].includes(body?.content_type)
+					? body.content_type
+					: 'image/jpeg';
+
+				if (!base64) {
+					return Response.json({ error: 'data is required' }, { status: 400 });
+				}
+
+				/* KV tops out at 25MB; a photo over 6MB is a mistake. */
+				const bytes = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
+
+				if (bytes.length > 6 * 1024 * 1024) {
+					return Response.json({ error: 'That photo is too large.' }, { status: 413 });
+				}
+
+				const id = crypto.randomUUID();
+
+				await env.MEDIA.put(`photo:${id}`, bytes, {
+					metadata: {
+						contentType,
+						ownerId: userResult[0].id,
+						uploadedAt: new Date().toISOString(),
+					},
+				});
+
+				return Response.json({ id, url: `/media/${id}` }, { status: 201 });
+			}
+
+			const mediaReadMatch = url.pathname.match(/^\/media\/([A-Za-z0-9-]+)$/);
+
+			if (mediaReadMatch && request.method === 'GET') {
+				if (!env.MEDIA) {
+					return new Response('Not found', { status: 404 });
+				}
+
+				const caller = await sql`
+          SELECT id FROM users WHERE clerk_id = ${callerClerkId} LIMIT 1
+        `;
+
+				if (caller.length === 0) {
+					return new Response('Not found', { status: 404 });
+				}
+
+				const stored = await env.MEDIA.getWithMetadata(`photo:${mediaReadMatch[1]}`, {
+					type: 'arrayBuffer',
+				});
+
+				if (!stored?.value) {
+					return new Response('Not found', { status: 404 });
+				}
+
+				const ownerId = stored.metadata?.ownerId;
+				const callerId = caller[0].id;
+
+				/* Theirs, or their partner's. Nobody else's. */
+				if (ownerId !== callerId) {
+					const linked = await sql`
+            SELECT 1
+            FROM connections
+            WHERE status = 'accepted'
+              AND (
+                (user_one = ${callerId} AND user_two = ${ownerId})
+                OR (user_one = ${ownerId} AND user_two = ${callerId})
+              )
+            LIMIT 1
+          `;
+
+					if (linked.length === 0) {
+						return new Response('Not found', { status: 404 });
+					}
+				}
+
+				return new Response(stored.value, {
+					headers: {
+						'Content-Type': stored.metadata?.contentType || 'image/jpeg',
+						'Cache-Control': 'private, max-age=86400',
+					},
 				});
 			}
 

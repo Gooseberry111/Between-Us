@@ -26,23 +26,32 @@ const ICONS = {
 
 function TabBarBackground() {
   /*
-   * Glass: the content behind it blurs through rather than
-   * being hidden by a white slab. Android has no real blur,
-   * so it gets the closest honest thing -- a light pane that
-   * still lets the tint of the page show.
+   * iOS gets the system chrome material -- the same stuff
+   * the real tab bar is made of -- so it frosts whatever
+   * scrolls under it instead of fighting with it.
+   *
+   * Android has no such material. Its blur is a cheap
+   * approximation that leaves text legible through the bar,
+   * which is exactly what looked wrong, so it gets a solid
+   * surface and a soft edge instead.
    */
+  if (Platform.OS === "ios") {
+    return (
+      <View style={styles.bar}>
+        <BlurView
+          intensity={100}
+          tint="systemChromeMaterialLight"
+          style={StyleSheet.absoluteFill}
+        />
+
+        <View style={styles.barEdge} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.bar}>
-      <BlurView
-        intensity={Platform.OS === "ios" ? 60 : 24}
-        tint="light"
-        experimentalBlurMethod={
-          Platform.OS === "android" ? "dimezisBlurView" : undefined
-        }
-        style={StyleSheet.absoluteFill}
-      />
-
-      <View style={styles.barFill} />
+      <View style={styles.barSolid} />
 
       <View style={styles.barEdge} />
     </View>
@@ -124,22 +133,20 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
 
-  barFill: {
+  barSolid: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor:
-      Platform.OS === "ios"
-        ? "rgba(255,255,255,0.62)"
-        : "rgba(255,255,255,0.78)",
+    backgroundColor: "#FFFFFF",
   },
 
-  /* The bright lip along the top of the glass. */
+  /* A hairline of the accent, so the bar has an edge
+     rather than melting into the page. */
   barEdge: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(255,255,255,0.9)",
+    backgroundColor: "rgba(240,63,169,0.14)",
   },
 
   icon: {

@@ -22,6 +22,12 @@
 	 * publishable key -- so it belongs in config, not
 	 * in secrets.
 	 */
+	"kv_namespaces": [
+		{
+			"binding": "MEDIA",
+			"id": "e0a10338101c40b490d78eae28efff26"
+		}
+	],
 	"vars": {
 		"CLERK_ISSUER": "https://working-ladybug-79.clerk.accounts.dev",
 	},
