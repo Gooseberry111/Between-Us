@@ -420,6 +420,9 @@ export function Sheet({
       onRequestClose={onCancel}
     >
       <View style={styles.sheet}>
+        {/* The grabber iOS puts on a page sheet. */}
+        <View style={styles.sheetGrabber} />
+
         <View style={styles.sheetNav}>
           <Text style={styles.sheetCancel} onPress={onCancel}>
             Cancel
@@ -758,12 +761,22 @@ const styles = StyleSheet.create({
     backgroundColor: T.appBackground,
   },
 
+  sheetGrabber: {
+    alignSelf: "center",
+    width: 36,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: T.fill2,
+    marginTop: 8,
+  },
+
   sheetNav: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingTop: 18,
+    paddingBottom: 16,
   },
 
   sheetCancel: {

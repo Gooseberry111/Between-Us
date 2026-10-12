@@ -418,6 +418,46 @@ async function ensureSchema(sql) {
 	 * to special_dates, which are anniversaries that come round
 	 * every year.
 	 */
+	/*
+	 * Repairs: what the two of them do after a row.
+	 *
+	 * Either can open one. Each writes their side privately,
+	 * and neither sees the other's until both have written --
+	 * the same sealed idea as the nightly question, for the
+	 * same reason: it stops one answer shaping the other.
+	 */
+	await sql`
+		CREATE TABLE IF NOT EXISTS repairs (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			connection_id UUID NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
+			started_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			topic TEXT,
+			status TEXT NOT NULL DEFAULT 'open',
+			cool_until TIMESTAMPTZ,
+			agreement TEXT,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+			updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+		)
+	`;
+
+	await sql`
+		CREATE TABLE IF NOT EXISTS repair_sides (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			repair_id UUID NOT NULL REFERENCES repairs(id) ON DELETE CASCADE,
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			felt TEXT,
+			needed TEXT,
+			sorry_for TEXT,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+			updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+		)
+	`;
+
+	await sql`
+		CREATE UNIQUE INDEX IF NOT EXISTS repair_sides_unique_idx
+			ON repair_sides (repair_id, user_id)
+	`;
+
 	await sql`
 		CREATE TABLE IF NOT EXISTS date_plans (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1429,6 +1469,7 @@ export default {
 					await sql`DELETE FROM checkins WHERE connection_id = ANY(${connectionIds})`;
 					await sql`DELETE FROM trivia_sessions WHERE connection_id = ANY(${connectionIds})`;
 					await sql`DELETE FROM date_plans WHERE connection_id = ANY(${connectionIds})`;
+					await sql`DELETE FROM repairs WHERE connection_id = ANY(${connectionIds})`;
 				}
 
 				await sql`DELETE FROM notifications WHERE user_id = ${userId}`;
@@ -6456,6 +6497,198 @@ VALUES (
 						mine: row.created_by === userId,
 						planner_name: row.planner_nickname?.trim() || row.planner_first_name?.trim() || 'Someone',
 					})),
+				});
+			}
+
+			/*
+			 * ==========================================
+			 * REPAIR
+			 * ==========================================
+			 *
+			 * GET   /users/:clerkId/repair        the open one, if any
+			 * POST  /users/:clerkId/repair        start one
+			 * PATCH /users/:clerkId/repair        write your side, or close it
+			 *
+			 * Each side stays sealed until both have written.
+			 */
+
+			const repairMatch = url.pathname.match(/^\/users\/([^/]+)\/repair$/);
+
+			if (repairMatch) {
+				const clerkId = repairMatch[1];
+
+				await ensureSchema(sql);
+
+				const userResult = await sql`
+          SELECT id FROM users WHERE clerk_id = ${clerkId} LIMIT 1
+        `;
+
+				if (userResult.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const userId = userResult[0].id;
+
+				const connectionResult = await sql`
+          SELECT id, user_one, user_two
+          FROM connections
+          WHERE (user_one = ${userId} OR user_two = ${userId})
+            AND status = 'accepted'
+          LIMIT 1
+        `;
+
+				if (connectionResult.length === 0) {
+					return Response.json({ error: 'Connect with your partner first.' }, { status: 403 });
+				}
+
+				const connection = connectionResult[0];
+				const partnerId = connection.user_one === userId ? connection.user_two : connection.user_one;
+
+				if (request.method === 'POST') {
+					const body = await request.json();
+
+					const open = await sql`
+            SELECT id FROM repairs
+            WHERE connection_id = ${connection.id} AND status = 'open'
+            LIMIT 1
+          `;
+
+					if (open.length > 0) {
+						return Response.json({ error: 'There is already one open.' }, { status: 409 });
+					}
+
+					/* A pause first. Nothing good is said in the first
+					 * twenty minutes. */
+					const minutes = Number.isInteger(body?.cool_minutes) ? body.cool_minutes : 20;
+
+					const created = await sql`
+            INSERT INTO repairs (connection_id, started_by, topic, cool_until)
+            VALUES (
+              ${connection.id},
+              ${userId},
+              ${String(body?.topic || '').trim() || null},
+              NOW() + (${minutes} * INTERVAL '1 minute')
+            )
+            RETURNING id, topic, status, cool_until, started_by, created_at
+          `;
+
+					const partnerRow = await sql`
+            SELECT push_token, notification_preferences FROM users WHERE id = ${partnerId} LIMIT 1
+          `;
+
+					const meRow = await sql`
+            SELECT first_name, nickname FROM profiles WHERE user_id = ${userId} LIMIT 1
+          `;
+
+					const myName = meRow[0]?.nickname?.trim() || meRow[0]?.first_name?.trim() || 'Your partner';
+
+					await notifyUser(sql, {
+						userId: partnerId,
+						pushToken: partnerRow[0]?.push_token,
+						preferences: partnerRow[0]?.notification_preferences,
+						type: 'repair',
+						title: `${myName} wants to sort things out`,
+						message: `Take ${minutes} minutes, then write your side.`,
+						dedupeKey: `repair-${created[0].id}`,
+					});
+
+					return Response.json({ repair: created[0] }, { status: 201 });
+				}
+
+				const openResult = await sql`
+          SELECT id, topic, status, cool_until, agreement, started_by, created_at
+          FROM repairs
+          WHERE connection_id = ${connection.id} AND status = 'open'
+          ORDER BY created_at DESC
+          LIMIT 1
+        `;
+
+				if (request.method === 'PATCH') {
+					if (openResult.length === 0) {
+						return Response.json({ error: 'Nothing open to add to.' }, { status: 404 });
+					}
+
+					const body = await request.json();
+					const repair = openResult[0];
+
+					if (body?.close) {
+						await sql`
+              UPDATE repairs
+              SET status = 'closed', agreement = ${String(body?.agreement || '').trim() || null}, updated_at = NOW()
+              WHERE id = ${repair.id}
+            `;
+
+						return Response.json({ message: 'Closed' });
+					}
+
+					await sql`
+            INSERT INTO repair_sides (repair_id, user_id, felt, needed, sorry_for)
+            VALUES (
+              ${repair.id},
+              ${userId},
+              ${String(body?.felt || '').trim() || null},
+              ${String(body?.needed || '').trim() || null},
+              ${String(body?.sorry_for || '').trim() || null}
+            )
+            ON CONFLICT (repair_id, user_id)
+            DO UPDATE SET
+              felt = EXCLUDED.felt,
+              needed = EXCLUDED.needed,
+              sorry_for = EXCLUDED.sorry_for,
+              updated_at = NOW()
+          `;
+
+					const partnerRow = await sql`
+            SELECT push_token, notification_preferences FROM users WHERE id = ${partnerId} LIMIT 1
+          `;
+
+					await notifyUser(sql, {
+						userId: partnerId,
+						pushToken: partnerRow[0]?.push_token,
+						preferences: partnerRow[0]?.notification_preferences,
+						type: 'repair',
+						title: 'They have written their side',
+						message: 'Write yours and you will both see them together.',
+						dedupeKey: `repair-side-${repair.id}-${userId}`,
+					});
+				}
+
+				const current = (
+					await sql`
+            SELECT id, topic, status, cool_until, agreement, started_by, created_at
+            FROM repairs
+            WHERE connection_id = ${connection.id} AND status = 'open'
+            ORDER BY created_at DESC
+            LIMIT 1
+          `
+				)[0];
+
+				if (!current) {
+					return Response.json({ repair: null });
+				}
+
+				const sides = await sql`
+          SELECT user_id, felt, needed, sorry_for, updated_at
+          FROM repair_sides
+          WHERE repair_id = ${current.id}
+        `;
+
+				const mine = sides.find((row) => row.user_id === userId) || null;
+				const theirs = sides.find((row) => row.user_id === partnerId) || null;
+
+				return Response.json({
+					repair: {
+						id: current.id,
+						topic: current.topic,
+						started_by_me: current.started_by === userId,
+						cool_until: current.cool_until,
+						created_at: current.created_at,
+						your_side: mine,
+						/* Sealed until you have written yours. */
+						partner_side: mine && theirs ? theirs : null,
+						partner_written: Boolean(theirs),
+						both_written: Boolean(mine && theirs),
+					},
 				});
 			}
 

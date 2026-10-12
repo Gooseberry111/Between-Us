@@ -484,6 +484,22 @@ export default function HomeScreen() {
 
       {finishProfile}
 
+      {/* WHEN IT'S GONE WRONG */}
+
+      <Group inset={58}>
+        <Cell
+          leading={
+            <View style={styles.repairIcon}>
+              <Icon name="pulse" size={16} color={T.accentText} />
+            </View>
+          }
+          title="Something's off between us"
+          subtitle="Take a pause, then say it properly"
+          chevron
+          onPress={() => router.push("/repair")}
+        />
+      </Group>
+
       {/* COMING UP */}
 
       <SectionHeader
@@ -732,6 +748,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "500",
     color: T.accent,
+  },
+
+  repairIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: T.accentTint,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   cellIcon: {

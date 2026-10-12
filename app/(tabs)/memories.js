@@ -253,7 +253,7 @@ export default function TimelineScreen() {
                 ? "Your story starts with one moment"
                 : "Nothing here yet"
             }
-            text="Save a photo, a place or a feeling. It shows up here for both of you."
+            text="A place, a line they said, a night worth keeping. It shows up here for both of you."
             chips={PROMPTS.map((prompt) => ({
               label: prompt,
               onPress: () => {
