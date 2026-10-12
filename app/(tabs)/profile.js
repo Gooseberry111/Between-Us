@@ -24,7 +24,7 @@ import {
   LargeTitle,
   NavBar,
   Screen,
-  Switch,
+  Toggle,
 } from "../../components/ui";
 import { SkeletonList } from "../../components/Skeleton";
 
@@ -351,7 +351,7 @@ export default function ProfileScreen() {
                 title={reminder.title}
                 subtitle={reminder.subtitle}
                 trailing={
-                  <Switch
+                  <Toggle
                     value={prefs?.[reminder.type] !== false}
                     onChange={(value) => setReminder(reminder.type, value)}
                   />

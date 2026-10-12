@@ -1,58 +1,61 @@
 import { useCallback, useEffect, useState } from "react";
 import { RefreshControl, StyleSheet, Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useFocusEffect, useRouter } from "expo-router";
 
 import { apiFetch } from "../../lib/api";
 import { getCachedData, setCachedData } from "../../lib/dataCache";
 import { TOTAL_QUESTIONS, countAnswered } from "../../lib/profileProgress";
-import { T, TYPE } from "../../lib/theme";
+import { T } from "../../lib/theme";
 import {
   Avatar,
   Button,
   Card,
   Cell,
+  DateBlock,
   Empty,
   GlassButton,
   Group,
+  Icon,
   LargeTitle,
+  LoveButton,
   NavBar,
   Press,
   Screen,
   SectionHeader,
 } from "../../components/ui";
 import BondHero from "../../components/BondHero";
-import { Skeleton, SkeletonList } from "../../components/Skeleton";
+import { SkeletonList } from "../../components/Skeleton";
 
 /*
  * ==========================================
  * HOME
  * ==========================================
  *
- * Leads with the two of them, then tonight's
- * question, then everything else. No greeting: the
- * date line and the bond say it better.
+ * Laid out exactly as the prototype lays it out:
+ *
+ *   date line + bell
+ *   the bond (day count, both of you, the thread)
+ *   tonight's question, theirs blurred until you reply
+ *   the mood check-in
+ *   four quick actions
+ *   Coming up
+ *   From {partner}
  */
 
 const MOODS = [
-  {
-    emoji: "🥰",
-    key: "glowing",
-    line: "Glowing. {name} will see it on your avatar.",
-  },
-  { emoji: "😊", key: "happy", line: "Happy. Want to tell {name} why?" },
-  { emoji: "🙂", key: "okay", line: "Okay. Steady days count too." },
-  {
-    emoji: "😶",
-    key: "distant",
-    line: "A bit distant. Tonight's question might help.",
-  },
-  {
-    emoji: "🥺",
-    key: "hurt",
-    line: "Hurting. Start a gentle check-in with {name}?",
-  },
+  { key: "glowing", emoji: "🥰", line: "Glowing. {name} will see it on your avatar." },
+  { key: "happy", emoji: "😊", line: "Happy. Want to tell {name} why?" },
+  { key: "okay", emoji: "🙂", line: "Okay. Steady days count too." },
+  { key: "distant", emoji: "😶", line: "A bit distant. Tonight's question might help." },
+  { key: "hurt", emoji: "🥺", line: "Hurting. Start a gentle check-in with {name}?" },
+];
+
+const ACTIONS = [
+  { icon: "mail", label: "Note", route: "/appreciations" },
+  { icon: "calendar", label: "Date", route: "/(tabs)/dates" },
+  { icon: "camera", label: "Memory", route: "/(tabs)/memories" },
+  { icon: "flag", label: "Goals", route: "/goals" },
 ];
 
 function dateLine() {
@@ -83,11 +86,10 @@ export default function HomeScreen() {
   const [hasUnread, setHasUnread] = useState(cached?.hasUnread ?? false);
   const [loading, setLoading] = useState(!cached);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState("");
 
-  /* Needs backend: the mood is only on this phone until
-   * there is somewhere to send it. */
+  /* Needs backend: the mood never leaves this phone yet. */
   const [mood, setMood] = useState(null);
+  const [loved, setLoved] = useState({});
 
   const loadHome = useCallback(async () => {
     if (!isLoaded || !isSignedIn || !userId) {
@@ -96,8 +98,6 @@ export default function HomeScreen() {
     }
 
     try {
-      setError("");
-
       const [
         profileResponse,
         connectionResponse,
@@ -121,10 +121,6 @@ export default function HomeScreen() {
       const profileData = await profileResponse.json();
       const connectionData = await connectionResponse.json();
 
-      if (!profileResponse.ok) {
-        throw new Error(profileData?.error || "Unable to load your profile.");
-      }
-
       setProfile(profileData?.profile || null);
 
       if (onboardingData?.exists) {
@@ -140,11 +136,7 @@ export default function HomeScreen() {
         : [];
 
       setHasUnread(notifications.some((item) => item.is_read === false));
-
-      /* Needs backend: a proper partner activity feed. Until
-       * then, their notifications about us are the closest
-       * honest thing we have. */
-      setActivity(notifications.slice(0, 3));
+      setActivity(notifications.slice(0, 2));
 
       const connections = Array.isArray(connectionData) ? connectionData : [];
 
@@ -177,7 +169,6 @@ export default function HomeScreen() {
       }
     } catch (err) {
       console.log("HOME LOAD ERROR:", err);
-      setError(err?.message || "Unable to load your home.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -218,22 +209,24 @@ export default function HomeScreen() {
     hasUnread,
   ]);
 
+  const refresh = (
+    <RefreshControl
+      refreshing={refreshing}
+      onRefresh={() => {
+        setRefreshing(true);
+        loadHome();
+      }}
+      tintColor={T.accent}
+    />
+  );
+
   if (loading) {
     return (
       <Screen scroll={false}>
+        <NavBar left={<Text style={styles.dateline}>{dateLine()}</Text>} />
+
         <View style={styles.loading}>
-          <Skeleton width={120} height={14} radius={7} />
-
-          <Skeleton
-            width={180}
-            height={62}
-            radius={16}
-            style={{ marginTop: 18 }}
-          />
-
-          <View style={{ marginTop: 28, width: "100%" }}>
-            <SkeletonList count={3} />
-          </View>
+          <SkeletonList count={4} />
         </View>
       </Screen>
     );
@@ -257,26 +250,24 @@ export default function HomeScreen() {
       )
     : null;
 
-  /* "7 months today" only on the day it is true. */
-  const monthsLine = (() => {
-    if (!connection?.connected_at) return null;
-
-    const start = new Date(connection.connected_at);
-    const now = new Date();
-
-    if (start.getDate() !== now.getDate()) return null;
-
-    const months =
-      (now.getFullYear() - start.getFullYear()) * 12 +
-      (now.getMonth() - start.getMonth());
-
-    if (months < 1) return null;
-
-    return `${months} month${months === 1 ? "" : "s"} today`;
-  })();
-
   const profileDone =
     answeredCount === null || answeredCount >= TOTAL_QUESTIONS;
+
+  const finishProfile = profileDone ? null : (
+    <Group inset={58}>
+      <Cell
+        leading={
+          <View style={styles.cellIcon}>
+            <Icon name="sparkle" size={16} color={T.accentText} />
+          </View>
+        }
+        title="Finish your profile"
+        subtitle={`${TOTAL_QUESTIONS - answeredCount} left. They power trivia and insights.`}
+        chevron
+        onPress={() => router.push("/onboarding")}
+      />
+    </Group>
+  );
 
   /*
    * ==========================================
@@ -286,21 +277,10 @@ export default function HomeScreen() {
 
   if (!connection) {
     return (
-      <Screen
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => {
-              setRefreshing(true);
-              loadHome();
-            }}
-            tintColor={T.accent}
-          />
-        }
-      >
+      <Screen refreshControl={refresh}>
         <NavBar left={<Text style={styles.dateline}>{dateLine()}</Text>}>
           <GlassButton
-            icon="notifications-outline"
+            icon="bell"
             badge={hasUnread}
             label="Notifications"
             onPress={() => router.push("/notifications")}
@@ -310,7 +290,7 @@ export default function HomeScreen() {
         <LargeTitle>Between Us</LargeTitle>
 
         <Empty
-          icon="heart-outline"
+          icon="heartOutline"
           title="This is better with two"
           text="Find the person you want to share it with. Nothing is shared until you both agree."
           action={{
@@ -320,25 +300,7 @@ export default function HomeScreen() {
           }}
         />
 
-        {!profileDone ? (
-          <>
-            <SectionHeader>Your profile</SectionHeader>
-
-            <Group>
-              <Cell
-                title="Finish your profile"
-                subtitle={`${TOTAL_QUESTIONS - answeredCount} questions left. They power trivia and insights.`}
-                leading={
-                  <View style={styles.cellIcon}>
-                    <Ionicons name="sparkles" size={16} color={T.accentText} />
-                  </View>
-                }
-                chevron
-                onPress={() => router.push("/onboarding")}
-              />
-            </Group>
-          </>
-        ) : null}
+        {finishProfile}
       </Screen>
     );
   }
@@ -349,54 +311,42 @@ export default function HomeScreen() {
    * ==========================================
    */
 
-  const hoursLeft = `${Math.max(1, 24 - new Date().getHours())}h left`;
-
   const youAnswered = Boolean(daily?.your_answer);
   const partnerAnswered = Boolean(daily?.partner_answered);
-
-  const upcoming = [
-    ...plans
-      .filter((plan) => plan.status === "planned")
-      .map((plan) => ({
-        key: `plan-${plan.id}`,
-        title: plan.title,
-        subtitle: plan.plan_date
-          ? `${plan.mine ? "You planned it" : `${plan.planner_name} planned it`}`
-          : "No date set yet",
-        date: plan.plan_date,
-        onPress: () => router.push("/(tabs)/dates"),
-      })),
-    ...reminders.slice(0, 2).map((reminder, index) => ({
-      key: `reminder-${index}`,
-      title: reminder.title,
-      subtitle: reminder.message,
-      onPress: () => router.push("/special-dates"),
-    })),
-  ].slice(0, 3);
+  const hoursLeft = Math.max(1, 24 - new Date().getHours());
 
   const moodLine = mood
     ? MOODS.find((item) => item.key === mood)?.line.replace(
         "{name}",
         partnerName,
       )
-    : `Your pick shows on your avatar. Only ${partnerName} sees it.`;
+    : `Your pick shows on your avatar above. Only ${partnerName} sees it.`;
+
+  const comingUp = [
+    ...plans
+      .filter((plan) => plan.status === "planned")
+      .map((plan) => ({
+        key: `plan-${plan.id}`,
+        title: plan.title,
+        subtitle: plan.mine
+          ? "Date night · You planned it"
+          : `Date night · ${plan.planner_name} planned it`,
+        date: plan.plan_date,
+        tone: "them",
+      })),
+    ...reminders.slice(0, 2).map((reminder, index) => ({
+      key: `reminder-${index}`,
+      title: reminder.title,
+      subtitle: reminder.message,
+      tone: "you",
+    })),
+  ].slice(0, 3);
 
   return (
-    <Screen
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={() => {
-            setRefreshing(true);
-            loadHome();
-          }}
-          tintColor={T.accent}
-        />
-      }
-    >
+    <Screen refreshControl={refresh}>
       <NavBar left={<Text style={styles.dateline}>{dateLine()}</Text>}>
         <GlassButton
-          icon="notifications-outline"
+          icon="bell"
           badge={hasUnread}
           label="Notifications"
           onPress={() => router.push("/notifications")}
@@ -410,50 +360,45 @@ export default function HomeScreen() {
         youAnswered={youAnswered}
         partnerAnswered={partnerAnswered}
         streak={Number(daily?.streak || 0)}
-        monthsLine={monthsLine}
         mood={MOODS.find((item) => item.key === mood)?.emoji}
         onHug={() => {}}
       />
-
-      {error ? <Text style={styles.error}>{error}</Text> : null}
 
       {/* TONIGHT'S QUESTION */}
 
       <Press onPress={() => router.push("/daily-question")}>
         <Card>
-          <View style={styles.questionTop}>
-            <Ionicons name="sparkles" size={18} color={T.accent} />
+          <View style={styles.qTop}>
+            <Icon name="sparkle" size={18} color={T.accent} filled />
 
-            <Text style={styles.questionLabel}>Tonight&apos;s question</Text>
+            <Text style={styles.qLabel}>Tonight&apos;s question</Text>
 
-            <Text style={styles.questionTime}>{hoursLeft}</Text>
+            <Text style={styles.qTime}>{hoursLeft}h left</Text>
           </View>
 
           <Text style={styles.question}>
             {daily?.question || "Loading tonight's question…"}
           </Text>
 
-          <View style={styles.lockRow}>
-            <Avatar name={partnerName} who="them" size={26} />
+          <View style={styles.lock}>
+            <Avatar name={partnerName} who="them" size={30} />
 
             {youAnswered ? (
-              <Text style={styles.answerText} numberOfLines={1}>
+              <Text style={styles.lockText} numberOfLines={1}>
                 {partnerAnswered
                   ? daily?.partner_answer
                   : `${partnerName} hasn't answered yet`}
               </Text>
             ) : (
               <>
-                <View style={styles.blurred}>
-                  <Text style={styles.blurredText} numberOfLines={1}>
-                    {partnerAnswered
-                      ? "••••• ••••• ••••••• ••••"
-                      : `${partnerName} hasn't answered yet`}
-                  </Text>
-                </View>
+                <Text style={styles.lockBlur} numberOfLines={1}>
+                  {partnerAnswered
+                    ? "▇▇▇▇ ▇▇▇▇▇▇ ▇▇▇ ▇▇▇▇▇▇▇"
+                    : `${partnerName} hasn't answered yet`}
+                </Text>
 
                 {partnerAnswered ? (
-                  <Ionicons name="lock-closed" size={13} color={T.label3} />
+                  <Icon name="lock" size={18} color={T.label2} />
                 ) : null}
               </>
             )}
@@ -468,14 +413,15 @@ export default function HomeScreen() {
                 : `Answer to unlock ${partnerName}'s`
             }
             onPress={() => router.push("/daily-question")}
-            style={styles.questionButton}
+            block={false}
+            style={styles.qButton}
           />
         </Card>
       </Press>
 
       {/* MOOD */}
 
-      <Card style={styles.moodCard}>
+      <Card>
         <Text style={styles.moodTitle}>How are you feeling about us?</Text>
 
         <View style={styles.moodRow}>
@@ -486,10 +432,7 @@ export default function HomeScreen() {
               onPress={() => setMood(mood === item.key ? null : item.key)}
             >
               <View
-                style={[
-                  styles.moodOption,
-                  mood === item.key && styles.moodOptionOn,
-                ]}
+                style={[styles.mood, mood === item.key && styles.moodOn]}
               >
                 <Text style={styles.moodFace}>{item.emoji}</Text>
               </View>
@@ -503,19 +446,14 @@ export default function HomeScreen() {
       {/* QUICK ACTIONS */}
 
       <View style={styles.actions}>
-        {[
-          { icon: "mail", label: "Note", route: "/appreciations" },
-          { icon: "calendar", label: "Date", route: "/(tabs)/dates" },
-          { icon: "camera", label: "Memory", route: "/memories" },
-          { icon: "flag", label: "Goals", route: "/goals" },
-        ].map((action) => (
+        {ACTIONS.map((action) => (
           <Press
             key={action.label}
             onPress={() => router.push(action.route)}
             outerStyle={styles.actionWrap}
           >
             <View style={styles.action}>
-              <Ionicons name={action.icon} size={24} color={T.accent} />
+              <Icon name={action.icon} size={24} color={T.accent} filled />
 
               <Text style={styles.actionLabel}>{action.label}</Text>
             </View>
@@ -523,27 +461,7 @@ export default function HomeScreen() {
         ))}
       </View>
 
-      {/* FINISH PROFILE */}
-
-      {!profileDone ? (
-        <>
-          <SectionHeader>Your profile</SectionHeader>
-
-          <Group>
-            <Cell
-              title="Finish your profile"
-              subtitle={`${TOTAL_QUESTIONS - answeredCount} questions left. They power trivia and insights.`}
-              leading={
-                <View style={styles.cellIcon}>
-                  <Ionicons name="sparkles" size={16} color={T.accentText} />
-                </View>
-              }
-              chevron
-              onPress={() => router.push("/onboarding")}
-            />
-          </Group>
-        </>
-      ) : null}
+      {finishProfile}
 
       {/* COMING UP */}
 
@@ -554,26 +472,30 @@ export default function HomeScreen() {
         Coming up
       </SectionHeader>
 
-      {upcoming.length > 0 ? (
-        <Group>
-          {upcoming.map((item) => (
+      {comingUp.length > 0 ? (
+        <Group inset={68}>
+          {comingUp.map((item) => (
             <Cell
               key={item.key}
+              leading={
+                item.date ? (
+                  <DateBlock date={item.date} tone={item.tone} />
+                ) : (
+                  <View style={styles.cal}>
+                    <Icon name="calendar" size={20} color={T.accent} />
+                  </View>
+                )
+              }
               title={item.title}
               subtitle={item.subtitle}
-              leading={
-                <View style={styles.cellIcon}>
-                  <Ionicons name="calendar" size={15} color={T.accentText} />
-                </View>
-              }
               chevron
-              onPress={item.onPress}
+              onPress={() => router.push("/(tabs)/dates")}
             />
           ))}
         </Group>
       ) : (
         <Empty
-          icon="calendar-outline"
+          icon="calendar"
           title="Nothing in the diary"
           text={`Plan something with ${partnerName}, however small.`}
           action={{
@@ -584,19 +506,27 @@ export default function HomeScreen() {
         />
       )}
 
-      {/* FROM PARTNER */}
+      {/* FROM THEM */}
 
       {activity.length > 0 ? (
         <>
           <SectionHeader>From {partnerName}</SectionHeader>
 
-          <Group>
+          <Group inset={64}>
             {activity.map((item) => (
               <Cell
                 key={item.id}
+                leading={<Avatar name={partnerName} who="them" size={40} />}
                 title={item.title}
                 subtitle={item.message}
-                leading={<Avatar name={partnerName} who="them" size={34} />}
+                trailing={
+                  <LoveButton
+                    value={Boolean(loved[item.id])}
+                    onChange={(value) =>
+                      setLoved((current) => ({ ...current, [item.id]: value }))
+                    }
+                  />
+                }
               />
             ))}
           </Group>
@@ -608,9 +538,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   loading: {
-    paddingHorizontal: 20,
-    paddingTop: 30,
-    alignItems: "center",
+    paddingTop: 20,
   },
 
   dateline: {
@@ -621,25 +549,19 @@ const styles = StyleSheet.create({
     color: T.label2,
   },
 
-  error: {
-    ...TYPE.footnote,
-    color: T.red,
-    paddingHorizontal: 16,
-  },
-
-  questionTop: {
+  qTop: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
   },
 
-  questionLabel: {
+  qLabel: {
     fontSize: 13,
     fontWeight: "600",
     color: T.accent,
   },
 
-  questionTime: {
+  qTime: {
     marginLeft: "auto",
     fontSize: 13,
     color: T.label2,
@@ -654,7 +576,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
 
-  lockRow: {
+  lock: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
@@ -666,40 +588,37 @@ const styles = StyleSheet.create({
     backgroundColor: T.fill4,
   },
 
-  blurred: {
+  lockBlur: {
     flex: 1,
-  },
-
-  blurredText: {
     fontSize: 15,
     color: T.label3,
-    letterSpacing: 2,
+    letterSpacing: 1,
   },
 
-  answerText: {
+  lockText: {
     flex: 1,
     fontSize: 15,
     color: T.label2,
   },
 
-  questionButton: {
-    marginTop: 16,
+  qButton: {
+    marginTop: 12,
   },
 
-  moodCard: {},
-
   moodTitle: {
-    ...TYPE.headline,
+    fontSize: 17,
+    fontWeight: "600",
+    letterSpacing: -0.34,
     color: T.label,
   },
 
   moodRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 14,
+    marginTop: 12,
   },
 
-  moodOption: {
+  mood: {
     width: 50,
     height: 50,
     borderRadius: 25,
@@ -708,8 +627,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  moodOptionOn: {
-    backgroundColor: "#FEE4F3",
+  moodOn: {
+    backgroundColor: T.accentTint,
     borderWidth: 2,
     borderColor: T.accent,
   },
@@ -719,9 +638,10 @@ const styles = StyleSheet.create({
   },
 
   moodLine: {
-    ...TYPE.footnote,
+    fontSize: 13,
+    lineHeight: 18,
     color: T.label2,
-    marginTop: 14,
+    marginTop: 12,
   },
 
   actions: {
@@ -756,5 +676,10 @@ const styles = StyleSheet.create({
     backgroundColor: T.accentTint,
     alignItems: "center",
     justifyContent: "center",
+  },
+
+  cal: {
+    width: 40,
+    alignItems: "center",
   },
 });
