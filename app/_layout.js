@@ -1,15 +1,16 @@
 import { ClerkProvider, useAuth } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
-import { Slot, useRouter, useSegments } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
 import * as SecureStore from "expo-secure-store";
 import * as Notifications from "expo-notifications";
 import * as SplashScreen from "expo-splash-screen";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
-import { StyleSheet, Text, View } from "react-native";
+import { Platform, StyleSheet, Text, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { RETURNING_USER_KEY } from "../lib/auth";
+import { T } from "../lib/theme";
 import { apiFetch, setTokenProvider } from "../lib/api";
 import { onProfileSaved } from "../lib/profileProgress";
 import ErrorCatcher from "../components/ErrorCatcher";
@@ -405,7 +406,39 @@ function AuthGuard() {
    * DO NOT SHOW A CUSTOM LOADING SCREEN.
    */
 
-  return <Slot />;
+  /*
+   * A native stack, so moving between screens is the
+   * system's own push: the new screen slides in from the
+   * right with the old one easing behind it, and an edge
+   * swipe takes you back. A Slot swapped screens with no
+   * transition at all.
+   *
+   * The nightly ritual and Repair are self-contained flows
+   * with a close button, so they rise as sheets instead,
+   * the way iOS presents a task you finish and dismiss.
+   */
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        gestureEnabled: true,
+        animation: Platform.OS === "ios" ? "default" : "slide_from_right",
+        contentStyle: { backgroundColor: T.appBackground },
+      }}
+    >
+      <Stack.Screen name="index" options={{ animation: "fade" }} />
+      <Stack.Screen name="(tabs)" options={{ animation: "fade" }} />
+      <Stack.Screen name="onboarding" options={{ animation: "fade" }} />
+      <Stack.Screen
+        name="daily-question"
+        options={{ presentation: "modal", gestureEnabled: true }}
+      />
+      <Stack.Screen
+        name="repair"
+        options={{ presentation: "modal", gestureEnabled: true }}
+      />
+    </Stack>
+  );
 }
 
 /*

@@ -14,6 +14,8 @@ import Svg, {
   Defs,
   LinearGradient as SvgGradient,
   Path,
+  RadialGradient,
+  Rect,
   Stop,
 } from "react-native-svg";
 
@@ -254,19 +256,60 @@ export default function BondHero({
 
   return (
     <View style={styles.wrap}>
-      {/* The glow behind them: their colour on the right,
-          yours on the left. */}
+      {/*
+        .bond::before, exactly: two radial gradients, not
+        circles. Each is an ellipse 42% wide and 46% tall,
+        centred at 22% and 78% across and 62% down, starting
+        at 22% of the colour and fading to nothing by 70% of
+        its radius -- yours on the left, theirs on the right.
+      */}
       <View style={styles.glow} pointerEvents="none">
-        <View style={[styles.glowBlob, styles.glowYou]} />
+        <Svg width="100%" height="100%">
+          <Defs>
+            <RadialGradient
+              id="glowYou"
+              cx="22%"
+              cy="62%"
+              rx="42%"
+              ry="46%"
+              fx="22%"
+              fy="62%"
+            >
+              <Stop offset="0" stopColor={T.you} stopOpacity="0.22" />
+              <Stop offset="0.7" stopColor={T.you} stopOpacity="0" />
+            </RadialGradient>
 
-        <View style={[styles.glowBlob, styles.glowThem]} />
+            <RadialGradient
+              id="glowThem"
+              cx="78%"
+              cy="62%"
+              rx="42%"
+              ry="46%"
+              fx="78%"
+              fy="62%"
+            >
+              <Stop offset="0" stopColor={T.accent} stopOpacity="0.22" />
+              <Stop offset="0.7" stopColor={T.accent} stopOpacity="0" />
+            </RadialGradient>
+          </Defs>
+
+          <Rect width="100%" height="100%" fill="url(#glowYou)" />
+          <Rect width="100%" height="100%" fill="url(#glowThem)" />
+        </Svg>
       </View>
 
       {days ? (
         <>
           <Text style={styles.dayLabel}>Day</Text>
 
-          <Text style={styles.dayCount}>{days}</Text>
+          <Text
+            style={styles.dayCount}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.6}
+          >
+            {days}
+          </Text>
         </>
       ) : null}
 
@@ -546,37 +589,34 @@ const styles = StyleSheet.create({
     height: 280,
   },
 
-  glowBlob: {
-    position: "absolute",
-    top: 40,
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    opacity: 0.22,
-  },
-
-  glowYou: {
-    left: "6%",
-    backgroundColor: T.you,
-  },
-
-  glowThem: {
-    right: "6%",
-    backgroundColor: T.accent,
-  },
-
   dayLabel: {
     fontSize: 13,
     fontWeight: "600",
     color: T.label2,
   },
 
+  /*
+   * 76pt bold, rounded, tight -- the prototype's 76px/0.92.
+   * The line box has to be taller than the glyphs or the top
+   * of the numerals is cut off, so the tightness comes from
+   * pulling the neighbours in, not from squeezing the line.
+   */
   dayCount: {
     fontSize: 76,
-    lineHeight: 80,
+    lineHeight: 90,
     fontWeight: "700",
     letterSpacing: -3.8,
     color: T.accent,
+    marginTop: -8,
+    marginBottom: -10,
+    paddingHorizontal: 8,
+    includeFontPadding: false,
+    textAlign: "center",
+    ...Platform.select({
+      /* --f-round: SF Rounded */
+      ios: { fontFamily: "ui-rounded" },
+      default: {},
+    }),
   },
 
   namesAlone: {
@@ -595,7 +635,8 @@ const styles = StyleSheet.create({
     color: T.label2,
     marginTop: 4,
     letterSpacing: -0.2,
-    ...Platform.select({ ios: { fontFamily: "Georgia" }, default: {} }),
+    /* --f-serif: New York */
+    ...Platform.select({ ios: { fontFamily: "ui-serif" }, default: {} }),
   },
 
   row: {
