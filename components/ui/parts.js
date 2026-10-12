@@ -21,10 +21,12 @@ import {
   Toggle as SwiftToggle,
 } from "@expo/ui/swift-ui";
 import {
+  buttonBorderShape,
   buttonStyle,
   controlSize,
   disabled as swiftDisabled,
   frame,
+  lineLimit,
   tint,
 } from "@expo/ui/swift-ui/modifiers";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
@@ -185,19 +187,32 @@ function NativeButton({
     destructive: GLASS ? "glass" : "bordered",
   }[kind];
 
+  /*
+   * A full-width button stretches across its row. Anything
+   * else is compact: a capsule sized to its own label, on
+   * one line. Matching only the height let a compact button
+   * take the width of a container that was itself waiting
+   * to be sized, so it collapsed and its label stacked.
+   */
+  const fill = block && size === "large";
+
   const modifiers = [
     buttonStyle(style_),
     controlSize(size === "large" ? "large" : "regular"),
     tint(kind === "destructive" ? T.red : T.accent),
   ];
 
-  if (block && size === "large") modifiers.push(frame({ maxWidth: 2000 }));
+  if (fill) modifiers.push(frame({ maxWidth: 2000 }));
+  else modifiers.push(buttonBorderShape("capsule"), lineLimit(1));
 
   if (disabled || busy) modifiers.push(swiftDisabled(true));
 
   return (
-    <View style={[block && size === "large" && styles.buttonBlock, style]}>
-      <Host matchContents={{ vertical: true }} style={styles.buttonHost}>
+    <View style={[fill ? styles.buttonBlock : styles.buttonCompact, style]}>
+      <Host
+        matchContents={fill ? { vertical: true } : true}
+        style={fill ? styles.buttonHost : undefined}
+      >
         <SwiftButton
           label={busy ? "One moment…" : title}
           systemImage={icon ? sfSymbol(icon) : undefined}
@@ -803,6 +818,10 @@ const styles = StyleSheet.create({
     alignSelf: "stretch",
   },
 
+  buttonCompact: {
+    alignSelf: "flex-start",
+  },
+
   buttonLarge: {
     height: 50,
     borderRadius: 14,
@@ -977,6 +996,7 @@ const styles = StyleSheet.create({
   },
 
   emptyAction: {
+    alignSelf: "center",
     marginTop: 16,
   },
 
