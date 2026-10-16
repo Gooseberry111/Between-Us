@@ -104,8 +104,10 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(!cached);
   const [refreshing, setRefreshing] = useState(false);
 
-  /* Needs backend: the mood never leaves this phone yet. */
-  const [mood, setMood] = useState(null);
+  /* Yours and theirs, each for a day. Theirs sits on their
+   * circle in the hero; yours goes in their feed. */
+  const [mood, setMood] = useState(cached?.mood ?? null);
+  const [partnerMood, setPartnerMood] = useState(cached?.partnerMood ?? null);
   const [moodSheet, setMoodSheet] = useState(false);
 
   const loadHome = useCallback(async () => {
@@ -166,17 +168,27 @@ export default function HomeScreen() {
       setConnection(accepted || null);
 
       if (accepted) {
-        const [partnerData, dailyData, plansData] = await Promise.all([
-          apiFetch(`/users/${userId}/partner`)
-            .then((r) => (r.ok ? r.json() : null))
-            .catch(() => null),
-          apiFetch(`/users/${userId}/daily-question`)
-            .then((r) => (r.ok ? r.json() : null))
-            .catch(() => null),
-          apiFetch(`/users/${userId}/date-plans`)
-            .then((r) => (r.ok ? r.json() : null))
-            .catch(() => null),
-        ]);
+        const [partnerData, dailyData, plansData, moodData] = await Promise.all(
+          [
+            apiFetch(`/users/${userId}/partner`)
+              .then((r) => (r.ok ? r.json() : null))
+              .catch(() => null),
+            apiFetch(`/users/${userId}/daily-question`)
+              .then((r) => (r.ok ? r.json() : null))
+              .catch(() => null),
+            apiFetch(`/users/${userId}/date-plans`)
+              .then((r) => (r.ok ? r.json() : null))
+              .catch(() => null),
+            apiFetch(`/users/${userId}/mood`)
+              .then((r) => (r.ok ? r.json() : null))
+              .catch(() => null),
+          ],
+        );
+
+        if (moodData) {
+          setMood(moodData.mine?.mood || null);
+          setPartnerMood(moodData.partner || null);
+        }
 
         setPartner(partnerData?.partner || null);
         setDaily(dailyData);
@@ -213,6 +225,8 @@ export default function HomeScreen() {
       activity,
       answeredCount,
       hasUnread,
+      mood,
+      partnerMood,
     });
   }, [
     loading,
@@ -226,9 +240,27 @@ export default function HomeScreen() {
     activity,
     answeredCount,
     hasUnread,
+    mood,
+    partnerMood,
   ]);
 
   const feed = activityHandlers({ userId, setItems: setActivity, router });
+
+  /* Shown at once, saved behind it, taken back if it fails. */
+  const chooseMood = (next) => {
+    const before = mood;
+
+    setMood(next);
+
+    apiFetch(`/users/${userId}/mood`, {
+      method: "PUT",
+      body: JSON.stringify({ clerk_id: userId, mood: next }),
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error("Mood not saved");
+      })
+      .catch(() => setMood(before));
+  };
 
   const refresh = (
     <RefreshControl
@@ -392,6 +424,7 @@ export default function HomeScreen() {
         partnerAnswered={partnerAnswered}
         streak={Number(daily?.streak || 0)}
         mood={MOODS.find((item) => item.key === mood)?.emoji}
+        partnerMood={partnerMood?.emoji}
         onHug={() => {}}
         onPickMood={() => setMoodSheet(true)}
       />
@@ -469,7 +502,7 @@ export default function HomeScreen() {
             <Press
               key={item.key}
               scaleTo={0.9}
-              onPress={() => setMood(mood === item.key ? null : item.key)}
+              onPress={() => chooseMood(mood === item.key ? null : item.key)}
             >
               <View style={[styles.mood, mood === item.key && styles.moodOn]}>
                 <Text style={styles.moodFace}>{item.emoji}</Text>
@@ -579,7 +612,7 @@ export default function HomeScreen() {
                 ) : null
               }
               onPress={() => {
-                setMood(item.key);
+                chooseMood(item.key);
                 setMoodSheet(false);
               }}
             />
@@ -591,7 +624,7 @@ export default function HomeScreen() {
             title="Clear it"
             kind="plain"
             onPress={() => {
-              setMood(null);
+              chooseMood(null);
               setMoodSheet(false);
             }}
           />

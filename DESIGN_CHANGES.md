@@ -62,6 +62,18 @@ Shared: `lib/api.js`, `lib/dataCache.js`, `lib/connection.js`, `lib/profileProgr
 - Glass buttons use the icon-only label style, so their names no longer show next to the symbol.
 - Insights rebuilt: an in-sync ring, the traits you share as a list, each difference as a card with a way in, love languages side by side, and one thing to try this week.
 
+## Added (fifth pass)
+
+- Expo Go without a laptop: `app.config.js` stamps a publish with Expo Go's runtime when `EXPO_GO=1`, and `node scripts/publish.js "message"` sends each update to both the Android build (`preview`) and the `expo-go` branch. Expo Go opens `exp://u.expo.dev/70fa9f0d-4ccd-4613-9f00-cad1cd0d244a?channel-name=expo-go&runtime-version=exposdk:57.0.0` straight from Expo's servers.
+- Shared mood: the mood on Home is saved, lasts a day, shows on your circle in their hero (and theirs on yours), goes in their activity feed, and reaches their phone once a day per mood. It can be turned off under Notifications.
+- Library: `AuthScreen`, `AuthHeader`, `Glow`, `Mark`, `FieldRow`, `PasswordRow`, `CodeField`, `Notice`, `TextLink`, `SearchField`, and `chooseAction` (the iOS action sheet).
+
+## Changed (fifth pass)
+
+- Before you are linked: Welcome, Sign In, Sign Up, Forgot Password, Onboarding, Find Your Person and Connect First carry the prototype's language (the bond glow, the two-circle mark, Settings-style fields, native buttons). Onboarding asks each question as an iOS list.
+- Every remaining screen is on the component library: Dates, Notes (now a Messages-style thread), Goals (a Reminders list) and Completed Goals, Every Year, Trivia (answers as a list, a score ring at the end) and its history, Check-in, Notifications (tap opens what it is about) and their settings, Edit Profile, Terms and Privacy.
+- The shared Toggle hides its empty SwiftUI label so it stays switch-sized; Screen lets taps through while the keyboard is up.
+
 ## Changed (Velvet and native iOS)
 
 - [Theme] Bubblegum replaced by Velvet, from the updated playground: plum `#4A2D5C` for the partner and the accent, rose `#D9577A` for you, gold `#C9973F` as the highlight, ground `#ECEBF2`. The bond thread runs rose → plum → gold. Every screen moved. Files: `lib/theme.js` and 35 screens and components

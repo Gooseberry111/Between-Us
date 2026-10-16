@@ -87,6 +87,7 @@ export default function BondHero({
   streak,
   monthsLine,
   mood,
+  partnerMood,
   partnerOnline,
   onHug,
   onPickMood,
@@ -574,6 +575,16 @@ export default function BondHero({
             </View>
 
             {partnerOnline ? <View style={styles.online} /> : null}
+
+            {/* How they are feeling today, if they have said. */}
+            {partnerMood ? (
+              <View
+                style={styles.moodBadge}
+                accessibilityLabel={`${partnerName}'s mood today`}
+              >
+                <Text style={styles.moodEmoji}>{partnerMood}</Text>
+              </View>
+            ) : null}
           </Animated.View>
 
           <Text style={styles.personName} numberOfLines={1}>

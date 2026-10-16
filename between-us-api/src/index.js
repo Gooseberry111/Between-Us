@@ -399,6 +399,31 @@ async function recordActivity(sql, { connectionId, actorId, kind, title, detail 
 	}
 }
 
+/*
+ * The moods Home offers. The key is stored; the line is
+ * what the partner reads in their feed and notification.
+ */
+const MOODS = {
+	glowing: { emoji: '🥰', line: 'Feeling glowing' },
+	happy: { emoji: '😊', line: 'Feeling happy' },
+	okay: { emoji: '🙂', line: 'Feeling okay' },
+	distant: { emoji: '😶', line: 'Feeling a bit distant' },
+	hurt: { emoji: '🥺', line: 'Hurting a little' },
+};
+
+/* A mood is for today: after a day it quietly lapses. */
+const MOOD_LIFETIME_MS = 24 * 60 * 60 * 1000;
+
+function currentMood(mood, moodAt) {
+	if (!mood || !MOODS[mood] || !moodAt) return null;
+
+	const at = new Date(moodAt);
+
+	if (Date.now() - at.getTime() > MOOD_LIFETIME_MS) return null;
+
+	return { mood, emoji: MOODS[mood].emoji, at: at.toISOString() };
+}
+
 async function ensureSchema(sql) {
 	if (schemaReady) return;
 
@@ -473,6 +498,10 @@ async function ensureSchema(sql) {
 	await sql`ALTER TABLE dreams ADD COLUMN IF NOT EXISTS photo_id TEXT`;
 	await sql`ALTER TABLE dreams ADD COLUMN IF NOT EXISTS steps JSONB NOT NULL DEFAULT '[]'::jsonb`;
 	await sql`ALTER TABLE dreams ADD COLUMN IF NOT EXISTS focused_at TIMESTAMPTZ`;
+
+	/* How each of them is feeling today, and since when. */
+	await sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS mood TEXT`;
+	await sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS mood_at TIMESTAMPTZ`;
 
 	/*
 	 * Activity: what one of the two did, for the other's
@@ -6736,6 +6765,118 @@ VALUES (
 						mine: row.created_by === userId,
 						planner_name: row.planner_nickname?.trim() || row.planner_first_name?.trim() || 'Someone',
 					})),
+				});
+			}
+
+			/*
+			 * ==========================================
+			 * MOOD
+			 * ==========================================
+			 *
+			 * GET /users/:clerkId/mood   { mine, partner }, each null
+			 *                            unless set in the last day
+			 * PUT /users/:clerkId/mood   { mood: key | null }
+			 *
+			 * Setting one goes in their feed and, once a day per
+			 * mood, to their phone -- the hard ones are exactly
+			 * the ones worth knowing about.
+			 */
+
+			const moodMatch = url.pathname.match(/^\/users\/([^/]+)\/mood$/);
+
+			if (moodMatch && (request.method === 'GET' || request.method === 'PUT')) {
+				await ensureSchema(sql);
+
+				const clerkId = moodMatch[1];
+
+				const userResult = await sql`
+          SELECT u.id, p.first_name, p.nickname, p.mood, p.mood_at
+          FROM users u
+          LEFT JOIN profiles p ON p.user_id = u.id
+          WHERE u.clerk_id = ${clerkId}
+          LIMIT 1
+        `;
+
+				if (userResult.length === 0) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const me = userResult[0];
+
+				const connectionResult = await sql`
+          SELECT id, user_one, user_two
+          FROM connections
+          WHERE (user_one = ${me.id} OR user_two = ${me.id})
+            AND status = 'accepted'
+          LIMIT 1
+        `;
+
+				const connection = connectionResult[0] || null;
+				const partnerId = connection ? (connection.user_one === me.id ? connection.user_two : connection.user_one) : null;
+
+				const partnerRow = partnerId
+					? (
+							await sql`
+                SELECT u.push_token, u.notification_preferences, p.mood, p.mood_at
+                FROM users u
+                LEFT JOIN profiles p ON p.user_id = u.id
+                WHERE u.id = ${partnerId}
+                LIMIT 1
+              `
+						)[0]
+					: null;
+
+				if (request.method === 'GET') {
+					return Response.json({
+						mine: currentMood(me.mood, me.mood_at),
+						partner: partnerRow ? currentMood(partnerRow.mood, partnerRow.mood_at) : null,
+					});
+				}
+
+				const body = await request.json().catch(() => ({}));
+				const mood = body?.mood === null ? null : String(body?.mood || '');
+
+				if (mood !== null && !MOODS[mood]) {
+					return Response.json({ error: 'That is not one of the moods.' }, { status: 400 });
+				}
+
+				const now = new Date().toISOString();
+
+				await sql`
+          UPDATE profiles
+          SET mood = ${mood}, mood_at = ${mood ? now : null}
+          WHERE user_id = ${me.id}
+        `;
+
+				if (mood && connection) {
+					const day = now.slice(0, 10);
+					const myName = me.nickname?.trim() || me.first_name?.trim() || 'Your partner';
+
+					await recordActivity(sql, {
+						connectionId: connection.id,
+						actorId: me.id,
+						kind: 'mood',
+						title: `${MOODS[mood].line} ${MOODS[mood].emoji}`,
+						dedupeKey: `mood:${me.id}:${day}:${mood}`,
+					});
+
+					await notifyUser(sql, {
+						userId: partnerId,
+						pushToken: partnerRow?.push_token,
+						preferences: partnerRow?.notification_preferences,
+						type: 'mood',
+						title: `${myName}: ${MOODS[mood].line.toLowerCase()} ${MOODS[mood].emoji}`,
+						message:
+							mood === 'distant' || mood === 'hurt'
+								? 'Maybe check in with them tonight.'
+								: 'It is on their avatar on Home.',
+						dedupeKey: `mood:${me.id}:${day}:${mood}`,
+					});
+				}
+
+				return Response.json({
+					mine: mood ? currentMood(mood, now) : null,
+					partner: partnerRow ? currentMood(partnerRow.mood, partnerRow.mood_at) : null,
 				});
 			}
 

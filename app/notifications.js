@@ -39,6 +39,7 @@ import { SkeletonList } from "../components/Skeleton";
 const KINDS = {
   appreciation: { icon: "heart", tint: T.you, to: "/appreciations" },
   love: { icon: "heart", tint: T.you, to: "/activity" },
+  mood: { icon: "mood", tint: T.you, to: "/(tabs)/home" },
   daily_question: { icon: "lock", tint: T.accent, to: "/daily-question" },
   daily_question_answered: {
     icon: "lock",

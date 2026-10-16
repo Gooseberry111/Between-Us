@@ -41,6 +41,7 @@ const NOTIFICATION_GROUPS = [
     items: [
       { type: "appreciation", title: "Notes", icon: "heart" },
       { type: "love", title: "Hearts on what you did", icon: "heartOutline" },
+      { type: "mood", title: "Their mood", icon: "mood" },
       {
         type: "daily_question_answered",
         title: "They answered tonight",
