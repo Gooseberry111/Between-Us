@@ -1,24 +1,40 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, StyleSheet } from "react-native";
-import OptionButton from "./OptionButton";
+import { useState } from "react";
+import { StyleSheet, Text, TextInput, View } from "react-native";
+import * as Haptics from "expo-haptics";
+
+import { T } from "../../lib/theme";
+import { Cell, Check, Group, GroupFooter, Icon } from "../ui";
 import DateInput from "../DateInput";
 
+/*
+ * ==========================================
+ * QUESTION
+ * ==========================================
+ *
+ * One question, asked the way iOS asks:
+ *
+ *   text / date   one large field in a group
+ *   single        a list with a checkmark on the choice,
+ *                 like picking a ringtone in Settings
+ *   multi         a list of round checks, any number
+ *
+ * "Other" is only useful if you can say what the other
+ * thing is. Choosing it opens a field in its row, and
+ * whatever is typed becomes the answer -- stored exactly
+ * like any chosen option, so everything downstream treats
+ * it the same.
+ */
+
+const isOtherOption = (option) => /^other/i.test(String(option).trim());
+
 export default function QuestionCard({ question, value, onChange }) {
-  /*
-   * "Other" is only useful if you can say what the other
-   * thing is. Choosing it opens a field, and whatever is
-   * typed becomes the answer -- stored exactly like any
-   * chosen option, so everything downstream (trivia,
-   * insights, your partner's view) treats it the same.
-   */
   const [writingOther, setWritingOther] = useState(false);
   const [otherText, setOtherText] = useState("");
 
   if (!question) return null;
 
   const options = question.options || [];
-
-  const isOtherOption = (option) => /^other/i.test(String(option).trim());
+  const multi = question.type === "multi";
 
   const values = Array.isArray(value) ? value : value ? [value] : [];
 
@@ -27,21 +43,38 @@ export default function QuestionCard({ question, value, onChange }) {
     (item) => item && !options.some((option) => option === item),
   );
 
+  const otherOpen = writingOther || Boolean(customValue);
+
   const isSelected = (option) => {
-    if (isOtherOption(option)) {
-      return writingOther || Boolean(customValue);
-    }
+    if (isOtherOption(option)) return otherOpen;
 
-    if (Array.isArray(value)) {
-      return value.includes(option);
-    }
-
-    return value === option;
+    return multi ? values.includes(option) : value === option;
   };
 
-  const openOther = () => {
-    setOtherText(customValue || "");
-    setWritingOther(true);
+  const tap = () => Haptics.selectionAsync().catch(() => {});
+
+  const choose = (option) => {
+    tap();
+
+    if (isOtherOption(option)) {
+      setOtherText(customValue || "");
+      setWritingOther(true);
+
+      return;
+    }
+
+    if (multi) {
+      onChange(
+        values.includes(option)
+          ? values.filter((item) => item !== option)
+          : [...values, option],
+      );
+
+      return;
+    }
+
+    setWritingOther(false);
+    onChange(option);
   };
 
   const saveOther = (text) => {
@@ -49,7 +82,7 @@ export default function QuestionCard({ question, value, onChange }) {
 
     const trimmed = text.trim();
 
-    if (question.type === "multi") {
+    if (multi) {
       const kept = values.filter((item) => options.includes(item));
 
       onChange(trimmed ? [...kept, trimmed] : kept);
@@ -60,177 +93,148 @@ export default function QuestionCard({ question, value, onChange }) {
     onChange(trimmed);
   };
 
-  const handleMultiSelect = (option) => {
-    const current = Array.isArray(value) ? value : [];
-
-    if (current.includes(option)) {
-      onChange(current.filter((item) => item !== option));
-    } else {
-      onChange([...current, option]);
-    }
-  };
-
   return (
-    <View>
-      <Text style={styles.title}>{question.title}</Text>
+    <View style={styles.wrap}>
+      <View style={styles.head}>
+        <Text style={styles.title}>{question.title}</Text>
 
-      {question.subtitle ? (
-        <Text style={styles.subtitle}>{question.subtitle}</Text>
+        {question.subtitle ? (
+          <Text style={styles.subtitle}>{question.subtitle}</Text>
+        ) : multi ? (
+          <Text style={styles.subtitle}>Choose any that fit.</Text>
+        ) : null}
+      </View>
+
+      {question.type === "text" ? (
+        <Group>
+          <TextInput
+            style={styles.input}
+            placeholder={question.placeholder}
+            placeholderTextColor={T.label3}
+            value={value || ""}
+            onChangeText={onChange}
+            autoFocus
+            returnKeyType="done"
+          />
+        </Group>
       ) : null}
 
-      {question.type === "text" && (
-        <TextInput
-          style={styles.input}
-          placeholder={question.placeholder}
-          placeholderTextColor="rgba(60,60,67,0.6)"
-          value={value || ""}
-          onChangeText={onChange}
-        />
-      )}
-
-      {question.type === "date" && (
-        <DateInput
-          style={styles.input}
-          placeholder={question.placeholder}
-          placeholderTextColor="rgba(60,60,67,0.6)"
-          value={value || ""}
-          onChangeText={onChange}
-        />
-      )}
-
-      {question.type === "single" &&
-        options.map((option) =>
-          isOtherOption(option) ? (
-            <OtherOption
-              key={option}
-              label={option}
-              selected={isSelected(option)}
-              open={writingOther || Boolean(customValue)}
-              text={writingOther ? otherText : customValue || ""}
-              placeholder={question.otherPlaceholder || "Type your answer"}
-              onOpen={openOther}
-              onChangeText={saveOther}
+      {question.type === "date" ? (
+        <>
+          <Group>
+            <DateInput
+              style={styles.input}
+              placeholder={question.placeholder}
+              placeholderTextColor={T.label3}
+              value={value || ""}
+              onChangeText={onChange}
             />
-          ) : (
-            <OptionButton
-              key={option}
-              label={option}
-              selected={isSelected(option)}
-              onPress={() => {
-                setWritingOther(false);
-                onChange(option);
-              }}
-            />
-          ),
-        )}
+          </Group>
 
-      {question.type === "multi" &&
-        options.map((option) =>
-          isOtherOption(option) ? (
-            <OtherOption
-              key={option}
-              label={option}
-              selected={isSelected(option)}
-              open={writingOther || Boolean(customValue)}
-              text={writingOther ? otherText : customValue || ""}
-              placeholder={question.otherPlaceholder || "Type your answer"}
-              onOpen={openOther}
-              onChangeText={saveOther}
-            />
-          ) : (
-            <OptionButton
-              key={option}
-              label={option}
-              selected={isSelected(option)}
-              onPress={() => handleMultiSelect(option)}
-            />
-          ),
-        )}
-    </View>
-  );
-}
+          <GroupFooter>
+            Year, month, day. The dashes fill themselves in.
+          </GroupFooter>
+        </>
+      ) : null}
 
-/*
- * The "Other" row: a normal option until it is chosen,
- * then a field that looks like the answer it becomes.
- */
-function OtherOption({
-  label,
-  selected,
-  open,
-  text,
-  placeholder,
-  onOpen,
-  onChangeText,
-}) {
-  if (!open) {
-    return <OptionButton label={label} selected={selected} onPress={onOpen} />;
-  }
+      {question.type === "single" || multi ? (
+        <Group inset={multi ? 50 : 16}>
+          {options.map((option) => {
+            const selected = isSelected(option);
 
-  return (
-    <View style={styles.otherWrap}>
-      <Text style={styles.otherLabel}>{label}</Text>
+            if (isOtherOption(option) && otherOpen) {
+              return (
+                <View key={option} style={styles.otherRow}>
+                  {multi ? <Check on onPress={() => {}} /> : null}
 
-      <TextInput
-        style={styles.otherInput}
-        placeholder={placeholder}
-        placeholderTextColor="rgba(60,60,67,0.6)"
-        value={text}
-        onChangeText={onChangeText}
-        autoFocus
-      />
+                  <TextInput
+                    style={styles.otherInput}
+                    placeholder={
+                      question.otherPlaceholder || "Type your answer"
+                    }
+                    placeholderTextColor={T.label3}
+                    value={writingOther ? otherText : customValue || ""}
+                    onChangeText={saveOther}
+                    autoFocus
+                    returnKeyType="done"
+                  />
+
+                  {!multi ? (
+                    <Icon name="check" size={18} color={T.accent} />
+                  ) : null}
+                </View>
+              );
+            }
+
+            return (
+              <Cell
+                key={option}
+                leading={
+                  multi ? (
+                    <Check on={selected} onPress={() => choose(option)} />
+                  ) : null
+                }
+                title={option}
+                trailing={
+                  !multi && selected ? (
+                    <Icon name="check" size={18} color={T.accent} />
+                  ) : null
+                }
+                onPress={() => choose(option)}
+              />
+            );
+          })}
+        </Group>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  otherWrap: {
-    borderWidth: 1.5,
-    borderColor: "#4A2D5C",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 6,
-    marginBottom: 10,
+  wrap: {
+    gap: 14,
   },
 
-  otherLabel: {
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 1.2,
-    color: "#4A2D5C",
-  },
-
-  otherInput: {
-    fontSize: 15,
-    color: "#111114",
-    paddingVertical: 8,
-  },
-
-  subtitle: {
-    marginTop: 8,
-    fontSize: 13.5,
-    lineHeight: 20,
-    color: "#8B807A",
+  head: {
+    paddingHorizontal: 20,
+    paddingBottom: 4,
   },
 
   title: {
-    fontSize: 30,
+    fontSize: 28,
+    lineHeight: 33,
     fontWeight: "700",
-    color: "#111114",
-    marginBottom: 24,
-    lineHeight: 38,
+    letterSpacing: -0.8,
+    color: T.label,
+  },
+
+  subtitle: {
+    fontSize: 15,
+    lineHeight: 21,
+    color: T.label2,
+    marginTop: 6,
   },
 
   input: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E9E6EB",
-    borderRadius: 14,
+    fontSize: 19,
+    color: T.label,
     paddingHorizontal: 16,
-    height: 56,
-    fontSize: 16,
-    color: "#111114",
+    paddingVertical: 15,
+    minHeight: 54,
+  },
+
+  otherRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    minHeight: 50,
+    paddingHorizontal: 16,
+  },
+
+  otherInput: {
+    flex: 1,
+    fontSize: 17,
+    color: T.label,
+    paddingVertical: 12,
   },
 });

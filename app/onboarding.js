@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
   ActivityIndicator,
-  Keyboard,
   KeyboardAvoidingView,
   Platform,
-  TouchableWithoutFeedback,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -21,6 +19,27 @@ import { apiFetch } from "../lib/api";
 import { birthdayError } from "../lib/validation";
 import { clearCachedData } from "../lib/dataCache";
 import { isAnswered, notifyProfileSaved } from "../lib/profileProgress";
+import { T } from "../lib/theme";
+import {
+  AuthHeader,
+  AuthScreen,
+  Button,
+  GlassButton,
+  Glow,
+  Notice,
+  TextLink,
+} from "../components/ui";
+
+/*
+ * ==========================================
+ * ONBOARDING
+ * ==========================================
+ *
+ * One question a screen. Back on the left, Skip on the
+ * right once your name and birthday are in, a thin bar
+ * for how far along you are, and Continue pinned above
+ * the keyboard.
+ */
 
 const EMPTY_ANSWERS = {
   firstName: "",
@@ -275,360 +294,185 @@ export default function OnboardingScreen() {
 
   if (isLoaded && loadState === "failed") {
     return (
-      <SafeAreaView style={styles.screen} edges={["top"]}>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.failedTitle}>
-            We couldn&apos;t load your answers
-          </Text>
+      <AuthScreen
+        centred
+        footer={
+          <TextLink onPress={handleSignOut}>Use a Different Account</TextLink>
+        }
+      >
+        <AuthHeader
+          title="We couldn't load your answers"
+          subtitle="Check your connection and try again."
+        />
 
-          <Text style={styles.loadingText}>
-            Check your connection and try again.
-          </Text>
-
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={loadSavedAnswers}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.nextText}>Try again</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={handleSignOut}
-            style={styles.differentAccount}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.differentAccountText}>
-              Use a different account
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
+        <Button title="Try Again" onPress={loadSavedAnswers} />
+      </AuthScreen>
     );
   }
 
   if (!isLoaded || loadState === "loading") {
     return (
-      <SafeAreaView style={styles.screen} edges={["top"]}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color="#4A2D5C" />
+      <AuthScreen centred>
+        <AuthHeader title="Between Us" subtitle="Getting your profile ready…" />
 
-          <Text style={styles.loadingText}>Preparing your profile...</Text>
-        </View>
-      </SafeAreaView>
+        <ActivityIndicator color={T.accent} />
+      </AuthScreen>
     );
   }
 
+  const last = currentQuestion === questions.length - 1;
+
   return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
-      {/*
-       * Lift the footer above the keyboard, and let a tap anywhere
-       * outside a field close it, so Continue is always reachable.
-       */}
+    <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
+      <Glow height={260} />
+
       <KeyboardAvoidingView
         style={styles.fill}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-          <View style={styles.container}>
-            {/* HEADER */}
-
-            <View style={styles.header}>
-              <View>
-                <Text style={styles.brand}>Between Us</Text>
-
-                <Text style={styles.subtitle}>
-                  {resuming ? "Finish your profile" : "Let's get to know you"}
-                </Text>
-              </View>
-
-              <TouchableOpacity
-                onPress={handleSkip}
-                style={[
-                  styles.skipButton,
-                  (!hasEssentials || saving) && styles.skipButtonLocked,
-                ]}
-                disabled={!hasEssentials || saving}
-                activeOpacity={0.7}
-                accessibilityLabel="Skip the rest for now"
-              >
-                <Text style={styles.skipText}>Skip</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* PROGRESS */}
-
-            <Text style={styles.counter}>
-              {currentQuestion + 1} of {questions.length}
-            </Text>
-
-            <ProgressBar current={currentQuestion} total={questions.length} />
-
-            {!hasEssentials ? (
-              <Text style={styles.skipHint}>
-                Your name and birthday first — then you can skip the rest and
-                finish later.
-              </Text>
+        {/* Back, where you are, Skip. */}
+        <View style={styles.nav}>
+          <View style={styles.navSide}>
+            {currentQuestion > 0 && !saving ? (
+              <GlassButton icon="back" label="Back" onPress={handleBack} />
             ) : null}
-
-            {/* QUESTION */}
-
-            <View style={styles.questionContainer}>
-              <QuestionCard
-                question={question}
-                value={answers[question.id]}
-                onChange={updateAnswer}
-              />
-
-              {stepError ? (
-                <Text style={styles.stepError}>{stepError}</Text>
-              ) : null}
-            </View>
-
-            {/* ERROR */}
-
-            {error ? (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            ) : null}
-
-            {/* FOOTER */}
-
-            <View style={styles.footer}>
-              {currentQuestion > 0 && !saving ? (
-                <TouchableOpacity
-                  style={styles.backButton}
-                  onPress={handleBack}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.backText}>Back</Text>
-                </TouchableOpacity>
-              ) : null}
-
-              <TouchableOpacity
-                style={[
-                  styles.nextButton,
-                  (!canContinue() || saving) && styles.disabledButton,
-                ]}
-                disabled={!canContinue() || saving}
-                onPress={handleNext}
-                activeOpacity={0.85}
-              >
-                {saving ? (
-                  <View style={styles.savingContent}>
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-
-                    <Text style={styles.nextText}>Saving...</Text>
-                  </View>
-                ) : (
-                  <Text style={styles.nextText}>
-                    {currentQuestion === questions.length - 1
-                      ? "Finish"
-                      : "Continue"}
-                  </Text>
-                )}
-              </TouchableOpacity>
-
-              {/* Until Skip unlocks there is no other way out, so
-                  someone signed in with the wrong account can leave. */}
-              {!hasEssentials && !saving ? (
-                <TouchableOpacity
-                  onPress={handleSignOut}
-                  style={styles.differentAccountFooter}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.differentAccountText}>
-                    Not you? Use a different account
-                  </Text>
-                </TouchableOpacity>
-              ) : null}
-            </View>
           </View>
-        </TouchableWithoutFeedback>
+
+          <Text style={styles.counter}>
+            {resuming ? "Finish your profile" : "About you"} ·{" "}
+            {currentQuestion + 1} of {questions.length}
+          </Text>
+
+          <View style={[styles.navSide, styles.navEnd]}>
+            <Text
+              style={[
+                styles.skip,
+                (!hasEssentials || saving) && styles.skipOff,
+              ]}
+              onPress={hasEssentials && !saving ? handleSkip : undefined}
+              accessibilityRole="button"
+              accessibilityLabel="Skip the rest for now"
+            >
+              Skip
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.progress}>
+          <ProgressBar current={currentQuestion} total={questions.length} />
+        </View>
+
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          showsVerticalScrollIndicator={false}
+        >
+          <QuestionCard
+            key={question.id}
+            question={question}
+            value={answers[question.id]}
+            onChange={updateAnswer}
+          />
+
+          <Notice>{stepError}</Notice>
+
+          <Notice>{error}</Notice>
+
+          {!hasEssentials ? (
+            <Text style={styles.hint}>
+              Your name and birthday first. Then you can skip the rest and
+              finish later.
+            </Text>
+          ) : null}
+        </ScrollView>
+
+        <View style={styles.footer}>
+          <Button
+            title={saving ? "Saving…" : last ? "Finish" : "Continue"}
+            onPress={handleNext}
+            busy={saving}
+            disabled={!canContinue()}
+          />
+
+          {/* Until Skip unlocks there is no other way out, so
+              someone signed in with the wrong account can leave. */}
+          {!hasEssentials && !saving ? (
+            <TextLink onPress={handleSignOut}>
+              Not You? Use a Different Account
+            </TextLink>
+          ) : null}
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: T.appBackground,
+  },
+
   fill: {
     flex: 1,
   },
 
-  stepError: {
-    marginTop: 12,
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: "600",
-    color: "#FF3B30",
-  },
-
-  screen: {
-    flex: 1,
-    backgroundColor: "#ECEBF2",
-  },
-
-  container: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 24,
-  },
-
-  header: {
+  nav: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-
-  brand: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  subtitle: {
-    fontSize: 13,
-    color: "rgba(60,60,67,0.6)",
-    marginTop: 4,
-  },
-
-  skipButton: {
+    alignItems: "center",
+    minHeight: 52,
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: "#E9E6EB",
+    paddingTop: 4,
   },
 
-  skipButtonLocked: {
-    opacity: 0.35,
+  navSide: {
+    flex: 1,
+    flexDirection: "row",
   },
 
-  skipText: {
-    color: "#4A2D5C",
-    fontSize: 14,
-    fontWeight: "700",
-  },
-
-  skipHint: {
-    marginTop: -12,
-    marginBottom: 8,
-    fontSize: 12,
-    lineHeight: 17,
-    color: "rgba(60,60,67,0.6)",
+  navEnd: {
+    justifyContent: "flex-end",
   },
 
   counter: {
-    color: "rgba(60,60,67,0.6)",
-    marginTop: 22,
-    marginBottom: 12,
-    fontSize: 14,
+    fontSize: 13,
+    fontWeight: "600",
+    color: T.label2,
   },
 
-  questionContainer: {
-    flex: 1,
-    justifyContent: "center",
+  skip: {
+    fontSize: 17,
+    color: T.accent,
+    paddingVertical: 8,
+    paddingLeft: 12,
   },
 
-  errorBox: {
-    backgroundColor: "#E9E6EB",
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginBottom: 12,
+  skipOff: {
+    color: T.label3,
   },
 
-  errorText: {
-    color: "#FF3B30",
+  progress: {
+    paddingHorizontal: 20,
+    paddingTop: 6,
+  },
+
+  content: {
+    paddingTop: 26,
+    paddingBottom: 24,
+    gap: 14,
+  },
+
+  hint: {
     fontSize: 13,
     lineHeight: 18,
+    color: T.label2,
+    paddingHorizontal: 20,
   },
 
   footer: {
-    marginTop: 24,
-  },
-
-  backButton: {
-    marginBottom: 12,
-    alignItems: "center",
-  },
-
-  backText: {
-    color: "#4A2D5C",
-    fontWeight: "600",
-    fontSize: 15,
-  },
-
-  nextButton: {
-    height: 56,
-    borderRadius: 14,
-    backgroundColor: "#4A2D5C",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  disabledButton: {
-    opacity: 0.4,
-  },
-
-  nextText: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-    fontSize: 16,
-  },
-
-  savingContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-
-  differentAccount: {
-    marginTop: 18,
-    padding: 8,
-  },
-
-  differentAccountFooter: {
-    marginTop: 14,
-    alignItems: "center",
-    padding: 6,
-  },
-
-  differentAccountText: {
-    color: "rgba(60,60,67,0.6)",
-    fontSize: 13,
-    fontWeight: "600",
-  },
-
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 24,
-  },
-
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: "rgba(60,60,67,0.6)",
-    textAlign: "center",
-  },
-
-  failedTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#111114",
-    textAlign: "center",
-  },
-
-  retryButton: {
-    marginTop: 20,
-    height: 50,
-    paddingHorizontal: 32,
-    borderRadius: 14,
-    backgroundColor: "#4A2D5C",
-    justifyContent: "center",
-    alignItems: "center",
+    paddingTop: 10,
+    paddingBottom: 8,
+    gap: 4,
   },
 });

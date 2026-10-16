@@ -1,19 +1,21 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { GlassBackground, GlassPanel, FadeIn } from "./Glass";
+
+import { T } from "../lib/theme";
+import { AuthScreen, Button, Mark } from "./ui";
 
 /*
  * ==========================================
  * CONNECT FIRST
  * ==========================================
  *
- * Shown in place of a partner-only feature when
- * there is no partner. Tells people why the screen
- * is empty and gives them the one thing that unlocks
- * it, rather than letting them fill in a form that
- * the server will then refuse.
+ * Shown in place of a partner-only feature when there
+ * is no partner. Says why the screen is empty and gives
+ * the one thing that unlocks it, rather than a form the
+ * server would refuse.
+ *
+ * The mark is the two of you; until you are linked,
+ * one circle is waiting.
  */
 
 export default function ConnectFirst({
@@ -23,126 +25,69 @@ export default function ConnectFirst({
 }) {
   const router = useRouter();
 
+  const back = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)/home");
+  };
+
   return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
-      <GlassBackground>
-        <View style={styles.container}>
-          {showBack ? (
-            <TouchableOpacity
-              style={styles.backButton}
-              activeOpacity={0.8}
-              onPress={() => router.back()}
-            >
-              <Ionicons name="chevron-back" size={20} color="#4A2D5C" />
-            </TouchableOpacity>
-          ) : null}
+    <AuthScreen
+      centred
+      onBack={showBack ? back : undefined}
+      footer={
+        <Button
+          title="Find Your Person"
+          icon="personAdd"
+          onPress={() => router.push("/find-person")}
+        />
+      }
+    >
+      <View style={styles.body}>
+        <Mark size={64} />
 
-          <FadeIn style={styles.centre}>
-            <GlassPanel>
-              <View style={styles.lockCircle}>
-                <Ionicons name="lock-closed" size={22} color="#FFFFFF" />
-              </View>
+        <Text style={styles.kicker}>{feature}</Text>
 
-              <Text style={styles.label}>{feature.toUpperCase()}</Text>
+        <Text style={styles.title}>Better with two</Text>
 
-              <Text style={styles.title}>Connect with your partner first.</Text>
-
-              <Text style={styles.body}>
-                {description ||
-                  `${feature} is something you share, so it opens up once you're linked with someone.`}
-              </Text>
-
-              <TouchableOpacity
-                style={styles.button}
-                activeOpacity={0.85}
-                onPress={() => router.push("/find-person")}
-              >
-                <Text style={styles.buttonText}>Find your person</Text>
-
-                <Ionicons name="arrow-forward" size={16} color="#4A2D5C" />
-              </TouchableOpacity>
-            </GlassPanel>
-          </FadeIn>
-        </View>
-      </GlassBackground>
-    </SafeAreaView>
+        <Text style={styles.text}>
+          {description ||
+            `${feature} is something you share, so it opens up once you're linked with your person.`}
+        </Text>
+      </View>
+    </AuthScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-  },
-
-  container: {
-    flex: 1,
-    paddingHorizontal: 22,
-    paddingTop: 22,
-    paddingBottom: 120,
-  },
-
-  backButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
+  body: {
     alignItems: "center",
-    justifyContent: "center",
+    paddingHorizontal: 32,
   },
 
-  centre: {
-    flex: 1,
-    justifyContent: "center",
-  },
-
-  lockCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "rgba(255, 255, 255, 0.18)",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255, 255, 255, 0.4)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-  },
-
-  label: {
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 1.6,
-    color: "#E9E6EB",
+  kicker: {
+    fontSize: 13,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    color: T.youText,
+    marginTop: 24,
   },
 
   title: {
-    marginTop: 8,
-    fontSize: 22,
-    lineHeight: 29,
+    fontSize: 30,
+    lineHeight: 35,
     fontWeight: "700",
-    color: "#FFFFFF",
+    letterSpacing: -0.9,
+    color: T.label,
+    textAlign: "center",
+    marginTop: 8,
   },
 
-  body: {
-    marginTop: 10,
-    fontSize: 13.5,
-    lineHeight: 20,
-    color: "#E9DCD6",
-  },
-
-  button: {
-    marginTop: 20,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: "#FFFFFF",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-
-  buttonText: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#4A2D5C",
+  text: {
+    fontSize: 16,
+    lineHeight: 22,
+    color: T.label2,
+    textAlign: "center",
+    marginTop: 8,
   },
 });

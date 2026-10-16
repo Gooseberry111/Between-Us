@@ -1,18 +1,20 @@
 import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "@clerk/expo";
 import * as SecureStore from "expo-secure-store";
-import { GlassBackground } from "../components/Glass";
+
 import { RETURNING_USER_KEY } from "../lib/auth";
+import { T } from "../lib/theme";
+import {
+  AuthScreen,
+  Button,
+  Cell,
+  Group,
+  Icon,
+  Mark,
+  TextLink,
+} from "../components/ui";
 
 /*
  * ==========================================
@@ -21,13 +23,31 @@ import { RETURNING_USER_KEY } from "../lib/auth";
  *
  * Three different jobs depending on who is looking:
  *
- * - Auth still resolving, or already signed in: show
- *   the brand and nothing else. This screen used to
- *   flash "Get Started" at signed-in people during the
- *   moment before the guard redirected them home.
- * - Been here before: offer to sign in.
- * - Genuinely new: make the case for the app.
+ * - Auth still resolving, or already signed in: a plain
+ *   ground, so nothing flashes before the guard sends
+ *   them home.
+ * - Been here before: one button back in.
+ * - Genuinely new: the mark, the name, what the two of
+ *   you get, and the way in.
  */
+
+const WHAT_YOU_GET = [
+  {
+    icon: "lock",
+    title: "Three questions a night",
+    text: "Sealed until you have both answered",
+  },
+  {
+    icon: "sparkle",
+    title: "Dreams you plan together",
+    text: "Step by step, ticked off by either of you",
+  },
+  {
+    icon: "chat",
+    title: "A way back after a row",
+    text: "A pause, then both sides, heard",
+  },
+];
 
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -53,254 +73,125 @@ export default function WelcomeScreen() {
   }, []);
 
   /*
-   * Hold the brand until we know enough to show the
-   * right thing. A signed-in user is about to be sent
-   * home by the auth guard, so they should never see
-   * a sign-up pitch on the way.
+   * The launch screen is still up at this point, so anything
+   * drawn here would be a second splash behind it.
    */
   if (!isLoaded || isSignedIn || returning === null) {
-    /*
-     * The launch screen is still up at this point, so anything
-     * drawn here would be a second splash behind it. A plain
-     * ground keeps the hand-off seamless.
-     */
-    return <View style={styles.screen} />;
+    return <View style={styles.blank} />;
+  }
+
+  if (returning) {
+    return (
+      <AuthScreen
+        centred
+        footer={
+          <>
+            <Button title="Sign In" onPress={() => router.push("/sign-in")} />
+
+            <TextLink onPress={() => router.push("/sign-up")}>
+              Use a Different Account
+            </TextLink>
+          </>
+        }
+      >
+        <View style={styles.hero}>
+          <Mark size={72} />
+
+          <Text style={styles.word}>Between Us</Text>
+
+          <Text style={styles.line}>Good to see you again.</Text>
+        </View>
+      </AuthScreen>
+    );
   }
 
   return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
-      <GlassBackground>
-        <View style={styles.container}>
-          {/* TOP */}
+    <AuthScreen
+      footer={
+        <>
+          <Button title="Get Started" onPress={() => router.push("/sign-up")} />
 
-          <View style={styles.top}>
-            <Text style={styles.brand}>BETWEEN US</Text>
+          <TextLink onPress={() => router.push("/sign-in")}>
+            I Already Have an Account
+          </TextLink>
+        </>
+      }
+    >
+      <View style={styles.hero}>
+        <Mark size={72} />
 
-            <Image
-              source={require("../assets/icon.png")}
-              style={styles.headerMark}
-              resizeMode="contain"
-            />
-          </View>
+        <Text style={styles.word}>Between Us</Text>
 
-          {/* MAIN */}
+        <Text style={styles.line}>A private space for the two of you.</Text>
+      </View>
 
-          <View style={styles.content}>
-            {returning ? (
-              <>
-                <Text style={styles.eyebrow}>WELCOME BACK</Text>
+      <Group inset={62}>
+        {WHAT_YOU_GET.map((item) => (
+          <Cell
+            key={item.title}
+            leading={
+              <View style={styles.badge}>
+                <Icon name={item.icon} size={17} color={T.accent} />
+              </View>
+            }
+            title={item.title}
+            subtitle={item.text}
+          />
+        ))}
+      </Group>
 
-                <Text style={styles.title}>
-                  Good to see you
-                  {"\n"}
-                  <Text style={styles.titleAccent}>again.</Text>
-                </Text>
-
-                <Text style={styles.description}>
-                  Sign in to pick up where you left off.
-                </Text>
-              </>
-            ) : (
-              <>
-                <Text style={styles.eyebrow}>FOR THE PEOPLE WHO MATTER</Text>
-
-                <Text style={styles.title}>
-                  Relationships
-                  {"\n"}
-                  worth being
-                  {"\n"}
-                  <Text style={styles.titleAccent}>intentional about.</Text>
-                </Text>
-
-                <Text style={styles.description}>
-                  Between Us helps you understand the people you care about,
-                  remember what matters to them, and build a stronger connection
-                  together.
-                </Text>
-              </>
-            )}
-          </View>
-
-          {/* BOTTOM */}
-
-          <View style={styles.bottom}>
-            {returning ? (
-              <>
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  style={styles.primaryButton}
-                  onPress={() => router.push("/sign-in")}
-                >
-                  <Text style={styles.primaryText}>Sign in</Text>
-
-                  <Text style={styles.primaryArrow}>→</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  style={styles.secondaryButton}
-                  onPress={() => router.push("/sign-up")}
-                >
-                  <Text style={styles.secondaryText}>
-                    Use a different account
-                  </Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <>
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  style={styles.primaryButton}
-                  onPress={() => router.push("/sign-up")}
-                >
-                  <Text style={styles.primaryText}>Get Started</Text>
-
-                  <Text style={styles.primaryArrow}>→</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  style={styles.secondaryButton}
-                  onPress={() => router.push("/sign-in")}
-                >
-                  <Text style={styles.secondaryText}>
-                    I already have an account
-                  </Text>
-                </TouchableOpacity>
-              </>
-            )}
-
-            <Text style={styles.footerText}>
-              A private space for meaningful relationships.
-            </Text>
-          </View>
-        </View>
-      </GlassBackground>
-    </SafeAreaView>
+      <Text style={styles.small}>
+        Just the two of you. Nobody else sees what you share.
+      </Text>
+    </AuthScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
+  blank: {
     flex: 1,
+    backgroundColor: T.appBackground,
   },
 
-  splash: {
-    flex: 1,
+  hero: {
     alignItems: "center",
-    justifyContent: "center",
+    paddingTop: 48,
+    paddingBottom: 26,
+    paddingHorizontal: 28,
   },
 
-  splashLogo: {
-    width: 260,
-    height: 260,
-  },
-
-  splashSpinner: {
-    marginTop: 18,
-  },
-
-  container: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 24,
-    justifyContent: "space-between",
-  },
-
-  top: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-
-  brand: {
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 2.5,
-    color: "#4A2D5C",
-  },
-
-  headerMark: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-  },
-
-  content: {
-    marginTop: 50,
-  },
-
-  eyebrow: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1.8,
-    color: "rgba(60,60,67,0.6)",
-    marginBottom: 18,
-  },
-
-  title: {
-    fontSize: 42,
-    lineHeight: 47,
-    fontWeight: "700",
-    color: "#111114",
-    letterSpacing: -1,
-  },
-
-  titleAccent: {
-    color: "#4A2D5C",
-  },
-
-  description: {
-    marginTop: 22,
-    fontSize: 15,
-    lineHeight: 23,
-    color: "rgba(60,60,67,0.6)",
-    maxWidth: 340,
-  },
-
-  bottom: {
-    marginTop: 40,
-  },
-
-  primaryButton: {
-    height: 58,
-    borderRadius: 16,
-    backgroundColor: "#4A2D5C",
-    paddingHorizontal: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-
-  primaryText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-
-  primaryArrow: {
-    color: "#FFFFFF",
-    fontSize: 22,
-  },
-
-  secondaryButton: {
-    height: 54,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 10,
-  },
-
-  secondaryText: {
-    color: "#4A2D5C",
-    fontSize: 15,
+  word: {
+    fontFamily: "ui-serif",
+    fontSize: 40,
+    lineHeight: 46,
     fontWeight: "600",
+    letterSpacing: -0.8,
+    color: T.label,
+    marginTop: 22,
   },
 
-  footerText: {
+  line: {
+    fontSize: 17,
+    lineHeight: 23,
+    color: T.label2,
     textAlign: "center",
-    color: "rgba(60,60,67,0.3)",
-    fontSize: 11,
-    marginTop: 16,
+    marginTop: 6,
+  },
+
+  badge: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: T.accentTint,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  small: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: T.label2,
+    textAlign: "center",
+    paddingHorizontal: 32,
   },
 });

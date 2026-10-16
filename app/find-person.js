@@ -1,21 +1,40 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  FlatList,
-  Keyboard,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
-import { Card, FadeIn, GlassBackground } from "../components/Glass";
-import { PASTELS, Squish } from "../components/Playful";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
+
 import { apiFetch } from "../lib/api";
+import { T } from "../lib/theme";
+import {
+  Avatar,
+  Button,
+  Cell,
+  Empty,
+  GlassButton,
+  Group,
+  GroupFooter,
+  GroupHeader,
+  Icon,
+  LargeTitle,
+  NavBar,
+  Notice,
+  Screen,
+  SearchField,
+  Sheet,
+  SubTitle,
+} from "../components/ui";
+
+/*
+ * ==========================================
+ * FIND YOUR PERSON
+ * ==========================================
+ *
+ * Search as you type, by name or email. Anyone who has
+ * already asked for you sits at the top; tap them to see
+ * who they are and accept or decline. Tap a result to say
+ * what you are to each other and send a request. Nothing
+ * is shared until the other person accepts.
+ */
 
 const relationshipTypes = ["Friendship", "Dating", "Engaged", "Married"];
 
@@ -23,115 +42,28 @@ const relationshipTypes = ["Friendship", "Dating", "Engaged", "Married"];
  * letter listing everybody. */
 const MIN_QUERY_LENGTH = 2;
 
-/*
- * Everyone gets a colour, picked from their name, so the
- * list reads as people rather than rows. The same person is
- * always the same colour.
- */
-const AVATAR_TONES = ["blush", "sky", "sage", "butter", "lilac", "clay"];
-
-function toneFor(name) {
-  const text = String(name || "?");
-  let sum = 0;
-
-  for (let i = 0; i < text.length; i++) sum += text.charCodeAt(i);
-
-  return PASTELS[AVATAR_TONES[sum % AVATAR_TONES.length]];
-}
-
-const SEARCH_TIPS = [
+const HOW_IT_WORKS = [
   {
-    icon: "search-outline",
-    tone: PASTELS.sky,
+    icon: "search",
     title: "Their first name is enough",
-    text: "Type a few letters and matches appear as you go.",
+    text: "Matches appear as you type",
   },
   {
-    icon: "mail-outline",
-    tone: PASTELS.lilac,
+    icon: "mail",
     title: "Or use their email",
-    text: "An exact address finds one person and no one else.",
+    text: "An exact address finds just them",
   },
   {
-    icon: "heart-outline",
-    tone: PASTELS.blush,
+    icon: "lock",
     title: "Then send a request",
-    text: "Nothing is shared until they accept it.",
+    text: "Nothing is shared until they accept",
   },
 ];
 
-function SearchEmptyState({ query, searching, hasRequests }) {
-  const trimmed = query.trim();
+function titleCase(text) {
+  const value = String(text || "").trim();
 
-  if (searching) {
-    return (
-      <View style={styles.searchingState}>
-        <ActivityIndicator size="small" color="#4A2D5C" />
-
-        <Text style={styles.searchingText}>Looking...</Text>
-      </View>
-    );
-  }
-
-  if (trimmed.length === 1) {
-    return (
-      <View style={styles.emptyState}>
-        <Text style={styles.emptyTitle}>Keep going</Text>
-
-        <Text style={styles.emptyText}>
-          One more letter and the matches start showing up.
-        </Text>
-      </View>
-    );
-  }
-
-  if (trimmed.length >= MIN_QUERY_LENGTH) {
-    return (
-      <View style={styles.emptyState}>
-        <View style={styles.emptyIcon}>
-          <Ionicons name="person-outline" size={26} color="#4A2D5C" />
-        </View>
-
-        <Text style={styles.emptyTitle}>No one called "{trimmed}"</Text>
-
-        <Text style={styles.emptyText}>
-          Check the spelling, try their email address, or ask them to create
-          their account first. People already connected to someone else don't
-          show up here.
-        </Text>
-      </View>
-    );
-  }
-
-  /* Requests above already fill the page and say more
-     than any explainer would. */
-  if (hasRequests) return null;
-
-  /* Nothing typed yet: say what this page is for. */
-  return (
-    <FadeIn delay={60}>
-      <View style={styles.tips}>
-        <Text style={styles.tipsHeading}>How this works</Text>
-
-        {SEARCH_TIPS.map((tip, index) => (
-          <View
-            key={tip.title}
-            style={[styles.tipRow, index === 0 && styles.tipRowFirst]}
-          >
-            <View style={[styles.tipIcon, { backgroundColor: tip.tone.bg }]}>
-              <Ionicons name={tip.icon} size={17} color={tip.tone.ink} />
-            </View>
-
-            <View style={styles.tipTextWrap}>
-              <Text style={styles.tipTitle}>{tip.title}</Text>
-
-              <Text style={styles.tipText}>{tip.text}</Text>
-            </View>
-          </View>
-        ))}
-      </View>
-    </FadeIn>
-  );
+  return value ? value.charAt(0).toUpperCase() + value.slice(1) : "";
 }
 
 export default function FindPersonScreen() {
@@ -173,16 +105,12 @@ export default function FindPersonScreen() {
 
       const data = await response.json();
 
-      console.log("CONNECTION REQUESTS:", data);
-
       if (!response.ok) {
         throw new Error(data?.error || "Unable to load connection requests.");
       }
 
       setRequests(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.log("REQUESTS ERROR:", err);
-
       setRequests([]);
       setError(err?.message || "Unable to load connection requests.");
     } finally {
@@ -244,8 +172,6 @@ export default function FindPersonScreen() {
         setResults(Array.isArray(data) ? data : []);
         setError("");
       } catch (err) {
-        console.log("SEARCH ERROR:", err);
-
         if (token !== searchToken.current) return;
 
         setResults([]);
@@ -289,8 +215,6 @@ export default function FindPersonScreen() {
   };
 
   const viewRequest = (request) => {
-    console.log("VIEW REQUEST CLICKED:", request);
-
     setSelectedRequest(request);
     setError("");
     setSuccess("");
@@ -317,8 +241,6 @@ export default function FindPersonScreen() {
 
       const data = await response.json();
 
-      console.log("ACCEPT REQUEST RESPONSE:", data);
-
       if (!response.ok) {
         throw new Error(data?.error || "Unable to accept request.");
       }
@@ -329,8 +251,6 @@ export default function FindPersonScreen() {
 
       await loadRequests();
     } catch (err) {
-      console.log("ACCEPT REQUEST ERROR:", err);
-
       setError(err?.message || "Unable to accept connection request.");
     } finally {
       setProcessingRequest(false);
@@ -358,8 +278,6 @@ export default function FindPersonScreen() {
 
       const data = await response.json();
 
-      console.log("REJECT REQUEST RESPONSE:", data);
-
       if (!response.ok) {
         throw new Error(data?.error || "Unable to reject request.");
       }
@@ -370,8 +288,6 @@ export default function FindPersonScreen() {
 
       await loadRequests();
     } catch (err) {
-      console.log("REJECT REQUEST ERROR:", err);
-
       setError(err?.message || "Unable to reject connection request.");
     } finally {
       setProcessingRequest(false);
@@ -415,8 +331,6 @@ export default function FindPersonScreen() {
 
       const data = await response.json();
 
-      console.log("CONNECTION RESPONSE:", data);
-
       if (!response.ok) {
         throw new Error(data?.error || "Unable to send connection request.");
       }
@@ -441,8 +355,6 @@ export default function FindPersonScreen() {
 
       await loadRequests();
     } catch (err) {
-      console.log("SEND CONNECTION ERROR:", err);
-
       setError(
         err?.message || "Something went wrong while sending the request.",
       );
@@ -451,1158 +363,397 @@ export default function FindPersonScreen() {
     }
   };
 
-  /*
-   * ==========================================
-   * CLEAR SEARCH
-   * ==========================================
-   */
-
-  const clearSearch = () => {
-    setQuery("");
-    setResults([]);
-    setError("");
-    setSuccess("");
-  };
-
-  /*
-   * ==========================================
-   * AUTH LOADING
-   * ==========================================
-   */
-
   if (!isLoaded) {
     return (
-      <SafeAreaView style={styles.screen} edges={["top"]}>
-        <View style={styles.loadingScreen}>
-          <ActivityIndicator size="small" color="#4A2D5C" />
-
-          <Text style={styles.loadingText}>Preparing...</Text>
+      <Screen>
+        <View style={styles.loading}>
+          <ActivityIndicator color={T.accent} />
         </View>
-      </SafeAreaView>
+      </Screen>
     );
   }
 
-  /*
-   * ==========================================
-   * REQUEST CARD
-   * ==========================================
-   */
+  const trimmed = query.trim();
 
-  const renderRequest = ({ item }) => {
-    const name = item.requester_first_name || "Someone";
-    const tone = toneFor(name);
-
-    return (
-      <Squish onPress={() => viewRequest(item)} style={styles.requestCard}>
-        <View style={styles.requestTop}>
-          <View style={[styles.requestAvatar, { backgroundColor: tone.bg }]}>
-            <Text style={[styles.requestAvatarText, { color: tone.ink }]}>
-              {name.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-
-          <View style={styles.requestInfo}>
-            <Text style={styles.requestName}>{name}</Text>
-
-            <Text style={styles.requestText}>wants to connect with you</Text>
-          </View>
-
-          {item.relationship_type ? (
-            <View style={styles.relationshipPill}>
-              <Text style={styles.relationshipPillText}>
-                {item.relationship_type.charAt(0).toUpperCase() +
-                  item.relationship_type.slice(1)}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-
-        <View style={styles.requestActionsRow}>
-          <View style={styles.requestViewButton}>
-            <Text style={styles.requestViewButtonText}>See their request</Text>
-
-            <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
-          </View>
-        </View>
-      </Squish>
-    );
+  const goBack = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)/home");
   };
 
-  /*
-   * ==========================================
-   * PERSON CARD
-   * ==========================================
-   */
-
-  const renderPerson = ({ item }) => {
-    const isSending = sendingId === item.clerk_id;
-    const sent = item.request_state === "sent";
-    const received = item.request_state === "received";
-
-    /* Someone who has asked you can be answered right here. */
-    const theirRequest = received
-      ? requests.find((request) => request.requester_clerk_id === item.clerk_id)
-      : null;
-
-    const onPress = () => {
-      if (sent) return;
-
-      if (theirRequest) {
-        viewRequest(theirRequest);
-        return;
-      }
-
-      selectPerson(item);
-    };
-
-    const tone = toneFor(item.first_name);
-
-    return (
-      <Squish
-        style={[styles.personCard, sent && styles.personCardMuted]}
-        onPress={onPress}
-        disabled={isSending || sent}
-      >
-        <View style={[styles.avatar, { backgroundColor: tone.bg }]}>
-          <Text style={[styles.avatarText, { color: tone.ink }]}>
-            {item.first_name?.charAt(0)?.toUpperCase() || "?"}
-          </Text>
-        </View>
-
-        <View style={styles.personInfo}>
-          <Text style={styles.personName}>{item.first_name}</Text>
-
-          <View style={styles.personMetaRow}>
-            {item.country ? (
-              <>
-                <Ionicons name="location-outline" size={11} color="rgba(60,60,67,0.3)" />
-
-                <Text style={styles.personCountry}>{item.country}</Text>
-              </>
-            ) : null}
-
-            {item.relationship_status ? (
-              <Text style={styles.personCountry}>
-                {item.country ? " · " : ""}
-                {item.relationship_status}
-              </Text>
-            ) : null}
-          </View>
-        </View>
-
-        {isSending ? (
-          <ActivityIndicator size="small" color="#4A2D5C" />
-        ) : sent ? (
-          <View style={styles.statePill}>
-            <Ionicons name="checkmark" size={12} color="#7C7280" />
-            <Text style={styles.statePillText}>Requested</Text>
-          </View>
-        ) : received ? (
-          <View style={[styles.statePill, styles.statePillActive]}>
-            <Text style={[styles.statePillText, styles.statePillTextActive]}>
-              Asked you
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.connectButton}>
-            <Text style={styles.connectButtonText}>Connect</Text>
-          </View>
-        )}
-      </Squish>
-    );
+  const closePerson = () => {
+    setSelectedPerson(null);
+    setRelationshipType("");
+    setError("");
   };
-
-  /*
-   * ==========================================
-   * SCREEN
-   * ==========================================
-   */
 
   return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
-      <GlassBackground>
-        <View style={styles.container}>
-          {/* HEADER */}
+    <>
+      <Screen>
+        <NavBar
+          left={
+            router.canGoBack() ? (
+              <GlassButton icon="back" label="Back" onPress={goBack} />
+            ) : null
+          }
+        />
 
-          <View style={styles.header}>
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={styles.backButton}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="chevron-back" size={20} color="#4A2D5C" />
-            </TouchableOpacity>
+        <LargeTitle>Find your person</LargeTitle>
 
-            <Text style={styles.title}>Find your person</Text>
-          </View>
+        <SubTitle>Search by name or email.</SubTitle>
 
-          {/* SEARCH */}
+        <SearchField
+          value={query}
+          onChangeText={(value) => {
+            setQuery(value);
+            setError("");
+            setSuccess("");
+          }}
+          busy={searching}
+          placeholder="Name or email"
+        />
 
-          <View style={styles.searchContainer}>
-            <Ionicons
-              name="search"
-              size={18}
-              color="#9A8F88"
-              style={styles.searchIcon}
-            />
+        <Notice>{error}</Notice>
 
-            <TextInput
-              value={query}
-              onChangeText={(value) => {
-                setQuery(value);
-                setError("");
-                setSuccess("");
-              }}
-              placeholder="Start typing a name, or paste their email"
-              placeholderTextColor="rgba(60,60,67,0.3)"
-              style={styles.searchInput}
-              autoCapitalize="none"
-              autoCorrect={false}
-              returnKeyType="search"
-              onSubmitEditing={Keyboard.dismiss}
-            />
+        <Notice tone="info">{success}</Notice>
 
-            {searching ? (
-              <ActivityIndicator
-                size="small"
-                color="#4A2D5C"
-                style={styles.searchSpinner}
-              />
-            ) : null}
+        {/* WHO HAS ASKED FOR YOU */}
 
-            {query.length > 0 && !searching ? (
-              <TouchableOpacity
-                onPress={clearSearch}
-                style={styles.clearButton}
-              >
-                <Ionicons name="close-circle" size={18} color="#B9AFA8" />
-              </TouchableOpacity>
-            ) : null}
-          </View>
+        {!loadingRequests && requests.length > 0 ? (
+          <>
+            <GroupHeader>
+              {requests.length === 1
+                ? "Wants to connect"
+                : `${requests.length} want to connect`}
+            </GroupHeader>
 
-          {/* ERROR */}
-
-          {error ? (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          ) : null}
-
-          {/* SUCCESS */}
-
-          {success ? (
-            <View style={styles.successBox}>
-              <Text style={styles.successText}>{success}</Text>
-            </View>
-          ) : null}
-
-          {/* CONNECTION REQUESTS -- under the search field, where
-              someone looking for a person will actually see them. */}
-
-          {!loadingRequests && requests.length > 0 ? (
-            <View style={styles.requestsSection}>
-              <Text style={styles.requestsTitle}>
-                {requests.length === 1
-                  ? "1 PERSON WANTS TO CONNECT"
-                  : `${requests.length} PEOPLE WANT TO CONNECT`}
-              </Text>
-
-              <FlatList
-                data={requests}
-                keyExtractor={(item) => item.id}
-                renderItem={renderRequest}
-                scrollEnabled={false}
-              />
-            </View>
-          ) : null}
-
-          {loadingRequests ? (
-            <View style={styles.requestLoading}>
-              <ActivityIndicator size="small" color="#4A2D5C" />
-
-              <Text style={styles.requestLoadingText}>
-                Checking for requests...
-              </Text>
-            </View>
-          ) : null}
-
-          {/* RESULTS */}
-
-          <FlatList
-            data={results}
-            keyExtractor={(item) => item.clerk_id}
-            renderItem={renderPerson}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={[
-              styles.results,
-              results.length === 0 && styles.emptyResultsTop,
-            ]}
-            ListHeaderComponent={
-              results.length > 0 ? (
-                <Text style={styles.resultsTitle}>People</Text>
-              ) : null
-            }
-            ListEmptyComponent={
-              <SearchEmptyState
-                query={query}
-                searching={searching}
-                hasRequests={requests.length > 0}
-              />
-            }
-          />
-        </View>
-      </GlassBackground>
-
-      {/* RELATIONSHIP MODAL */}
-      {/* CONNECTION REQUEST DETAILS */}
-
-      {selectedRequest ? (
-        <View style={styles.modalOverlay}>
-          <View style={styles.modal}>
-            <View style={styles.modalHandle} />
-
-            <TouchableOpacity
-              style={styles.modalClose}
-              onPress={() => setSelectedRequest(null)}
-            >
-              <Text style={styles.modalCloseText}>×</Text>
-            </TouchableOpacity>
-
-            <View style={styles.modalAvatar}>
-              <Text style={styles.modalAvatarText}>
-                {selectedRequest.requester_first_name
-                  ?.trim()
-                  ?.charAt(0)
-                  ?.toUpperCase() || "?"}
-              </Text>
-            </View>
-
-            <Text style={styles.modalTitle}>
-              {selectedRequest.requester_first_name?.trim() || "Someone"}
-            </Text>
-
-            <Text style={styles.modalSubtitle}>Wants to connect with you</Text>
-
-            <View style={styles.requestDetails}>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Relationship</Text>
-                <Text style={styles.detailValue}>
-                  {selectedRequest.relationship_type
-                    ? selectedRequest.relationship_type
-                        .charAt(0)
-                        .toUpperCase() +
-                      selectedRequest.relationship_type.slice(1)
-                    : "Not specified"}
-                </Text>
-              </View>
-
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Country</Text>
-                <Text style={styles.detailValue}>
-                  {selectedRequest.requester_country?.trim() || "Not specified"}
-                </Text>
-              </View>
-
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Gender</Text>
-                <Text style={styles.detailValue}>
-                  {selectedRequest.requester_gender || "Not specified"}
-                </Text>
-              </View>
-
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Relationship status</Text>
-                <Text style={styles.detailValue}>
-                  {selectedRequest.requester_relationship_status ||
-                    "Not specified"}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.requestActions}>
-              <TouchableOpacity
-                style={[
-                  styles.rejectButton,
-                  processingRequest && styles.disabledButton,
-                ]}
-                onPress={rejectRequest}
-                disabled={processingRequest}
-              >
-                {processingRequest ? (
-                  <ActivityIndicator size="small" color="#4A2D5C" />
-                ) : (
-                  <Text style={styles.rejectButtonText}>Reject</Text>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.acceptButton,
-                  processingRequest && styles.disabledButton,
-                ]}
-                onPress={acceptRequest}
-                disabled={processingRequest}
-              >
-                {processingRequest ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.acceptButtonText}>Accept</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      ) : null}
-      {selectedPerson ? (
-        <View style={styles.modalOverlay}>
-          <View style={styles.modal}>
-            <View style={styles.modalHandle} />
-
-            <TouchableOpacity
-              style={styles.modalClose}
-              onPress={() => {
-                setSelectedPerson(null);
-                setRelationshipType("");
-                setError("");
-              }}
-            >
-              <Text style={styles.modalCloseText}>×</Text>
-            </TouchableOpacity>
-
-            <View style={styles.modalAvatar}>
-              <Text style={styles.modalAvatarText}>
-                {selectedPerson.first_name?.charAt(0)?.toUpperCase() || "?"}
-              </Text>
-            </View>
-
-            <Text style={styles.modalTitle}>
-              Connect with {selectedPerson.first_name}?
-            </Text>
-
-            <Text style={styles.modalSubtitle}>
-              Tell us what this relationship means to you.
-            </Text>
-
-            <Text style={styles.relationshipLabel}>Relationship</Text>
-
-            <View style={styles.relationships}>
-              {relationshipTypes.map((type) => {
-                const selected = relationshipType === type;
+            <Group inset={68}>
+              {requests.map((item) => {
+                const name = item.requester_first_name?.trim() || "Someone";
 
                 return (
-                  <TouchableOpacity
-                    key={type}
-                    style={[
-                      styles.relationshipButton,
-                      selected && styles.relationshipSelected,
-                    ]}
-                    onPress={() => setRelationshipType(type)}
-                    activeOpacity={0.8}
-                  >
-                    <Text
-                      style={[
-                        styles.relationshipText,
-                        selected && styles.relationshipSelectedText,
-                      ]}
-                    >
-                      {type}
-                    </Text>
-                  </TouchableOpacity>
+                  <Cell
+                    key={item.id}
+                    leading={<Avatar name={name} who="you" size={40} />}
+                    title={name}
+                    subtitle={[
+                      titleCase(item.relationship_type),
+                      "wants to connect with you",
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                    chevron
+                    onPress={() => viewRequest(item)}
+                  />
                 );
               })}
+            </Group>
+          </>
+        ) : null}
+
+        {/* RESULTS */}
+
+        {results.length > 0 ? (
+          <>
+            <GroupHeader>People</GroupHeader>
+
+            <Group inset={68}>
+              {results.map((item) => {
+                const sent = item.request_state === "sent";
+                const received = item.request_state === "received";
+                const sending = sendingId === item.clerk_id;
+
+                const theirRequest = received
+                  ? requests.find(
+                      (request) => request.requester_clerk_id === item.clerk_id,
+                    )
+                  : null;
+
+                return (
+                  <Cell
+                    key={item.clerk_id}
+                    leading={
+                      <Avatar name={item.first_name} who="them" size={40} />
+                    }
+                    title={item.first_name}
+                    subtitle={[item.country, item.relationship_status]
+                      .filter(Boolean)
+                      .join(" · ")}
+                    trailing={
+                      sending ? (
+                        <ActivityIndicator color={T.accent} />
+                      ) : (
+                        <View
+                          style={[
+                            styles.pill,
+                            sent && styles.pillDone,
+                            received && styles.pillAsked,
+                          ]}
+                        >
+                          {sent ? (
+                            <Icon name="check" size={12} color={T.label2} />
+                          ) : null}
+
+                          <Text
+                            style={[
+                              styles.pillText,
+                              sent && styles.pillTextDone,
+                              received && styles.pillTextAsked,
+                            ]}
+                          >
+                            {sent
+                              ? "Requested"
+                              : received
+                                ? "Asked You"
+                                : "Connect"}
+                          </Text>
+                        </View>
+                      )
+                    }
+                    onPress={
+                      sent
+                        ? undefined
+                        : () =>
+                            theirRequest
+                              ? viewRequest(theirRequest)
+                              : selectPerson(item)
+                    }
+                  />
+                );
+              })}
+            </Group>
+
+            <GroupFooter>
+              People already linked with someone else don&apos;t show up.
+            </GroupFooter>
+          </>
+        ) : searching ? null : trimmed.length === 1 ? (
+          <GroupFooter>One more letter and matches start showing.</GroupFooter>
+        ) : trimmed.length >= MIN_QUERY_LENGTH ? (
+          <Empty
+            icon="person"
+            title={`No one called “${trimmed}”`}
+            text="Check the spelling, try their email, or ask them to make their account first."
+          />
+        ) : requests.length === 0 && !loadingRequests ? (
+          <>
+            <GroupHeader>How it works</GroupHeader>
+
+            <Group inset={62}>
+              {HOW_IT_WORKS.map((tip) => (
+                <Cell
+                  key={tip.title}
+                  leading={
+                    <View style={styles.badge}>
+                      <Icon name={tip.icon} size={16} color={T.accent} />
+                    </View>
+                  }
+                  title={tip.title}
+                  subtitle={tip.text}
+                />
+              ))}
+            </Group>
+          </>
+        ) : null}
+      </Screen>
+
+      {/* SOMEONE ASKED FOR YOU */}
+
+      <Sheet
+        visible={Boolean(selectedRequest)}
+        title="Request"
+        onCancel={() => setSelectedRequest(null)}
+      >
+        {selectedRequest ? (
+          <>
+            <View style={styles.who}>
+              <Avatar
+                name={selectedRequest.requester_first_name}
+                who="you"
+                size={76}
+              />
+
+              <Text style={styles.whoName}>
+                {selectedRequest.requester_first_name?.trim() || "Someone"}
+              </Text>
+
+              <Text style={styles.whoLine}>wants to connect with you</Text>
             </View>
 
-            <TouchableOpacity
-              style={[
-                styles.connectButton,
-                (!relationshipType || sendingId) && styles.disabledButton,
-              ]}
-              disabled={!relationshipType || !!sendingId}
-              onPress={sendRequest}
-              activeOpacity={0.85}
-            >
-              {sendingId ? (
-                <View style={styles.connectLoading}>
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+            <Group>
+              <Cell
+                title="Relationship"
+                value={
+                  titleCase(selectedRequest.relationship_type) || "Not said"
+                }
+              />
 
-                  <Text style={styles.connectText}>Sending...</Text>
-                </View>
-              ) : (
-                <Text style={styles.connectText}>Send Connection Request</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-      ) : null}
-    </SafeAreaView>
+              <Cell
+                title="Country"
+                value={selectedRequest.requester_country?.trim() || "Not said"}
+              />
+
+              <Cell
+                title="Gender"
+                value={selectedRequest.requester_gender || "Not said"}
+              />
+
+              <Cell
+                title="Status"
+                value={
+                  selectedRequest.requester_relationship_status || "Not said"
+                }
+              />
+            </Group>
+
+            <GroupFooter>
+              Accepting links your accounts. You can unlink later from Profile.
+            </GroupFooter>
+
+            <Notice>{error}</Notice>
+
+            <Button
+              title="Accept"
+              icon="heart"
+              onPress={acceptRequest}
+              busy={processingRequest}
+            />
+
+            <Button
+              title="Decline"
+              kind="plain"
+              onPress={rejectRequest}
+              disabled={processingRequest}
+            />
+          </>
+        ) : null}
+      </Sheet>
+
+      {/* ASKING SOMEONE */}
+
+      <Sheet
+        visible={Boolean(selectedPerson)}
+        title="Connect"
+        onCancel={closePerson}
+        onSave={sendRequest}
+        saveLabel="Send"
+        saveDisabled={!relationshipType || Boolean(sendingId)}
+      >
+        {selectedPerson ? (
+          <>
+            <View style={styles.who}>
+              <Avatar name={selectedPerson.first_name} who="them" size={76} />
+
+              <Text style={styles.whoName}>
+                Connect with {selectedPerson.first_name}?
+              </Text>
+
+              <Text style={styles.whoLine}>What are you to each other?</Text>
+            </View>
+
+            <Group>
+              {relationshipTypes.map((type) => (
+                <Cell
+                  key={type}
+                  title={type}
+                  trailing={
+                    relationshipType === type ? (
+                      <Icon name="check" size={18} color={T.accent} />
+                    ) : null
+                  }
+                  onPress={() => setRelationshipType(type)}
+                />
+              ))}
+            </Group>
+
+            <GroupFooter>
+              They see your first name and this. Nothing else until they accept.
+            </GroupFooter>
+
+            <Notice>{error}</Notice>
+
+            <Button
+              title="Send Request"
+              icon="send"
+              onPress={sendRequest}
+              busy={Boolean(sendingId)}
+              disabled={!relationshipType}
+            />
+          </>
+        ) : null}
+      </Sheet>
+    </>
   );
 }
 
-/*
- * ==========================================
- * STYLES
- * ==========================================
- */
-
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: "#ECEBF2",
-  },
-
-  container: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 18,
-  },
-
-  loadingScreen: {
-    flex: 1,
-    justifyContent: "center",
+  loading: {
+    paddingTop: 80,
     alignItems: "center",
   },
 
-  loadingText: {
-    marginTop: 10,
-    fontSize: 14,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  /*
-   * HEADER
-   */
-
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 4,
-  },
-
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#FFFFFF",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#E9E6EB",
-  },
-
-  title: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: "#111114",
-    letterSpacing: -0.4,
-  },
-
-  /*
-   * REQUESTS
-   */
-
-  requestsSection: {
-    marginTop: 22,
-  },
-
-  requestsTitle: {
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1.6,
-    color: "#4A2D5C",
-    marginBottom: 10,
-  },
-
-  requestCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 22,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#E9E6EB",
-    shadowColor: "#4A2D5C",
-    shadowOpacity: 0.07,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
-  },
-
-  requestTop: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  relationshipPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    backgroundColor: "#E9E6EB",
-  },
-
-  relationshipPillText: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: "#4A2D5C",
-  },
-
-  requestActionsRow: {
-    marginTop: 14,
-  },
-
-  requestAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  requestAvatarText: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#4A2D5C",
-  },
-
-  requestInfo: {
-    flex: 1,
-    marginLeft: 13,
-  },
-
-  requestName: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  requestText: {
-    marginTop: 3,
-    fontSize: 12,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  requestViewButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: 10,
-    backgroundColor: "#F1E9E5",
-  },
-
-  requestViewButtonText: {
-    color: "#4A2D5C",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-
-  requestLoading: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 18,
-  },
-
-  requestLoadingText: {
-    marginLeft: 8,
-    fontSize: 12,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  /*
-   * SEARCH
-   */
-
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 18,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 18,
-    shadowColor: "#4A2D5C",
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
-  },
-
-  searchIcon: {
-    marginRight: 8,
-  },
-
-  searchInput: {
-    flex: 1,
-    height: 56,
-    fontSize: 15,
-    color: "#111114",
-  },
-
-  searchSpinner: {
-    marginLeft: 8,
-  },
-
-  clearButton: {
-    marginLeft: 8,
-    padding: 4,
-  },
-
-  searchingState: {
-    alignItems: "center",
-    paddingTop: 30,
-  },
-
-  searchingText: {
-    marginTop: 10,
-    fontSize: 13,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  tips: {
-    marginTop: 4,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 24,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: "#E9E6EB",
-  },
-
-  tipsHeading: {
-    fontSize: 15,
-    fontWeight: "800",
-    color: "#111114",
-    marginBottom: 4,
-  },
-
-  tipRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    paddingTop: 14,
-  },
-
-  tipRowFirst: {
-    paddingTop: 12,
-  },
-
-  tipIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-
-  tipTextWrap: {
-    flex: 1,
-  },
-
-  tipTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  tipText: {
-    marginTop: 4,
-    fontSize: 13,
-    lineHeight: 19,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  /*
-   * MESSAGES
-   */
-
-  errorBox: {
-    backgroundColor: "#E9E6EB",
-    borderRadius: 12,
-    paddingHorizontal: 13,
-    paddingVertical: 11,
-    marginTop: 12,
-  },
-
-  errorText: {
-    color: "#FF3B30",
-    fontSize: 13,
-    lineHeight: 18,
-  },
-
-  successBox: {
-    backgroundColor: "#E6EEE7",
-    borderRadius: 12,
-    paddingHorizontal: 13,
-    paddingVertical: 11,
-    marginTop: 12,
-  },
-
-  successText: {
-    color: "#4F6B54",
-    fontSize: 13,
-    lineHeight: 18,
-  },
-
-  /*
-   * RESULTS
-   */
-
-  results: {
-    paddingTop: 18,
-    paddingBottom: 30,
-  },
-
-  emptyResultsTop: {
-    flexGrow: 1,
-    justifyContent: "flex-start",
-  },
-
-  personCardMuted: {
-    opacity: 0.72,
-  },
-
-  statePill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: "#F2EDF0",
-  },
-
-  statePillActive: {
-    backgroundColor: "#4A2D5C",
-  },
-
-  statePillText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#7A6A62",
-  },
-
-  statePillTextActive: {
-    color: "#FFFFFF",
-  },
-
-  resultsTitle: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "rgba(60,60,67,0.6)",
-    marginBottom: 12,
-  },
-
-  personCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 22,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#E9E6EB",
-    shadowColor: "#4A2D5C",
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 1,
-  },
-
-  personMetaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    marginTop: 4,
-  },
-
-  connectButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: 999,
-    backgroundColor: "#4A2D5C",
-  },
-
-  connectButtonText: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#FFFFFF",
-  },
-
-  avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  avatarText: {
-    fontSize: 19,
-    fontWeight: "800",
-  },
-
-  personInfo: {
-    flex: 1,
-    marginLeft: 13,
-  },
-
-  personName: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  personCountry: {
-    marginTop: 3,
-    fontSize: 11,
-    color: "rgba(60,60,67,0.3)",
-  },
-
-  /*
-   * EMPTY
-   */
-
-  emptyState: {
-    alignItems: "center",
-    paddingHorizontal: 25,
-  },
-
-  emptyIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "#E9E6EB",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 17,
-  },
-
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#111114",
-    textAlign: "center",
-  },
-
-  emptyText: {
-    marginTop: 8,
-    fontSize: 13,
-    lineHeight: 20,
-    color: "rgba(60,60,67,0.6)",
-    textAlign: "center",
-  },
-  requestDetails: {
-    marginTop: 24,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: "#E9E6EB",
-  },
-
-  detailRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F0EBE7",
-  },
-
-  detailLabel: {
-    fontSize: 13,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  detailValue: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#111114",
-    maxWidth: 180,
-    textAlign: "right",
-  },
-
-  requestActions: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 20,
-  },
-
-  rejectButton: {
-    flex: 1,
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#D8C8C1",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  rejectButtonText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#4A2D5C",
-  },
-
-  acceptButton: {
-    flex: 1,
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: "#4A2D5C",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  acceptButtonText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-  /*
-   * MODAL
-   */
-
-  modalOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(48,40,37,0.35)",
-    justifyContent: "flex-end",
-  },
-
-  modal: {
-    backgroundColor: "#ECEBF2",
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 32,
-  },
-
-  modalHandle: {
-    width: 42,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "#D7CEC8",
-    alignSelf: "center",
-    marginBottom: 8,
-  },
-
-  modalClose: {
-    position: "absolute",
-    right: 20,
-    top: 17,
+  badge: {
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "#E9E6EB",
-    justifyContent: "center",
+    backgroundColor: T.accentTint,
     alignItems: "center",
-    zIndex: 2,
-  },
-
-  modalCloseText: {
-    fontSize: 23,
-    color: "#4A2D5C",
-    lineHeight: 25,
-  },
-
-  modalAvatar: {
-    width: 66,
-    height: 66,
-    borderRadius: 33,
-    backgroundColor: "#E9E6EB",
     justifyContent: "center",
-    alignItems: "center",
-    alignSelf: "center",
-    marginTop: 12,
   },
 
-  modalAvatarText: {
-    fontSize: 24,
+  pill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    height: 28,
+    paddingHorizontal: 13,
+    borderRadius: 14,
+    backgroundColor: T.fill3,
+  },
+
+  pillDone: {
+    backgroundColor: "transparent",
+    paddingHorizontal: 4,
+  },
+
+  pillAsked: {
+    backgroundColor: T.youTint,
+  },
+
+  pillText: {
+    fontSize: 14,
     fontWeight: "700",
-    color: "#4A2D5C",
+    color: T.accent,
   },
 
-  modalTitle: {
-    marginTop: 15,
+  pillTextDone: {
+    fontWeight: "500",
+    color: T.label2,
+  },
+
+  pillTextAsked: {
+    color: T.youText,
+  },
+
+  who: {
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingBottom: 6,
+  },
+
+  whoName: {
     fontSize: 22,
     lineHeight: 27,
     fontWeight: "700",
-    color: "#111114",
+    letterSpacing: -0.5,
+    color: T.label,
     textAlign: "center",
+    marginTop: 12,
   },
 
-  modalSubtitle: {
-    marginTop: 7,
-    fontSize: 13,
-    lineHeight: 19,
-    color: "rgba(60,60,67,0.6)",
+  whoLine: {
+    fontSize: 15,
+    color: T.label2,
+    marginTop: 4,
     textAlign: "center",
-  },
-
-  relationshipLabel: {
-    marginTop: 23,
-    marginBottom: 10,
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#5F554F",
-  },
-
-  relationships: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-
-  relationshipButton: {
-    paddingHorizontal: 15,
-    paddingVertical: 11,
-    borderRadius: 12,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E9E6EB",
-  },
-
-  relationshipSelected: {
-    backgroundColor: "#4A2D5C",
-    borderColor: "#4A2D5C",
-  },
-
-  relationshipText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  relationshipSelectedText: {
-    color: "#FFFFFF",
-  },
-
-  connectButton: {
-    height: 55,
-    borderRadius: 14,
-    backgroundColor: "#4A2D5C",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 22,
-  },
-
-  disabledButton: {
-    opacity: 0.45,
-  },
-
-  connectLoading: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 9,
-  },
-
-  connectText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
   },
 });

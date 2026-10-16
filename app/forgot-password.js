@@ -1,19 +1,22 @@
 import { useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { StyleSheet, View } from "react-native";
 import { useSignIn } from "@clerk/expo";
 import { useRouter } from "expo-router";
 
 import { T } from "../lib/theme";
-import { Button, Card, Press, Icon } from "../components/ui";
-import PasswordField, {
+import {
+  AuthHeader,
+  AuthScreen,
+  Button,
+  CodeField,
+  FieldRow,
+  Group,
+  GroupFooter,
+  Notice,
+  PasswordRow,
+  TextLink,
+} from "../components/ui";
+import {
   PASSWORD_MINIMUM,
   passwordProblem,
 } from "../components/ui/PasswordField";
@@ -215,257 +218,161 @@ export default function ForgotPasswordScreen() {
   const steps = ["email", "code", "password"];
   const stepIndex = steps.indexOf(stage);
 
+  const goBack = () => {
+    if (busy) return;
+
+    if (stage === "email") {
+      if (router.canGoBack()) router.back();
+      else router.replace("/sign-in");
+    } else {
+      setError("");
+      setNotice("");
+      setStage(steps[stepIndex - 1]);
+    }
+  };
+
+  const tooShort = password ? passwordProblem(password) : null;
+
   return (
-    <KeyboardAvoidingView
-      style={styles.screen}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    <AuthScreen
+      onBack={goBack}
+      footer={
+        <TextLink onPress={() => router.replace("/sign-in")} disabled={busy}>
+          Back to Sign In
+        </TextLink>
+      }
     >
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.nav}>
-          <Press
-            onPress={() =>
-              stage === "email"
-                ? router.replace("/sign-in")
-                : setStage(steps[stepIndex - 1])
-            }
-            style={styles.back}
-          >
-            <Icon name="back" size={20} color={T.label} />
-          </Press>
+      {/* Where you are: three short bars. */}
+      <View style={styles.progress}>
+        {steps.map((name, index) => (
+          <View
+            key={name}
+            style={[styles.bar, index <= stepIndex && styles.barOn]}
+          />
+        ))}
+      </View>
 
-          <View style={styles.progress}>
-            {steps.map((name, index) => (
-              <View
-                key={name}
-                style={[styles.bar, index <= stepIndex && styles.barOn]}
-              />
-            ))}
-          </View>
+      {stage === "email" ? (
+        <>
+          <AuthHeader
+            kicker="Step 1 of 3"
+            title="Let's get you back in"
+            subtitle="Tell us the email on your account and we'll send a six-digit code."
+          />
 
-          <View style={styles.back} />
-        </View>
-
-        {stage === "email" ? (
-          <>
-            <Text style={styles.kicker}>Forgot password</Text>
-
-            <Text style={styles.title}>Let&apos;s get you back in</Text>
-
-            <Text style={styles.lede}>
-              Tell us the email on your account and we&apos;ll send a six-digit
-              code.
-            </Text>
-
-            <Card padded={false} style={styles.card}>
-              <TextInput
-                value={emailAddress}
-                onChangeText={setEmailAddress}
-                placeholder="you@example.com"
-                placeholderTextColor={T.label3}
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="email-address"
-                autoComplete="email"
-                textContentType="emailAddress"
-                style={styles.field}
-                onSubmitEditing={sendCode}
-              />
-            </Card>
-
-            {notice ? <Text style={styles.notice}>{notice}</Text> : null}
-
-            {error ? <Text style={styles.error}>{error}</Text> : null}
-
-            <Button title="Send Me a Code" onPress={sendCode} busy={busy} />
-          </>
-        ) : stage === "code" ? (
-          <>
-            <Text style={styles.kicker}>Step 2 of 3</Text>
-
-            <Text style={styles.title}>Enter the code</Text>
-
-            <Text style={styles.lede}>
-              We emailed six digits to {cleanEmail}. Nothing else to fill in on
-              this screen.
-            </Text>
-
-            <Card padded={false} style={styles.card}>
-              <TextInput
-                value={code}
-                onChangeText={(value) =>
-                  setCode(value.replace(/\D/g, "").slice(0, 6))
-                }
-                placeholder="123456"
-                placeholderTextColor={T.label3}
-                keyboardType="number-pad"
-                textContentType="oneTimeCode"
-                autoComplete="sms-otp"
-                autoFocus
-                maxLength={6}
-                style={[styles.field, styles.code]}
-                onSubmitEditing={checkCode}
-              />
-            </Card>
-
-            {notice ? <Text style={styles.notice}>{notice}</Text> : null}
-
-            {error ? <Text style={styles.error}>{error}</Text> : null}
-
-            <Button
-              title="Check the Code"
-              onPress={checkCode}
-              busy={busy}
-              disabled={code.length < 6}
+          <Group>
+            <FieldRow
+              label="Email"
+              value={emailAddress}
+              onChangeText={setEmailAddress}
+              placeholder="you@example.com"
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
+              autoComplete="email"
+              textContentType="emailAddress"
+              returnKeyType="send"
+              onSubmitEditing={sendCode}
             />
+          </Group>
 
-            <Button
-              title="Send me a new code"
-              kind="plain"
-              onPress={resend}
-              disabled={busy}
-            />
-          </>
-        ) : (
-          <>
-            <Text style={styles.kicker}>Step 3 of 3</Text>
+          <Notice tone="info">{notice}</Notice>
 
-            <Text style={styles.title}>Choose a new password</Text>
+          <Notice>{error}</Notice>
 
-            <Text style={styles.lede}>
-              At least {PASSWORD_MINIMUM} characters. You can tap the eye to
-              check what you typed.
-            </Text>
+          <Button title="Send Me a Code" onPress={sendCode} busy={busy} />
+        </>
+      ) : stage === "code" ? (
+        <>
+          <AuthHeader
+            kicker="Step 2 of 3"
+            title="Enter the code"
+            subtitle={`We emailed six digits to ${cleanEmail}.`}
+          />
 
-            <PasswordField
+          <CodeField
+            value={code}
+            onChangeText={setCode}
+            onSubmitEditing={checkCode}
+          />
+
+          <Notice tone="info">{notice}</Notice>
+
+          <Notice>{error}</Notice>
+
+          <Button
+            title="Check the Code"
+            onPress={checkCode}
+            busy={busy}
+            disabled={code.length < 6}
+          />
+
+          <TextLink onPress={resend} disabled={busy}>
+            Send Me a New Code
+          </TextLink>
+        </>
+      ) : (
+        <>
+          <AuthHeader
+            kicker="Step 3 of 3"
+            title="Choose a new password"
+            subtitle="Tap the eye to check what you typed."
+          />
+
+          <Group>
+            <PasswordRow
+              label="New"
               value={password}
               onChangeText={setPassword}
-              placeholder={`At least ${PASSWORD_MINIMUM} characters`}
+              placeholder={`${PASSWORD_MINIMUM}+ characters`}
               autoComplete="new-password"
               textContentType="newPassword"
-              showRule
+              autoFocus
+              returnKeyType="done"
               onSubmitEditing={setNewPassword}
             />
+          </Group>
 
-            {notice ? <Text style={styles.notice}>{notice}</Text> : null}
+          <GroupFooter>
+            {!password
+              ? `Use at least ${PASSWORD_MINIMUM} characters.`
+              : tooShort
+                ? `${PASSWORD_MINIMUM - password.length} more to go.`
+                : "Long enough."}
+          </GroupFooter>
 
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+          <Notice tone="info">{notice}</Notice>
 
-            <Button
-              title="Change My Password"
-              onPress={setNewPassword}
-              busy={busy}
-              disabled={Boolean(passwordProblem(password))}
-            />
-          </>
-        )}
+          <Notice>{error}</Notice>
 
-        <Button
-          title="Back to sign in"
-          kind="plain"
-          onPress={() => router.replace("/sign-in")}
-          disabled={busy}
-        />
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <Button
+            title="Change My Password"
+            onPress={setNewPassword}
+            busy={busy}
+            disabled={Boolean(tooShort) || !password}
+          />
+        </>
+      )}
+    </AuthScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: T.appBackground,
-  },
-
-  content: {
-    padding: 16,
-    paddingTop: 54,
-    paddingBottom: 48,
-    gap: 14,
-  },
-
-  nav: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 6,
-  },
-
-  back: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "rgba(255,255,255,0.85)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
   progress: {
-    flex: 1,
     flexDirection: "row",
-    gap: 5,
+    gap: 6,
+    alignSelf: "center",
+    width: 150,
   },
 
   bar: {
     flex: 1,
-    height: 3,
+    height: 4,
     borderRadius: 2,
-    backgroundColor: T.fill3,
+    backgroundColor: T.fill2,
   },
 
   barOn: {
     backgroundColor: T.accent,
-  },
-
-  kicker: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: T.accent,
-  },
-
-  title: {
-    fontSize: 28,
-    lineHeight: 33,
-    fontWeight: "700",
-    letterSpacing: -0.8,
-    color: T.label,
-    marginTop: -6,
-  },
-
-  lede: {
-    fontSize: 15,
-    lineHeight: 21,
-    color: T.label2,
-  },
-
-  card: {
-    marginHorizontal: 0,
-  },
-
-  field: {
-    height: 52,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    color: T.label,
-  },
-
-  code: {
-    fontSize: 24,
-    letterSpacing: 8,
-    fontWeight: "600",
-  },
-
-  notice: {
-    fontSize: 13,
-    lineHeight: 19,
-    color: "#1E8E3E",
-  },
-
-  error: {
-    fontSize: 13,
-    lineHeight: 19,
-    color: T.red,
   },
 });

@@ -111,6 +111,8 @@ export function Screen({
           iOS 26 the glass shrinks as this scrolls down. */}
       <ScrollView
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={[styles.content, { paddingBottom: bottom }]}
         refreshControl={refreshControl}

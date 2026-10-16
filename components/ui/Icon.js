@@ -64,6 +64,14 @@ const MAP = {
   photo: ["photo", "image-outline", "image"],
   target: ["scope", "locate-outline", "locate"],
   undo: ["arrow.uturn.backward", "arrow-undo-outline", "arrow-undo"],
+  eye: ["eye", "eye-outline", "eye"],
+  eyeSlash: ["eye.slash", "eye-off-outline", "eye-off"],
+  alert: ["exclamationmark.circle.fill", "alert-circle", "alert-circle"],
+  chat: ["bubble.left.and.bubble.right", "chatbubbles-outline", "chatbubbles"],
+  link: ["link", "link-outline", "link"],
+  share: ["square.and.arrow.up", "share-outline", "share"],
+  copy: ["doc.on.doc", "copy-outline", "copy"],
+  envelopeOpen: ["envelope.open", "mail-open-outline", "mail-open"],
 
   /* dream covers */
   beach: ["beach.umbrella", "umbrella-outline", "umbrella"],

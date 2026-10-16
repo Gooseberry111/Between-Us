@@ -28,6 +28,10 @@
  *   .empty      -> Empty
  *   .sheet      -> Sheet + SheetHeader
  *   .ring       -> Ring
+ *
+ * Before you are linked (no prototype screen; its language):
+ *   Glow, Mark, AuthScreen, AuthHeader, FieldRow,
+ *   PasswordRow, CodeField, Notice, TextLink
  */
 
 export { default as Icon } from "./Icon";
@@ -62,3 +66,17 @@ export {
   Ring,
   motionAllowed,
 } from "./parts";
+
+export {
+  Glow,
+  Mark,
+  AuthScreen,
+  AuthHeader,
+  FieldRow,
+  PasswordRow,
+  CodeField,
+  Notice,
+  TextLink,
+} from "./auth";
+
+export { SearchField } from "./search";

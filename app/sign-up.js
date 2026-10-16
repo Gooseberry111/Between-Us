@@ -1,19 +1,22 @@
-import { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-} from "react-native";
+import { useRef, useState } from "react";
+import { StyleSheet, Text } from "react-native";
 import { useSignUp } from "@clerk/expo";
-import { Link, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 
-import PasswordField, {
+import { T } from "../lib/theme";
+import {
+  AuthHeader,
+  AuthScreen,
+  Button,
+  CodeField,
+  FieldRow,
+  Group,
+  GroupFooter,
+  Notice,
+  PasswordRow,
+  TextLink,
+} from "../components/ui";
+import {
   PASSWORD_MINIMUM,
   passwordProblem,
 } from "../components/ui/PasswordField";
@@ -78,6 +81,8 @@ async function withRetry(action) {
 export default function SignUpScreen() {
   const { signUp } = useSignUp();
   const router = useRouter();
+
+  const passwordInput = useRef(null);
 
   const [emailAddress, setEmailAddress] = useState("");
   const [password, setPassword] = useState("");
@@ -246,358 +251,144 @@ export default function SignUpScreen() {
     }
   };
 
+  const goBack = () => {
+    if (busy) return;
+
+    if (router.canGoBack()) router.back();
+    else router.replace("/");
+  };
+
   if (pendingVerification) {
     return (
-      <KeyboardAvoidingView
-        style={styles.screen}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      <AuthScreen
+        onBack={() => {
+          if (busy) return;
+
+          setPendingVerification(false);
+          setCode("");
+          setError("");
+          setNotice("");
+        }}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.header}>
-            <View style={styles.logoCircle}>
-              <Text style={styles.logoText}>B</Text>
-            </View>
+        <AuthHeader
+          kicker="One more step"
+          title="Check your email"
+          subtitle={`Enter the code we sent to ${cleanEmail}.`}
+        />
 
-            <Text style={styles.brand}>Between Us</Text>
-          </View>
+        <CodeField
+          value={code}
+          onChangeText={setCode}
+          onSubmitEditing={handleVerify}
+        />
 
-          <View style={styles.content}>
-            <Text style={styles.eyebrow}>ONE MORE STEP</Text>
+        <Notice tone="info">{notice}</Notice>
 
-            <Text style={styles.title}>Check your email</Text>
+        <Notice>{error}</Notice>
 
-            <Text style={styles.subtitle}>
-              We've sent a verification code to
-            </Text>
+        <Button
+          title="Verify Email"
+          onPress={handleVerify}
+          busy={busy}
+          disabled={code.trim().length < 4}
+        />
 
-            <Text style={styles.emailText}>{emailAddress}</Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Enter verification code"
-              placeholderTextColor="rgba(60,60,67,0.6)"
-              keyboardType="number-pad"
-              value={code}
-              onChangeText={setCode}
-            />
-
-            {notice ? <Text style={styles.notice}>{notice}</Text> : null}
-
-            {error ? <Text style={styles.error}>{error}</Text> : null}
-
-            <TouchableOpacity
-              style={[styles.button, busy && styles.buttonBusy]}
-              onPress={handleVerify}
-              disabled={busy}
-              activeOpacity={0.8}
-            >
-              {busy ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Text style={styles.buttonText}>Verify email</Text>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={handleResend} disabled={busy}>
-              <Text style={styles.secondaryAction}>Send me a new code</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => {
-                setPendingVerification(false);
-                setCode("");
-                setError("");
-                setNotice("");
-              }}
-              disabled={busy}
-            >
-              <Text style={styles.secondaryAction}>Use a different email</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        <TextLink onPress={handleResend} disabled={busy}>
+          Send Me a New Code
+        </TextLink>
+      </AuthScreen>
     );
   }
 
+  const tooShort = password ? passwordProblem(password) : null;
+
   return (
-    <KeyboardAvoidingView
-      style={styles.screen}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    <AuthScreen
+      onBack={goBack}
+      footer={
+        <TextLink onPress={() => router.replace("/sign-in")} disabled={busy}>
+          Already a Member? Sign In
+        </TextLink>
+      }
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.header}>
-          <View style={styles.logoCircle}>
-            <Text style={styles.logoText}>B</Text>
-          </View>
+      <AuthHeader
+        title="Create your account"
+        subtitle="Then find your person and link up."
+      />
 
-          <Text style={styles.brand}>Between Us</Text>
-        </View>
+      <Group>
+        <FieldRow
+          label="Email"
+          value={emailAddress}
+          onChangeText={(value) => {
+            setEmailAddress(value);
+            setError("");
+          }}
+          placeholder="you@example.com"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="email"
+          textContentType="emailAddress"
+          editable={!busy}
+          returnKeyType="next"
+          onSubmitEditing={() => passwordInput.current?.focus()}
+          submitBehavior="submit"
+        />
 
-        <View style={styles.content}>
-          <Text style={styles.eyebrow}>WELCOME</Text>
+        <PasswordRow
+          ref={passwordInput}
+          value={password}
+          onChangeText={(value) => {
+            setPassword(value);
+            setError("");
+          }}
+          placeholder={`${PASSWORD_MINIMUM}+ characters`}
+          autoComplete="new-password"
+          textContentType="newPassword"
+          editable={!busy}
+          returnKeyType="go"
+          onSubmitEditing={handleSignUp}
+        />
+      </Group>
 
-          <Text style={styles.title}>Create your account</Text>
+      <GroupFooter>
+        {!password
+          ? `Use at least ${PASSWORD_MINIMUM} characters.`
+          : tooShort
+            ? `${tooShort.replace(".", "")} — ${PASSWORD_MINIMUM - password.length} to go.`
+            : "Long enough."}
+      </GroupFooter>
 
-          <Text style={styles.subtitle}>
-            A private space for the relationships that matter most.
-          </Text>
+      <Notice>{error}</Notice>
 
-          <Text style={styles.label}>Email address</Text>
+      <Button title="Create Account" onPress={handleSignUp} busy={busy} />
 
-          <TextInput
-            style={styles.input}
-            placeholder="you@example.com"
-            placeholderTextColor="rgba(60,60,67,0.6)"
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="email-address"
-            value={emailAddress}
-            onChangeText={setEmailAddress}
-          />
-
-          <PasswordField
-            label="Password"
-            value={password}
-            onChangeText={setPassword}
-            placeholder={`At least ${PASSWORD_MINIMUM} characters`}
-            autoComplete="new-password"
-            textContentType="newPassword"
-            showRule
-          />
-
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-
-          <TouchableOpacity
-            style={[styles.button, busy && styles.buttonBusy]}
-            onPress={handleSignUp}
-            disabled={busy}
-            activeOpacity={0.8}
-          >
-            {busy ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Text style={styles.buttonText}>Create account</Text>
-            )}
-          </TouchableOpacity>
-
-          <Text style={styles.terms}>
-            By creating an account, you agree to our{" "}
-            <Text
-              style={styles.termsLink}
-              onPress={() => router.push("/terms")}
-            >
-              Terms
-            </Text>{" "}
-            and{" "}
-            <Text
-              style={styles.termsLink}
-              onPress={() => router.push("/privacy")}
-            >
-              Privacy Policy
-            </Text>
-            .
-          </Text>
-
-          <View style={styles.dividerRow}>
-            <View style={styles.divider} />
-            <Text style={styles.dividerText}>Already a member?</Text>
-            <View style={styles.divider} />
-          </View>
-
-          <Link href="/sign-in" asChild>
-            <TouchableOpacity style={styles.outlineButton}>
-              <Text style={styles.outlineButtonText}>Sign in</Text>
-            </TouchableOpacity>
-          </Link>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      <Text style={styles.terms}>
+        By creating an account you agree to the{" "}
+        <Text style={styles.termsLink} onPress={() => router.push("/terms")}>
+          Terms
+        </Text>{" "}
+        and{" "}
+        <Text style={styles.termsLink} onPress={() => router.push("/privacy")}>
+          Privacy Policy
+        </Text>
+        .
+      </Text>
+    </AuthScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: "#ECEBF2",
-  },
-
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 28,
-    paddingTop: 70,
-    paddingBottom: 40,
-  },
-
-  header: {
-    alignItems: "center",
-    marginBottom: 50,
-  },
-
-  logoCircle: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: "#4A2D5C",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-
-  logoText: {
-    color: "#FFFFFF",
-    fontSize: 25,
-    fontWeight: "700",
-  },
-
-  brand: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#111114",
-    letterSpacing: 0.3,
-  },
-
-  content: {
-    width: "100%",
-  },
-
-  eyebrow: {
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 2,
-    color: "#4A2D5C",
-    marginBottom: 10,
-  },
-
-  title: {
-    fontSize: 32,
-    fontWeight: "700",
-    color: "#111114",
-    marginBottom: 12,
-  },
-
-  subtitle: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: "#766D67",
-    marginBottom: 30,
-  },
-
-  label: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#111114",
-    marginBottom: 8,
-  },
-
-  input: {
-    height: 54,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E9E6EB",
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    color: "#111114",
-    marginBottom: 18,
-  },
-
-  button: {
-    height: 54,
-    backgroundColor: "#4A2D5C",
-    borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 4,
-  },
-
-  buttonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-
-  outlineButton: {
-    height: 52,
-    borderWidth: 1.5,
-    borderColor: "#4A2D5C",
-    borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  outlineButtonText: {
-    color: "#4A2D5C",
-    fontSize: 16,
-    fontWeight: "700",
+  terms: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: T.label2,
+    textAlign: "center",
+    paddingHorizontal: 32,
   },
 
   termsLink: {
-    color: "#4A2D5C",
-    fontWeight: "700",
-    textDecorationLine: "underline",
-  },
-
-  terms: {
-    fontSize: 12,
-    lineHeight: 18,
-    color: "rgba(60,60,67,0.6)",
-    textAlign: "center",
-    marginTop: 16,
-  },
-
-  dividerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 24,
-  },
-
-  divider: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#E9E6EB",
-  },
-
-  dividerText: {
-    fontSize: 12,
-    color: "rgba(60,60,67,0.6)",
-    marginHorizontal: 10,
-  },
-
-  error: {
-    color: "#FF3B30",
-    fontSize: 13,
-    marginBottom: 12,
-  },
-
-  notice: {
-    color: "#4F6F52",
-    fontSize: 13,
-    lineHeight: 19,
-    marginBottom: 12,
-  },
-
-  buttonBusy: {
-    opacity: 0.7,
-  },
-
-  secondaryAction: {
-    textAlign: "center",
-    color: "#4A2D5C",
-    fontSize: 14,
-    fontWeight: "600",
-    marginTop: 20,
-  },
-
-  emailText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#111114",
-    marginBottom: 24,
+    color: T.accent,
   },
 });

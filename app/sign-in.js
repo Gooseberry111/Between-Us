@@ -1,27 +1,39 @@
-import { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-  ScrollView,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-
+import { useRef, useState } from "react";
+import { ActivityIndicator } from "react-native";
 import { useSignIn, useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 
-import PasswordField from "../components/ui/PasswordField";
+import { T } from "../lib/theme";
+import {
+  AuthHeader,
+  AuthScreen,
+  Button,
+  CodeField,
+  FieldRow,
+  Group,
+  Notice,
+  PasswordRow,
+  TextLink,
+} from "../components/ui";
+
+/*
+ * ==========================================
+ * SIGN IN
+ * ==========================================
+ *
+ * Email and password in one grouped form, the way
+ * Settings asks for an account. A phone Clerk has not
+ * seen before gets a code by email before it is
+ * trusted, on the same screen.
+ */
 
 export default function SignInScreen() {
   const router = useRouter();
 
   const { signIn, errors } = useSignIn();
   const { isLoaded } = useAuth();
+
+  const passwordInput = useRef(null);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -171,7 +183,6 @@ export default function SignInScreen() {
       setLoading(true);
 
       console.log("STARTING SIGN IN...");
-      console.log("EMAIL:", cleanEmail);
 
       /*
        * ========================================
@@ -331,23 +342,12 @@ export default function SignInScreen() {
     }
   };
 
-  /*
-   * ==========================================
-   * BACK
-   * ==========================================
-   */
-
   const handleBack = () => {
     if (loading) return;
 
-    router.replace("/");
+    if (router.canGoBack()) router.back();
+    else router.replace("/");
   };
-
-  /*
-   * ==========================================
-   * CREATE ACCOUNT
-   * ==========================================
-   */
 
   const handleCreateAccount = () => {
     if (loading) return;
@@ -355,491 +355,122 @@ export default function SignInScreen() {
     router.replace("/sign-up");
   };
 
-  /*
-   * ==========================================
-   * LOADING SCREEN
-   * ==========================================
-   */
-
   if (!isLoaded) {
     return (
-      <SafeAreaView style={styles.screen} edges={["top"]}>
-        <View style={styles.initialLoading}>
-          <View style={styles.loadingLogo}>
-            <Text style={styles.loadingLogoText}>♡</Text>
-          </View>
+      <AuthScreen centred>
+        <AuthHeader title="Between Us" subtitle="Getting things ready…" />
 
-          <Text style={styles.loadingTitle}>Between Us</Text>
-
-          <Text style={styles.loadingText}>Preparing your sign in...</Text>
-
-          <ActivityIndicator
-            size="small"
-            color="#4A2D5C"
-            style={styles.loader}
-          />
-        </View>
-      </SafeAreaView>
+        <ActivityIndicator color={T.accent} />
+      </AuthScreen>
     );
   }
 
-  /*
-   * ==========================================
-   * SCREEN
-   * ==========================================
-   */
+  if (verifying) {
+    return (
+      <AuthScreen
+        onBack={() => {
+          setVerifying(false);
+          setCode("");
+          setError("");
+          setNotice("");
+        }}
+      >
+        <AuthHeader
+          title="Check your email"
+          subtitle={`We sent a code to ${email.trim()} to confirm this phone is yours.`}
+        />
+
+        <CodeField
+          value={code}
+          onChangeText={(value) => {
+            setCode(value);
+            setError("");
+          }}
+          onSubmitEditing={handleVerifyDevice}
+        />
+
+        <Notice tone="info">{notice}</Notice>
+
+        <Notice>{error}</Notice>
+
+        <Button
+          title="Confirm It's Me"
+          onPress={handleVerifyDevice}
+          busy={loading}
+          disabled={code.trim().length < 4}
+        />
+
+        <TextLink onPress={handleResendDeviceCode} disabled={loading}>
+          Send Me a New Code
+        </TextLink>
+      </AuthScreen>
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
-      <KeyboardAvoidingView
-        style={styles.keyboard}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+    <AuthScreen
+      onBack={handleBack}
+      footer={
+        <TextLink onPress={handleCreateAccount} disabled={loading}>
+          New here? Create an Account
+        </TextLink>
+      }
+    >
+      <AuthHeader
+        title="Welcome back"
+        subtitle="Sign in to pick up where you left off."
+      />
+
+      <Group>
+        <FieldRow
+          label="Email"
+          value={email}
+          onChangeText={(value) => {
+            setEmail(value);
+            setError("");
+          }}
+          placeholder="you@example.com"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="email"
+          textContentType="username"
+          editable={!loading}
+          returnKeyType="next"
+          onSubmitEditing={() => passwordInput.current?.focus()}
+          submitBehavior="submit"
+        />
+
+        <PasswordRow
+          ref={passwordInput}
+          value={password}
+          onChangeText={(value) => {
+            setPassword(value);
+            setError("");
+          }}
+          placeholder="Required"
+          autoComplete="current-password"
+          textContentType="password"
+          editable={!loading}
+          returnKeyType="go"
+          onSubmitEditing={handleSignIn}
+        />
+      </Group>
+
+      <Notice>{error}</Notice>
+
+      <Button
+        title={loading ? "Signing In…" : "Sign In"}
+        onPress={handleSignIn}
+        busy={loading}
+      />
+
+      <TextLink
+        onPress={() => router.push("/forgot-password")}
+        disabled={loading}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.container}>
-            {/* BACK */}
-
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={handleBack}
-              activeOpacity={0.7}
-              disabled={loading}
-            >
-              <Text style={styles.backArrow}>←</Text>
-
-              <Text style={styles.backText}>Back</Text>
-            </TouchableOpacity>
-
-            {/* HEADER */}
-
-            <View style={styles.header}>
-              <Text style={styles.eyebrow}>WELCOME BACK</Text>
-
-              <Text style={styles.title}>
-                Good to see you
-                {"\n"}
-                <Text style={styles.titleAccent}>again.</Text>
-              </Text>
-
-              <Text style={styles.description}>
-                Sign in to continue building meaningful connections.
-              </Text>
-            </View>
-
-            {/* FORM */}
-
-            {verifying ? (
-              <View style={styles.form}>
-                <View style={styles.field}>
-                  <Text style={styles.label}>Code from your email</Text>
-
-                  <TextInput
-                    value={code}
-                    onChangeText={(value) => {
-                      setCode(value);
-                      setError("");
-                    }}
-                    placeholder="Enter the code"
-                    placeholderTextColor="rgba(60,60,67,0.3)"
-                    keyboardType="number-pad"
-                    editable={!loading}
-                    style={styles.input}
-                    returnKeyType="done"
-                    onSubmitEditing={handleVerifyDevice}
-                  />
-                </View>
-
-                {notice ? (
-                  <Text style={styles.noticeText}>{notice}</Text>
-                ) : null}
-
-                {error ? (
-                  <View style={styles.errorBox}>
-                    <Text style={styles.errorText}>{error}</Text>
-                  </View>
-                ) : null}
-
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  style={[
-                    styles.signInButton,
-                    loading && styles.disabledButton,
-                  ]}
-                  onPress={handleVerifyDevice}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <Text style={styles.signInText}>Confirm it's me</Text>
-                  )}
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={handleResendDeviceCode}
-                  disabled={loading}
-                >
-                  <Text style={styles.linkAction}>Send me a new code</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.form}>
-                {/* EMAIL */}
-
-                <View style={styles.field}>
-                  <Text style={styles.label}>Email</Text>
-
-                  <TextInput
-                    value={email}
-                    onChangeText={(value) => {
-                      setEmail(value);
-                      setError("");
-                    }}
-                    placeholder="Enter your email"
-                    placeholderTextColor="rgba(60,60,67,0.3)"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    autoComplete="email"
-                    editable={!loading}
-                    style={styles.input}
-                    returnKeyType="next"
-                  />
-                </View>
-
-                {/* PASSWORD */}
-
-                <View style={styles.field}>
-                  <PasswordField
-                    label="Password"
-                    value={password}
-                    onChangeText={(value) => {
-                      setPassword(value);
-                      setError("");
-                    }}
-                    placeholder="Enter your password"
-                    onSubmitEditing={handleSignIn}
-                  />
-                </View>
-
-                {/* ERROR */}
-
-                {error ? (
-                  <View style={styles.errorBox}>
-                    <Text style={styles.errorText}>{error}</Text>
-                  </View>
-                ) : null}
-
-                {/* SIGN IN BUTTON */}
-
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  style={[
-                    styles.signInButton,
-                    loading && styles.disabledButton,
-                  ]}
-                  onPress={handleSignIn}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <View style={styles.loadingButton}>
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-
-                      <Text style={styles.signInText}>Signing in...</Text>
-                    </View>
-                  ) : (
-                    <>
-                      <Text style={styles.signInText}>Sign In</Text>
-
-                      <Text style={styles.arrow}>→</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => router.push("/forgot-password")}
-                  disabled={loading}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.linkAction}>Forgot your password?</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* FOOTER */}
-
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>Don't have an account?</Text>
-
-              <TouchableOpacity
-                onPress={handleCreateAccount}
-                activeOpacity={0.7}
-                disabled={loading}
-              >
-                <Text style={styles.createText}>Create one</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+        Forgot Your Password?
+      </TextLink>
+    </AuthScreen>
   );
 }
-
-/*
- * ==========================================
- * STYLES
- * ==========================================
- */
-
-const styles = StyleSheet.create({
-  linkAction: {
-    textAlign: "center",
-    color: "#4A2D5C",
-    fontSize: 14,
-    fontWeight: "600",
-    marginTop: 18,
-  },
-
-  noticeText: {
-    color: "#4F6F52",
-    fontSize: 13,
-    lineHeight: 19,
-    marginBottom: 12,
-  },
-
-  screen: {
-    flex: 1,
-    backgroundColor: "#ECEBF2",
-  },
-
-  keyboard: {
-    flex: 1,
-  },
-
-  scrollContent: {
-    flexGrow: 1,
-  },
-
-  container: {
-    flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 18,
-    paddingBottom: 28,
-  },
-
-  /*
-   * BACK
-   */
-
-  backButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-    paddingVertical: 8,
-    paddingRight: 12,
-  },
-
-  backArrow: {
-    fontSize: 21,
-    color: "#4A2D5C",
-    marginRight: 7,
-  },
-
-  backText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#4A2D5C",
-  },
-
-  /*
-   * HEADER
-   */
-
-  header: {
-    marginTop: 28,
-  },
-
-  eyebrow: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1.8,
-    color: "rgba(60,60,67,0.6)",
-    marginBottom: 12,
-  },
-
-  title: {
-    fontSize: 38,
-    lineHeight: 44,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  titleAccent: {
-    color: "#4A2D5C",
-  },
-
-  description: {
-    marginTop: 15,
-    maxWidth: 330,
-    fontSize: 15,
-    lineHeight: 22,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  /*
-   * FORM
-   */
-
-  form: {
-    marginTop: 32,
-  },
-
-  field: {
-    marginBottom: 18,
-  },
-
-  label: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#5F554F",
-    marginBottom: 8,
-  },
-
-  input: {
-    height: 54,
-    borderRadius: 14,
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 16,
-    fontSize: 15,
-    color: "#111114",
-    borderWidth: 1,
-    borderColor: "#E9E6EB",
-  },
-
-  /*
-   * ERROR
-   */
-
-  errorBox: {
-    backgroundColor: "#E9E6EB",
-    paddingHorizontal: 13,
-    paddingVertical: 11,
-    borderRadius: 12,
-    marginBottom: 16,
-  },
-
-  errorText: {
-    color: "#FF3B30",
-    fontSize: 13,
-    lineHeight: 18,
-  },
-
-  /*
-   * SIGN IN BUTTON
-   */
-
-  signInButton: {
-    height: 56,
-    borderRadius: 14,
-    backgroundColor: "#4A2D5C",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 18,
-    marginTop: 2,
-  },
-
-  disabledButton: {
-    opacity: 0.7,
-  },
-
-  loadingButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-  },
-
-  signInText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-
-  arrow: {
-    color: "#FFFFFF",
-    fontSize: 21,
-    fontWeight: "500",
-  },
-
-  /*
-   * FOOTER
-   */
-
-  footer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 28,
-  },
-
-  footerText: {
-    color: "rgba(60,60,67,0.6)",
-    fontSize: 14,
-    marginRight: 5,
-  },
-
-  createText: {
-    color: "#4A2D5C",
-    fontSize: 14,
-    fontWeight: "700",
-  },
-
-  /*
-   * INITIAL LOADING
-   */
-
-  initialLoading: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 30,
-  },
-
-  loadingLogo: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: "#E9E6EB",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-
-  loadingLogoText: {
-    fontSize: 30,
-    color: "#4A2D5C",
-  },
-
-  loadingTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  loadingText: {
-    marginTop: 7,
-    fontSize: 14,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  loader: {
-    marginTop: 20,
-  },
-});
