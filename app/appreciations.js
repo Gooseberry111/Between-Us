@@ -1,35 +1,63 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
-import { GlassBackground, GlassPanel, Card, FadeIn } from "../components/Glass";
-import { Skeleton, SkeletonList } from "../components/Skeleton";
-import { getCachedData, setCachedData } from "../lib/dataCache";
+
 import { apiFetch } from "../lib/api";
-import ConnectFirst from "../components/ConnectFirst";
+import { chooseAction } from "../lib/actions";
+import { getCachedData, setCachedData } from "../lib/dataCache";
 import { useIsConnected } from "../lib/connection";
+import { T } from "../lib/theme";
+import { Chip, GlassButton, Icon, Mark, Notice } from "../components/ui";
+import ConnectFirst from "../components/ConnectFirst";
+import { SkeletonList } from "../components/Skeleton";
 
 /*
- * Saying thank you out loud is the single cheapest
- * thing that makes a relationship feel better, and
- * it is the thing people most often forget. Keeping
- * a running list means it also becomes something to
- * look back on.
+ * ==========================================
+ * NOTES
+ * ==========================================
+ *
+ * Saying thank you out loud is the cheapest thing that
+ * makes a relationship feel better, and the thing people
+ * most often forget. So it reads like Messages: yours in
+ * rose on the right, theirs in plum on the left, newest
+ * at the bottom, and the box to write in always there.
+ *
+ * Hold one of yours to delete it.
  */
+
+const STARTERS = ["Thank you for ", "I noticed ", "I loved it when "];
+
+function dayLabel(iso) {
+  const date = new Date(iso);
+
+  if (Number.isNaN(date.getTime())) return "";
+
+  const today = new Date();
+  const days = Math.floor(
+    (new Date(today.toDateString()) - new Date(date.toDateString())) / 86400000,
+  );
+
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 7) return date.toLocaleDateString(undefined, { weekday: "long" });
+
+  return date.toLocaleDateString(undefined, { day: "numeric", month: "long" });
+}
 
 export default function AppreciationsScreen() {
   const router = useRouter();
@@ -68,7 +96,6 @@ export default function AppreciationsScreen() {
 
       if (cacheKey) setCachedData(cacheKey, list);
     } catch (err) {
-      console.log("APPRECIATIONS LOAD ERROR:", err);
       setError(err?.message || "Unable to load appreciations.");
     } finally {
       setLoading(false);
@@ -108,7 +135,6 @@ export default function AppreciationsScreen() {
 
       if (cacheKey) setCachedData(cacheKey, list);
     } catch (err) {
-      console.log("APPRECIATION SEND ERROR:", err);
       Alert.alert(
         "Something went wrong",
         err?.message || "Unable to send that.",
@@ -143,7 +169,6 @@ export default function AppreciationsScreen() {
               return next;
             });
           } catch (err) {
-            console.log("APPRECIATION DELETE ERROR:", err);
             Alert.alert(
               "Something went wrong",
               err?.message || "Unable to delete that.",
@@ -155,352 +180,395 @@ export default function AppreciationsScreen() {
   };
 
   if (connected === false) {
-    return <ConnectFirst feature="Appreciation" showBack={true} />;
+    return <ConnectFirst feature="Notes" showBack />;
   }
 
   return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
-      <GlassBackground>
-        <KeyboardAvoidingView
+    <NotesThread
+      notes={notes}
+      loading={loading}
+      refreshing={refreshing}
+      error={error}
+      draft={draft}
+      sending={sending}
+      onDraft={setDraft}
+      onSend={send}
+      onRemove={remove}
+      onRefresh={() => {
+        setRefreshing(true);
+        load();
+      }}
+      onBack={() => {
+        if (router.canGoBack()) router.back();
+        else router.replace("/(tabs)/home");
+      }}
+    />
+  );
+}
+
+function NotesThread({
+  notes,
+  loading,
+  refreshing,
+  error,
+  draft,
+  sending,
+  onDraft,
+  onSend,
+  onRemove,
+  onRefresh,
+  onBack,
+}) {
+  const scroller = useRef(null);
+
+  /* Oldest at the top, like any conversation. */
+  const thread = [...notes].sort(
+    (a, b) =>
+      new Date(a.created_at || 0).getTime() -
+      new Date(b.created_at || 0).getTime(),
+  );
+
+  /* A day label wherever the day changes. */
+  const rows = [];
+
+  thread.forEach((note) => {
+    const label = dayLabel(note.created_at);
+
+    if (rows.length === 0 || rows[rows.length - 1].label !== label) {
+      rows.push({ type: "day", key: `day-${label}-${note.id}`, label });
+    }
+
+    rows.push({ type: "note", key: note.id, label, note });
+  });
+
+  const hold = (note) => {
+    if (!note.mine) return;
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+
+    chooseAction({
+      title: "Your note",
+      options: [
+        { label: "Delete", destructive: true, onPress: () => onRemove(note) },
+      ],
+    });
+  };
+
+  return (
+    <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
+      <KeyboardAvoidingView
+        style={styles.fill}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <View style={styles.nav}>
+          <View style={styles.navSide}>
+            <GlassButton icon="back" label="Back" onPress={onBack} />
+          </View>
+
+          <View style={styles.navCentre}>
+            <Mark size={22} />
+
+            <Text style={styles.navTitle}>Notes</Text>
+          </View>
+
+          <View style={styles.navSide} />
+        </View>
+
+        <ScrollView
+          ref={scroller}
           style={styles.fill}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          contentContainerStyle={styles.thread}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          showsVerticalScrollIndicator={false}
+          onContentSizeChange={() =>
+            scroller.current?.scrollToEnd({ animated: false })
+          }
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={T.accent}
+            />
+          }
         >
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={() => {
-                  setRefreshing(true);
-                  load();
-                }}
-                tintColor="#4A2D5C"
-              />
-            }
-            contentContainerStyle={styles.scrollContent}
-          >
-            <View style={styles.container}>
-              <View style={styles.header}>
-                <TouchableOpacity
-                  style={styles.backButton}
-                  activeOpacity={0.8}
-                  onPress={() => router.back()}
-                >
-                  <Ionicons name="chevron-back" size={20} color="#4A2D5C" />
-                </TouchableOpacity>
+          <Notice>{error}</Notice>
 
-                <View style={styles.headerText}>
-                  <Text style={styles.brand}>BETWEEN US</Text>
-
-                  <Text style={styles.pageTitle}>Appreciation</Text>
-                </View>
-              </View>
-
-              {error ? (
-                <View style={styles.errorBox}>
-                  <Text style={styles.errorText}>{error}</Text>
-                </View>
-              ) : null}
-
-              <FadeIn>
-                <GlassPanel style={styles.composer}>
-                  <Text style={styles.composerLabel}>SAY THANK YOU</Text>
-
-                  <Text style={styles.composerTitle}>
-                    What did they do that you noticed?
-                  </Text>
-
-                  <TextInput
-                    value={draft}
-                    onChangeText={setDraft}
-                    placeholder="Thank you for..."
-                    placeholderTextColor="rgba(255,255,255,0.5)"
-                    style={styles.input}
-                    multiline
-                    textAlignVertical="top"
-                  />
-
-                  <TouchableOpacity
-                    style={[
-                      styles.sendButton,
-                      (!draft.trim() || sending) && styles.sendButtonDisabled,
-                    ]}
-                    activeOpacity={0.85}
-                    onPress={send}
-                    disabled={!draft.trim() || sending}
-                  >
-                    {sending ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <Text style={styles.sendButtonText}>Send it</Text>
-                    )}
-                  </TouchableOpacity>
-                </GlassPanel>
-              </FadeIn>
-
-              <View style={styles.section}>
-                <Text style={styles.sectionLabel}>WHAT YOU'VE NOTICED</Text>
-
-                {loading ? (
-                  <SkeletonList count={3} />
-                ) : notes.length === 0 ? (
-                  <Card style={styles.emptyCard}>
-                    <Text style={styles.emptyTitle}>Nothing here yet.</Text>
-
-                    <Text style={styles.emptyText}>
-                      The small things are the ones worth saying out loud. Start
-                      with one.
-                    </Text>
-                  </Card>
-                ) : (
-                  notes.map((note, index) => (
-                    <FadeIn key={note.id} delay={index * 45}>
-                      <Card style={styles.noteCard}>
-                        <View style={styles.noteTop}>
-                          <View
-                            style={[
-                              styles.noteBadge,
-                              note.mine && styles.noteBadgeMine,
-                            ]}
-                          >
-                            <Text style={styles.noteBadgeText}>
-                              {note.mine
-                                ? "YOU SAID"
-                                : `${(note.from_first_name || "THEY").toUpperCase()} SAID`}
-                            </Text>
-                          </View>
-
-                          <Text style={styles.noteDate}>
-                            {note.created_at
-                              ? new Date(note.created_at).toLocaleDateString(
-                                  "en-US",
-                                  { month: "short", day: "numeric" },
-                                )
-                              : ""}
-                          </Text>
-                        </View>
-
-                        <Text style={styles.noteText}>{note.message}</Text>
-
-                        {note.mine ? (
-                          <TouchableOpacity
-                            style={styles.deleteButton}
-                            activeOpacity={0.8}
-                            onPress={() => remove(note)}
-                          >
-                            <Text style={styles.deleteButtonText}>Delete</Text>
-                          </TouchableOpacity>
-                        ) : null}
-                      </Card>
-                    </FadeIn>
-                  ))
-                )}
-              </View>
+          {loading ? (
+            <View style={styles.loading}>
+              <SkeletonList count={3} />
             </View>
+          ) : rows.length === 0 ? (
+            <View style={styles.empty}>
+              <Text style={styles.emptyTitle}>Say it out loud</Text>
+
+              <Text style={styles.emptyText}>
+                The small things are the ones worth saying. They see it the
+                moment you send it.
+              </Text>
+            </View>
+          ) : (
+            rows.map((row) =>
+              row.type === "day" ? (
+                <Text key={row.key} style={styles.day}>
+                  {row.label}
+                </Text>
+              ) : (
+                <Pressable
+                  key={row.key}
+                  onLongPress={() => hold(row.note)}
+                  delayLongPress={350}
+                  style={[
+                    styles.bubbleRow,
+                    row.note.mine ? styles.rowMine : styles.rowTheirs,
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.bubble,
+                      row.note.mine ? styles.bubbleMine : styles.bubbleTheirs,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.bubbleText,
+                        row.note.mine && styles.bubbleTextMine,
+                      ]}
+                    >
+                      {row.note.message}
+                    </Text>
+                  </View>
+
+                  {!row.note.mine && row.note.from_first_name ? (
+                    <Text style={styles.from}>{row.note.from_first_name}</Text>
+                  ) : null}
+                </Pressable>
+              ),
+            )
+          )}
+        </ScrollView>
+
+        {/* A way in when the box is empty. */}
+        {!draft ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.starters}
+            keyboardShouldPersistTaps="always"
+          >
+            {STARTERS.map((text) => (
+              <Chip
+                key={text}
+                label={`${text.trim()}…`}
+                tinted
+                onPress={() => onDraft(text)}
+              />
+            ))}
           </ScrollView>
-        </KeyboardAvoidingView>
-      </GlassBackground>
+        ) : null}
+
+        <View style={styles.composer}>
+          <TextInput
+            value={draft}
+            onChangeText={onDraft}
+            placeholder="Say thank you…"
+            placeholderTextColor={T.label3}
+            style={styles.input}
+            multiline
+          />
+
+          <Pressable
+            onPress={onSend}
+            disabled={!draft.trim() || sending}
+            accessibilityRole="button"
+            accessibilityLabel="Send"
+            hitSlop={8}
+          >
+            <View
+              style={[
+                styles.send,
+                (!draft.trim() || sending) && styles.sendOff,
+              ]}
+            >
+              {sending ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Icon name="arrowUp" size={16} color="#FFFFFF" />
+              )}
+            </View>
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  fill: { flex: 1 },
-  scrollContent: { flexGrow: 1, paddingBottom: 120 },
-  container: { paddingHorizontal: 22, paddingTop: 22 },
-
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 22,
+  screen: {
+    flex: 1,
+    backgroundColor: T.appBackground,
   },
 
-  backButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 11,
-  },
-
-  headerText: {
+  fill: {
     flex: 1,
   },
 
-  brand: {
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 2,
-    color: "#4A2D5C",
-  },
-
-  pageTitle: {
-    marginTop: 5,
-    fontSize: 26,
-    lineHeight: 31,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  composer: {
-    marginBottom: 8,
-  },
-
-  composerLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 1.6,
-    color: "#E9E6EB",
-  },
-
-  composerTitle: {
-    marginTop: 10,
-    fontSize: 18,
-    lineHeight: 25,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-
-  input: {
-    marginTop: 14,
-    minHeight: 84,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.14)",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.34)",
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 14,
-    lineHeight: 20,
-    color: "#FFFFFF",
-  },
-
-  sendButton: {
-    marginTop: 13,
-    height: 46,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.18)",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.42)",
-  },
-
-  sendButtonDisabled: {
-    opacity: 0.45,
-  },
-
-  sendButtonText: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#FFFFFF",
-  },
-
-  section: {
-    marginTop: 28,
-  },
-
-  sectionLabel: {
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1.7,
-    color: "rgba(60,60,67,0.6)",
-    marginBottom: 12,
-  },
-
-  noteCard: {
-    borderRadius: 20,
-    padding: 17,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    marginBottom: 11,
-  },
-
-  noteTop: {
+  nav: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    minHeight: 52,
+    paddingHorizontal: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: T.separator,
+    paddingBottom: 6,
   },
 
-  noteBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    backgroundColor: "rgba(74, 45, 92, 0.1)",
+  navSide: {
+    flex: 1,
+    flexDirection: "row",
   },
 
-  noteBadgeMine: {
-    backgroundColor: "rgba(127, 163, 131, 0.18)",
-  },
-
-  noteBadgeText: {
-    fontSize: 8.5,
-    fontWeight: "800",
-    letterSpacing: 0.8,
-    color: "#4A2D5C",
-  },
-
-  noteDate: {
-    fontSize: 10,
-    fontWeight: "600",
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  noteText: {
-    marginTop: 12,
-    fontSize: 14.5,
-    lineHeight: 21,
-    color: "#111114",
-  },
-
-  deleteButton: {
-    alignSelf: "flex-start",
-    marginTop: 13,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 9,
-    backgroundColor: "rgba(196, 121, 106, 0.14)",
-  },
-
-  deleteButtonText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#FF3B30",
-  },
-
-  emptyCard: {
-    borderRadius: 20,
-    padding: 24,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255, 255, 255, 0.9)",
+  navCentre: {
     alignItems: "center",
+    gap: 2,
+  },
+
+  navTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: T.label,
+  },
+
+  thread: {
+    flexGrow: 1,
+    justifyContent: "flex-end",
+    paddingHorizontal: 14,
+    paddingTop: 16,
+    paddingBottom: 12,
+    gap: 4,
+  },
+
+  loading: {
+    paddingHorizontal: 2,
+  },
+
+  empty: {
+    alignItems: "center",
+    paddingHorizontal: 32,
+    paddingBottom: 40,
   },
 
   emptyTitle: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: "700",
-    color: "#111114",
+    letterSpacing: -0.4,
+    color: T.label,
   },
 
   emptyText: {
-    marginTop: 7,
-    fontSize: 13,
-    lineHeight: 19,
-    color: "rgba(60,60,67,0.6)",
+    fontSize: 15,
+    lineHeight: 21,
+    color: T.label2,
     textAlign: "center",
+    marginTop: 6,
   },
 
-  errorBox: {
-    backgroundColor: "rgba(243, 227, 223, 0.85)",
+  day: {
+    alignSelf: "center",
+    fontSize: 12,
+    fontWeight: "600",
+    color: T.label2,
+    marginTop: 14,
+    marginBottom: 4,
+  },
+
+  bubbleRow: {
+    maxWidth: "80%",
+  },
+
+  rowMine: {
+    alignSelf: "flex-end",
+    alignItems: "flex-end",
+  },
+
+  rowTheirs: {
+    alignSelf: "flex-start",
+    alignItems: "flex-start",
+  },
+
+  bubble: {
     paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderRadius: 12,
-    marginBottom: 15,
+    paddingVertical: 9,
+    borderRadius: 20,
   },
 
-  errorText: { fontSize: 12, lineHeight: 17, color: "#FF3B30" },
+  bubbleMine: {
+    backgroundColor: T.you,
+    borderBottomRightRadius: 6,
+  },
+
+  bubbleTheirs: {
+    backgroundColor: T.surface,
+    borderBottomLeftRadius: 6,
+  },
+
+  bubbleText: {
+    fontSize: 17,
+    lineHeight: 22,
+    color: T.label,
+  },
+
+  bubbleTextMine: {
+    color: "#FFFFFF",
+  },
+
+  from: {
+    fontSize: 11,
+    color: T.label2,
+    marginTop: 3,
+    marginLeft: 8,
+  },
+
+  starters: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    gap: 8,
+  },
+
+  composer: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 8,
+    marginHorizontal: 12,
+    marginBottom: 6,
+    paddingLeft: 14,
+    paddingRight: 5,
+    paddingVertical: 5,
+    borderRadius: 22,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: T.separator,
+    backgroundColor: T.surface,
+  },
+
+  input: {
+    flex: 1,
+    fontSize: 17,
+    color: T.label,
+    maxHeight: 120,
+    paddingTop: 7,
+    paddingBottom: 7,
+  },
+
+  send: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: T.accent,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  sendOff: {
+    backgroundColor: T.label3,
+  },
 });

@@ -1,106 +1,84 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { GlassBackground, Card } from "../components/Glass";
-import { Ionicons } from "@expo/vector-icons";
+import { StyleSheet, View } from "react-native";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
-import { getCachedData, setCachedData } from "../lib/dataCache";
-import { Skeleton, SkeletonList } from "../components/Skeleton";
+
 import { apiFetch } from "../lib/api";
+import { getCachedData, setCachedData } from "../lib/dataCache";
+import { T } from "../lib/theme";
+import {
+  Cell,
+  GlassButton,
+  Group,
+  GroupFooter,
+  GroupHeader,
+  Icon,
+  LargeTitle,
+  NavBar,
+  Notice,
+  Screen,
+  SubTitle,
+  Toggle,
+} from "../components/ui";
+import { SkeletonList } from "../components/Skeleton";
 
 /*
- * Every notification the scheduled job can send.
+ * ==========================================
+ * NOTIFICATIONS, ALL OF THEM
+ * ==========================================
  *
- * Connection requests aren't listed on purpose --
- * those are core account events and always send.
+ * Every kind the app can send, as Settings lists them:
+ * grouped, one switch each, saved the moment it moves.
+ *
+ * Connection requests are not here on purpose -- those
+ * are account events and always send.
  */
+
 const NOTIFICATION_GROUPS = [
   {
-    label: "DATES THAT MATTER",
+    label: "From your person",
+    footer: "When they do something for you.",
     items: [
+      { type: "appreciation", title: "Notes", icon: "heart" },
+      { type: "love", title: "Hearts on what you did", icon: "heartOutline" },
       {
-        type: "birthday",
-        title: "Birthdays",
-        description: "When your partner's birthday is coming up.",
+        type: "daily_question_answered",
+        title: "They answered tonight",
+        icon: "lock",
       },
-      {
-        type: "anniversary",
-        title: "Anniversaries",
-        description: "When your relationship anniversary is approaching.",
-      },
-      {
-        type: "special_date",
-        title: "Special dates",
-        description: "Dates you've saved on the Special Dates screen.",
-      },
+      { type: "repair", title: "Repairs", icon: "chat" },
+      { type: "trivia_played", title: "They played trivia", icon: "sparkle" },
     ],
   },
   {
-    label: "DREAMS & GOALS",
+    label: "Dates that matter",
     items: [
-      {
-        type: "dream_upcoming",
-        title: "Upcoming dreams",
-        description: "When a shared dream's target date is close.",
-      },
-      {
-        type: "dream_overdue",
-        title: "Overdue dreams",
-        description: "When a dream has passed its target date.",
-      },
-      {
-        type: "goal_upcoming",
-        title: "Upcoming goals",
-        description: "When a relationship goal is due soon.",
-      },
-      {
-        type: "goal_overdue",
-        title: "Overdue goals",
-        description: "When a goal has passed its target date.",
-      },
+      { type: "birthday", title: "Birthdays", icon: "calendar" },
+      { type: "anniversary", title: "Anniversaries", icon: "heart" },
+      { type: "special_date", title: "Special dates", icon: "calendar" },
+      { type: "date_idea", title: "Date ideas", icon: "bulb" },
     ],
   },
   {
-    label: "TRIVIA",
+    label: "Dreams and goals",
+    footer: "As a target date gets close, and once it has passed.",
     items: [
-      {
-        type: "trivia_nudge",
-        title: "Trivia reminders",
-        description: "A weekly nudge when you haven't played in a while.",
-      },
-      {
-        type: "trivia_played",
-        title: "Partner played trivia",
-        description: "When your partner finishes a round.",
-      },
+      { type: "dream_upcoming", title: "Dream coming up", icon: "dreams" },
+      { type: "dream_overdue", title: "Dream overdue", icon: "dreams" },
+      { type: "goal_upcoming", title: "Goal coming up", icon: "flag" },
+      { type: "goal_overdue", title: "Goal overdue", icon: "flag" },
     ],
   },
   {
-    label: "EVERYDAY",
+    label: "Every day",
     items: [
-      {
-        type: "quote_of_day",
-        title: "Quote of the Day",
-        description: "A short daily reminder to be intentional.",
-      },
-      {
-        type: "date_idea",
-        title: "Date ideas",
-        description: "A weekly suggestion for something to do together.",
-      },
+      { type: "daily_question", title: "Tonight's questions", icon: "lock" },
+      { type: "quote_of_day", title: "Quote of the day", icon: "bulb" },
+      { type: "trivia_nudge", title: "Trivia reminders", icon: "sparkle" },
       {
         type: "inactivity",
-        title: "Check-in reminders",
-        description: "A nudge when you haven't opened the app in a few days.",
+        title: "Haven't opened it in a while",
+        icon: "bell",
       },
     ],
   },
@@ -139,8 +117,6 @@ export default function NotificationSettingsScreen() {
 
       const data = await response.json();
 
-      console.log("NOTIFICATION PREFERENCES RESPONSE:", data);
-
       if (!response.ok) {
         throw new Error(data?.error || "Unable to load your settings.");
       }
@@ -151,8 +127,6 @@ export default function NotificationSettingsScreen() {
 
       if (cacheKey) setCachedData(cacheKey, nextPreferences);
     } catch (err) {
-      console.log("NOTIFICATION PREFERENCES LOAD ERROR:", err);
-
       if (!cachedPreferences) {
         setError(err?.message || "Unable to load your settings.");
       }
@@ -202,8 +176,6 @@ export default function NotificationSettingsScreen() {
 
       const data = await response.json();
 
-      console.log("SAVE NOTIFICATION PREFERENCE:", data);
-
       if (!response.ok) {
         throw new Error(data?.error || "Unable to save that setting.");
       }
@@ -214,8 +186,6 @@ export default function NotificationSettingsScreen() {
 
       if (cacheKey) setCachedData(cacheKey, saved);
     } catch (err) {
-      console.log("SAVE NOTIFICATION PREFERENCE ERROR:", err);
-
       setPreferences(previous);
 
       if (cacheKey) setCachedData(cacheKey, previous);
@@ -224,256 +194,62 @@ export default function NotificationSettingsScreen() {
     }
   };
 
-  if (loading) {
-    /*
-     * Cold load only (nothing cached yet). Mirrors the
-     * real layout so the page appears at once and fills
-     * in, instead of blocking on a spinner.
-     */
-    return (
-      <SafeAreaView style={styles.screen} edges={["top"]}>
-        <GlassBackground>
-          <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
-            <Skeleton width={96} height={11} radius={6} />
-            <Skeleton
-              width="62%"
-              height={26}
-              radius={9}
-              style={{ marginTop: 12 }}
-            />
-            <Skeleton width="80%" height={12} style={{ marginTop: 10 }} />
-
-            <View style={{ marginTop: 26 }}>
-              <SkeletonList count={3} />
-            </View>
-          </View>
-        </GlassBackground>
-      </SafeAreaView>
-    );
-  }
+  const goBack = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)/profile");
+  };
 
   return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
-      <GlassBackground>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-        >
-          <View style={styles.container}>
-            {/* HEADER */}
+    <Screen>
+      <NavBar
+        left={<GlassButton icon="back" label="Back" onPress={goBack} />}
+      />
 
-            <View style={styles.header}>
-              <TouchableOpacity
-                style={styles.backButton}
-                activeOpacity={0.8}
-                onPress={() => router.back()}
-              >
-                <Ionicons name="chevron-back" size={20} color="#4A2D5C" />
-              </TouchableOpacity>
+      <LargeTitle>Notifications</LargeTitle>
 
-              <View style={styles.headerText}>
-                <Text style={styles.brand}>BETWEEN US</Text>
+      <SubTitle>Choose what reaches your phone.</SubTitle>
 
-                <Text style={styles.pageTitle}>Notifications</Text>
+      <Notice>{error}</Notice>
 
-                <Text style={styles.pageSubtitle}>
-                  Choose what Between Us reminds you about.
-                </Text>
-              </View>
-            </View>
+      {loading ? (
+        <View style={styles.loading}>
+          <SkeletonList count={4} />
+        </View>
+      ) : (
+        NOTIFICATION_GROUPS.map((group) => (
+          <View key={group.label} style={styles.group}>
+            <GroupHeader>{group.label}</GroupHeader>
 
-            {error ? (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            ) : null}
+            <Group inset={52}>
+              {group.items.map((item) => (
+                <Cell
+                  key={item.type}
+                  leading={<Icon name={item.icon} size={20} color={T.accent} />}
+                  title={item.title}
+                  trailing={
+                    <Toggle
+                      value={preferences?.[item.type] !== false}
+                      onChange={(value) => toggle(item.type, value)}
+                    />
+                  }
+                />
+              ))}
+            </Group>
 
-            {NOTIFICATION_GROUPS.map((group) => (
-              <View style={styles.section} key={group.label}>
-                <Text style={styles.sectionLabel}>{group.label}</Text>
-
-                <Card style={styles.card}>
-                  {group.items.map((item, index) => (
-                    <View key={item.type}>
-                      {index > 0 ? <View style={styles.divider} /> : null}
-
-                      <View style={styles.row}>
-                        <View style={styles.rowContent}>
-                          <Text style={styles.rowTitle}>{item.title}</Text>
-
-                          <Text style={styles.rowDescription}>
-                            {item.description}
-                          </Text>
-                        </View>
-
-                        <Switch
-                          value={preferences[item.type] !== false}
-                          onValueChange={(value) => toggle(item.type, value)}
-                          trackColor={{ false: "#DDD4CE", true: "#4A2D5C" }}
-                          thumbColor="#FFFFFF"
-                        />
-                      </View>
-                    </View>
-                  ))}
-                </Card>
-              </View>
-            ))}
-
-            <Card style={styles.noteCard}>
-              <Text style={styles.noteText}>
-                Connection requests always come through, so you never miss
-                someone asking to connect with you.
-              </Text>
-            </Card>
+            {group.footer ? <GroupFooter>{group.footer}</GroupFooter> : null}
           </View>
-        </ScrollView>
-      </GlassBackground>
-    </SafeAreaView>
+        ))
+      )}
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-  },
-
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 120,
-  },
-
-  container: {
-    paddingHorizontal: 22,
-    paddingTop: 22,
-  },
-
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-
-  backButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "rgba(74, 45, 92, 0.09)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 11,
-  },
-
-  headerText: {
-    flex: 1,
-  },
-
-  brand: {
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 2,
-    color: "#4A2D5C",
-  },
-
-  pageTitle: {
-    marginTop: 5,
-    fontSize: 26,
-    lineHeight: 31,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  pageSubtitle: {
-    marginTop: 4,
-    fontSize: 11,
-    lineHeight: 17,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  section: {
-    marginTop: 18,
-  },
-
-  sectionLabel: {
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1.7,
-    color: "rgba(60,60,67,0.6)",
-    marginBottom: 9,
-  },
-
-  card: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 18,
+  loading: {
     paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
   },
 
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 15,
-  },
-
-  rowContent: {
-    flex: 1,
-    marginRight: 12,
-  },
-
-  rowTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  rowDescription: {
-    marginTop: 4,
-    fontSize: 11,
-    lineHeight: 16,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  divider: {
-    height: 1,
-    backgroundColor: "#E9E6EB",
-  },
-
-  noteCard: {
-    marginTop: 22,
-    padding: 17,
-    borderRadius: 16,
-    backgroundColor: "#FBEEF2",
-  },
-
-  noteText: {
-    fontSize: 11,
-    lineHeight: 17,
-    color: "#6F625C",
-  },
-
-  errorBox: {
-    backgroundColor: "#E9E6EB",
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderRadius: 12,
-    marginBottom: 15,
-  },
-
-  errorText: {
-    fontSize: 12,
-    lineHeight: 17,
-    color: "#FF3B30",
-  },
-
-  loadingContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  loadingText: {
-    marginTop: 12,
-    fontSize: 12,
-    color: "rgba(60,60,67,0.6)",
+  group: {
+    gap: 14,
   },
 });

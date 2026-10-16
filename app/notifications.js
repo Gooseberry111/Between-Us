@@ -1,25 +1,90 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { GlassBackground, Card } from "../components/Glass";
-import { Ionicons } from "@expo/vector-icons";
+import { RefreshControl, StyleSheet, View } from "react-native";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
+
+import { apiFetch } from "../lib/api";
+import { timeAgo } from "../lib/activity";
 import {
   clearCachedData,
   getCachedData,
   setCachedData,
 } from "../lib/dataCache";
-import { Skeleton, SkeletonList } from "../components/Skeleton";
-import { apiFetch } from "../lib/api";
+import { T } from "../lib/theme";
+import {
+  Cell,
+  Empty,
+  GlassButton,
+  Group,
+  GroupHeader,
+  Icon,
+  LargeTitle,
+  NavBar,
+  Notice,
+  Screen,
+} from "../components/ui";
+import { SkeletonList } from "../components/Skeleton";
+
+/*
+ * ==========================================
+ * NOTIFICATIONS
+ * ==========================================
+ *
+ * Everything the app has told you, newest first, grouped
+ * by day. Each kind has its symbol, and tapping one takes
+ * you to the thing it is about. Opening the screen marks
+ * them all read.
+ */
+
+const KINDS = {
+  appreciation: { icon: "heart", tint: T.you, to: "/appreciations" },
+  love: { icon: "heart", tint: T.you, to: "/activity" },
+  daily_question: { icon: "lock", tint: T.accent, to: "/daily-question" },
+  daily_question_answered: {
+    icon: "lock",
+    tint: T.accent,
+    to: "/daily-question",
+  },
+  dream: { icon: "sparkle", tint: T.accent, to: "/(tabs)/dreams" },
+  dream_upcoming: { icon: "sparkle", tint: T.accent, to: "/(tabs)/dreams" },
+  dream_overdue: { icon: "sparkle", tint: T.orange, to: "/(tabs)/dreams" },
+  goal_upcoming: { icon: "flag", tint: T.accent, to: "/goals" },
+  goal_overdue: { icon: "flag", tint: T.orange, to: "/goals" },
+  birthday: { icon: "calendar", tint: T.you, to: "/special-dates" },
+  anniversary: { icon: "heart", tint: T.you, to: "/special-dates" },
+  special_date: { icon: "calendar", tint: T.accent, to: "/special-dates" },
+  date_idea: { icon: "calendar", tint: T.secondary, to: "/dates" },
+  trivia_played: { icon: "sparkle", tint: T.secondary, to: "/trivia-history" },
+  trivia_nudge: { icon: "sparkle", tint: T.secondary, to: "/trivia" },
+  repair: { icon: "chat", tint: T.accent, to: "/repair" },
+  connection_request: { icon: "personAdd", tint: T.accent, to: "/find-person" },
+  connection_accepted: { icon: "personAdd", tint: T.green, to: "/(tabs)/home" },
+  connection_closed: { icon: "person", tint: T.label2, to: null },
+  connection_unlinked: { icon: "person", tint: T.label2, to: null },
+  quote_of_day: { icon: "bulb", tint: T.secondary, to: null },
+  inactivity: { icon: "bell", tint: T.accent, to: "/(tabs)/home" },
+};
+
+function kindOf(type) {
+  return KINDS[type] || { icon: "bell", tint: T.accent, to: null };
+}
+
+function dayGroup(iso) {
+  const date = new Date(iso);
+
+  if (Number.isNaN(date.getTime())) return "Earlier";
+
+  const today = new Date();
+  const days = Math.floor(
+    (new Date(today.toDateString()) - new Date(date.toDateString())) / 86400000,
+  );
+
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 7) return "This week";
+
+  return "Earlier";
+}
 
 export default function NotificationsScreen() {
   const router = useRouter();
@@ -52,8 +117,6 @@ export default function NotificationsScreen() {
       const response = await apiFetch(`/users/${userId}/notifications`);
 
       const data = await response.json();
-
-      console.log("NOTIFICATIONS RESPONSE:", data);
 
       if (!response.ok) {
         throw new Error(data?.error || "Unable to load your notifications.");
@@ -89,13 +152,9 @@ export default function NotificationsScreen() {
 
           /* Home reads this cache for the dot on the bell. */
           clearCachedData(`home:${userId}`);
-        } catch (readError) {
-          console.log("MARK ALL READ FAILED:", readError?.message);
-        }
+        } catch (readError) {}
       }
     } catch (err) {
-      console.log("NOTIFICATIONS LOAD ERROR:", err);
-
       if (!cached) {
         setError(err?.message || "Unable to load your notifications.");
       }
@@ -114,452 +173,135 @@ export default function NotificationsScreen() {
     loadNotifications();
   };
 
-  if (loading) {
-    /*
-     * Cold load only (nothing cached yet). Mirrors the
-     * real layout so the page appears at once and fills
-     * in, instead of blocking on a spinner.
-     */
-    return (
-      <SafeAreaView style={styles.screen} edges={["top"]}>
-        <GlassBackground>
-          <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
-            <Skeleton width={96} height={11} radius={6} />
-            <Skeleton
-              width="62%"
-              height={26}
-              radius={9}
-              style={{ marginTop: 12 }}
-            />
-            <Skeleton width="80%" height={12} style={{ marginTop: 10 }} />
-
-            <View style={{ marginTop: 26 }}>
-              <SkeletonList count={3} />
-            </View>
-          </View>
-        </GlassBackground>
-      </SafeAreaView>
-    );
-  }
-
-  return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
-      <GlassBackground>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor="#4A2D5C"
-            />
-          }
-          contentContainerStyle={styles.scrollContent}
-        >
-          <View style={styles.container}>
-            {/* HEADER */}
-
-            <View style={styles.header}>
-              <TouchableOpacity
-                style={styles.backButton}
-                activeOpacity={0.8}
-                onPress={() => router.back()}
-              >
-                <Ionicons name="chevron-back" size={20} color="#4A2D5C" />
-              </TouchableOpacity>
-
-              <View style={styles.headerText}>
-                <Text style={styles.brand}>BETWEEN US</Text>
-
-                <Text style={styles.pageTitle}>Notifications</Text>
-
-                <Text style={styles.pageSubtitle}>
-                  Updates and reminders for your relationship.
-                </Text>
-              </View>
-            </View>
-
-            {error ? (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            ) : null}
-
-            {/* NOTIFICATIONS */}
-
-            <View style={styles.section}>
-              {notifications.length === 0 ? (
-                <Card style={styles.emptyCard}>
-                  <View style={styles.emptyIcon}>
-                    <Ionicons
-                      name="notifications-outline"
-                      size={23}
-                      color="#4A2D5C"
-                    />
-                  </View>
-
-                  <Text style={styles.emptyTitle}>Nothing new</Text>
-
-                  <Text style={styles.emptyText}>
-                    When something important happens, you'll find it here.
-                  </Text>
-                </Card>
-              ) : (
-                notifications.map((notification) => (
-                  <NotificationCard
-                    key={notification.id}
-                    notification={notification}
-                    userId={userId}
-                    onRead={(id) => {
-                      setNotifications((current) => {
-                        const next = current.map((item) =>
-                          item.id === id ? { ...item, is_read: true } : item,
-                        );
-                        if (cacheKey) setCachedData(cacheKey, next);
-                        return next;
-                      });
-                    }}
-                  />
-                ))
-              )}
-            </View>
-          </View>
-        </ScrollView>
-      </GlassBackground>
-    </SafeAreaView>
-  );
-}
-
-function NotificationCard({ notification, userId, onRead }) {
-  const date = notification.created_at
-    ? new Date(notification.created_at).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      })
-    : "";
-
-  const getIcon = () => {
-    switch (notification.type) {
-      case "birthday":
-        return "gift-outline";
-
-      case "anniversary":
-        return "heart-outline";
-
-      case "reminder":
-        return "notifications-outline";
-
-      case "connection":
-      case "connection_request":
-      case "connection_accepted":
-      case "connection_unlinked":
-        return "people-outline";
-
-      case "special_date":
-        return "calendar-outline";
-
-      case "dream_upcoming":
-      case "dream_overdue":
-        return "sparkles-outline";
-
-      case "goal_upcoming":
-      case "goal_overdue":
-        return "flag-outline";
-
-      case "trivia_nudge":
-        return "help-circle-outline";
-
-      case "inactivity":
-        return "hand-left-outline";
-
-      case "quote_of_day":
-        return "chatbubble-ellipses-outline";
-
-      case "daily_question":
-      case "daily_question_answered":
-        return "help-circle-outline";
-
-      case "appreciation":
-      case "love":
-        return "heart-outline";
-
-      case "repair":
-        return "chatbubbles-outline";
-
-      case "date_idea":
-        return "restaurant-outline";
-
-      default:
-        return "notifications-outline";
-    }
+  const goBack = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)/home");
   };
 
-  const handlePress = async () => {
-    if (notification.is_read || !userId) {
-      return;
+  const open = (notification) => {
+    if (!notification.is_read) {
+      apiFetch(`/users/${userId}/notifications/${notification.id}`, {
+        method: "PATCH",
+      }).catch(() => {});
+
+      setNotifications((current) => {
+        const next = current.map((item) =>
+          item.id === notification.id ? { ...item, is_read: true } : item,
+        );
+
+        if (cacheKey) setCachedData(cacheKey, next);
+
+        return next;
+      });
     }
 
-    try {
-      const response = await apiFetch(
-        `/users/${userId}/notifications/${notification.id}`,
-        {
-          method: "PATCH",
-        },
-      );
+    const to = kindOf(notification.type).to;
 
-      const data = await response.json();
+    if (to) router.push(to);
+  };
 
-      console.log("MARK NOTIFICATION READ:", data);
+  /* Grouped by day, keeping newest first. */
+  const groups = [];
 
-      if (!response.ok) {
-        throw new Error(data?.error || "Unable to mark notification as read.");
+  notifications.forEach((item) => {
+    const label = dayGroup(item.created_at);
+    const last = groups[groups.length - 1];
+
+    if (last && last.label === label) last.items.push(item);
+    else groups.push({ label, items: [item] });
+  });
+
+  return (
+    <Screen
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          tintColor={T.accent}
+        />
       }
-
-      onRead(notification.id);
-    } catch (err) {
-      console.log("MARK NOTIFICATION READ ERROR:", err);
-    }
-  };
-
-  return (
-    <TouchableOpacity
-      activeOpacity={0.85}
-      onPress={handlePress}
-      style={[
-        styles.notificationCard,
-        !notification.is_read && styles.notificationCardUnread,
-      ]}
     >
-      <View style={styles.notificationRow}>
-        <View
-          style={[
-            styles.notificationIcon,
-            !notification.is_read && styles.notificationIconUnread,
-          ]}
-        >
-          <Ionicons name={getIcon()} size={19} color="#4A2D5C" />
+      <NavBar
+        left={<GlassButton icon="back" label="Back" onPress={goBack} />}
+      />
+
+      <LargeTitle>Notifications</LargeTitle>
+
+      <Notice>{error}</Notice>
+
+      {loading ? (
+        <View style={styles.loading}>
+          <SkeletonList count={4} />
         </View>
+      ) : notifications.length === 0 ? (
+        <Empty
+          icon="bell"
+          title="Nothing new"
+          text="Reminders, notes and anything they do for you show up here."
+        />
+      ) : (
+        groups.map((group) => (
+          <View key={group.label} style={styles.group}>
+            <GroupHeader>{group.label}</GroupHeader>
 
-        <View style={styles.notificationContent}>
-          <View style={styles.titleRow}>
-            <Text
-              style={[
-                styles.notificationTitle,
-                !notification.is_read && styles.notificationTitleUnread,
-              ]}
-              numberOfLines={2}
-            >
-              {notification.title || "Notification"}
-            </Text>
+            <Group inset={62}>
+              {group.items.map((item) => {
+                const kind = kindOf(item.type);
 
-            {!notification.is_read ? <View style={styles.unreadDot} /> : null}
+                return (
+                  <Cell
+                    key={item.id}
+                    leading={
+                      <View style={styles.badge}>
+                        <Icon name={kind.icon} size={17} color={kind.tint} />
+
+                        {!item.is_read ? <View style={styles.unread} /> : null}
+                      </View>
+                    }
+                    title={item.title || "Notification"}
+                    subtitle={[item.message, timeAgo(item.created_at)]
+                      .filter(Boolean)
+                      .join(" · ")}
+                    chevron={Boolean(kind.to)}
+                    onPress={() => open(item)}
+                  />
+                );
+              })}
+            </Group>
           </View>
-
-          <Text style={styles.notificationMessage}>
-            {notification.message || ""}
-          </Text>
-
-          <Text style={styles.notificationDate}>{date}</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
+        ))
+      )}
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
+  loading: {
+    paddingHorizontal: 16,
   },
 
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 120,
+  group: {
+    gap: 14,
   },
 
-  container: {
-    paddingHorizontal: 22,
-    paddingTop: 22,
-  },
-
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 25,
-  },
-
-  backButton: {
+  badge: {
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: "rgba(74, 45, 92, 0.09)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 11,
-  },
-
-  headerText: {
-    flex: 1,
-  },
-
-  brand: {
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 2,
-    color: "#4A2D5C",
-  },
-
-  pageTitle: {
-    marginTop: 5,
-    fontSize: 26,
-    lineHeight: 31,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  pageSubtitle: {
-    marginTop: 4,
-    fontSize: 11,
-    lineHeight: 17,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  section: {
-    marginTop: 2,
-  },
-
-  notificationCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 16,
-    padding: 15,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    marginBottom: 10,
-  },
-
-  notificationCardUnread: {
-    borderColor: "#D9C8C0",
-  },
-
-  notificationRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-  },
-
-  notificationIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-
-  notificationIconUnread: {
-    backgroundColor: "rgba(74, 45, 92, 0.09)",
-  },
-
-  notificationContent: {
-    flex: 1,
-  },
-
-  titleRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-  },
-
-  notificationTitle: {
-    flex: 1,
-    fontSize: 14,
-    lineHeight: 19,
-    fontWeight: "600",
-    color: "#111114",
-  },
-
-  notificationTitleUnread: {
-    fontWeight: "700",
-  },
-
-  unreadDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: "#4A2D5C",
-    marginTop: 6,
-    marginLeft: 7,
-  },
-
-  notificationMessage: {
-    marginTop: 5,
-    fontSize: 11,
-    lineHeight: 17,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  notificationDate: {
-    marginTop: 8,
-    fontSize: 9,
-    fontWeight: "600",
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  emptyCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 17,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    alignItems: "center",
-  },
-
-  emptyIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: "rgba(74, 45, 92, 0.09)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 13,
-  },
-
-  emptyTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  emptyText: {
-    marginTop: 7,
-    fontSize: 12,
-    lineHeight: 19,
-    color: "rgba(60,60,67,0.6)",
-    textAlign: "center",
-  },
-
-  errorBox: {
-    backgroundColor: "#E9E6EB",
-    paddingHorizontal: 13,
-    paddingVertical: 10,
-    borderRadius: 11,
-    marginBottom: 13,
-  },
-
-  errorText: {
-    fontSize: 11,
-    lineHeight: 16,
-    color: "#FF3B30",
-  },
-
-  loadingContainer: {
-    flex: 1,
+    backgroundColor: T.fill4,
     alignItems: "center",
     justifyContent: "center",
   },
 
-  loadingText: {
-    marginTop: 10,
-    fontSize: 11,
-    color: "rgba(60,60,67,0.6)",
+  unread: {
+    position: "absolute",
+    top: -1,
+    right: -1,
+    width: 11,
+    height: 11,
+    borderRadius: 6,
+    backgroundColor: T.you,
+    borderWidth: 2,
+    borderColor: T.surface,
   },
 });

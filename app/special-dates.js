@@ -1,29 +1,81 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Pressable,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   RefreshControl,
-  ScrollView,
   StyleSheet,
-  Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { GlassBackground, Card } from "../components/Glass";
-import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
-import DateInput from "../components/DateInput";
-import { getCachedData, setCachedData } from "../lib/dataCache";
-import { Skeleton, SkeletonList } from "../components/Skeleton";
+
 import { apiFetch } from "../lib/api";
-import ConnectFirst from "../components/ConnectFirst";
+import { chooseAction } from "../lib/actions";
+import { getCachedData, setCachedData } from "../lib/dataCache";
 import { useIsConnected } from "../lib/connection";
+import { T } from "../lib/theme";
+import {
+  Button,
+  Cell,
+  Chip,
+  DateBlock,
+  Empty,
+  GlassButton,
+  Group,
+  GroupFooter,
+  LargeTitle,
+  NavBar,
+  Notice,
+  Screen,
+  Sheet,
+  SubTitle,
+} from "../components/ui";
+import ConnectFirst from "../components/ConnectFirst";
+import DateInput from "../components/DateInput";
+import { SkeletonList } from "../components/Skeleton";
+
+/*
+ * ==========================================
+ * EVERY YEAR
+ * ==========================================
+ *
+ * Birthdays, anniversaries and anything else that comes
+ * round each year, soonest first, with how long to go.
+ * You both get a nudge as each one gets close.
+ */
+
+const SUGGESTIONS = ["Our anniversary", "First date", "Their birthday"];
+
+/* Days until this date next comes round, counting today as 0. */
+function daysToNext(iso) {
+  if (!iso) return null;
+
+  const original = new Date(String(iso).slice(0, 10) + "T00:00:00");
+
+  if (Number.isNaN(original.getTime())) return null;
+
+  const today = new Date();
+
+  today.setHours(0, 0, 0, 0);
+
+  const next = new Date(
+    today.getFullYear(),
+    original.getMonth(),
+    original.getDate(),
+  );
+
+  if (next < today) next.setFullYear(today.getFullYear() + 1);
+
+  return Math.round((next - today) / 86400000);
+}
+
+function countdown(days) {
+  if (days === null) return null;
+  if (days === 0) return "Today";
+  if (days === 1) return "Tomorrow";
+
+  return `In ${days} days`;
+}
 
 export default function SpecialDatesScreen() {
   const router = useRouter();
@@ -62,8 +114,6 @@ export default function SpecialDatesScreen() {
       const response = await apiFetch(`/users/${userId}/special-dates`);
       const data = await response.json();
 
-      console.log("SPECIAL DATES RESPONSE:", data);
-
       if (!response.ok) {
         throw new Error(data?.error || "Unable to load special dates.");
       }
@@ -76,8 +126,6 @@ export default function SpecialDatesScreen() {
 
       if (cacheKey) setCachedData(cacheKey, nextSpecialDates);
     } catch (err) {
-      console.log("SPECIAL DATES LOAD ERROR:", err);
-
       if (!cached) {
         setError(err?.message || "Unable to load your special dates.");
       }
@@ -131,8 +179,6 @@ export default function SpecialDatesScreen() {
 
       const data = await response.json();
 
-      console.log("CREATE SPECIAL DATE RESPONSE:", data);
-
       if (!response.ok) {
         throw new Error(data?.error || "Unable to save special date.");
       }
@@ -140,8 +186,6 @@ export default function SpecialDatesScreen() {
       resetForm();
       await loadSpecialDates();
     } catch (err) {
-      console.log("SAVE SPECIAL DATE ERROR:", err);
-
       Alert.alert(
         "Something went wrong",
         err?.message || "Unable to save special date.",
@@ -174,8 +218,6 @@ export default function SpecialDatesScreen() {
 
               const data = await response.json();
 
-              console.log("DELETE SPECIAL DATE RESPONSE:", data);
-
               if (!response.ok) {
                 throw new Error(
                   data?.error || "Unable to delete special date.",
@@ -190,8 +232,6 @@ export default function SpecialDatesScreen() {
                 return next;
               });
             } catch (err) {
-              console.log("DELETE SPECIAL DATE ERROR:", err);
-
               Alert.alert(
                 "Something went wrong",
                 err?.message || "Unable to delete special date.",
@@ -204,611 +244,161 @@ export default function SpecialDatesScreen() {
   };
 
   if (connected === false) {
-    return <ConnectFirst feature="Special Dates" showBack={true} />;
+    return <ConnectFirst feature="Special dates" showBack />;
   }
 
-  if (loading) {
-    /*
-     * Cold load only (nothing cached yet). Mirrors the
-     * real layout so the page appears at once and fills
-     * in, instead of blocking on a spinner.
-     */
-    return (
-      <SafeAreaView style={styles.screen} edges={["top"]}>
-        <GlassBackground>
-          <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
-            <Skeleton width={96} height={11} radius={6} />
-            <Skeleton
-              width="62%"
-              height={26}
-              radius={9}
-              style={{ marginTop: 12 }}
-            />
-            <Skeleton width="80%" height={12} style={{ marginTop: 10 }} />
+  const goBack = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/dates");
+  };
 
-            <View style={{ marginTop: 26 }}>
-              <SkeletonList count={3} />
-            </View>
-          </View>
-        </GlassBackground>
-      </SafeAreaView>
-    );
-  }
+  const sorted = specialDates
+    .map((item) => ({ ...item, days: daysToNext(item.event_date) }))
+    .sort((a, b) => (a.days ?? 999) - (b.days ?? 999));
 
   return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
-      <GlassBackground>
-        <KeyboardAvoidingView
-          style={styles.keyboardContainer}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+    <>
+      <Screen
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={T.accent}
+          />
+        }
+      >
+        <NavBar
+          left={<GlassButton icon="back" label="Back" onPress={goBack} />}
         >
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={handleRefresh}
-                tintColor="#4A2D5C"
-              />
-            }
-            contentContainerStyle={styles.scrollContent}
-          >
-            <View style={styles.container}>
-              {/* HEADER */}
+          <GlassButton
+            icon="add"
+            label="Add a date"
+            onPress={() => setShowForm(true)}
+          />
+        </NavBar>
 
-              <View style={styles.header}>
-                <TouchableOpacity
-                  style={styles.backButton}
-                  activeOpacity={0.8}
-                  onPress={() => router.back()}
-                >
-                  <Ionicons name="chevron-back" size={20} color="#4A2D5C" />
-                </TouchableOpacity>
+        <LargeTitle>Every year</LargeTitle>
 
-                <View style={styles.headerText}>
-                  <Text style={styles.brand}>BETWEEN US</Text>
+        <SubTitle>The days worth remembering, soonest first.</SubTitle>
 
-                  <Text style={styles.pageTitle}>Special Dates</Text>
+        <Notice>{error}</Notice>
 
-                  <Text style={styles.pageSubtitle}>
-                    Birthdays, anniversaries, or anything else worth
-                    remembering. Repeats every year.
-                  </Text>
-                </View>
-              </View>
+        {loading ? (
+          <View style={styles.loading}>
+            <SkeletonList count={3} />
+          </View>
+        ) : sorted.length === 0 ? (
+          <Empty
+            icon="calendar"
+            title="Nothing to remember yet"
+            text="Birthdays, your anniversary, the first date. You both get a nudge before each one."
+            chips={SUGGESTIONS.map((label) => ({
+              label,
+              onPress: () => {
+                setTitle(label);
+                setShowForm(true);
+              },
+            }))}
+          />
+        ) : (
+          <>
+            <Group inset={72}>
+              {sorted.map((item) => (
+                <Cell
+                  key={item.id}
+                  leading={<DateBlock date={item.event_date} tone="you" />}
+                  title={item.title}
+                  subtitle={countdown(item.days)}
+                  onPress={() =>
+                    chooseAction({
+                      title: item.title,
+                      options: [
+                        {
+                          label: "Delete",
+                          destructive: true,
+                          onPress: () => deleteSpecialDate(item),
+                        },
+                      ],
+                    })
+                  }
+                />
+              ))}
+            </Group>
 
-              {error ? (
-                <View style={styles.errorBox}>
-                  <Text style={styles.errorText}>{error}</Text>
-                </View>
-              ) : null}
+            <GroupFooter>
+              You both get a reminder as each one gets close.
+            </GroupFooter>
+          </>
+        )}
+      </Screen>
 
-              {/* ADD */}
+      <Sheet
+        visible={showForm}
+        title="New Date"
+        onCancel={resetForm}
+        onSave={saveSpecialDate}
+        saveDisabled={!title.trim() || !eventDate.trim() || saving}
+      >
+        <View style={styles.chips}>
+          {SUGGESTIONS.map((label) => (
+            <Chip
+              key={label}
+              label={label}
+              selected={title === label}
+              onPress={() => setTitle(label)}
+            />
+          ))}
+        </View>
 
-              {!showForm ? (
-                <Pressable onPress={() => setShowForm(true)}>
-                  <Card style={styles.addButton}>
-                    <View style={styles.addIcon}>
-                      <Text style={styles.addIconText}>+</Text>
-                    </View>
+        <Group>
+          <TextInput
+            value={title}
+            onChangeText={setTitle}
+            placeholder="What is it?"
+            placeholderTextColor={T.label3}
+            style={styles.field}
+          />
 
-                    <View style={styles.addContent}>
-                      <Text style={styles.addTitle}>Add a special date</Text>
+          <DateInput
+            value={eventDate}
+            onChangeText={setEventDate}
+            placeholder="YYYY-MM-DD"
+            style={styles.field}
+          />
+        </Group>
 
-                      <Text style={styles.addSubtitle}>
-                        You'll both get reminded as it comes up.
-                      </Text>
-                    </View>
+        <GroupFooter>
+          The year it first happened. It comes round on the same day each year.
+        </GroupFooter>
 
-                    <Text style={styles.addArrow}>→</Text>
-                  </Card>
-                </Pressable>
-              ) : null}
-
-              {/* FORM */}
-
-              {showForm ? (
-                <Card style={styles.formCard}>
-                  <View style={styles.formHeader}>
-                    <View>
-                      <Text style={styles.formLabel}>NEW SPECIAL DATE</Text>
-
-                      <Text style={styles.formTitle}>
-                        What date do you want to remember?
-                      </Text>
-                    </View>
-
-                    <TouchableOpacity
-                      onPress={resetForm}
-                      style={styles.closeButton}
-                    >
-                      <Text style={styles.closeButtonText}>×</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  <Text style={styles.inputLabel}>TITLE</Text>
-
-                  <TextInput
-                    value={title}
-                    onChangeText={setTitle}
-                    placeholder="e.g. First date anniversary"
-                    placeholderTextColor="rgba(60,60,67,0.3)"
-                    style={styles.input}
-                  />
-
-                  <Text style={styles.inputLabel}>DATE</Text>
-
-                  <DateInput
-                    value={eventDate}
-                    onChangeText={setEventDate}
-                    style={styles.input}
-                  />
-
-                  <TouchableOpacity
-                    style={[
-                      styles.saveButton,
-                      saving && styles.saveButtonDisabled,
-                    ]}
-                    activeOpacity={0.85}
-                    onPress={saveSpecialDate}
-                    disabled={saving}
-                  >
-                    {saving ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <Text style={styles.saveButtonText}>Add date</Text>
-                    )}
-                  </TouchableOpacity>
-                </Card>
-              ) : null}
-
-              {/* SPECIAL DATES */}
-
-              <View style={styles.section}>
-                <Text style={styles.sectionLabel}>DATES THAT MATTER</Text>
-
-                <Text style={styles.sectionTitle}>
-                  {specialDates.length === 0
-                    ? "Nothing saved yet."
-                    : `${specialDates.length} ${
-                        specialDates.length === 1 ? "date" : "dates"
-                      } saved.`}
-                </Text>
-
-                {specialDates.length === 0 ? (
-                  <Card style={styles.emptyCard}>
-                    <View style={styles.emptyIcon}>
-                      <Ionicons
-                        name="calendar-outline"
-                        size={24}
-                        color="#4A2D5C"
-                      />
-                    </View>
-
-                    <Text style={styles.emptyTitle}>Nothing here yet.</Text>
-
-                    <Text style={styles.emptyText}>
-                      Add birthdays, anniversaries, or any date you don't want
-                      to forget. You'll both be reminded as it approaches.
-                    </Text>
-
-                    <TouchableOpacity
-                      style={styles.emptyButton}
-                      onPress={() => setShowForm(true)}
-                    >
-                      <Text style={styles.emptyButtonText}>
-                        Add your first date
-                      </Text>
-                    </TouchableOpacity>
-                  </Card>
-                ) : (
-                  specialDates.map((specialDate) => (
-                    <SpecialDateCard
-                      key={specialDate.id}
-                      specialDate={specialDate}
-                      onDelete={() => deleteSpecialDate(specialDate)}
-                    />
-                  ))
-                )}
-              </View>
-
-              {specialDates.length > 0 ? (
-                <Card style={styles.footerCard}>
-                  <Text style={styles.footerQuote}>
-                    "The days you choose to remember are the days that mean the
-                    most."
-                  </Text>
-                </Card>
-              ) : null}
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </GlassBackground>
-    </SafeAreaView>
-  );
-}
-
-function SpecialDateCard({ specialDate, onDelete }) {
-  const date = specialDate.event_date
-    ? new Date(specialDate.event_date).toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-      })
-    : null;
-
-  return (
-    <Card style={styles.dateCard}>
-      <View style={styles.dateCardIcon}>
-        <Ionicons name="calendar-outline" size={19} color="#4A2D5C" />
-      </View>
-
-      <View style={styles.dateCardContent}>
-        <Text style={styles.dateCardTitle}>{specialDate.title}</Text>
-
-        {date ? <Text style={styles.dateCardDate}>{date}</Text> : null}
-      </View>
-
-      <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
-        <Text style={styles.deleteButtonText}>Delete</Text>
-      </TouchableOpacity>
-    </Card>
+        <Button
+          title="Save Date"
+          onPress={saveSpecialDate}
+          busy={saving}
+          disabled={!title.trim() || !eventDate.trim()}
+        />
+      </Sheet>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
+  loading: {
+    paddingHorizontal: 16,
   },
 
-  keyboardContainer: {
-    flex: 1,
-  },
-
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 120,
-  },
-
-  container: {
-    paddingHorizontal: 22,
-    paddingTop: 22,
-  },
-
-  header: {
+  chips: {
     flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 22,
+    flexWrap: "wrap",
+    gap: 8,
+    paddingHorizontal: 16,
   },
 
-  backButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "rgba(74, 45, 92, 0.09)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 11,
-  },
-
-  headerText: {
-    flex: 1,
-  },
-
-  brand: {
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 2,
-    color: "#4A2D5C",
-  },
-
-  pageTitle: {
-    marginTop: 5,
-    fontSize: 26,
-    lineHeight: 31,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  pageSubtitle: {
-    marginTop: 4,
-    fontSize: 11,
-    lineHeight: 17,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  addButton: {
-    borderRadius: 20,
-    padding: 17,
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    marginBottom: 12,
-  },
-
-  addIcon: {
-    width: 43,
-    height: 43,
-    borderRadius: 22,
-    backgroundColor: "#4A2D5C",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  addIconText: {
-    fontSize: 24,
-    lineHeight: 27,
-    color: "#FFFFFF",
-  },
-
-  addContent: {
-    flex: 1,
-    marginLeft: 13,
-  },
-
-  addTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  addSubtitle: {
-    marginTop: 3,
-    fontSize: 11,
-    lineHeight: 16,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  addArrow: {
-    fontSize: 20,
-    color: "#4A2D5C",
-    marginLeft: 8,
-  },
-
-  formCard: {
-    marginBottom: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 20,
-    padding: 19,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-  },
-
-  formHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    marginBottom: 20,
-  },
-
-  formLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 1.6,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  formTitle: {
-    marginTop: 5,
-    fontSize: 19,
-    fontWeight: "700",
-    color: "#111114",
-    maxWidth: 260,
-  },
-
-  closeButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  closeButtonText: {
-    fontSize: 22,
-    color: "#4A2D5C",
-  },
-
-  inputLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 1.5,
-    color: "rgba(60,60,67,0.6)",
-    marginBottom: 7,
-  },
-
-  input: {
-    minHeight: 49,
-    borderRadius: 12,
-    backgroundColor: "rgba(74, 45, 92, 0.07)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 14,
-    color: "#111114",
-    marginBottom: 16,
-  },
-
-  saveButton: {
-    height: 50,
-    borderRadius: 13,
-    backgroundColor: "#4A2D5C",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 4,
-  },
-
-  saveButtonDisabled: {
-    opacity: 0.65,
-  },
-
-  saveButtonText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
-  },
-
-  section: {
-    marginTop: 4,
-  },
-
-  sectionLabel: {
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1.7,
-    color: "rgba(60,60,67,0.6)",
-    marginBottom: 7,
-  },
-
-  sectionTitle: {
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: "700",
-    color: "#111114",
-    marginBottom: 13,
-  },
-
-  dateCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 16,
-    padding: 15,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    marginBottom: 10,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  dateCardIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-
-  dateCardContent: {
-    flex: 1,
-  },
-
-  dateCardTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  dateCardDate: {
-    marginTop: 4,
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#4A2D5C",
-  },
-
-  deleteButton: {
-    paddingHorizontal: 11,
-    paddingVertical: 8,
-    borderRadius: 9,
-    backgroundColor: "#E9E6EB",
-    marginLeft: 10,
-  },
-
-  deleteButtonText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#FF3B30",
-  },
-
-  emptyCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 20,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    alignItems: "center",
-  },
-
-  emptyIcon: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: "rgba(74, 45, 92, 0.09)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 15,
-  },
-
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  emptyText: {
-    marginTop: 8,
-    fontSize: 13,
-    lineHeight: 20,
-    color: "rgba(60,60,67,0.6)",
-    textAlign: "center",
-  },
-
-  emptyButton: {
-    marginTop: 17,
-    paddingHorizontal: 15,
-    paddingVertical: 11,
-    borderRadius: 11,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-  },
-
-  emptyButtonText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#4A2D5C",
-  },
-
-  footerCard: {
-    marginTop: 17,
-    padding: 20,
-    borderRadius: 18,
-    backgroundColor: "#FBEEF2",
-    alignItems: "center",
-  },
-
-  footerQuote: {
-    textAlign: "center",
-    fontSize: 14,
-    lineHeight: 21,
-    fontWeight: "600",
-    color: "#4A2D5C",
-  },
-
-  errorBox: {
-    backgroundColor: "#E9E6EB",
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderRadius: 12,
-    marginBottom: 15,
-  },
-
-  errorText: {
-    fontSize: 12,
-    lineHeight: 17,
-    color: "#FF3B30",
-  },
-
-  loadingContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  loadingText: {
-    marginTop: 12,
-    fontSize: 12,
-    color: "rgba(60,60,67,0.6)",
+  field: {
+    fontSize: 17,
+    color: T.label,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    minHeight: 50,
   },
 });

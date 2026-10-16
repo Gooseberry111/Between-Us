@@ -1,31 +1,40 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useFocusEffect, useRouter } from "expo-router";
 
 import { apiFetch } from "../lib/api";
+import { chooseAction } from "../lib/actions";
 import { getCachedData, setCachedData } from "../lib/dataCache";
-import { GlassBackground, Card, FadeIn } from "../components/Glass";
-import { PASTELS, Squish, EmptyArt } from "../components/Playful";
-import { Skeleton, SkeletonList } from "../components/Skeleton";
-import ConnectFirst from "../components/ConnectFirst";
 import { useIsConnected } from "../lib/connection";
+import { T } from "../lib/theme";
+import {
+  Button,
+  Card,
+  Cell,
+  DateBlock,
+  Empty,
+  GlassButton,
+  Group,
+  Icon,
+  LargeTitle,
+  NavBar,
+  Notice,
+  Screen,
+  SectionHeader,
+  Sheet,
+  SubTitle,
+} from "../components/ui";
+import ConnectFirst from "../components/ConnectFirst";
 import DateInput from "../components/DateInput";
-import { GlassButton } from "../components/ui";
+import { SkeletonList } from "../components/Skeleton";
 
 /*
  * ==========================================
@@ -33,43 +42,25 @@ import { GlassButton } from "../components/ui";
  * ==========================================
  *
  * Plans the two of you are making, the anniversaries
- * that come round every year, and a nudge when neither
- * of you can think of anything.
+ * that come round every year, and an idea for when
+ * neither of you can think of anything.
+ *
+ *   +            plan a date, in a sheet
+ *   idea         today's suggestion, one tap to plan it
+ *   coming up    tap one to say you did it, or remove it
+ *   come round   anniversaries and birthdays, soonest first
+ *   you've had   the ones you have done
  */
 
 const DATE_IDEAS = [
-  {
-    icon: "restaurant-outline",
-    tone: "blush",
-    text: "Cook something neither of you has made before",
-  },
-  {
-    icon: "film-outline",
-    tone: "lilac",
-    text: "Film at home, phones in another room",
-  },
-  {
-    icon: "walk-outline",
-    tone: "sage",
-    text: "Walk somewhere you've never been",
-  },
-  { icon: "cafe-outline", tone: "butter", text: "Breakfast out before work" },
-  {
-    icon: "musical-notes-outline",
-    tone: "sky",
-    text: "Play each other three songs that matter",
-  },
-  {
-    icon: "game-controller-outline",
-    tone: "clay",
-    text: "Game night, loser picks the next date",
-  },
-  { icon: "sunny-outline", tone: "butter", text: "Watch the sunrise together" },
-  {
-    icon: "book-outline",
-    tone: "sky",
-    text: "Read the same thing and argue about it",
-  },
+  "Cook something neither of you has made before",
+  "Film at home, phones in another room",
+  "Walk somewhere you've never been",
+  "Breakfast out before work",
+  "Play each other three songs that matter",
+  "Game night, loser picks the next date",
+  "Watch the sunrise together",
+  "Read the same thing and argue about it",
 ];
 
 function ideaOfTheDay() {
@@ -81,7 +72,7 @@ function ideaOfTheDay() {
 function daysUntil(isoDate) {
   if (!isoDate) return null;
 
-  const target = new Date(`${isoDate}T00:00:00`);
+  const target = new Date(`${String(isoDate).slice(0, 10)}T00:00:00`);
   const today = new Date();
 
   today.setHours(0, 0, 0, 0);
@@ -92,17 +83,16 @@ function daysUntil(isoDate) {
 function whenLabel(isoDate) {
   const days = daysUntil(isoDate);
 
-  if (days === null) return "No date set";
+  if (days === null) return "No date yet";
   if (days < 0)
     return `${Math.abs(days)} ${Math.abs(days) === 1 ? "day" : "days"} ago`;
   if (days === 0) return "Today";
   if (days === 1) return "Tomorrow";
   if (days <= 14) return `In ${days} days`;
 
-  return new Date(`${isoDate}T00:00:00`).toLocaleDateString(undefined, {
-    day: "numeric",
-    month: "long",
-  });
+  return new Date(
+    `${String(isoDate).slice(0, 10)}T00:00:00`,
+  ).toLocaleDateString(undefined, { day: "numeric", month: "long" });
 }
 
 export default function DatesScreen() {
@@ -161,7 +151,6 @@ export default function DatesScreen() {
         });
       }
     } catch (err) {
-      console.log("DATES LOAD ERROR:", err);
       setError(err?.message || "Unable to load your dates.");
     } finally {
       setLoading(false);
@@ -206,7 +195,6 @@ export default function DatesScreen() {
 
       await load();
     } catch (err) {
-      console.log("DATE SAVE ERROR:", err);
       Alert.alert("We couldn't save that", err?.message || "Please try again.");
     } finally {
       setSaving(false);
@@ -228,7 +216,6 @@ export default function DatesScreen() {
 
       await load();
     } catch (err) {
-      console.log("DATE UPDATE ERROR:", err);
       Alert.alert(
         "We couldn't update that",
         err?.message || "Please try again.",
@@ -249,9 +236,7 @@ export default function DatesScreen() {
             });
 
             await load();
-          } catch (err) {
-            console.log("DATE DELETE ERROR:", err);
-          }
+          } catch (err) {}
         },
       },
     ]);
@@ -275,676 +260,299 @@ export default function DatesScreen() {
     .sort((a, b) => a.days - b.days)
     .slice(0, 3);
 
+  const goBack = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)/home");
+  };
+
+  const openPlan = (plan) =>
+    chooseAction({
+      title: plan.title,
+      options: [
+        { label: "We Did This", onPress: () => markDone(plan) },
+        { label: "Remove", destructive: true, onPress: () => removePlan(plan) },
+      ],
+    });
+
+  const closeSheet = () => {
+    setAdding(false);
+    setTitle("");
+    setPlace("");
+    setPlanDate("");
+  };
+
   return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
-      <GlassBackground>
-        <KeyboardAvoidingView
-          style={styles.fill}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+    <>
+      <Screen
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              load();
+            }}
+            tintColor={T.accent}
+          />
+        }
+      >
+        <NavBar
+          left={<GlassButton icon="back" label="Back" onPress={goBack} />}
         >
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={() => {
-                  setRefreshing(true);
-                  load();
+          <GlassButton
+            icon="add"
+            label="Plan a date"
+            onPress={() => setAdding(true)}
+          />
+        </NavBar>
+
+        <LargeTitle>Dates</LargeTitle>
+
+        <SubTitle>What you&apos;re planning, and what comes round.</SubTitle>
+
+        <Notice>{error}</Notice>
+
+        {/* IDEA FOR TODAY */}
+
+        <Card style={styles.idea}>
+          <View style={styles.ideaHead}>
+            <Icon name="sparkle" size={16} color={T.secondary} />
+
+            <Text style={styles.ideaLabel}>Idea for today</Text>
+          </View>
+
+          <Text style={styles.ideaText}>{idea}</Text>
+
+          <Button
+            title="Plan This One"
+            kind="tinted"
+            size="small"
+            block={false}
+            style={styles.ideaButton}
+            onPress={() => {
+              setTitle(idea);
+              setAdding(true);
+            }}
+          />
+        </Card>
+
+        {/* COMING UP */}
+
+        {loading ? (
+          <View style={styles.loading}>
+            <SkeletonList count={2} />
+          </View>
+        ) : (
+          <>
+            <SectionHeader>Coming up</SectionHeader>
+
+            {planned.length === 0 ? (
+              <Empty
+                icon="calendar"
+                title="Nothing planned yet"
+                text="A date in the diary is the difference between meaning to and actually going."
+                action={{
+                  title: "Plan a Date",
+                  icon: "add",
+                  onPress: () => setAdding(true),
                 }}
-                tintColor="#4A2D5C"
               />
-            }
-          >
-            <View style={styles.backRow}>
-              <GlassButton
-                icon="back"
-                label="Back"
-                onPress={() => router.back()}
-              />
-            </View>
-
-            <View style={styles.container}>
-              <Text style={styles.eyebrow}>THE TWO OF YOU</Text>
-
-              <Text style={styles.title}>Dates</Text>
-
-              {error ? <Text style={styles.error}>{error}</Text> : null}
-
-              {/* PLAN ONE */}
-
-              {adding ? (
-                <FadeIn>
-                  <Card style={styles.form}>
-                    <Text style={styles.formTitle}>Plan a date</Text>
-
-                    <TextInput
-                      value={title}
-                      onChangeText={setTitle}
-                      placeholder="What are you doing?"
-                      placeholderTextColor="rgba(60,60,67,0.3)"
-                      style={styles.input}
-                    />
-
-                    <TextInput
-                      value={place}
-                      onChangeText={setPlace}
-                      placeholder="Where? (optional)"
-                      placeholderTextColor="rgba(60,60,67,0.3)"
-                      style={styles.input}
-                    />
-
-                    <DateInput
-                      value={planDate}
-                      onChangeText={setPlanDate}
-                      placeholder="When? YYYY-MM-DD (optional)"
-                      style={styles.input}
-                    />
-
-                    <View style={styles.formActions}>
-                      <TouchableOpacity
-                        onPress={() => setAdding(false)}
-                        style={styles.cancelButton}
-                        disabled={saving}
-                      >
-                        <Text style={styles.cancelText}>Cancel</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        onPress={savePlan}
-                        style={[
-                          styles.saveButton,
-                          (!title.trim() || saving) && styles.saveButtonOff,
-                        ]}
-                        disabled={!title.trim() || saving}
-                      >
-                        {saving ? (
-                          <ActivityIndicator size="small" color="#FFFFFF" />
-                        ) : (
-                          <Text style={styles.saveText}>Save the date</Text>
-                        )}
-                      </TouchableOpacity>
-                    </View>
-                  </Card>
-                </FadeIn>
-              ) : (
-                <Squish onPress={() => setAdding(true)} style={styles.addCard}>
-                  <View style={styles.addIcon}>
-                    <Ionicons name="add" size={22} color="#FFFFFF" />
-                  </View>
-
-                  <View style={styles.addTextWrap}>
-                    <Text style={styles.addTitle}>Plan a date</Text>
-
-                    <Text style={styles.addText}>
-                      They'll know as soon as you save it.
-                    </Text>
-                  </View>
-                </Squish>
-              )}
-
-              {/* IDEA */}
-
-              <FadeIn delay={80}>
-                <View
-                  style={[
-                    styles.ideaCard,
-                    { backgroundColor: PASTELS[idea.tone].bg },
-                  ]}
-                >
-                  <View style={styles.ideaTop}>
-                    <Ionicons
-                      name={idea.icon}
-                      size={16}
-                      color={PASTELS[idea.tone].ink}
-                    />
-
-                    <Text
-                      style={[
-                        styles.ideaLabel,
-                        { color: PASTELS[idea.tone].ink },
-                      ]}
-                    >
-                      IDEA FOR TODAY
-                    </Text>
-                  </View>
-
-                  <Text
-                    style={[styles.ideaText, { color: PASTELS[idea.tone].ink }]}
-                  >
-                    {idea.text}
-                  </Text>
-
-                  <TouchableOpacity
-                    style={styles.ideaButton}
-                    activeOpacity={0.85}
-                    onPress={() => {
-                      setTitle(idea.text);
-                      setAdding(true);
-                    }}
-                  >
-                    <Text style={styles.ideaButtonText}>Plan this one</Text>
-                  </TouchableOpacity>
-                </View>
-              </FadeIn>
-
-              {/* COMING UP */}
-
-              {loading ? (
-                <View style={{ marginTop: 22 }}>
-                  <Skeleton width="45%" height={12} radius={6} />
-                  <View style={{ marginTop: 14 }}>
-                    <SkeletonList count={2} />
-                  </View>
-                </View>
-              ) : (
-                <>
-                  <Text style={styles.sectionLabel}>COMING UP</Text>
-
-                  {planned.length === 0 ? (
-                    <Card style={styles.emptyCard}>
-                      <EmptyArt
-                        emoji="🗓️"
-                        title="Nothing planned yet"
-                        text="A date in the diary is the difference between meaning to and actually going."
-                      />
-                    </Card>
-                  ) : (
-                    planned.map((plan, index) => (
-                      <FadeIn key={plan.id} delay={40 + index * 50}>
-                        <Card style={styles.planCard}>
-                          <View style={styles.planTop}>
-                            <View style={styles.planWhen}>
-                              <Text style={styles.planWhenText}>
-                                {whenLabel(plan.plan_date)}
-                              </Text>
-                            </View>
-
-                            <TouchableOpacity
-                              onPress={() => removePlan(plan)}
-                              hitSlop={10}
-                            >
-                              <Ionicons
-                                name="ellipsis-horizontal"
-                                size={18}
-                                color="rgba(60,60,67,0.3)"
-                              />
-                            </TouchableOpacity>
-                          </View>
-
-                          <Text style={styles.planTitle}>{plan.title}</Text>
-
-                          {plan.place ? (
-                            <View style={styles.planMeta}>
-                              <Ionicons
-                                name="location-outline"
-                                size={13}
-                                color="rgba(60,60,67,0.6)"
-                              />
-
-                              <Text style={styles.planMetaText}>
-                                {plan.place}
-                              </Text>
-                            </View>
-                          ) : null}
-
-                          <Text style={styles.planBy}>
-                            {plan.mine
-                              ? "You planned this"
-                              : `${plan.planner_name} planned this`}
-                          </Text>
-
-                          <TouchableOpacity
-                            style={styles.doneButton}
-                            onPress={() => markDone(plan)}
-                            activeOpacity={0.85}
-                          >
-                            <Ionicons
-                              name="checkmark-circle-outline"
-                              size={15}
-                              color="#4A2D5C"
-                            />
-
-                            <Text style={styles.doneText}>We did this</Text>
-                          </TouchableOpacity>
-                        </Card>
-                      </FadeIn>
-                    ))
-                  )}
-
-                  {/* ANNIVERSARIES */}
-
-                  {upcomingSpecial.length > 0 ? (
-                    <>
-                      <View style={styles.sectionHead}>
-                        <Text style={styles.sectionLabel}>
-                          DATES THAT COME ROUND
-                        </Text>
-
-                        <TouchableOpacity
-                          onPress={() => router.push("/special-dates")}
-                        >
-                          <Text style={styles.seeAll}>Manage</Text>
-                        </TouchableOpacity>
-                      </View>
-
-                      {upcomingSpecial.map((item) => (
-                        <Card key={item.id} style={styles.specialCard}>
-                          <View style={styles.specialIcon}>
-                            <Ionicons
-                              name="heart"
-                              size={15}
-                              color={PASTELS.blush.ink}
-                            />
-                          </View>
-
-                          <View style={styles.specialText}>
-                            <Text style={styles.specialTitle}>
-                              {item.title}
-                            </Text>
-
-                            <Text style={styles.specialWhen}>
-                              {item.days === 0
-                                ? "Today"
-                                : `In ${item.days} ${item.days === 1 ? "day" : "days"}`}
-                            </Text>
-                          </View>
-                        </Card>
-                      ))}
-                    </>
-                  ) : (
-                    <TouchableOpacity
-                      style={styles.addSpecial}
-                      onPress={() => router.push("/special-dates")}
-                      activeOpacity={0.8}
-                    >
-                      <Ionicons
-                        name="calendar-outline"
-                        size={15}
-                        color="#4A2D5C"
-                      />
-
-                      <Text style={styles.addSpecialText}>
-                        Add an anniversary or birthday
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-
-                  {/* WHAT YOU'VE DONE */}
-
-                  {past.length > 0 ? (
-                    <>
-                      <Text style={styles.sectionLabel}>DATES YOU'VE HAD</Text>
-
-                      {past.slice(0, 8).map((plan) => (
-                        <View key={plan.id} style={styles.pastRow}>
-                          <Ionicons
-                            name="checkmark-circle"
-                            size={16}
-                            color={PASTELS.sage.ink}
-                          />
-
-                          <Text style={styles.pastText}>{plan.title}</Text>
-
-                          {plan.plan_date ? (
-                            <Text style={styles.pastWhen}>
-                              {whenLabel(plan.plan_date)}
-                            </Text>
-                          ) : null}
+            ) : (
+              <Group inset={72}>
+                {planned.map((plan) => (
+                  <Cell
+                    key={plan.id}
+                    leading={
+                      plan.plan_date ? (
+                        <DateBlock
+                          date={plan.plan_date}
+                          tone={plan.mine ? "you" : "them"}
+                        />
+                      ) : (
+                        <View style={styles.noDate}>
+                          <Icon name="calendar" size={20} color={T.label2} />
                         </View>
-                      ))}
-                    </>
-                  ) : null}
-                </>
-              )}
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </GlassBackground>
-    </SafeAreaView>
+                      )
+                    }
+                    title={plan.title}
+                    subtitle={[
+                      whenLabel(plan.plan_date),
+                      plan.place,
+                      plan.mine
+                        ? "You planned it"
+                        : `${plan.planner_name} planned it`,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                    chevron
+                    onPress={() => openPlan(plan)}
+                  />
+                ))}
+              </Group>
+            )}
+
+            {/* DATES THAT COME ROUND */}
+
+            <SectionHeader
+              action="Manage"
+              onAction={() => router.push("/special-dates")}
+            >
+              Every year
+            </SectionHeader>
+
+            {upcomingSpecial.length > 0 ? (
+              <Group inset={52}>
+                {upcomingSpecial.map((item) => (
+                  <Cell
+                    key={item.id}
+                    leading={
+                      <Icon name="heart" size={20} color={T.you} filled />
+                    }
+                    title={item.title}
+                    value={
+                      item.days === 0
+                        ? "Today"
+                        : `In ${item.days} ${item.days === 1 ? "day" : "days"}`
+                    }
+                  />
+                ))}
+              </Group>
+            ) : (
+              <Group inset={52}>
+                <Cell
+                  leading={<Icon name="add" size={20} color={T.accent} />}
+                  title="Add an anniversary or birthday"
+                  chevron
+                  onPress={() => router.push("/special-dates")}
+                />
+              </Group>
+            )}
+
+            {/* DATES YOU'VE HAD */}
+
+            {past.length > 0 ? (
+              <>
+                <SectionHeader>You&apos;ve had</SectionHeader>
+
+                <Group inset={52}>
+                  {past.slice(0, 8).map((plan) => (
+                    <Cell
+                      key={plan.id}
+                      leading={
+                        <Icon name="checkCircle" size={20} color={T.green} />
+                      }
+                      title={plan.title}
+                      value={plan.plan_date ? whenLabel(plan.plan_date) : null}
+                    />
+                  ))}
+                </Group>
+              </>
+            ) : null}
+          </>
+        )}
+      </Screen>
+
+      {/* PLAN A DATE */}
+
+      <Sheet
+        visible={adding}
+        title="Plan a Date"
+        subtitle="They'll know as soon as you save it."
+        onCancel={closeSheet}
+        onSave={savePlan}
+        saveDisabled={!title.trim() || saving}
+      >
+        <Group>
+          <TextInputRow
+            value={title}
+            onChangeText={setTitle}
+            placeholder="What are you doing?"
+            autoFocus
+          />
+
+          <TextInputRow
+            value={place}
+            onChangeText={setPlace}
+            placeholder="Where? (optional)"
+          />
+
+          <DateInput
+            value={planDate}
+            onChangeText={setPlanDate}
+            placeholder="When? YYYY-MM-DD (optional)"
+            style={styles.field}
+          />
+        </Group>
+
+        <Button
+          title="Save the Date"
+          onPress={savePlan}
+          busy={saving}
+          disabled={!title.trim()}
+        />
+      </Sheet>
+    </>
+  );
+}
+
+function TextInputRow(props) {
+  return (
+    <TextInput
+      placeholderTextColor={T.label3}
+      style={styles.field}
+      {...props}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: "#ECEBF2",
-  },
-
-  fill: {
-    flex: 1,
-  },
-
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 48,
-  },
-
-  backRow: {
+  loading: {
     paddingHorizontal: 16,
-    paddingTop: 4,
   },
 
-  container: {
-    paddingHorizontal: 22,
-    paddingTop: 10,
+  idea: {
+    gap: 6,
   },
 
-  eyebrow: {
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1.8,
-    color: "#4A2D5C",
-  },
-
-  title: {
-    marginTop: 6,
-    fontSize: 30,
-    fontWeight: "800",
-    color: "#111114",
-    letterSpacing: -0.5,
-  },
-
-  error: {
-    marginTop: 12,
-    fontSize: 13,
-    color: "#FF3B30",
-  },
-
-  addCard: {
-    marginTop: 20,
+  ideaHead: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 22,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#E9E6EB",
-  },
-
-  addIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#4A2D5C",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 14,
-  },
-
-  addTextWrap: {
-    flex: 1,
-  },
-
-  addTitle: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: "#111114",
-  },
-
-  addText: {
-    marginTop: 3,
-    fontSize: 12.5,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  form: {
-    marginTop: 20,
-  },
-
-  formTitle: {
-    fontSize: 17,
-    fontWeight: "800",
-    color: "#111114",
-    marginBottom: 14,
-  },
-
-  input: {
-    height: 50,
-    borderRadius: 14,
-    backgroundColor: "#ECEBF2",
-    borderWidth: 1,
-    borderColor: "#E9E6EB",
-    paddingHorizontal: 14,
-    fontSize: 15,
-    color: "#111114",
-    marginBottom: 10,
-  },
-
-  formActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginTop: 4,
-  },
-
-  cancelButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-  },
-
-  cancelText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  saveButton: {
-    flex: 1,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: "#4A2D5C",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  saveButtonOff: {
-    opacity: 0.45,
-  },
-
-  saveText: {
-    fontSize: 14.5,
-    fontWeight: "800",
-    color: "#FFFFFF",
-  },
-
-  ideaCard: {
-    marginTop: 14,
-    borderRadius: 22,
-    padding: 18,
-  },
-
-  ideaTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 7,
+    gap: 6,
   },
 
   ideaLabel: {
-    fontSize: 9.5,
-    fontWeight: "800",
-    letterSpacing: 1.4,
+    fontSize: 13,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+    color: T.secondary,
   },
 
   ideaText: {
-    marginTop: 10,
-    fontSize: 17,
-    lineHeight: 24,
-    fontWeight: "800",
+    fontSize: 19,
+    lineHeight: 25,
+    fontWeight: "600",
+    letterSpacing: -0.3,
+    color: T.label,
   },
 
   ideaButton: {
-    marginTop: 14,
-    alignSelf: "flex-start",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 999,
-    backgroundColor: "#FFFFFF",
-  },
-
-  ideaButtonText: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#4A2D5C",
-  },
-
-  sectionLabel: {
-    marginTop: 26,
-    marginBottom: 12,
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1.6,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  sectionHead: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-
-  seeAll: {
-    fontSize: 12.5,
-    fontWeight: "800",
-    color: "#4A2D5C",
-  },
-
-  emptyCard: {
-    paddingVertical: 10,
-  },
-
-  planCard: {
-    marginBottom: 12,
-  },
-
-  planTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-
-  planWhen: {
-    paddingHorizontal: 11,
-    paddingVertical: 5,
-    borderRadius: 999,
-    backgroundColor: "#E9E6EB",
-  },
-
-  planWhenText: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: "#4A2D5C",
-  },
-
-  planTitle: {
-    marginTop: 12,
-    fontSize: 18,
-    fontWeight: "800",
-    color: "#111114",
-    lineHeight: 24,
-  },
-
-  planMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    marginTop: 7,
-  },
-
-  planMetaText: {
-    fontSize: 13,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  planBy: {
     marginTop: 8,
-    fontSize: 12,
-    color: "rgba(60,60,67,0.3)",
   },
 
-  doneButton: {
-    marginTop: 14,
-    flexDirection: "row",
+  noDate: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: T.fill4,
     alignItems: "center",
     justifyContent: "center",
-    gap: 7,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: "#E9E6EB",
   },
 
-  doneText: {
-    fontSize: 13.5,
-    fontWeight: "800",
-    color: "#4A2D5C",
-  },
-
-  specialCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-
-  specialIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "#F7E2E6",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-
-  specialText: {
-    flex: 1,
-  },
-
-  specialTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  specialWhen: {
-    marginTop: 2,
-    fontSize: 12.5,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  addSpecial: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    height: 48,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: "#E9E6EB",
-  },
-
-  addSpecialText: {
-    fontSize: 13.5,
-    fontWeight: "700",
-    color: "#4A2D5C",
-  },
-
-  pastRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 9,
-    paddingVertical: 9,
-  },
-
-  pastText: {
-    flex: 1,
-    fontSize: 14,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  pastWhen: {
-    fontSize: 11.5,
-    color: "rgba(60,60,67,0.3)",
+  field: {
+    fontSize: 17,
+    color: T.label,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    minHeight: 50,
   },
 });

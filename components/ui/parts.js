@@ -26,6 +26,7 @@ import {
   controlSize,
   disabled as swiftDisabled,
   frame,
+  labelsHidden,
   lineLimit,
   tint,
 } from "@expo/ui/swift-ui/modifiers";
@@ -405,7 +406,7 @@ export function Toggle({ value, onChange }) {
         <SwiftToggle
           isOn={value}
           onIsOnChange={onChange}
-          modifiers={[tint(T.accent)]}
+          modifiers={[labelsHidden(), tint(T.accent)]}
         />
       </Host>
     );

@@ -29,7 +29,11 @@ const MAP = {
   /* actions */
   add: ["plus", "add", "add"],
   check: ["checkmark", "checkmark", "checkmark"],
-  checkCircle: ["checkmark.circle.fill", "checkmark-circle", "checkmark-circle"],
+  checkCircle: [
+    "checkmark.circle.fill",
+    "checkmark-circle",
+    "checkmark-circle",
+  ],
   chevron: ["chevron.right", "chevron-forward", "chevron-forward"],
   chevronDown: ["chevron.down", "chevron-down", "chevron-down"],
   back: ["chevron.left", "chevron-back", "chevron-back"],
@@ -65,6 +69,7 @@ const MAP = {
   target: ["scope", "locate-outline", "locate"],
   undo: ["arrow.uturn.backward", "arrow-undo-outline", "arrow-undo"],
   eye: ["eye", "eye-outline", "eye"],
+  arrowUp: ["arrow.up", "arrow-up", "arrow-up"],
   eyeSlash: ["eye.slash", "eye-off-outline", "eye-off"],
   alert: ["exclamationmark.circle.fill", "alert-circle", "alert-circle"],
   chat: ["bubble.left.and.bubble.right", "chatbubbles-outline", "chatbubbles"],

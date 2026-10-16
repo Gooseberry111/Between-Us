@@ -1,27 +1,56 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { GlassBackground, Card } from "../components/Glass";
+import { Alert, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
+
+import { apiFetch } from "../lib/api";
+import { chooseAction } from "../lib/actions";
 import {
+  clearCachedData,
   getCachedData,
   setCachedData,
-  clearCachedData,
 } from "../lib/dataCache";
-import { Skeleton, SkeletonList } from "../components/Skeleton";
-import { apiFetch } from "../lib/api";
-import ConnectFirst from "../components/ConnectFirst";
 import { useIsConnected } from "../lib/connection";
+import { T } from "../lib/theme";
+import {
+  Card,
+  Cell,
+  Empty,
+  GlassButton,
+  Group,
+  GroupFooter,
+  Icon,
+  LargeTitle,
+  NavBar,
+  Notice,
+  Screen,
+  SubTitle,
+} from "../components/ui";
+import ConnectFirst from "../components/ConnectFirst";
+import { SkeletonList } from "../components/Skeleton";
+
+/*
+ * ==========================================
+ * COMPLETED GOALS
+ * ==========================================
+ *
+ * What the two of you have worked through, newest first.
+ * Tap one that was ticked too soon to put it back.
+ */
+
+function finishedOn(date) {
+  if (!date) return null;
+
+  const value = new Date(date);
+
+  if (Number.isNaN(value.getTime())) return null;
+
+  return value.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
 
 export default function CompletedGoalsScreen() {
   const router = useRouter();
@@ -55,8 +84,6 @@ export default function CompletedGoalsScreen() {
       const response = await apiFetch(`/users/${userId}/relationship-goals`);
       const data = await response.json();
 
-      console.log("COMPLETED GOALS RESPONSE:", data);
-
       if (!response.ok) {
         throw new Error(data?.error || "Unable to load completed goals.");
       }
@@ -69,8 +96,6 @@ export default function CompletedGoalsScreen() {
 
       if (cacheKey) setCachedData(cacheKey, completedGoals);
     } catch (err) {
-      console.log("COMPLETED GOALS LOAD ERROR:", err);
-
       if (!cached) {
         setError(err?.message || "Unable to load completed goals.");
       }
@@ -108,8 +133,6 @@ export default function CompletedGoalsScreen() {
 
       const data = await response.json();
 
-      console.log("MARK GOAL ACTIVE RESPONSE:", data);
-
       if (!response.ok) {
         throw new Error(data?.error || "Unable to move goal back.");
       }
@@ -124,8 +147,6 @@ export default function CompletedGoalsScreen() {
       // list that's missing this goal.
       if (userId) clearCachedData(`goals:${userId}`);
     } catch (err) {
-      console.log("MARK GOAL ACTIVE ERROR:", err);
-
       Alert.alert(
         "Something went wrong",
         err?.message || "Unable to move goal back.",
@@ -134,598 +155,120 @@ export default function CompletedGoalsScreen() {
   };
 
   if (connected === false) {
-    return <ConnectFirst feature="Completed goals" showBack={true} />;
+    return <ConnectFirst feature="Completed goals" showBack />;
   }
 
-  if (loading) {
-    /*
-     * Cold load only (nothing cached yet). Mirrors the
-     * real layout so the page appears at once and fills
-     * in, instead of blocking on a spinner.
-     */
-    return (
-      <SafeAreaView style={styles.screen} edges={["top"]}>
-        <GlassBackground>
-          <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
-            <Skeleton width={96} height={11} radius={6} />
-            <Skeleton
-              width="62%"
-              height={26}
-              radius={9}
-              style={{ marginTop: 12 }}
-            />
-            <Skeleton width="80%" height={12} style={{ marginTop: 10 }} />
+  const goBack = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/goals");
+  };
 
-            <View style={{ marginTop: 26 }}>
-              <SkeletonList count={3} />
-            </View>
-          </View>
-        </GlassBackground>
-      </SafeAreaView>
-    );
-  }
-
-  return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
-      <GlassBackground>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor="#4A2D5C"
-            />
-          }
-          contentContainerStyle={styles.scrollContent}
-        >
-          <View style={styles.container}>
-            {/* HEADER */}
-
-            <View style={styles.header}>
-              <TouchableOpacity
-                style={styles.backButton}
-                onPress={() => router.back()}
-              >
-                <Text style={styles.backButtonText}>←</Text>
-              </TouchableOpacity>
-
-              <View style={styles.headerText}>
-                <Text style={styles.brand}>BETWEEN US</Text>
-
-                <Text style={styles.pageTitle}>Completed Goals</Text>
-
-                <Text style={styles.pageSubtitle}>
-                  Everything you have already worked through together.
-                </Text>
-              </View>
-
-              <View style={styles.headerIcon}>
-                <Text style={styles.headerIconText}>✓</Text>
-              </View>
-            </View>
-
-            {error ? (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            ) : null}
-
-            {/* SUMMARY */}
-
-            <Card style={styles.summaryCard}>
-              <Text style={styles.summaryNumber}>{goals.length}</Text>
-
-              <View style={styles.summaryText}>
-                <Text style={styles.summaryTitle}>
-                  {goals.length === 1 ? "Goal completed" : "Goals completed"}
-                </Text>
-
-                <Text style={styles.summarySubtitle}>
-                  Keep growing together, one goal at a time.
-                </Text>
-              </View>
-            </Card>
-
-            {/* GOALS */}
-
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>YOUR PROGRESS</Text>
-
-              <Text style={styles.sectionTitle}>
-                {goals.length === 0
-                  ? "Nothing completed yet."
-                  : `${goals.length} ${
-                      goals.length === 1 ? "goal" : "goals"
-                    } achieved together.`}
-              </Text>
-
-              {goals.length === 0 ? (
-                <Card style={styles.emptyCard}>
-                  <View style={styles.emptyIcon}>
-                    <Text style={styles.emptyIconText}>✓</Text>
-                  </View>
-
-                  <Text style={styles.emptyTitle}>
-                    Your completed goals will appear here.
-                  </Text>
-
-                  <Text style={styles.emptyText}>
-                    When you mark a goal as complete, it will move here
-                    automatically.
-                  </Text>
-
-                  <TouchableOpacity
-                    style={styles.backToGoalsButton}
-                    onPress={() => router.back()}
-                    activeOpacity={0.85}
-                  >
-                    <Text style={styles.backToGoalsText}>Back to goals</Text>
-                  </TouchableOpacity>
-                </Card>
-              ) : (
-                goals.map((goal, index) => (
-                  <CompletedGoalCard
-                    key={goal.id}
-                    goal={goal}
-                    index={index}
-                    onMarkActive={() => markActive(goal)}
-                  />
-                ))
-              )}
-            </View>
-
-            {goals.length > 0 ? (
-              <Card style={styles.footerCard}>
-                <Text style={styles.footerQuote}>
-                  "Progress, not perfection."
-                </Text>
-
-                <Text style={styles.footerText}>
-                  Look back at what you have already worked through together.
-                </Text>
-              </Card>
-            ) : null}
-          </View>
-        </ScrollView>
-      </GlassBackground>
-    </SafeAreaView>
+  const sorted = [...goals].sort(
+    (a, b) =>
+      new Date(b.completed_at || 0).getTime() -
+      new Date(a.completed_at || 0).getTime(),
   );
-}
-
-function CompletedGoalCard({ goal, index, onMarkActive }) {
-  const targetDate = goal.target_date
-    ? new Date(goal.target_date).toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      })
-    : null;
-
-  const completedDate = goal.completed_at
-    ? new Date(goal.completed_at).toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      })
-    : null;
 
   return (
-    <Card style={styles.goalCard}>
-      <View style={styles.goalTop}>
-        <View style={styles.goalNumber}>
-          <Text style={styles.goalNumberText}>
-            {String(index + 1).padStart(2, "0")}
-          </Text>
+    <Screen
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          tintColor={T.accent}
+        />
+      }
+    >
+      <NavBar
+        left={<GlassButton icon="back" label="Back" onPress={goBack} />}
+      />
+
+      <LargeTitle>Completed</LargeTitle>
+
+      <SubTitle>Everything you&apos;ve worked through together.</SubTitle>
+
+      <Notice>{error}</Notice>
+
+      {loading ? (
+        <View style={styles.loading}>
+          <SkeletonList count={3} />
         </View>
+      ) : sorted.length === 0 ? (
+        <Empty
+          icon="trophy"
+          title="Nothing finished yet"
+          text="Tick a goal when it's done and it lands here, with a celebration."
+          action={{ title: "Back to Goals", icon: "flag", onPress: goBack }}
+        />
+      ) : (
+        <>
+          <Card style={styles.tally}>
+            <Text style={styles.tallyNumber}>{sorted.length}</Text>
 
-        <View style={styles.completedBadge}>
-          <Text style={styles.completedBadgeText}>COMPLETED</Text>
-        </View>
-      </View>
+            <Text style={styles.tallyText}>
+              {sorted.length === 1
+                ? "goal done together"
+                : "goals done together"}
+            </Text>
 
-      <Text style={styles.goalTitle}>{goal.title}</Text>
+            <Icon name="trophy" size={26} color={T.secondary} />
+          </Card>
 
-      {goal.description ? (
-        <Text style={styles.goalDescription}>{goal.description}</Text>
-      ) : null}
+          <Group inset={52}>
+            {sorted.map((goal) => (
+              <Cell
+                key={goal.id}
+                leading={<Icon name="checkCircle" size={22} color={T.green} />}
+                title={goal.title}
+                subtitle={[goal.description, finishedOn(goal.completed_at)]
+                  .filter(Boolean)
+                  .join(" · ")}
+                onPress={() =>
+                  chooseAction({
+                    title: goal.title,
+                    options: [
+                      {
+                        label: "Put Back in Goals",
+                        onPress: () => markActive(goal),
+                      },
+                    ],
+                  })
+                }
+              />
+            ))}
+          </Group>
 
-      {targetDate ? (
-        <View style={styles.dateContainer}>
-          <Text style={styles.dateLabel}>TARGET DATE</Text>
-          <Text style={styles.dateText}>{targetDate}</Text>
-        </View>
-      ) : null}
-
-      {completedDate ? (
-        <View style={styles.completedContainer}>
-          <Text style={styles.completedLabel}>COMPLETED ON</Text>
-          <Text style={styles.completedDate}>{completedDate}</Text>
-        </View>
-      ) : null}
-
-      <View style={styles.goalDivider} />
-
-      <TouchableOpacity
-        style={styles.reactivateButton}
-        onPress={onMarkActive}
-        activeOpacity={0.8}
-      >
-        <View style={styles.checkCircle}>
-          <Text style={styles.checkText}>↺</Text>
-        </View>
-
-        <Text style={styles.reactivateText}>Move back to active goals</Text>
-      </TouchableOpacity>
-    </Card>
+          <GroupFooter>Progress, not perfection.</GroupFooter>
+        </>
+      )}
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-  },
-
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 120,
-  },
-
-  container: {
-    paddingHorizontal: 22,
-    paddingTop: 22,
-  },
-
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 22,
-  },
-
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(74, 45, 92, 0.09)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 11,
-  },
-
-  backButtonText: {
-    fontSize: 22,
-    color: "#4A2D5C",
-  },
-
-  headerText: {
-    flex: 1,
-  },
-
-  brand: {
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 2,
-    color: "#4A2D5C",
-  },
-
-  pageTitle: {
-    marginTop: 5,
-    fontSize: 26,
-    lineHeight: 32,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  pageSubtitle: {
-    marginTop: 4,
-    fontSize: 12,
-    lineHeight: 18,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  headerIcon: {
-    width: 45,
-    height: 45,
-    borderRadius: 23,
-    backgroundColor: "rgba(74, 45, 92, 0.09)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: 8,
-  },
-
-  headerIconText: {
-    fontSize: 20,
-    color: "#4A2D5C",
-    fontWeight: "700",
-  },
-
-  summaryCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 18,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  summaryNumber: {
-    fontSize: 29,
-    fontWeight: "700",
-    color: "#4A2D5C",
-  },
-
-  summaryText: {
-    marginLeft: 14,
-  },
-
-  summaryTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  summarySubtitle: {
-    marginTop: 3,
-    fontSize: 11,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  section: {
-    marginTop: 30,
-  },
-
-  sectionLabel: {
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1.7,
-    color: "rgba(60,60,67,0.6)",
-    marginBottom: 7,
-  },
-
-  sectionTitle: {
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: "700",
-    color: "#111114",
-    marginBottom: 13,
-  },
-
-  goalCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    marginBottom: 13,
-  },
-
-  goalTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-
-  goalNumber: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "rgba(74, 45, 92, 0.09)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  goalNumberText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#4A2D5C",
-  },
-
-  completedBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 9,
-    backgroundColor: "rgba(74, 45, 92, 0.09)",
-  },
-
-  completedBadgeText: {
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 0.8,
-    color: "#4A2D5C",
-  },
-
-  goalTitle: {
-    marginTop: 16,
-    fontSize: 20,
-    lineHeight: 25,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  goalDescription: {
-    marginTop: 8,
-    fontSize: 13,
-    lineHeight: 20,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  dateContainer: {
-    marginTop: 14,
-    backgroundColor: "rgba(74, 45, 92, 0.07)",
-    borderRadius: 11,
-    padding: 11,
-  },
-
-  dateLabel: {
-    fontSize: 8,
-    fontWeight: "800",
-    letterSpacing: 1.2,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  dateText: {
-    marginTop: 3,
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#4A2D5C",
-  },
-
-  completedContainer: {
-    marginTop: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 11,
-    padding: 11,
-  },
-
-  completedLabel: {
-    fontSize: 8,
-    fontWeight: "800",
-    letterSpacing: 1.2,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  completedDate: {
-    marginTop: 3,
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#4A2D5C",
-  },
-
-  goalDivider: {
-    height: 1,
-    backgroundColor: "#E9E6EB",
-    marginVertical: 16,
-  },
-
-  reactivateButton: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  checkCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#4A2D5C",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  checkText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
-  },
-
-  reactivateText: {
-    marginLeft: 8,
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#4A2D5C",
-  },
-
-  emptyCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 20,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    alignItems: "center",
-  },
-
-  emptyIcon: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: "rgba(74, 45, 92, 0.09)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 15,
-  },
-
-  emptyIconText: {
-    fontSize: 25,
-    color: "#4A2D5C",
-    fontWeight: "700",
-  },
-
-  emptyTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#111114",
-    textAlign: "center",
-  },
-
-  emptyText: {
-    marginTop: 8,
-    fontSize: 13,
-    lineHeight: 20,
-    color: "rgba(60,60,67,0.6)",
-    textAlign: "center",
-  },
-
-  backToGoalsButton: {
-    marginTop: 17,
+  loading: {
     paddingHorizontal: 16,
-    paddingVertical: 11,
-    borderRadius: 11,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
   },
 
-  backToGoalsText: {
-    fontSize: 12,
+  tally: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+
+  tallyNumber: {
+    fontFamily: "ui-rounded",
+    fontSize: 44,
+    lineHeight: 48,
     fontWeight: "700",
-    color: "#4A2D5C",
+    letterSpacing: -1.6,
+    color: T.accent,
   },
 
-  footerCard: {
-    marginTop: 17,
-    padding: 20,
-    borderRadius: 18,
-    backgroundColor: "#FBEEF2",
-    alignItems: "center",
-  },
-
-  footerQuote: {
-    textAlign: "center",
-    fontSize: 14,
-    lineHeight: 21,
-    fontWeight: "600",
-    color: "#4A2D5C",
-  },
-
-  footerText: {
-    marginTop: 7,
-    textAlign: "center",
-    fontSize: 11,
-    lineHeight: 17,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  errorBox: {
-    backgroundColor: "#E9E6EB",
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderRadius: 12,
-    marginBottom: 15,
-  },
-
-  errorText: {
-    fontSize: 12,
-    lineHeight: 17,
-    color: "#FF3B30",
-  },
-
-  loadingContainer: {
+  tallyText: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  loadingText: {
-    marginTop: 12,
-    fontSize: 12,
-    color: "rgba(60,60,67,0.6)",
+    fontSize: 16,
+    fontWeight: "600",
+    color: T.label,
   },
 });

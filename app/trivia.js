@@ -1,19 +1,46 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { GlassBackground, Card } from "../components/Glass";
+import * as Haptics from "expo-haptics";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
-import { clearCachedData } from "../lib/dataCache";
+
 import { apiFetch } from "../lib/api";
-import ConnectFirst from "../components/ConnectFirst";
+import { clearCachedData } from "../lib/dataCache";
 import { useIsConnected } from "../lib/connection";
+import { T } from "../lib/theme";
+import {
+  AuthHeader,
+  AuthScreen,
+  Button,
+  Cell,
+  GlassButton,
+  Glow,
+  Group,
+  Icon,
+  Notice,
+  Ring,
+  TextLink,
+} from "../components/ui";
+import ConnectFirst from "../components/ConnectFirst";
+import ProgressBar from "../components/onboarding/ProgressBar";
+
+/*
+ * ==========================================
+ * TRIVIA
+ * ==========================================
+ *
+ * How well do you know them? One question at a time,
+ * answers as a list you pick from, the right one shown
+ * in green once you have checked, and a ring for the
+ * score at the end. They hear you played.
+ */
 
 export default function TriviaScreen() {
   const router = useRouter();
@@ -53,8 +80,6 @@ export default function TriviaScreen() {
 
       const data = await response.json();
 
-      console.log("TRIVIA RESPONSE:", data);
-
       if (!response.ok) {
         throw new Error(data?.error || "Unable to load trivia.");
       }
@@ -63,8 +88,6 @@ export default function TriviaScreen() {
 
       setQuestions(Array.isArray(data?.questions) ? data.questions : []);
     } catch (err) {
-      console.log("TRIVIA LOAD ERROR:", err);
-
       setError(err?.message || "Unable to load today's trivia.");
     } finally {
       setLoading(false);
@@ -103,8 +126,6 @@ export default function TriviaScreen() {
     })
       .then((response) => response.json())
       .then((data) => {
-        console.log("TRIVIA COMPLETE RESPONSE:", data);
-
         // The history screen's cached list is now out of date.
         clearCachedData(`trivia-history:${userId}`);
       })
@@ -135,20 +156,22 @@ export default function TriviaScreen() {
 
       const data = await response.json();
 
-      console.log("TRIVIA ANSWER:", data);
-
       if (!response.ok) {
         throw new Error(data?.error || "Unable to check answer.");
       }
 
       setAnswerResult(data);
 
+      Haptics.notificationAsync(
+        data.correct
+          ? Haptics.NotificationFeedbackType.Success
+          : Haptics.NotificationFeedbackType.Warning,
+      ).catch(() => {});
+
       if (data.correct) {
         setScore((previous) => previous + 1);
       }
     } catch (err) {
-      console.log("TRIVIA ANSWER ERROR:", err);
-
       setError(err?.message || "Unable to check your answer.");
     } finally {
       setSubmitting(false);
@@ -169,334 +192,214 @@ export default function TriviaScreen() {
   };
 
   if (connected === false) {
-    return <ConnectFirst feature="Couple trivia" showBack={true} />;
+    return <ConnectFirst feature="Trivia" showBack />;
   }
+
+  const goBack = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)/home");
+  };
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.screen} edges={["top"]}>
-        <GlassBackground>
-          <View style={styles.loadingContainer}>
-            <View style={styles.loadingCircle}>
-              <Text style={styles.loadingHeart}>♡</Text>
-            </View>
+      <AuthScreen centred onBack={goBack}>
+        <AuthHeader title="Getting your questions" />
 
-            <Text style={styles.loadingTitle}>Getting your questions</Text>
-
-            <ActivityIndicator
-              size="small"
-              color="#4A2D5C"
-              style={styles.loadingIndicator}
-            />
-          </View>
-        </GlassBackground>
-      </SafeAreaView>
+        <ActivityIndicator color={T.accent} />
+      </AuthScreen>
     );
   }
 
-  if (error) {
+  if (error && !currentQuestion) {
     return (
-      <SafeAreaView style={styles.screen} edges={["top"]}>
-        <GlassBackground>
-          <View style={styles.centerContainer}>
-            <Text style={styles.errorTitle}>Something went wrong</Text>
-
-            <Text style={styles.errorText}>{error}</Text>
-
-            <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={loadTrivia}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.primaryButtonText}>Try again</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => router.back()}
-            >
-              <Text style={styles.backButtonText}>Go back</Text>
-            </TouchableOpacity>
-          </View>
-        </GlassBackground>
-      </SafeAreaView>
+      <AuthScreen
+        centred
+        onBack={goBack}
+        footer={<Button title="Try Again" onPress={loadTrivia} />}
+      >
+        <AuthHeader title="Something went wrong" subtitle={error} />
+      </AuthScreen>
     );
   }
 
   if (finished) {
+    const total = questions.length || 1;
+
     return (
-      <SafeAreaView style={styles.screen} edges={["top"]}>
-        <GlassBackground>
-          <View style={styles.resultContainer}>
-            <View style={styles.resultCircle}>
-              <Text style={styles.resultHeart}>♡</Text>
-            </View>
+      <AuthScreen
+        centred
+        footer={
+          <>
+            <Button title="Play Again" onPress={loadTrivia} />
 
-            <Text style={styles.resultEyebrow}>TRIVIA COMPLETE</Text>
+            <TextLink onPress={() => router.push("/trivia-history")}>
+              See Every Round
+            </TextLink>
+          </>
+        }
+        onBack={goBack}
+      >
+        <View style={styles.result}>
+          <Ring value={score / total} size={120} label={`${score}/${total}`} />
 
-            <Text style={styles.resultTitle}>
-              You got {score}/{questions.length}
-            </Text>
+          <Text style={styles.resultTitle}>
+            {score === total
+              ? `You really know ${partnerName}`
+              : score === 0
+                ? "A fresh start"
+                : `You know ${partnerName} well`}
+          </Text>
 
-            <Text style={styles.resultDescription}>
-              {score === questions.length
-                ? `You really know ${partnerName}.`
-                : score === 1
-                  ? `You know ${partnerName} pretty well. Keep learning each other.`
-                  : `There is always more to discover about ${partnerName}.`}
-            </Text>
-
-            <Card style={styles.resultCard}>
-              <Text style={styles.resultCardTitle}>A little reminder</Text>
-
-              <Text style={styles.resultCardText}>
-                The point is not to get everything right. It is to keep paying
-                attention to each other.
-              </Text>
-            </Card>
-
-            <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={loadTrivia}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.primaryButtonText}>Play again</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => router.push("/trivia-history")}
-            >
-              <Text style={styles.backButtonText}>View history</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => router.back()}
-            >
-              <Text style={styles.backButtonText}>Back</Text>
-            </TouchableOpacity>
-          </View>
-        </GlassBackground>
-      </SafeAreaView>
+          <Text style={styles.resultText}>
+            {score === total
+              ? "Every one right."
+              : "The point isn't to get them all. It's to keep paying attention."}{" "}
+            They&apos;ll see you played.
+          </Text>
+        </View>
+      </AuthScreen>
     );
   }
 
   if (!currentQuestion) {
     return (
-      <SafeAreaView style={styles.screen} edges={["top"]}>
-        <GlassBackground>
-          <View style={styles.centerContainer}>
-            <Text style={styles.errorTitle}>No questions available</Text>
-
-            <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={() => router.back()}
-            >
-              <Text style={styles.primaryButtonText}>Go back</Text>
-            </TouchableOpacity>
-          </View>
-        </GlassBackground>
-      </SafeAreaView>
+      <AuthScreen
+        centred
+        onBack={goBack}
+        footer={<Button title="Back" kind="gray" onPress={goBack} />}
+      >
+        <AuthHeader
+          title="No questions yet"
+          subtitle={`Once ${partnerName} has answered more about themselves, there'll be questions here.`}
+        />
+      </AuthScreen>
     );
   }
 
   const questionNumber = currentIndex + 1;
+  const options = Array.isArray(currentQuestion.options)
+    ? currentQuestion.options
+    : [];
 
   return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
-      <GlassBackground>
-        <View style={styles.container}>
-          {/* HEADER */}
+    <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
+      <Glow height={240} />
 
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.headerBack}
-              onPress={() => router.back()}
-            >
-              <Text style={styles.headerBackText}>‹</Text>
-            </TouchableOpacity>
+      <View style={styles.nav}>
+        <View style={styles.navSide}>
+          <GlassButton icon="back" label="Back" onPress={goBack} />
+        </View>
 
-            <View style={styles.headerCenter}>
-              <Text style={styles.headerLabel}>COUPLE TRIVIA</Text>
+        <Text style={styles.counter}>
+          {questionNumber} of {questions.length}
+        </Text>
 
-              <Text style={styles.headerTitle}>
-                How well do you know {partnerName}?
-              </Text>
-            </View>
+        <View style={[styles.navSide, styles.navEnd]}>
+          <View style={styles.score}>
+            <Icon name="flame" size={14} color={T.secondary} />
 
-            <View style={styles.scoreBadge}>
-              <Text style={styles.scoreText}>{score}</Text>
-            </View>
-          </View>
-
-          {/* PROGRESS */}
-
-          <View style={styles.progressArea}>
-            <View style={styles.progressTrack}>
-              <View
-                style={[
-                  styles.progressFill,
-                  {
-                    width: `${(questionNumber / questions.length) * 100}%`,
-                  },
-                ]}
-              />
-            </View>
-
-            <Text style={styles.progressText}>
-              QUESTION {questionNumber} OF {questions.length}
-            </Text>
-          </View>
-
-          {/* QUESTION */}
-
-          <Card dark style={styles.questionCard}>
-            <View style={styles.questionIcon}>
-              <Text style={styles.questionIconText}>✦</Text>
-            </View>
-
-            <Text style={styles.questionText}>{currentQuestion.question}</Text>
-
-            <Text style={styles.questionHint}>
-              Choose the answer you think they would give.
-            </Text>
-          </Card>
-
-          {/* OPTIONS */}
-
-          <View style={styles.options}>
-            {Array.isArray(currentQuestion.options) &&
-              currentQuestion.options.map((option, index) => {
-                const isSelected = selectedAnswer === option;
-
-                const correctAnswer = answerResult?.correct_answer;
-
-                const isCorrectAnswer =
-                  Boolean(answerResult) && correctAnswer === option;
-
-                const isWrong =
-                  Boolean(answerResult) && isSelected && !answerResult.correct;
-
-                return (
-                  <TouchableOpacity
-                    key={`${option}-${index}`}
-                    style={[
-                      styles.option,
-
-                      isSelected && !answerResult && styles.optionSelected,
-
-                      isCorrectAnswer && styles.optionCorrect,
-
-                      isWrong && styles.optionWrong,
-                    ]}
-                    activeOpacity={0.8}
-                    disabled={Boolean(answerResult)}
-                    onPress={() => setSelectedAnswer(option)}
-                  >
-                    <View
-                      style={[
-                        styles.optionCircle,
-
-                        isSelected &&
-                          !answerResult &&
-                          styles.optionCircleSelected,
-
-                        isCorrectAnswer && styles.optionCircleCorrect,
-
-                        isWrong && styles.optionCircleWrong,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.optionLetter,
-
-                          (isSelected || isCorrectAnswer) &&
-                            styles.optionLetterSelected,
-                        ]}
-                      >
-                        {String.fromCharCode(65 + index)}
-                      </Text>
-                    </View>
-
-                    <Text
-                      style={[
-                        styles.optionText,
-
-                        isSelected &&
-                          !answerResult &&
-                          styles.optionTextSelected,
-
-                        isCorrectAnswer && styles.optionTextCorrect,
-
-                        isWrong && styles.optionTextWrong,
-                      ]}
-                    >
-                      {option}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-          </View>
-
-          {/* RESULT */}
-
-          {answerResult ? (
-            <View
-              style={[
-                styles.answerMessage,
-                answerResult.correct
-                  ? styles.correctMessage
-                  : styles.wrongMessage,
-              ]}
-            >
-              <Text style={styles.answerMessageTitle}>
-                {answerResult.correct ? "Correct" : "Not quite"}
-              </Text>
-
-              <Text style={styles.answerMessageText}>
-                {answerResult.correct
-                  ? "You know them well."
-                  : `The answer was ${answerResult.correct_answer}.`}
-              </Text>
-            </View>
-          ) : null}
-
-          {/* BUTTON */}
-
-          <View style={styles.bottomArea}>
-            {!answerResult ? (
-              <TouchableOpacity
-                style={[
-                  styles.primaryButton,
-                  !selectedAnswer && styles.primaryButtonDisabled,
-                ]}
-                disabled={!selectedAnswer || submitting}
-                onPress={submitAnswer}
-                activeOpacity={0.85}
-              >
-                {submitting ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                ) : (
-                  <Text style={styles.primaryButtonText}>Check answer</Text>
-                )}
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={styles.primaryButton}
-                onPress={nextQuestion}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.primaryButtonText}>
-                  {currentIndex === questions.length - 1
-                    ? "See result"
-                    : "Next question"}
-                </Text>
-              </TouchableOpacity>
-            )}
+            <Text style={styles.scoreText}>{score}</Text>
           </View>
         </View>
-      </GlassBackground>
+      </View>
+
+      <View style={styles.progress}>
+        <ProgressBar current={currentIndex} total={questions.length} />
+      </View>
+
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.head}>
+          <Text style={styles.kicker}>About {partnerName}</Text>
+
+          <Text style={styles.question}>{currentQuestion.question}</Text>
+        </View>
+
+        <Group inset={58}>
+          {options.map((option, index) => {
+            const chosen = selectedAnswer === option;
+            const right =
+              Boolean(answerResult) && answerResult.correct_answer === option;
+            const wrong =
+              Boolean(answerResult) && chosen && !answerResult.correct;
+
+            return (
+              <Cell
+                key={`${option}-${index}`}
+                leading={
+                  <View
+                    style={[
+                      styles.letter,
+                      chosen && !answerResult && styles.letterChosen,
+                      right && styles.letterRight,
+                      wrong && styles.letterWrong,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.letterText,
+                        (chosen || right || wrong) && styles.letterTextOn,
+                      ]}
+                    >
+                      {String.fromCharCode(65 + index)}
+                    </Text>
+                  </View>
+                }
+                title={option}
+                trailing={
+                  right ? (
+                    <Icon name="checkCircle" size={20} color={T.green} />
+                  ) : wrong ? (
+                    <Icon name="close" size={16} color={T.red} />
+                  ) : chosen ? (
+                    <Icon name="check" size={18} color={T.accent} />
+                  ) : null
+                }
+                onPress={
+                  answerResult
+                    ? undefined
+                    : () => {
+                        Haptics.selectionAsync().catch(() => {});
+                        setSelectedAnswer(option);
+                      }
+                }
+              />
+            );
+          })}
+        </Group>
+
+        {answerResult ? (
+          <Notice tone={answerResult.correct ? "info" : "error"}>
+            {answerResult.correct
+              ? "Right. You know them well."
+              : `Not quite. It was ${answerResult.correct_answer}.`}
+          </Notice>
+        ) : null}
+
+        <Notice>{error}</Notice>
+      </ScrollView>
+
+      <View style={styles.footer}>
+        {!answerResult ? (
+          <Button
+            title="Check"
+            onPress={submitAnswer}
+            busy={submitting}
+            disabled={!selectedAnswer}
+          />
+        ) : (
+          <Button
+            title={
+              questionNumber >= questions.length
+                ? "See Your Score"
+                : "Next Question"
+            }
+            onPress={nextQuestion}
+          />
+        )}
+      </View>
     </SafeAreaView>
   );
 }
@@ -504,401 +407,139 @@ export default function TriviaScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
+    backgroundColor: T.appBackground,
   },
 
-  container: {
-    flex: 1,
-    paddingHorizontal: 22,
-    paddingTop: 18,
-    paddingBottom: 20,
-  },
-
-  header: {
+  nav: {
     flexDirection: "row",
     alignItems: "center",
+    minHeight: 52,
+    paddingHorizontal: 16,
+    paddingTop: 4,
   },
 
-  headerBack: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-  },
-
-  headerBackText: {
-    fontSize: 30,
-    lineHeight: 32,
-    color: "#4A2D5C",
-    marginTop: -3,
-  },
-
-  headerCenter: {
+  navSide: {
     flex: 1,
-    marginHorizontal: 12,
+    flexDirection: "row",
   },
 
-  headerLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 1.5,
-    color: "rgba(60,60,67,0.6)",
+  navEnd: {
+    justifyContent: "flex-end",
   },
 
-  headerTitle: {
-    marginTop: 3,
-    fontSize: 15,
-    lineHeight: 20,
-    fontWeight: "700",
-    color: "#111114",
+  counter: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: T.label2,
   },
 
-  scoreBadge: {
-    minWidth: 42,
-    height: 42,
-    paddingHorizontal: 10,
-    borderRadius: 21,
-    backgroundColor: "rgba(74, 45, 92, 0.09)",
+  score: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: 4,
+    height: 30,
+    paddingHorizontal: 12,
+    borderRadius: 15,
+    backgroundColor: T.surface,
   },
 
   scoreText: {
+    fontFamily: "ui-rounded",
     fontSize: 15,
-    fontWeight: "800",
-    color: "#4A2D5C",
-  },
-
-  progressArea: {
-    marginTop: 26,
-  },
-
-  progressTrack: {
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: "#E6DED9",
-    overflow: "hidden",
-  },
-
-  progressFill: {
-    height: "100%",
-    borderRadius: 3,
-    backgroundColor: "#4A2D5C",
-  },
-
-  progressText: {
-    marginTop: 8,
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 1.4,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  questionCard: {
-    marginTop: 25,
-    backgroundColor: "#4A2D5C",
-    borderRadius: 23,
-    padding: 22,
-  },
-
-  questionIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "#806B62",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 18,
-  },
-
-  questionIconText: {
-    fontSize: 19,
-    color: "#ECEBF2",
-  },
-
-  questionText: {
-    fontSize: 23,
-    lineHeight: 30,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: T.label,
   },
 
-  questionHint: {
-    marginTop: 11,
-    fontSize: 12,
-    lineHeight: 18,
-    color: "#E9E6EB",
+  progress: {
+    paddingHorizontal: 20,
+    paddingTop: 6,
   },
 
-  options: {
-    marginTop: 18,
-    gap: 10,
+  content: {
+    paddingTop: 26,
+    paddingBottom: 24,
+    gap: 14,
   },
 
-  option: {
-    minHeight: 57,
-    paddingHorizontal: 14,
-    borderRadius: 15,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    flexDirection: "row",
-    alignItems: "center",
+  head: {
+    paddingHorizontal: 20,
+    paddingBottom: 4,
   },
 
-  optionSelected: {
-    borderColor: "#4A2D5C",
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-  },
-
-  optionCorrect: {
-    borderColor: "#4A2D5C",
-    backgroundColor: "rgba(74, 45, 92, 0.09)",
-  },
-
-  optionWrong: {
-    borderColor: "#C98E80",
-    backgroundColor: "#E9E6EB",
-  },
-
-  optionCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-
-  optionCircleSelected: {
-    backgroundColor: "#4A2D5C",
-  },
-
-  optionCircleCorrect: {
-    backgroundColor: "#4A2D5C",
-  },
-
-  optionCircleWrong: {
-    backgroundColor: "#C98E80",
-  },
-
-  optionLetter: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#4A2D5C",
-  },
-
-  optionLetterSelected: {
-    color: "#FFFFFF",
-  },
-
-  optionText: {
-    flex: 1,
-    fontSize: 14,
-    lineHeight: 19,
+  kicker: {
+    fontSize: 13,
     fontWeight: "600",
-    color: "#111114",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    color: T.youText,
   },
 
-  optionTextSelected: {
-    color: "#4A2D5C",
+  question: {
+    fontSize: 28,
+    lineHeight: 33,
+    fontWeight: "700",
+    letterSpacing: -0.8,
+    color: T.label,
+    marginTop: 6,
   },
 
-  optionTextCorrect: {
-    color: "#4A2D5C",
-  },
-
-  optionTextWrong: {
-    color: "#FF3B30",
-  },
-
-  answerMessage: {
-    marginTop: 13,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    borderRadius: 13,
-  },
-
-  correctMessage: {
-    backgroundColor: "rgba(74, 45, 92, 0.09)",
-  },
-
-  wrongMessage: {
-    backgroundColor: "#E9E6EB",
-  },
-
-  answerMessageTitle: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#4A2D5C",
-  },
-
-  answerMessageText: {
-    marginTop: 3,
-    fontSize: 12,
-    lineHeight: 17,
-    color: "#6F625C",
-  },
-
-  bottomArea: {
-    marginTop: "auto",
-    paddingTop: 15,
-  },
-
-  primaryButton: {
-    minHeight: 53,
-    borderRadius: 14,
-    backgroundColor: "#4A2D5C",
+  letter: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: T.fill3,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 18,
   },
 
-  primaryButtonDisabled: {
-    opacity: 0.45,
+  letterChosen: {
+    backgroundColor: T.accent,
   },
 
-  primaryButtonText: {
-    color: "#FFFFFF",
+  letterRight: {
+    backgroundColor: T.green,
+  },
+
+  letterWrong: {
+    backgroundColor: T.red,
+  },
+
+  letterText: {
+    fontFamily: "ui-rounded",
     fontSize: 14,
-    fontWeight: "800",
-  },
-
-  loadingContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  loadingCircle: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: "rgba(74, 45, 92, 0.09)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  loadingHeart: {
-    fontSize: 29,
-    color: "#4A2D5C",
-  },
-
-  loadingTitle: {
-    marginTop: 15,
-    fontSize: 17,
     fontWeight: "700",
-    color: "#111114",
+    color: T.label2,
   },
 
-  loadingIndicator: {
-    marginTop: 12,
+  letterTextOn: {
+    color: "#FFFFFF",
   },
 
-  centerContainer: {
-    flex: 1,
-    padding: 22,
+  footer: {
+    paddingTop: 10,
+    paddingBottom: 8,
+  },
+
+  result: {
     alignItems: "center",
-    justifyContent: "center",
-  },
-
-  errorTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#111114",
-    textAlign: "center",
-  },
-
-  errorText: {
-    marginTop: 8,
-    fontSize: 13,
-    lineHeight: 19,
-    color: "rgba(60,60,67,0.6)",
-    textAlign: "center",
-    maxWidth: 320,
-  },
-
-  backButton: {
-    marginTop: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-  },
-
-  backButtonText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#4A2D5C",
-  },
-
-  resultContainer: {
-    flex: 1,
-    paddingHorizontal: 22,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  resultCircle: {
-    width: 74,
-    height: 74,
-    borderRadius: 37,
-    backgroundColor: "rgba(74, 45, 92, 0.09)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  resultHeart: {
-    fontSize: 38,
-    color: "#4A2D5C",
-  },
-
-  resultEyebrow: {
-    marginTop: 25,
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1.7,
-    color: "rgba(60,60,67,0.6)",
+    paddingHorizontal: 32,
   },
 
   resultTitle: {
-    marginTop: 7,
-    fontSize: 30,
-    fontWeight: "800",
-    color: "#111114",
-  },
-
-  resultDescription: {
-    marginTop: 9,
-    fontSize: 14,
-    lineHeight: 21,
-    color: "rgba(60,60,67,0.6)",
+    fontSize: 28,
+    lineHeight: 33,
+    fontWeight: "700",
+    letterSpacing: -0.8,
+    color: T.label,
     textAlign: "center",
-    maxWidth: 310,
+    marginTop: 24,
   },
 
-  resultCard: {
-    width: "100%",
-    marginTop: 28,
-    padding: 18,
-    borderRadius: 18,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-  },
-
-  resultCardTitle: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#111114",
-  },
-
-  resultCardText: {
-    marginTop: 6,
-    fontSize: 12,
-    lineHeight: 18,
-    color: "rgba(60,60,67,0.6)",
+  resultText: {
+    fontSize: 16,
+    lineHeight: 22,
+    color: T.label2,
+    textAlign: "center",
+    marginTop: 8,
   },
 });

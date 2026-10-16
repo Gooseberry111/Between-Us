@@ -1,23 +1,51 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { GlassBackground, Card } from "../components/Glass";
-import { Ionicons } from "@expo/vector-icons";
+import { RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
-import { getCachedData, setCachedData } from "../lib/dataCache";
-import { Skeleton, SkeletonList } from "../components/Skeleton";
+
 import { apiFetch } from "../lib/api";
-import ConnectFirst from "../components/ConnectFirst";
+import { timeAgo } from "../lib/activity";
+import { getCachedData, setCachedData } from "../lib/dataCache";
 import { useIsConnected } from "../lib/connection";
+import { T } from "../lib/theme";
+import {
+  Avatar,
+  Button,
+  Card,
+  Cell,
+  Empty,
+  GlassButton,
+  Group,
+  GroupHeader,
+  Icon,
+  LargeTitle,
+  NavBar,
+  Notice,
+  Screen,
+  SubTitle,
+} from "../components/ui";
+import ConnectFirst from "../components/ConnectFirst";
+import { SkeletonList } from "../components/Skeleton";
+
+/*
+ * ==========================================
+ * TRIVIA, EVERY ROUND
+ * ==========================================
+ *
+ * Three numbers across the top -- rounds, best score,
+ * how often right -- then every round either of you
+ * played, yours in rose and theirs in plum.
+ */
+
+function Stat({ value, label }) {
+  return (
+    <View style={styles.stat}>
+      <Text style={styles.statValue}>{value}</Text>
+
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+}
 
 export default function TriviaHistoryScreen() {
   const router = useRouter();
@@ -54,8 +82,6 @@ export default function TriviaHistoryScreen() {
 
       const data = await response.json();
 
-      console.log("TRIVIA HISTORY RESPONSE:", data);
-
       if (!response.ok) {
         throw new Error(data?.error || "Unable to load your trivia history.");
       }
@@ -72,8 +98,6 @@ export default function TriviaHistoryScreen() {
         });
       }
     } catch (err) {
-      console.log("TRIVIA HISTORY LOAD ERROR:", err);
-
       if (!cachedHistory) {
         setError(err?.message || "Unable to load your trivia history.");
       }
@@ -93,463 +117,148 @@ export default function TriviaHistoryScreen() {
   };
 
   if (connected === false) {
-    return <ConnectFirst feature="Trivia history" showBack={true} />;
+    return <ConnectFirst feature="Trivia" showBack />;
   }
 
-  if (loading) {
-    /*
-     * Cold load only (nothing cached yet). Mirrors the
-     * real layout so the page appears at once and fills
-     * in, instead of blocking on a spinner.
-     */
-    return (
-      <SafeAreaView style={styles.screen} edges={["top"]}>
-        <GlassBackground>
-          <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
-            <Skeleton width={96} height={11} radius={6} />
-            <Skeleton
-              width="62%"
-              height={26}
-              radius={9}
-              style={{ marginTop: 12 }}
-            />
-            <Skeleton width="80%" height={12} style={{ marginTop: 10 }} />
-
-            <View style={{ marginTop: 26 }}>
-              <SkeletonList count={3} />
-            </View>
-          </View>
-        </GlassBackground>
-      </SafeAreaView>
-    );
-  }
+  const goBack = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)/home");
+  };
 
   return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
-      <GlassBackground>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor="#4A2D5C"
-            />
-          }
-          contentContainerStyle={styles.scrollContent}
-        >
-          <View style={styles.container}>
-            {/* HEADER */}
+    <Screen
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          tintColor={T.accent}
+        />
+      }
+    >
+      <NavBar
+        left={<GlassButton icon="back" label="Back" onPress={goBack} />}
+      />
 
-            <View style={styles.header}>
-              <TouchableOpacity
-                style={styles.backButton}
-                activeOpacity={0.8}
-                onPress={() => router.back()}
-              >
-                <Ionicons name="chevron-back" size={20} color="#4A2D5C" />
-              </TouchableOpacity>
+      <LargeTitle>Trivia</LargeTitle>
 
-              <View style={styles.headerText}>
-                <Text style={styles.brand}>BETWEEN US</Text>
+      <SubTitle>How well you know each other, round by round.</SubTitle>
 
-                <Text style={styles.pageTitle}>Trivia History</Text>
+      <Notice>{error}</Notice>
 
-                <Text style={styles.pageSubtitle}>
-                  Every round you've both played.
-                </Text>
-              </View>
-            </View>
+      {loading ? (
+        <View style={styles.loading}>
+          <SkeletonList count={3} />
+        </View>
+      ) : sessions.length === 0 ? (
+        <Empty
+          icon="sparkle"
+          title="No rounds yet"
+          text="Five questions about each other. They hear when you've played."
+          action={{
+            title: "Play a Round",
+            icon: "sparkle",
+            onPress: () => router.push("/trivia"),
+          }}
+        />
+      ) : (
+        <>
+          {stats && stats.rounds_played > 0 ? (
+            <Card style={styles.stats}>
+              <Stat value={stats.rounds_played} label="Rounds" />
 
-            {error ? (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            ) : null}
+              <View style={styles.statRule} />
 
-            {/* STATS */}
+              <Stat value={stats.best_score} label="Best" />
 
-            {stats && stats.rounds_played > 0 ? (
-              <Card style={styles.statsCard}>
-                <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>{stats.rounds_played}</Text>
-                  <Text style={styles.statLabel}>
-                    {stats.rounds_played === 1 ? "Round" : "Rounds"}
-                  </Text>
-                </View>
+              <View style={styles.statRule} />
 
-                <View style={styles.statDivider} />
+              <Stat
+                value={stats.accuracy === null ? "—" : `${stats.accuracy}%`}
+                label="Right"
+              />
+            </Card>
+          ) : null}
 
-                <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>{stats.best_score}</Text>
-                  <Text style={styles.statLabel}>Best score</Text>
-                </View>
+          <Button
+            title="Play a Round"
+            icon="sparkle"
+            onPress={() => router.push("/trivia")}
+          />
 
-                <View style={styles.statDivider} />
+          <GroupHeader>Every round</GroupHeader>
 
-                <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>
-                    {stats.accuracy === null ? "—" : `${stats.accuracy}%`}
-                  </Text>
-                  <Text style={styles.statLabel}>Accuracy</Text>
-                </View>
-              </Card>
-            ) : null}
+          <Group inset={64}>
+            {sessions.map((session) => {
+              const total = session.total_questions || 0;
+              const perfect = total > 0 && session.score === total;
+              const name = session.is_you
+                ? "You"
+                : session.player_first_name?.trim() || "Your partner";
 
-            {/* SESSIONS */}
-
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>ROUNDS PLAYED</Text>
-
-              <Text style={styles.sectionTitle}>
-                {sessions.length === 0
-                  ? "No rounds yet."
-                  : `${sessions.length} ${
-                      sessions.length === 1 ? "round" : "rounds"
-                    } so far.`}
-              </Text>
-
-              {sessions.length === 0 ? (
-                <Card style={styles.emptyCard}>
-                  <View style={styles.emptyIcon}>
-                    <Ionicons
-                      name="help-circle-outline"
-                      size={24}
-                      color="#4A2D5C"
+              return (
+                <Cell
+                  key={session.id}
+                  leading={
+                    <Avatar
+                      name={name}
+                      who={session.is_you ? "you" : "them"}
+                      size={40}
                     />
-                  </View>
-
-                  <Text style={styles.emptyTitle}>Nothing here yet.</Text>
-
-                  <Text style={styles.emptyText}>
-                    Play a round of couple trivia and your results will start
-                    showing up here.
-                  </Text>
-
-                  <TouchableOpacity
-                    style={styles.emptyButton}
-                    activeOpacity={0.85}
-                    onPress={() => router.push("/trivia")}
-                  >
-                    <Text style={styles.emptyButtonText}>Play trivia</Text>
-                  </TouchableOpacity>
-                </Card>
-              ) : (
-                sessions.map((session) => (
-                  <SessionCard key={session.id} session={session} />
-                ))
-              )}
-            </View>
-
-            {sessions.length > 0 ? (
-              <Card style={styles.footerCard}>
-                <Text style={styles.footerQuote}>
-                  "The point is not to get everything right. It is to keep
-                  paying attention to each other."
-                </Text>
-              </Card>
-            ) : null}
-          </View>
-        </ScrollView>
-      </GlassBackground>
-    </SafeAreaView>
-  );
-}
-
-function SessionCard({ session }) {
-  const date = session.completed_at
-    ? new Date(session.completed_at).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      })
-    : "";
-
-  const playerName = session.is_you
-    ? "You"
-    : session.player_first_name?.trim() || "Your partner";
-
-  const total = session.total_questions || 0;
-
-  const perfect = total > 0 && session.score === total;
-
-  return (
-    <View style={[styles.sessionCard, session.is_you && styles.sessionCardYou]}>
-      <View
-        style={[styles.scoreCircle, session.is_you && styles.scoreCircleYou]}
-      >
-        <Text style={[styles.scoreText, session.is_you && styles.scoreTextYou]}>
-          {session.score}/{total}
-        </Text>
-      </View>
-
-      <View style={styles.sessionContent}>
-        <Text style={styles.sessionPlayer}>
-          {playerName}
-          {perfect ? " · Perfect round" : ""}
-        </Text>
-
-        <Text style={styles.sessionDate}>{date}</Text>
-      </View>
-    </View>
+                  }
+                  title={`${name} scored ${session.score}/${total}`}
+                  subtitle={timeAgo(session.completed_at)}
+                  trailing={
+                    perfect ? (
+                      <Icon name="trophy" size={18} color={T.secondary} />
+                    ) : null
+                  }
+                />
+              );
+            })}
+          </Group>
+        </>
+      )}
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
+  loading: {
+    paddingHorizontal: 16,
   },
 
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 120,
-  },
-
-  container: {
-    paddingHorizontal: 22,
-    paddingTop: 22,
-  },
-
-  header: {
+  stats: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 22,
-  },
-
-  backButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "rgba(74, 45, 92, 0.09)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 11,
-  },
-
-  headerText: {
-    flex: 1,
-  },
-
-  brand: {
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 2,
-    color: "#4A2D5C",
-  },
-
-  pageTitle: {
-    marginTop: 5,
-    fontSize: 26,
-    lineHeight: 31,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  pageSubtitle: {
-    marginTop: 4,
-    fontSize: 11,
-    lineHeight: 17,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  statsCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 18,
     paddingVertical: 18,
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    marginBottom: 4,
   },
 
-  statItem: {
+  stat: {
     flex: 1,
     alignItems: "center",
   },
 
-  statNumber: {
-    fontSize: 22,
+  statValue: {
+    fontFamily: "ui-rounded",
+    fontSize: 30,
+    lineHeight: 34,
     fontWeight: "700",
-    color: "#4A2D5C",
+    letterSpacing: -0.8,
+    color: T.accent,
   },
 
   statLabel: {
-    marginTop: 4,
-    fontSize: 9,
-    fontWeight: "600",
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  statDivider: {
-    width: 1,
-    height: 30,
-    backgroundColor: "#E9E6EB",
-  },
-
-  section: {
-    marginTop: 26,
-  },
-
-  sectionLabel: {
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1.7,
-    color: "rgba(60,60,67,0.6)",
-    marginBottom: 7,
-  },
-
-  sectionTitle: {
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: "700",
-    color: "#111114",
-    marginBottom: 13,
-  },
-
-  sessionCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 16,
-    padding: 15,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    marginBottom: 10,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  sessionCardYou: {
-    borderColor: "#D9C8C0",
-  },
-
-  scoreCircle: {
-    minWidth: 52,
-    height: 40,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 13,
-  },
-
-  scoreCircleYou: {
-    backgroundColor: "#4A2D5C",
-  },
-
-  scoreText: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#4A2D5C",
-  },
-
-  scoreTextYou: {
-    color: "#FFFFFF",
-  },
-
-  sessionContent: {
-    flex: 1,
-  },
-
-  sessionPlayer: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  sessionDate: {
-    marginTop: 4,
-    fontSize: 10,
-    fontWeight: "600",
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  emptyCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 20,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    alignItems: "center",
-  },
-
-  emptyIcon: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: "rgba(74, 45, 92, 0.09)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 15,
-  },
-
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  emptyText: {
-    marginTop: 8,
-    fontSize: 13,
-    lineHeight: 20,
-    color: "rgba(60,60,67,0.6)",
-    textAlign: "center",
-  },
-
-  emptyButton: {
-    marginTop: 17,
-    paddingHorizontal: 15,
-    paddingVertical: 11,
-    borderRadius: 11,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-  },
-
-  emptyButtonText: {
     fontSize: 12,
-    fontWeight: "700",
-    color: "#4A2D5C",
-  },
-
-  footerCard: {
-    marginTop: 17,
-    padding: 20,
-    borderRadius: 18,
-    backgroundColor: "#FBEEF2",
-    alignItems: "center",
-  },
-
-  footerQuote: {
-    textAlign: "center",
-    fontSize: 13,
-    lineHeight: 20,
     fontWeight: "600",
-    color: "#4A2D5C",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+    color: T.label2,
+    marginTop: 2,
   },
 
-  errorBox: {
-    backgroundColor: "#E9E6EB",
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderRadius: 12,
-    marginBottom: 15,
-  },
-
-  errorText: {
-    fontSize: 12,
-    lineHeight: 17,
-    color: "#FF3B30",
-  },
-
-  loadingContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  loadingText: {
-    marginTop: 12,
-    fontSize: 12,
-    color: "rgba(60,60,67,0.6)",
+  statRule: {
+    width: StyleSheet.hairlineWidth,
+    alignSelf: "stretch",
+    backgroundColor: T.separator,
   },
 });

@@ -1,34 +1,49 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
-import { GlassBackground, GlassPanel, Card, FadeIn } from "../components/Glass";
-import { Skeleton } from "../components/Skeleton";
-import { getCachedData, setCachedData } from "../lib/dataCache";
+
 import { apiFetch } from "../lib/api";
-import ConnectFirst from "../components/ConnectFirst";
+import { getCachedData, setCachedData } from "../lib/dataCache";
 import { useIsConnected } from "../lib/connection";
+import { T } from "../lib/theme";
+import {
+  Avatar,
+  Button,
+  Card,
+  GlassButton,
+  Group,
+  GroupHeader,
+  LargeTitle,
+  NavBar,
+  Notice,
+  Screen,
+  SubTitle,
+} from "../components/ui";
+import ConnectFirst from "../components/ConnectFirst";
+import { SkeletonList } from "../components/Skeleton";
 
 /*
- * A weekly temperature check.
+ * ==========================================
+ * CHECK-IN
+ * ==========================================
  *
- * One number each, once a week, is enough to spot a
- * dip early -- which is the point. It is much easier
- * to talk about a bad week while it is still one bad
+ * A weekly temperature check. One number each, once a
+ * week, is enough to spot a dip early -- and a bad week
+ * is far easier to talk about while it is still one bad
  * week.
+ *
+ *   you        five steps, a line if you want, save
+ *   them       their number and line, once they have
+ *   the trend  your last weeks as bars
  */
 
 const SCALE = [
@@ -83,7 +98,6 @@ export default function CheckInScreen() {
 
       if (cacheKey) setCachedData(cacheKey, json);
     } catch (err) {
-      console.log("CHECKIN LOAD ERROR:", err);
       setError(err?.message || "Unable to load your check-in.");
     } finally {
       setLoading(false);
@@ -120,7 +134,6 @@ export default function CheckInScreen() {
 
       setTimeout(() => setJustSaved(false), 2600);
     } catch (err) {
-      console.log("CHECKIN SAVE ERROR:", err);
       Alert.alert("Something went wrong", err?.message || "Unable to save.");
     } finally {
       setSaving(false);
@@ -137,430 +150,280 @@ export default function CheckInScreen() {
     .reverse();
 
   if (connected === false) {
-    return <ConnectFirst feature="Check-in" showBack={true} />;
+    return <ConnectFirst feature="Check-in" showBack />;
   }
 
+  const goBack = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)/home");
+  };
+
   return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
-      <GlassBackground>
-        <KeyboardAvoidingView
-          style={styles.fill}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-        >
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={styles.scrollContent}
-          >
-            <View style={styles.container}>
-              <View style={styles.header}>
-                <TouchableOpacity
-                  style={styles.backButton}
-                  activeOpacity={0.8}
-                  onPress={() => router.back()}
-                >
-                  <Ionicons name="chevron-back" size={20} color="#4A2D5C" />
-                </TouchableOpacity>
+    <Screen>
+      <NavBar
+        left={<GlassButton icon="back" label="Back" onPress={goBack} />}
+      />
 
-                <View style={styles.headerText}>
-                  <Text style={styles.brand}>THIS WEEK</Text>
+      <LargeTitle>Check-in</LargeTitle>
 
-                  <Text style={styles.pageTitle}>Check-in</Text>
-                </View>
-              </View>
+      <SubTitle>How are we doing this week?</SubTitle>
 
-              {error ? (
-                <View style={styles.errorBox}>
-                  <Text style={styles.errorText}>{error}</Text>
-                </View>
-              ) : null}
+      <Notice>{error}</Notice>
 
-              {loading ? (
-                <View>
-                  <Skeleton width="100%" height={150} radius={24} />
-                  <Skeleton
-                    width="100%"
-                    height={110}
-                    radius={20}
-                    style={{ marginTop: 14 }}
-                  />
-                </View>
-              ) : (
-                <FadeIn>
-                  <GlassPanel style={styles.panel}>
-                    <Text style={styles.panelLabel}>HOW HAS IT BEEN?</Text>
+      {loading ? (
+        <View style={styles.loading}>
+          <SkeletonList count={2} />
+        </View>
+      ) : (
+        <>
+          {/* YOU */}
 
-                    <Text style={styles.panelTitle}>
-                      How are we doing this week?
-                    </Text>
+          <Card style={styles.you}>
+            <View style={styles.scale}>
+              {SCALE.map((step) => {
+                const active = rating === step.value;
 
-                    <View style={styles.scaleRow}>
-                      {SCALE.map((step) => {
-                        const active = rating === step.value;
-
-                        return (
-                          <TouchableOpacity
-                            key={step.value}
-                            style={[
-                              styles.scaleItem,
-                              active && styles.scaleItemActive,
-                            ]}
-                            activeOpacity={0.8}
-                            onPress={() => setRating(step.value)}
-                          >
-                            <Text
-                              style={[
-                                styles.scaleValue,
-                                active && styles.scaleValueActive,
-                              ]}
-                            >
-                              {step.value}
-                            </Text>
-
-                            <Text
-                              style={[
-                                styles.scaleLabel,
-                                active && styles.scaleLabelActive,
-                              ]}
-                            >
-                              {step.label}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
+                return (
+                  <Pressable
+                    key={step.value}
+                    onPress={() => {
+                      Haptics.selectionAsync().catch(() => {});
+                      setRating(step.value);
+                    }}
+                    style={styles.step}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={`${step.value}, ${step.label}`}
+                  >
+                    <View style={[styles.dot, active && styles.dotOn]}>
+                      <Text
+                        style={[styles.dotText, active && styles.dotTextOn]}
+                      >
+                        {step.value}
+                      </Text>
                     </View>
 
-                    <TextInput
-                      value={note}
-                      onChangeText={setNote}
-                      placeholder="Anything worth saying about it? (optional)"
-                      placeholderTextColor="rgba(255,255,255,0.5)"
-                      style={styles.input}
-                      multiline
-                      textAlignVertical="top"
+                    <Text
+                      style={[styles.stepLabel, active && styles.stepLabelOn]}
+                    >
+                      {step.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </Card>
+
+          <Group>
+            <TextInput
+              value={note}
+              onChangeText={setNote}
+              placeholder="Anything worth saying about it? (optional)"
+              placeholderTextColor={T.label3}
+              style={styles.field}
+              multiline
+              textAlignVertical="top"
+            />
+          </Group>
+
+          <Button
+            title={mineDone ? "Update This Week" : "Save This Week"}
+            onPress={submit}
+            busy={saving}
+            disabled={!rating}
+          />
+
+          {justSaved ? (
+            <Notice tone="info">
+              {data?.partner_checkin
+                ? `You've both checked in. ${partnerName} said ${data.partner_checkin.rating} of 5.`
+                : `Saved. ${partnerName} hasn't checked in yet.`}
+            </Notice>
+          ) : null}
+
+          {/* THEM */}
+
+          <GroupHeader>{partnerName}</GroupHeader>
+
+          <Card style={styles.them}>
+            <Avatar name={partnerName} who="them" size={44} />
+
+            {data?.partner_checkin ? (
+              <View style={styles.themBody}>
+                <Text style={styles.themRating}>
+                  {data.partner_checkin.rating}
+                  <Text style={styles.themOutOf}> of 5 · </Text>
+                  <Text style={styles.themOutOf}>
+                    {SCALE[data.partner_checkin.rating - 1]?.label}
+                  </Text>
+                </Text>
+
+                {data.partner_checkin.note ? (
+                  <Text style={styles.themNote}>
+                    {data.partner_checkin.note}
+                  </Text>
+                ) : null}
+              </View>
+            ) : (
+              <Text style={styles.themWaiting}>
+                Hasn&apos;t checked in this week yet.
+              </Text>
+            )}
+          </Card>
+
+          {/* YOUR LAST WEEKS */}
+
+          {trend.length > 1 ? (
+            <>
+              <GroupHeader>Your last weeks</GroupHeader>
+
+              <Card style={styles.trend}>
+                {trend.map((week, index) => (
+                  <View key={index} style={styles.trendColumn}>
+                    <View
+                      style={[
+                        styles.trendBar,
+                        { height: 10 + week.rating * 14 },
+                        index === trend.length - 1 && styles.trendBarNow,
+                      ]}
                     />
 
-                    <TouchableOpacity
-                      style={[
-                        styles.saveButton,
-                        (!rating || saving) && styles.saveButtonDisabled,
-                      ]}
-                      activeOpacity={0.85}
-                      onPress={submit}
-                      disabled={!rating || saving}
-                    >
-                      {saving ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" />
-                      ) : justSaved ? (
-                        <View style={styles.savedRow}>
-                          <Ionicons
-                            name="checkmark-circle"
-                            size={17}
-                            color="#FFFFFF"
-                          />
-
-                          <Text style={styles.saveButtonText}>Saved</Text>
-                        </View>
-                      ) : (
-                        <Text style={styles.saveButtonText}>
-                          {mineDone ? "Update this week" : "Save this week"}
-                        </Text>
-                      )}
-                    </TouchableOpacity>
-
-                    {mineDone ? (
-                      <Text style={styles.savedNote}>
-                        {data?.partner_checkin
-                          ? `You both checked in this week. ${partnerName} said ${data.partner_checkin.rating}/5.`
-                          : `Saved. ${partnerName} hasn't checked in yet this week.`}
-                      </Text>
-                    ) : null}
-                  </GlassPanel>
-
-                  {/* PARTNER */}
-
-                  <Card style={styles.card}>
-                    <Text style={styles.cardLabel}>
-                      {partnerName.toUpperCase()}
-                    </Text>
-
-                    {data?.partner_checkin ? (
-                      <View>
-                        <Text style={styles.partnerRating}>
-                          {data.partner_checkin.rating}
-                          <Text style={styles.partnerOutOf}> / 5</Text>
-                        </Text>
-
-                        {data.partner_checkin.note ? (
-                          <Text style={styles.partnerNote}>
-                            {data.partner_checkin.note}
-                          </Text>
-                        ) : null}
-                      </View>
-                    ) : (
-                      <Text style={styles.waitingText}>
-                        {partnerName} hasn't checked in this week yet.
-                      </Text>
-                    )}
-                  </Card>
-
-                  {/* TREND */}
-
-                  {trend.length > 1 ? (
-                    <Card style={styles.card}>
-                      <Text style={styles.cardLabel}>YOUR LAST FEW WEEKS</Text>
-
-                      <View style={styles.trendRow}>
-                        {trend.map((week, index) => (
-                          <View key={index} style={styles.trendColumn}>
-                            <View
-                              style={[
-                                styles.trendBar,
-                                { height: 14 + week.rating * 16 },
-                              ]}
-                            />
-
-                            <Text style={styles.trendValue}>{week.rating}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    </Card>
-                  ) : null}
-                </FadeIn>
-              )}
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </GlassBackground>
-    </SafeAreaView>
+                    <Text style={styles.trendValue}>{week.rating}</Text>
+                  </View>
+                ))}
+              </Card>
+            </>
+          ) : null}
+        </>
+      )}
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  fill: { flex: 1 },
-  scrollContent: { flexGrow: 1, paddingBottom: 120 },
-  container: { paddingHorizontal: 22, paddingTop: 22 },
+  loading: {
+    paddingHorizontal: 16,
+  },
 
-  header: {
+  you: {
+    paddingVertical: 18,
+  },
+
+  scale: {
     flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 22,
+    justifyContent: "space-between",
   },
 
-  backButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "rgba(255, 255, 255, 0.55)",
+  step: {
     alignItems: "center",
-    justifyContent: "center",
-    marginRight: 11,
-  },
-
-  headerText: {
+    gap: 6,
     flex: 1,
   },
 
-  brand: {
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 2,
-    color: "#4A2D5C",
-  },
-
-  pageTitle: {
-    marginTop: 5,
-    fontSize: 26,
-    lineHeight: 31,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  panel: {
-    marginBottom: 14,
-  },
-
-  panelLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 1.6,
-    color: "#E9E6EB",
-  },
-
-  panelTitle: {
-    marginTop: 10,
-    fontSize: 19,
-    lineHeight: 26,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-
-  scaleRow: {
-    flexDirection: "row",
-    gap: 7,
-    marginTop: 18,
-  },
-
-  scaleItem: {
-    flex: 1,
-    paddingVertical: 11,
-    borderRadius: 13,
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.12)",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.28)",
-  },
-
-  scaleItemActive: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#FFFFFF",
-  },
-
-  scaleValue: {
-    fontSize: 15,
-    fontWeight: "800",
-    color: "#FFFFFF",
-  },
-
-  scaleValueActive: {
-    color: "#4A2D5C",
-  },
-
-  scaleLabel: {
-    marginTop: 3,
-    fontSize: 8.5,
-    fontWeight: "700",
-    letterSpacing: 0.4,
-    color: "rgba(255,255,255,0.7)",
-  },
-
-  scaleLabelActive: {
-    color: "#8A6B60",
-  },
-
-  input: {
-    marginTop: 16,
-    minHeight: 70,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.14)",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.34)",
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 14,
-    lineHeight: 20,
-    color: "#FFFFFF",
-  },
-
-  saveButton: {
-    marginTop: 14,
+  dot: {
+    width: 46,
     height: 46,
-    borderRadius: 14,
+    borderRadius: 23,
+    backgroundColor: T.fill3,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.18)",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.42)",
   },
 
-  saveButtonDisabled: { opacity: 0.45 },
-
-  savedRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+  dotOn: {
+    backgroundColor: T.accent,
   },
 
-  savedNote: {
-    marginTop: 12,
-    fontSize: 12.5,
-    lineHeight: 18,
-    color: "rgba(255,255,255,0.75)",
-    textAlign: "center",
+  dotText: {
+    fontFamily: "ui-rounded",
+    fontSize: 19,
+    fontWeight: "700",
+    color: T.label2,
   },
 
-  saveButtonText: {
-    fontSize: 13,
-    fontWeight: "800",
+  dotTextOn: {
     color: "#FFFFFF",
   },
 
-  card: {
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    marginBottom: 13,
+  stepLabel: {
+    fontSize: 12,
+    color: T.label2,
   },
 
-  cardLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 1.5,
-    color: "rgba(60,60,67,0.6)",
+  stepLabelOn: {
+    color: T.accent,
+    fontWeight: "600",
   },
 
-  partnerRating: {
-    marginTop: 10,
-    fontSize: 30,
-    fontWeight: "800",
-    color: "#111114",
+  field: {
+    fontSize: 17,
+    color: T.label,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    minHeight: 92,
   },
 
-  partnerOutOf: {
-    fontSize: 15,
+  them: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+
+  themBody: {
+    flex: 1,
+  },
+
+  themRating: {
+    fontFamily: "ui-rounded",
+    fontSize: 28,
     fontWeight: "700",
-    color: "rgba(60,60,67,0.6)",
+    color: T.accent,
   },
 
-  partnerNote: {
-    marginTop: 8,
-    fontSize: 14,
+  themOutOf: {
+    fontFamily: undefined,
+    fontSize: 15,
+    fontWeight: "500",
+    color: T.label2,
+  },
+
+  themNote: {
+    fontSize: 15,
     lineHeight: 21,
-    color: "#5C534E",
+    color: T.label,
+    marginTop: 4,
   },
 
-  waitingText: {
-    marginTop: 10,
-    fontSize: 13,
-    lineHeight: 19,
-    color: "rgba(60,60,67,0.6)",
+  themWaiting: {
+    flex: 1,
+    fontSize: 15,
+    color: T.label2,
   },
 
-  trendRow: {
-    marginTop: 16,
+  trend: {
     flexDirection: "row",
     alignItems: "flex-end",
-    gap: 9,
+    justifyContent: "space-around",
+    paddingTop: 20,
+    minHeight: 120,
   },
 
   trendColumn: {
-    flex: 1,
     alignItems: "center",
+    gap: 6,
   },
 
   trendBar: {
-    width: "100%",
-    borderRadius: 7,
-    backgroundColor: "#4A2D5C",
-    opacity: 0.75,
+    width: 18,
+    borderRadius: 6,
+    backgroundColor: T.accentTint,
+  },
+
+  trendBarNow: {
+    backgroundColor: T.accent,
   },
 
   trendValue: {
-    marginTop: 6,
-    fontSize: 10,
-    fontWeight: "700",
-    color: "rgba(60,60,67,0.6)",
+    fontSize: 12,
+    color: T.label2,
   },
-
-  errorBox: {
-    backgroundColor: "rgba(243, 227, 223, 0.85)",
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderRadius: 12,
-    marginBottom: 15,
-  },
-
-  errorText: { fontSize: 12, lineHeight: 17, color: "#FF3B30" },
 });

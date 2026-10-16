@@ -1,34 +1,67 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Pressable,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import Celebration from "../components/Celebration";
-import { GlassBackground, Card } from "../components/Glass";
-import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
-import DateInput from "../components/DateInput";
+
+import { apiFetch } from "../lib/api";
 import {
+  clearCachedData,
   getCachedData,
   setCachedData,
-  clearCachedData,
 } from "../lib/dataCache";
-import { Skeleton, SkeletonList } from "../components/Skeleton";
-import { apiFetch } from "../lib/api";
-import ConnectFirst from "../components/ConnectFirst";
 import { useIsConnected } from "../lib/connection";
+import { T } from "../lib/theme";
+import {
+  Button,
+  Cell,
+  Check,
+  Empty,
+  GlassButton,
+  Group,
+  GroupFooter,
+  Icon,
+  LargeTitle,
+  NavBar,
+  Notice,
+  Screen,
+  Sheet,
+  SubTitle,
+} from "../components/ui";
+import Celebration from "../components/Celebration";
+import ConnectFirst from "../components/ConnectFirst";
+import DateInput from "../components/DateInput";
+import { SkeletonList } from "../components/Skeleton";
+
+/*
+ * ==========================================
+ * GOALS
+ * ==========================================
+ *
+ * What the two of you are working on, as a Reminders
+ * list: tick the round check when it is done (and get
+ * the celebration), tap the goal to change it.
+ */
+
+function byWhen(date) {
+  if (!date) return null;
+
+  const value = new Date(String(date).slice(0, 10) + "T12:00:00");
+
+  if (Number.isNaN(value.getTime())) return null;
+
+  return `By ${value.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  })}`;
+}
 
 export default function GoalsScreen() {
   const router = useRouter();
@@ -73,8 +106,6 @@ export default function GoalsScreen() {
       const response = await apiFetch(`/users/${userId}/relationship-goals`);
       const data = await response.json();
 
-      console.log("GOALS RESPONSE:", data);
-
       if (!response.ok) {
         throw new Error(data?.error || "Unable to load goals.");
       }
@@ -90,8 +121,6 @@ export default function GoalsScreen() {
 
       if (cacheKey) setCachedData(cacheKey, activeGoals);
     } catch (err) {
-      console.log("GOALS LOAD ERROR:", err);
-
       // Only surface the error if we have nothing cached to show.
       if (!cached) {
         setError(err?.message || "Unable to load your goals.");
@@ -105,6 +134,8 @@ export default function GoalsScreen() {
   useEffect(() => {
     loadGoals();
   }, [loadGoals]);
+
+  const endCelebration = useCallback(() => setCelebrating(false), []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -186,11 +217,6 @@ export default function GoalsScreen() {
 
       const data = await response.json();
 
-      console.log(
-        editingGoal ? "UPDATE GOAL RESPONSE:" : "CREATE GOAL RESPONSE:",
-        data,
-      );
-
       if (!response.ok) {
         throw new Error(data?.error || "Unable to save goal.");
       }
@@ -198,8 +224,6 @@ export default function GoalsScreen() {
       resetForm();
       await loadGoals();
     } catch (err) {
-      console.log("SAVE GOAL ERROR:", err);
-
       Alert.alert(
         "Something went wrong",
         err?.message || "Unable to save goal.",
@@ -228,8 +252,6 @@ export default function GoalsScreen() {
 
       const data = await response.json();
 
-      console.log("COMPLETE GOAL RESPONSE:", data);
-
       if (!response.ok) {
         throw new Error(data?.error || "Unable to complete goal.");
       }
@@ -246,8 +268,6 @@ export default function GoalsScreen() {
       // list that doesn't include this goal yet.
       if (userId) clearCachedData(`completed-goals:${userId}`);
     } catch (err) {
-      console.log("COMPLETE GOAL ERROR:", err);
-
       Alert.alert(
         "Something went wrong",
         err?.message || "Unable to complete goal.",
@@ -278,8 +298,6 @@ export default function GoalsScreen() {
 
               const data = await response.json();
 
-              console.log("DELETE GOAL RESPONSE:", data);
-
               if (!response.ok) {
                 throw new Error(data?.error || "Unable to delete goal.");
               }
@@ -290,8 +308,6 @@ export default function GoalsScreen() {
                 return next;
               });
             } catch (err) {
-              console.log("DELETE GOAL ERROR:", err);
-
               Alert.alert(
                 "Something went wrong",
                 err?.message || "Unable to delete goal.",
@@ -304,835 +320,193 @@ export default function GoalsScreen() {
   };
 
   if (connected === false) {
-    return <ConnectFirst feature="Goals" showBack={true} />;
+    return <ConnectFirst feature="Goals" showBack />;
   }
 
-  if (loading) {
-    /*
-     * Cold load only (nothing cached yet). Mirrors the
-     * real layout so the page appears at once and fills
-     * in, instead of blocking on a spinner.
-     */
-    return (
-      <SafeAreaView style={styles.screen} edges={["top"]}>
-        <GlassBackground>
-          <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
-            <Skeleton width={96} height={11} radius={6} />
-            <Skeleton
-              width="62%"
-              height={26}
-              radius={9}
-              style={{ marginTop: 12 }}
-            />
-            <Skeleton width="80%" height={12} style={{ marginTop: 10 }} />
-
-            <View style={{ marginTop: 26 }}>
-              <SkeletonList count={3} />
-            </View>
-          </View>
-        </GlassBackground>
-      </SafeAreaView>
-    );
-  }
+  const goBack = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)/home");
+  };
 
   return (
-    <SafeAreaView style={styles.screen} edges={["top"]}>
+    <>
+      <Screen
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={T.accent}
+          />
+        }
+      >
+        <NavBar
+          left={<GlassButton icon="back" label="Back" onPress={goBack} />}
+        >
+          <GlassButton icon="add" label="Add a goal" onPress={openCreateForm} />
+        </NavBar>
+
+        <LargeTitle>Goals</LargeTitle>
+
+        <SubTitle>What you&apos;re both working on right now.</SubTitle>
+
+        <Notice>{error}</Notice>
+
+        {loading ? (
+          <View style={styles.loading}>
+            <SkeletonList count={3} />
+          </View>
+        ) : goals.length === 0 ? (
+          <Empty
+            icon="flag"
+            title="Nothing you're working on yet"
+            text="One goal you both care about, with a date if you want a nudge."
+            action={{
+              title: "Add a Goal",
+              icon: "add",
+              onPress: openCreateForm,
+            }}
+          />
+        ) : (
+          <>
+            <Group inset={50}>
+              {goals.map((goal) => (
+                <View key={goal.id} style={styles.row}>
+                  <Check
+                    on={false}
+                    onPress={() => markComplete(goal)}
+                    label={`Mark ${goal.title} done`}
+                  />
+
+                  <View style={styles.rowBody}>
+                    <Cell
+                      title={goal.title}
+                      subtitle={[goal.description, byWhen(goal.target_date)]
+                        .filter(Boolean)
+                        .join(" · ")}
+                      chevron
+                      onPress={() => openEditForm(goal)}
+                    />
+                  </View>
+                </View>
+              ))}
+            </Group>
+
+            <GroupFooter>
+              Tick one when it&apos;s done. Small, steady steps.
+            </GroupFooter>
+          </>
+        )}
+
+        <Group inset={52}>
+          <Cell
+            leading={<Icon name="trophy" size={22} color={T.secondary} />}
+            title="Completed together"
+            chevron
+            onPress={() => router.push("/completed-goals")}
+          />
+        </Group>
+      </Screen>
+
+      {/* A GOAL, NEW OR OLD */}
+
+      <Sheet
+        visible={showForm}
+        title={editingGoal ? "Edit Goal" : "New Goal"}
+        onCancel={resetForm}
+        onSave={saveGoal}
+        saveDisabled={!title.trim() || saving}
+      >
+        <Group>
+          <TextInput
+            value={title}
+            onChangeText={setTitle}
+            placeholder="e.g. Talk it through when we argue"
+            placeholderTextColor={T.label3}
+            style={styles.field}
+            autoFocus={!editingGoal}
+          />
+
+          <TextInput
+            value={description}
+            onChangeText={setDescription}
+            placeholder="Why it matters (optional)"
+            placeholderTextColor={T.label3}
+            style={[styles.field, styles.fieldTall]}
+            multiline
+            textAlignVertical="top"
+          />
+
+          <DateInput
+            value={targetDate}
+            onChangeText={setTargetDate}
+            placeholder="By when? YYYY-MM-DD (optional)"
+            style={styles.field}
+          />
+        </Group>
+
+        <GroupFooter>
+          With a date, you both get a nudge as it gets close.
+        </GroupFooter>
+
+        <Button
+          title={editingGoal ? "Save Changes" : "Add Goal"}
+          onPress={saveGoal}
+          busy={saving}
+          disabled={!title.trim()}
+        />
+
+        {editingGoal ? (
+          <Group inset={52}>
+            <Cell
+              leading={<Icon name="trash" size={20} color={T.red} />}
+              title="Delete Goal"
+              destructive
+              onPress={() => {
+                const goal = editingGoal;
+
+                resetForm();
+                setTimeout(() => deleteGoal(goal), 450);
+              }}
+            />
+          </Group>
+        ) : null}
+      </Sheet>
+
       <Celebration
         visible={celebrating}
         title="Goal complete"
         message="Something you worked on together, done."
-        onDone={() => setCelebrating(false)}
+        onDone={endCelebration}
       />
-
-      <GlassBackground>
-        <KeyboardAvoidingView
-          style={styles.keyboardContainer}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-        >
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={handleRefresh}
-                tintColor="#4A2D5C"
-              />
-            }
-            contentContainerStyle={styles.scrollContent}
-          >
-            <View style={styles.container}>
-              {/* HEADER */}
-
-              <View style={styles.header}>
-                <TouchableOpacity
-                  style={styles.backButton}
-                  activeOpacity={0.8}
-                  onPress={() => router.back()}
-                >
-                  <Ionicons name="chevron-back" size={20} color="#4A2D5C" />
-                </TouchableOpacity>
-
-                <View style={styles.headerText}>
-                  <Text style={styles.brand}>BETWEEN US</Text>
-
-                  <Text style={styles.pageTitle}>Relationship Goals</Text>
-
-                  <Text style={styles.pageSubtitle}>
-                    What are you both working towards right now?
-                  </Text>
-                </View>
-              </View>
-
-              {error ? (
-                <View style={styles.errorBox}>
-                  <Text style={styles.errorText}>{error}</Text>
-                </View>
-              ) : null}
-
-              {/* COMPLETED GOALS LINK */}
-
-              <TouchableOpacity
-                style={styles.completedLink}
-                activeOpacity={0.8}
-                onPress={() => router.push("/completed-goals")}
-              >
-                <View style={styles.completedLinkIcon}>
-                  <Text style={styles.completedLinkIconText}>✓</Text>
-                </View>
-
-                <View style={styles.completedLinkContent}>
-                  <Text style={styles.completedLinkTitle}>Completed goals</Text>
-
-                  <Text style={styles.completedLinkSubtitle}>
-                    Look back at what you've already achieved together.
-                  </Text>
-                </View>
-
-                <Text style={styles.completedLinkArrow}>→</Text>
-              </TouchableOpacity>
-
-              {/* ADD */}
-
-              {!showForm ? (
-                <Pressable onPress={openCreateForm}>
-                  <Card style={styles.addButton}>
-                    <View style={styles.addIcon}>
-                      <Text style={styles.addIconText}>+</Text>
-                    </View>
-
-                    <View style={styles.addContent}>
-                      <Text style={styles.addTitle}>Add a goal</Text>
-
-                      <Text style={styles.addSubtitle}>
-                        Something you both want to work on.
-                      </Text>
-                    </View>
-
-                    <Text style={styles.addArrow}>→</Text>
-                  </Card>
-                </Pressable>
-              ) : null}
-
-              {/* FORM */}
-
-              {showForm ? (
-                <Card style={styles.formCard}>
-                  <View style={styles.formHeader}>
-                    <View>
-                      <Text style={styles.formLabel}>
-                        {editingGoal ? "EDIT GOAL" : "NEW GOAL"}
-                      </Text>
-
-                      <Text style={styles.formTitle}>
-                        {editingGoal
-                          ? "Update your goal."
-                          : "What do you want to work on together?"}
-                      </Text>
-                    </View>
-
-                    <TouchableOpacity
-                      onPress={resetForm}
-                      style={styles.closeButton}
-                    >
-                      <Text style={styles.closeButtonText}>×</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  <Text style={styles.inputLabel}>TITLE</Text>
-
-                  <TextInput
-                    value={title}
-                    onChangeText={setTitle}
-                    placeholder="e.g. Communicate better during arguments"
-                    placeholderTextColor="rgba(60,60,67,0.3)"
-                    style={styles.input}
-                  />
-
-                  <Text style={styles.inputLabel}>DESCRIPTION</Text>
-
-                  <TextInput
-                    value={description}
-                    onChangeText={setDescription}
-                    placeholder="Tell us more about this goal..."
-                    placeholderTextColor="rgba(60,60,67,0.3)"
-                    style={[styles.input, styles.descriptionInput]}
-                    multiline
-                    textAlignVertical="top"
-                  />
-
-                  <Text style={styles.inputLabel}>TARGET DATE (OPTIONAL)</Text>
-
-                  <DateInput
-                    value={targetDate}
-                    onChangeText={setTargetDate}
-                    style={styles.input}
-                  />
-
-                  <TouchableOpacity
-                    style={[
-                      styles.saveButton,
-                      saving && styles.saveButtonDisabled,
-                    ]}
-                    activeOpacity={0.85}
-                    onPress={saveGoal}
-                    disabled={saving}
-                  >
-                    {saving ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <Text style={styles.saveButtonText}>
-                        {editingGoal ? "Save changes" : "Add goal"}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                </Card>
-              ) : null}
-
-              {/* GOALS */}
-
-              <View style={styles.section}>
-                <Text style={styles.sectionLabel}>WORKING ON TOGETHER</Text>
-
-                <Text style={styles.sectionTitle}>
-                  {goals.length === 0
-                    ? "No active goals yet."
-                    : `${goals.length} ${
-                        goals.length === 1 ? "goal" : "goals"
-                      } in progress.`}
-                </Text>
-
-                {goals.length === 0 ? (
-                  <Card style={styles.emptyCard}>
-                    <View style={styles.emptyIcon}>
-                      <Text style={styles.emptyIconText}>◆</Text>
-                    </View>
-
-                    <Text style={styles.emptyTitle}>Nothing here yet.</Text>
-
-                    <Text style={styles.emptyText}>
-                      Add a goal you're working on as a couple, with an optional
-                      due date so you both get reminded.
-                    </Text>
-
-                    <TouchableOpacity
-                      style={styles.emptyButton}
-                      onPress={openCreateForm}
-                    >
-                      <Text style={styles.emptyButtonText}>
-                        Add your first goal
-                      </Text>
-                    </TouchableOpacity>
-                  </Card>
-                ) : (
-                  goals.map((goal, index) => (
-                    <GoalCard
-                      key={goal.id}
-                      goal={goal}
-                      index={index}
-                      onEdit={() => openEditForm(goal)}
-                      onDelete={() => deleteGoal(goal)}
-                      onComplete={() => markComplete(goal)}
-                    />
-                  ))
-                )}
-              </View>
-
-              {goals.length > 0 ? (
-                <Card style={styles.footerCard}>
-                  <Text style={styles.footerQuote}>
-                    "Progress, not perfection."
-                  </Text>
-
-                  <Text style={styles.footerText}>
-                    Small, steady steps build a stronger relationship.
-                  </Text>
-                </Card>
-              ) : null}
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </GlassBackground>
-    </SafeAreaView>
-  );
-}
-
-function GoalCard({ goal, index, onEdit, onDelete, onComplete }) {
-  const date = goal.target_date
-    ? new Date(goal.target_date).toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      })
-    : null;
-
-  return (
-    <Card style={styles.goalCard}>
-      <View style={styles.goalTop}>
-        <View style={styles.goalNumber}>
-          <Text style={styles.goalNumberText}>
-            {String(index + 1).padStart(2, "0")}
-          </Text>
-        </View>
-      </View>
-
-      <Text style={styles.goalTitle}>{goal.title}</Text>
-
-      {goal.description ? (
-        <Text style={styles.goalDescription}>{goal.description}</Text>
-      ) : null}
-
-      {date ? (
-        <View style={styles.dateContainer}>
-          <Text style={styles.dateLabel}>TARGET DATE</Text>
-          <Text style={styles.dateText}>{date}</Text>
-        </View>
-      ) : null}
-
-      <View style={styles.goalDivider} />
-
-      <View style={styles.goalBottom}>
-        <TouchableOpacity
-          style={styles.completeButton}
-          onPress={onComplete}
-          activeOpacity={0.8}
-        >
-          <View style={styles.checkCircle} />
-
-          <Text style={styles.completeText}>Mark complete</Text>
-        </TouchableOpacity>
-
-        <View style={styles.goalActions}>
-          <TouchableOpacity style={styles.editButton} onPress={onEdit}>
-            <Text style={styles.editButtonText}>Edit</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
-            <Text style={styles.deleteButtonText}>Delete</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Card>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
+  loading: {
+    paddingHorizontal: 16,
   },
 
-  keyboardContainer: {
-    flex: 1,
-  },
-
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 120,
-  },
-
-  container: {
-    paddingHorizontal: 22,
-    paddingTop: 22,
-  },
-
-  header: {
+  row: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 22,
+    paddingLeft: 16,
   },
 
-  backButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "rgba(74, 45, 92, 0.09)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 11,
-  },
-
-  headerText: {
+  rowBody: {
     flex: 1,
+    marginLeft: -4,
   },
 
-  brand: {
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 2,
-    color: "#4A2D5C",
-  },
-
-  pageTitle: {
-    marginTop: 5,
-    fontSize: 26,
-    lineHeight: 31,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  pageSubtitle: {
-    marginTop: 4,
-    fontSize: 11,
-    lineHeight: 17,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  completedLink: {
-    marginBottom: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 20,
-    padding: 17,
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-  },
-
-  completedLinkIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "rgba(74, 45, 92, 0.09)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  completedLinkIconText: {
+  field: {
     fontSize: 17,
-    fontWeight: "700",
-    color: "#4A2D5C",
+    color: T.label,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    minHeight: 50,
   },
 
-  completedLinkContent: {
-    flex: 1,
-    marginLeft: 12,
-  },
-
-  completedLinkTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  completedLinkSubtitle: {
-    marginTop: 3,
-    fontSize: 11,
-    lineHeight: 16,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  completedLinkArrow: {
-    fontSize: 20,
-    color: "#4A2D5C",
-    marginLeft: 8,
-  },
-
-  addButton: {
-    borderRadius: 20,
-    padding: 17,
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    marginBottom: 12,
-  },
-
-  addIcon: {
-    width: 43,
-    height: 43,
-    borderRadius: 22,
-    backgroundColor: "#4A2D5C",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  addIconText: {
-    fontSize: 24,
-    lineHeight: 27,
-    color: "#FFFFFF",
-  },
-
-  addContent: {
-    flex: 1,
-    marginLeft: 13,
-  },
-
-  addTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  addSubtitle: {
-    marginTop: 3,
-    fontSize: 11,
-    lineHeight: 16,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  addArrow: {
-    fontSize: 20,
-    color: "#4A2D5C",
-    marginLeft: 8,
-  },
-
-  formCard: {
-    marginBottom: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 20,
-    padding: 19,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-  },
-
-  formHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    marginBottom: 20,
-  },
-
-  formLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 1.6,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  formTitle: {
-    marginTop: 5,
-    fontSize: 19,
-    fontWeight: "700",
-    color: "#111114",
-    maxWidth: 260,
-  },
-
-  closeButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  closeButtonText: {
-    fontSize: 22,
-    color: "#4A2D5C",
-  },
-
-  inputLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 1.5,
-    color: "rgba(60,60,67,0.6)",
-    marginBottom: 7,
-  },
-
-  input: {
-    minHeight: 49,
-    borderRadius: 12,
-    backgroundColor: "rgba(74, 45, 92, 0.07)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 14,
-    color: "#111114",
-    marginBottom: 16,
-  },
-
-  descriptionInput: {
-    height: 110,
-  },
-
-  saveButton: {
-    height: 50,
-    borderRadius: 13,
-    backgroundColor: "#4A2D5C",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 4,
-  },
-
-  saveButtonDisabled: {
-    opacity: 0.65,
-  },
-
-  saveButtonText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
-  },
-
-  section: {
-    marginTop: 4,
-  },
-
-  sectionLabel: {
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1.7,
-    color: "rgba(60,60,67,0.6)",
-    marginBottom: 7,
-  },
-
-  sectionTitle: {
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: "700",
-    color: "#111114",
-    marginBottom: 13,
-  },
-
-  goalCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    marginBottom: 13,
-  },
-
-  goalTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-
-  goalNumber: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "rgba(74, 45, 92, 0.09)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  goalNumberText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#4A2D5C",
-  },
-
-  goalTitle: {
-    marginTop: 16,
-    fontSize: 20,
-    lineHeight: 25,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  goalDescription: {
-    marginTop: 8,
-    fontSize: 13,
-    lineHeight: 20,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  dateContainer: {
-    marginTop: 14,
-    backgroundColor: "rgba(74, 45, 92, 0.07)",
-    borderRadius: 11,
-    padding: 11,
-  },
-
-  dateLabel: {
-    fontSize: 8,
-    fontWeight: "800",
-    letterSpacing: 1.2,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  dateText: {
-    marginTop: 3,
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#4A2D5C",
-  },
-
-  goalDivider: {
-    height: 1,
-    backgroundColor: "#E9E6EB",
-    marginVertical: 16,
-  },
-
-  goalBottom: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-
-  completeButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-
-  checkCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: "#C9BDB6",
-  },
-
-  completeText: {
-    marginLeft: 8,
-    fontSize: 10,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  goalActions: {
-    flexDirection: "row",
-    gap: 7,
-  },
-
-  editButton: {
-    paddingHorizontal: 11,
-    paddingVertical: 8,
-    borderRadius: 9,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-  },
-
-  editButtonText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#4A2D5C",
-  },
-
-  deleteButton: {
-    paddingHorizontal: 11,
-    paddingVertical: 8,
-    borderRadius: 9,
-    backgroundColor: "#E9E6EB",
-  },
-
-  deleteButtonText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#FF3B30",
-  },
-
-  emptyCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-    borderRadius: 20,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    alignItems: "center",
-  },
-
-  emptyIcon: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: "rgba(74, 45, 92, 0.09)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 15,
-  },
-
-  emptyIconText: {
-    fontSize: 25,
-    color: "#4A2D5C",
-  },
-
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#111114",
-  },
-
-  emptyText: {
-    marginTop: 8,
-    fontSize: 13,
-    lineHeight: 20,
-    color: "rgba(60,60,67,0.6)",
-    textAlign: "center",
-  },
-
-  emptyButton: {
-    marginTop: 17,
-    paddingHorizontal: 15,
-    paddingVertical: 11,
-    borderRadius: 11,
-    backgroundColor: "rgba(255, 255, 255, 0.78)",
-  },
-
-  emptyButtonText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#4A2D5C",
-  },
-
-  footerCard: {
-    marginTop: 17,
-    padding: 20,
-    borderRadius: 18,
-    backgroundColor: "#FBEEF2",
-    alignItems: "center",
-  },
-
-  footerQuote: {
-    textAlign: "center",
-    fontSize: 14,
-    lineHeight: 21,
-    fontWeight: "600",
-    color: "#4A2D5C",
-  },
-
-  footerText: {
-    marginTop: 7,
-    textAlign: "center",
-    fontSize: 11,
-    lineHeight: 17,
-    color: "rgba(60,60,67,0.6)",
-  },
-
-  errorBox: {
-    backgroundColor: "#E9E6EB",
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderRadius: 12,
-    marginBottom: 15,
-  },
-
-  errorText: {
-    fontSize: 12,
-    lineHeight: 17,
-    color: "#FF3B30",
-  },
-
-  loadingContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  loadingText: {
-    marginTop: 12,
-    fontSize: 12,
-    color: "rgba(60,60,67,0.6)",
+  fieldTall: {
+    minHeight: 92,
   },
 });
