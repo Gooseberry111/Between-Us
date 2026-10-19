@@ -480,7 +480,7 @@ export default function ProfileScreen() {
               title="Your answers"
               subtitle="Tastes change. Update what you told us."
               chevron
-              onPress={() => router.push("/onboarding")}
+              onPress={() => router.push("/answers")}
             />
 
             <Cell

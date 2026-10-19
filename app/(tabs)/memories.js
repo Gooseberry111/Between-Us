@@ -192,6 +192,9 @@ export default function TimelineScreen() {
 
   const closeSheet = () => {
     setSheetOpen(false);
+    setTitle("");
+    setNote("");
+    setWhen("");
     setPhotoId(null);
     setLocalUri(null);
   };
@@ -375,6 +378,9 @@ export default function TimelineScreen() {
         onCancel={closeSheet}
         onSave={saveMemory}
         saveDisabled={!title.trim() || saving || uploading}
+        dirty={Boolean(
+          title.trim() || note.trim() || when.trim() || photoId || localUri,
+        )}
       >
         {/* The photo first, as in the prototype. */}
         {photosAvailable ? (

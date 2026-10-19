@@ -15,6 +15,7 @@ import {
   View,
 } from "react-native";
 import SegmentedControl from "@react-native-segmented-control/segmented-control";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Button as SwiftButton,
   Host,
@@ -37,6 +38,8 @@ import Svg, { Circle } from "react-native-svg";
 import { T } from "../../lib/theme";
 import Icon, { sfSymbol } from "./Icon";
 import { GlassButton, Press } from "./layout";
+import { KeyboardScroll, keyboardBehavior } from "./keyboard";
+import { confirmDiscard } from "../../lib/actions";
 
 /*
  * ==========================================
@@ -645,37 +648,84 @@ export function Sheet({
   onSave,
   saveLabel = "Save",
   saveDisabled,
+  dirty,
   children,
 }) {
+  const insets = useSafeAreaInsets();
+  const android = Platform.OS === "android";
+
+  /* Something typed is never thrown away without asking. */
+  const requestClose = () => {
+    if (dirty) confirmDiscard(onCancel);
+    else onCancel?.();
+  };
+
+  const body = (
+    <KeyboardAvoidingView
+      style={android ? styles.panelFill : styles.sheet}
+      behavior={keyboardBehavior}
+    >
+      <SheetHeader
+        title={title}
+        subtitle={subtitle}
+        onClose={requestClose}
+        onDone={onSave}
+        doneLabel={saveLabel}
+        doneDisabled={saveDisabled}
+      />
+
+      <KeyboardScroll
+        contentContainerStyle={[
+          styles.sheetBody,
+          android && { paddingBottom: 40 + insets.bottom },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        {children}
+      </KeyboardScroll>
+    </KeyboardAvoidingView>
+  );
+
+  /*
+   * iOS: the system page sheet. Android has none, so it gets
+   * a panel that rises from the bottom over a dimmed screen,
+   * clear of the status bar, with rounded top corners.
+   */
+  if (android) {
+    return (
+      <Modal
+        visible={visible}
+        transparent
+        animationType="slide"
+        statusBarTranslucent
+        navigationBarTranslucent
+        onRequestClose={requestClose}
+      >
+        <View style={styles.panelRoot}>
+          <Pressable
+            style={styles.panelScrim}
+            onPress={requestClose}
+            accessibilityLabel="Close"
+          />
+
+          <View style={[styles.panel, { marginTop: insets.top + 36 }]}>
+            <View style={styles.panelGrabber} />
+
+            {body}
+          </View>
+        </View>
+      </Modal>
+    );
+  }
+
   return (
     <Modal
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
-      onRequestClose={onCancel}
+      onRequestClose={requestClose}
     >
-      <KeyboardAvoidingView
-        style={styles.sheet}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <SheetHeader
-          title={title}
-          subtitle={subtitle}
-          onClose={onCancel}
-          onDone={onSave}
-          doneLabel={saveLabel}
-          doneDisabled={saveDisabled}
-        />
-
-        <ScrollView
-          contentContainerStyle={styles.sheetBody}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
-          showsVerticalScrollIndicator={false}
-        >
-          {children}
-        </ScrollView>
-      </KeyboardAvoidingView>
+      {body}
     </Modal>
   );
 }
@@ -1025,6 +1075,36 @@ const styles = StyleSheet.create({
     height: 13,
     borderRadius: 7,
     backgroundColor: T.accent,
+  },
+
+  panelRoot: {
+    flex: 1,
+  },
+
+  panelScrim: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: "rgba(0,0,0,0.32)",
+  },
+
+  panel: {
+    flex: 1,
+    backgroundColor: T.appBackground,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    overflow: "hidden",
+  },
+
+  panelFill: {
+    flex: 1,
+  },
+
+  panelGrabber: {
+    alignSelf: "center",
+    width: 36,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: T.label3,
+    marginTop: 8,
   },
 
   sheetHead: {

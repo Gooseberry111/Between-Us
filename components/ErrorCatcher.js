@@ -58,7 +58,10 @@ export default class ErrorCatcher extends Component {
           </Text>
 
           <Text style={styles.stack} selectable>
-            {String(error?.stack || "").split("\n").slice(0, 12).join("\n")}
+            {String(error?.stack || "")
+              .split("\n")
+              .slice(0, 12)
+              .join("\n")}
           </Text>
         </ScrollView>
       </View>

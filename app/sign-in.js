@@ -368,6 +368,7 @@ export default function SignInScreen() {
   if (verifying) {
     return (
       <AuthScreen
+        centred
         onBack={() => {
           setVerifying(false);
           setCode("");
@@ -409,6 +410,7 @@ export default function SignInScreen() {
 
   return (
     <AuthScreen
+      centred
       onBack={handleBack}
       footer={
         <TextLink onPress={handleCreateAccount} disabled={loading}>

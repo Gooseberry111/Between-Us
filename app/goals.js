@@ -415,6 +415,18 @@ export default function GoalsScreen() {
         onCancel={resetForm}
         onSave={saveGoal}
         saveDisabled={!title.trim() || saving}
+        dirty={
+          editingGoal
+            ? title !== (editingGoal.title || "") ||
+              description !== (editingGoal.description || "") ||
+              targetDate !==
+                (editingGoal.target_date
+                  ? new Date(editingGoal.target_date)
+                      .toISOString()
+                      .split("T")[0]
+                  : "")
+            : Boolean(title.trim() || description.trim() || targetDate.trim())
+        }
       >
         <Group>
           <TextInput

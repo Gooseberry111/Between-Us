@@ -1,19 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 
 import { apiFetch } from "../lib/api";
 import { birthdayError } from "../lib/validation";
 import { T } from "../lib/theme";
+import { useDiscardGuard } from "../lib/useDiscardGuard";
 import {
   Avatar,
   Button,
@@ -44,6 +37,14 @@ export default function EditProfileScreen() {
   const [lastName, setLastName] = useState("");
   const [birthday, setBirthday] = useState("");
   const [loading, setLoading] = useState(true);
+  const [saved, setSaved] = useState(null);
+
+  useDiscardGuard(
+    Boolean(saved) &&
+      (firstName !== saved.firstName ||
+        lastName !== saved.lastName ||
+        birthday !== saved.birthday),
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -64,13 +65,18 @@ export default function EditProfileScreen() {
         throw new Error(data?.error || "Unable to load your profile.");
       }
 
-      setFirstName(data?.profile?.first_name || "");
-      setLastName(data?.profile?.last_name || "");
-      setBirthday(
-        data?.profile?.birthday
+      const loaded = {
+        firstName: data?.profile?.first_name || "",
+        lastName: data?.profile?.last_name || "",
+        birthday: data?.profile?.birthday
           ? new Date(data.profile.birthday).toISOString().split("T")[0]
           : "",
-      );
+      };
+
+      setFirstName(loaded.firstName);
+      setLastName(loaded.lastName);
+      setBirthday(loaded.birthday);
+      setSaved(loaded);
     } catch (err) {
       setError(err?.message || "Unable to load your profile.");
     } finally {
@@ -123,6 +129,8 @@ export default function EditProfileScreen() {
         throw new Error(data?.error || "Unable to update your profile.");
       }
 
+      setSaved({ firstName, lastName, birthday });
+
       Alert.alert(
         "Profile updated",
         "Your profile has been updated successfully.",
@@ -148,78 +156,71 @@ export default function EditProfileScreen() {
   const name = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ");
 
   return (
-    <KeyboardAvoidingView
-      style={styles.fill}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <Screen>
-        <NavBar
-          left={<GlassButton icon="back" label="Back" onPress={goBack} />}
-        >
-          <GlassButton
-            icon="check"
-            label="Save"
-            prominent
-            disabled={saving || loading || !firstName.trim()}
-            onPress={handleSave}
-          />
-        </NavBar>
+    <Screen keyboard>
+      <NavBar left={<GlassButton icon="back" label="Back" onPress={goBack} />}>
+        <GlassButton
+          icon="check"
+          label="Save"
+          prominent
+          disabled={saving || loading || !firstName.trim()}
+          onPress={handleSave}
+        />
+      </NavBar>
 
-        {loading ? (
-          <View style={styles.loading}>
-            <ActivityIndicator color={T.accent} />
+      {loading ? (
+        <View style={styles.loading}>
+          <ActivityIndicator color={T.accent} />
+        </View>
+      ) : (
+        <>
+          <View style={styles.head}>
+            <Avatar name={firstName || "?"} who="you" size={88} />
+
+            <Text style={styles.name}>{name || "Your name"}</Text>
           </View>
-        ) : (
-          <>
-            <View style={styles.head}>
-              <Avatar name={firstName || "?"} who="you" size={88} />
 
-              <Text style={styles.name}>{name || "Your name"}</Text>
+          <Notice>{error}</Notice>
+
+          <Group>
+            <FieldRow
+              label="First"
+              value={firstName}
+              onChangeText={setFirstName}
+              placeholder="Required"
+              textContentType="givenName"
+              autoComplete="given-name"
+            />
+
+            <FieldRow
+              label="Last"
+              value={lastName}
+              onChangeText={setLastName}
+              placeholder="Optional"
+              textContentType="familyName"
+              autoComplete="family-name"
+            />
+
+            <View style={styles.row}>
+              <Text style={styles.rowLabel}>Birthday</Text>
+
+              <DateInput
+                value={birthday}
+                onChangeText={setBirthday}
+                placeholder="YYYY-MM-DD"
+                style={styles.rowInput}
+              />
             </View>
+          </Group>
 
-            <Notice>{error}</Notice>
+          <GroupFooter>
+            Your partner sees your first name. Your birthday sets up their
+            reminder.
+          </GroupFooter>
 
-            <Group>
-              <FieldRow
-                label="First"
-                value={firstName}
-                onChangeText={setFirstName}
-                placeholder="Required"
-                textContentType="givenName"
-                autoComplete="given-name"
-              />
-
-              <FieldRow
-                label="Last"
-                value={lastName}
-                onChangeText={setLastName}
-                placeholder="Optional"
-                textContentType="familyName"
-                autoComplete="family-name"
-              />
-
-              <View style={styles.row}>
-                <Text style={styles.rowLabel}>Birthday</Text>
-
-                <DateInput
-                  value={birthday}
-                  onChangeText={setBirthday}
-                  placeholder="YYYY-MM-DD"
-                  style={styles.rowInput}
-                />
-              </View>
-            </Group>
-
-            <GroupFooter>
-              Your partner sees your first name. Your birthday sets up their
-              reminder.
-            </GroupFooter>
-
-            <Button title="Save" onPress={handleSave} busy={saving} />
-          </>
-        )}
-      </Screen>
-    </KeyboardAvoidingView>
+          <Button title="Save" onPress={handleSave} busy={saving} />
+        </>
+      )}
+    </Screen>
   );
 }
 

@@ -460,6 +460,7 @@ export default function DatesScreen() {
         onCancel={closeSheet}
         onSave={savePlan}
         saveDisabled={!title.trim() || saving}
+        dirty={Boolean(title.trim() || place.trim() || planDate.trim())}
       >
         <Group>
           <TextInputRow

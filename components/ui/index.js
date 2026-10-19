@@ -80,3 +80,5 @@ export {
 } from "./auth";
 
 export { SearchField } from "./search";
+
+export { KeyboardScroll, keyboardBehavior } from "./keyboard";

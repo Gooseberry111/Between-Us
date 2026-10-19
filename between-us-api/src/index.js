@@ -406,10 +406,19 @@ async function recordActivity(sql, { connectionId, actorId, kind, title, detail 
 const MOODS = {
 	glowing: { emoji: '🥰', line: 'Feeling glowing' },
 	happy: { emoji: '😊', line: 'Feeling happy' },
+	excited: { emoji: '🤩', line: 'Feeling excited' },
 	okay: { emoji: '🙂', line: 'Feeling okay' },
+	missing: { emoji: '🥹', line: 'Missing you' },
+	tired: { emoji: '😴', line: 'Feeling tired' },
+	stressed: { emoji: '😮‍💨', line: 'Feeling stressed' },
+	sad: { emoji: '😢', line: 'Feeling sad' },
 	distant: { emoji: '😶', line: 'Feeling a bit distant' },
 	hurt: { emoji: '🥺', line: 'Hurting a little' },
+	angry: { emoji: '😠', line: 'Feeling angry' },
 };
+
+/* The moods worth a gentler nudge to the other one. */
+const HARD_MOODS = new Set(['stressed', 'sad', 'distant', 'hurt', 'angry']);
 
 /* A mood is for today: after a day it quietly lapses. */
 const MOOD_LIFETIME_MS = 24 * 60 * 60 * 1000;
@@ -6770,6 +6779,84 @@ VALUES (
 
 			/*
 			 * ==========================================
+			 * HUG
+			 * ==========================================
+			 *
+			 * POST /users/:clerkId/hug
+			 *
+			 * Holding the heart on Home. It reaches their phone and
+			 * their feed, where opening it plays the hug. Repeats
+			 * within half a minute count as the same hug.
+			 */
+
+			const hugMatch = url.pathname.match(/^\/users\/([^/]+)\/hug$/);
+
+			if (hugMatch && request.method === 'POST') {
+				await ensureSchema(sql);
+
+				const me = (
+					await sql`
+            SELECT u.id, p.first_name, p.nickname
+            FROM users u
+            LEFT JOIN profiles p ON p.user_id = u.id
+            WHERE u.clerk_id = ${hugMatch[1]}
+            LIMIT 1
+          `
+				)[0];
+
+				if (!me) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const connection = (
+					await sql`
+            SELECT id, user_one, user_two
+            FROM connections
+            WHERE (user_one = ${me.id} OR user_two = ${me.id})
+              AND status = 'accepted'
+            LIMIT 1
+          `
+				)[0];
+
+				if (!connection) {
+					return Response.json({ error: 'You are not connected to anyone yet.' }, { status: 404 });
+				}
+
+				const partnerId = connection.user_one === me.id ? connection.user_two : connection.user_one;
+
+				const partner = (
+					await sql`
+            SELECT push_token, notification_preferences FROM users WHERE id = ${partnerId} LIMIT 1
+          `
+				)[0];
+
+				const myName = me.nickname?.trim() || me.first_name?.trim() || 'Your partner';
+				const window = Math.floor(Date.now() / 30000);
+
+				await recordActivity(sql, {
+					connectionId: connection.id,
+					actorId: me.id,
+					kind: 'hug',
+					title: 'Sent you a hug 🤗',
+					dedupeKey: `hug:${me.id}:${window}`,
+				});
+
+				await notifyUser(sql, {
+					userId: partnerId,
+					pushToken: partner?.push_token,
+					preferences: partner?.notification_preferences,
+					type: 'hug',
+					title: `${myName} sent you a hug 🤗`,
+					message: 'Hold the heart on Home to send one back.',
+					dedupeKey: `hug:${me.id}:${window}`,
+					data: { from: myName },
+				});
+
+				return Response.json({ sent: true });
+			}
+
+			/*
+			 * ==========================================
 			 * MOOD
 			 * ==========================================
 			 *
@@ -6867,9 +6954,13 @@ VALUES (
 						type: 'mood',
 						title: `${myName}: ${MOODS[mood].line.toLowerCase()} ${MOODS[mood].emoji}`,
 						message:
-							mood === 'distant' || mood === 'hurt'
-								? 'Maybe check in with them tonight.'
-								: 'It is on their avatar on Home.',
+							mood === 'angry'
+								? 'Maybe give it a little space, then talk it through.'
+								: mood === 'missing'
+									? 'A note would land well right now.'
+									: HARD_MOODS.has(mood)
+										? 'Maybe check in with them tonight.'
+										: 'It is on their avatar on Home.',
 						dedupeKey: `mood:${me.id}:${day}:${mood}`,
 					});
 				}
@@ -7114,6 +7205,8 @@ VALUES (
 				});
 
 				if (!stored?.value) {
+					console.log('MEDIA READ: no such photo', mediaReadMatch[1]);
+
 					return new Response('Not found', { status: 404 });
 				}
 
@@ -7134,6 +7227,8 @@ VALUES (
           `;
 
 					if (linked.length === 0) {
+						console.log('MEDIA READ: caller not linked to owner', mediaReadMatch[1]);
+
 						return new Response('Not found', { status: 404 });
 					}
 				}

@@ -62,6 +62,21 @@ Shared: `lib/api.js`, `lib/dataCache.js`, `lib/connection.js`, `lib/profileProgr
 - Glass buttons use the icon-only label style, so their names no longer show next to the symbol.
 - Insights rebuilt: an in-sync ring, the traits you share as a list, each difference as a card with a way in, love languages side by side, and one thing to try this week.
 
+## Changed (sixth pass, Android round)
+
+- Android tab bar: white, with a soft plum pill behind the selected tab and plum label (iOS keeps the system glass).
+- Sheets on Android rise from the bottom as a rounded panel over a dimmed screen, clear of the status bar, instead of filling the screen from the very top.
+- Keyboard: Android draws edge to edge, so forms now pad by the keyboard's height and scroll the field you are typing in into view (`KeyboardScroll`, `keyboardBehavior`). Repair, the daily question, onboarding, every sheet, the sign-in screens, Check-in and Edit Profile.
+- Nothing typed is lost by accident: sheets ask before closing with unsaved text, and Repair, the daily question, Notes, Check-in and Edit Profile ask before you leave (`useDiscardGuard`, `confirmDiscard`).
+- Photos retry with a fresh token, then offer "Tap to load the photo" instead of a blank; the API logs why a read was refused.
+- Moods: excited, missing you, tired, stressed, sad and angry added, in a scrolling row on Home.
+- The hero says what it is counting: "Answered tonight", "Your turn tonight", "Not answered yet".
+- Hugs are real: holding the heart notifies them, it lands in their feed, and it plays a hug (rings embracing, a heart, a heartbeat of haptics) when it arrives or when they next open the app.
+- Icon: the two rings from the sign-in mark (`scripts/make-icons.py`). The app opens on those rings drifting together and the name settling, on the same light ground as the launch screen.
+- Sign-in, sign-up and forgot-password are centred on the screen.
+- Avatars use your real initial instead of "Y".
+- Your Answers: every onboarding answer, filled in and grouped; tap one to change just that one. Profile and the Insights edit button open it.
+
 ## Added (fifth pass)
 
 - Expo Go without a laptop: `app.config.js` stamps a publish with Expo Go's runtime when `EXPO_GO=1`, and `node scripts/publish.js "message"` sends each update to both the Android build (`preview`) and the `expo-go` branch. Expo Go opens `exp://u.expo.dev/70fa9f0d-4ccd-4613-9f00-cad1cd0d244a?channel-name=expo-go&runtime-version=exposdk:57.0.0` straight from Expo's servers.

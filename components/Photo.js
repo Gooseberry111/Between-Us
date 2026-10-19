@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Image, StyleSheet, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { API_URL, apiFetch, authHeaders } from "../lib/api";
 import { T } from "../lib/theme";
+import { Icon } from "./ui";
 
 /*
  * ==========================================
@@ -78,27 +79,71 @@ export async function uploadPhoto(userId, base64) {
  * A photo from the media store, or one just picked and
  * still on the phone (`localUri`), which shows at once
  * while the upload finishes.
+ *
+ * Reading one back needs the session token. If it is not
+ * ready yet the photo waits for it, and a failed load is
+ * retried with a fresh token before it gives up and offers
+ * a tap to try again -- never a silent blank.
  */
+const TOKEN_TRIES = 5;
+const LOAD_TRIES = 2;
+
 export function RemotePhoto({ id, localUri, style }) {
   const [headers, setHeaders] = useState(null);
+  const [attempt, setAttempt] = useState(0);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let live = true;
+    let timer = null;
 
-    if (id && !localUri) {
+    if (!id || localUri) return undefined;
+
+    setFailed(false);
+
+    const fetchToken = (tries) => {
       authHeaders().then((value) => {
-        if (live) setHeaders(value);
+        if (!live) return;
+
+        if (value.Authorization || tries >= TOKEN_TRIES) {
+          setHeaders(value);
+          return;
+        }
+
+        timer = setTimeout(() => fetchToken(tries + 1), 600);
       });
-    }
+    };
+
+    fetchToken(1);
 
     return () => {
       live = false;
+
+      if (timer) clearTimeout(timer);
     };
-  }, [id, localUri]);
+  }, [id, localUri, attempt]);
 
   if (localUri) {
     return (
       <Image source={{ uri: localUri }} style={style} resizeMode="cover" />
+    );
+  }
+
+  if (failed) {
+    return (
+      <Pressable
+        onPress={() => {
+          setHeaders(null);
+          setAttempt((current) => current + 1);
+        }}
+        style={[styles.placeholder, styles.failed, style]}
+        accessibilityRole="button"
+        accessibilityLabel="Photo didn't load. Tap to try again."
+      >
+        <Icon name="photo" size={22} color={T.label2} />
+
+        <Text style={styles.failedText}>Tap to load the photo</Text>
+      </Pressable>
     );
   }
 
@@ -108,9 +153,18 @@ export function RemotePhoto({ id, localUri, style }) {
 
   return (
     <Image
-      source={{ uri: `${API_URL}/media/${id}`, headers }}
+      /* The attempt is in the address so a retry is a fresh request. */
+      source={{ uri: `${API_URL}/media/${id}?v=${attempt}`, headers }}
       style={style}
       resizeMode="cover"
+      onError={() => {
+        if (attempt < LOAD_TRIES) {
+          setHeaders(null);
+          setAttempt((current) => current + 1);
+        } else {
+          setFailed(true);
+        }
+      }}
     />
   );
 }
@@ -118,5 +172,16 @@ export function RemotePhoto({ id, localUri, style }) {
 const styles = StyleSheet.create({
   placeholder: {
     backgroundColor: T.fill3,
+  },
+
+  failed: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+
+  failedText: {
+    fontSize: 13,
+    color: T.label2,
   },
 });

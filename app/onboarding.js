@@ -20,6 +20,7 @@ import { birthdayError } from "../lib/validation";
 import { clearCachedData } from "../lib/dataCache";
 import { isAnswered, notifyProfileSaved } from "../lib/profileProgress";
 import { T } from "../lib/theme";
+import { EMPTY_ANSWERS, saveAnswers } from "../lib/answers";
 import {
   AuthHeader,
   AuthScreen,
@@ -28,6 +29,8 @@ import {
   Glow,
   Notice,
   TextLink,
+  KeyboardScroll,
+  keyboardBehavior,
 } from "../components/ui";
 
 /*
@@ -40,28 +43,6 @@ import {
  * for how far along you are, and Continue pinned above
  * the keyboard.
  */
-
-const EMPTY_ANSWERS = {
-  firstName: "",
-  lastName: "",
-  nickname: "",
-  birthday: "",
-  gender: "",
-  country: "",
-  relationshipStatus: "",
-  personalityType: "",
-  communicationStyle: "",
-  conflictStyle: "",
-  affectionStyle: "",
-  loveLanguages: [],
-  favoriteFood: "",
-  favoriteSnack: "",
-  favoriteDrink: "",
-  favoriteColor: "",
-  musicGenre: "",
-  movieGenre: "",
-  focusAreas: [],
-};
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -176,50 +157,11 @@ export default function OnboardingScreen() {
       throw new Error("Your account is not ready yet. Please try again.");
     }
 
-    const response = await apiFetch(`/onboarding`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        clerk_id: userId,
-        email: user?.primaryEmailAddress?.emailAddress || "",
-
-        firstName: answers.firstName,
-        lastName: answers.lastName,
-        nickname: answers.nickname,
-        birthday: answers.birthday,
-        gender: answers.gender,
-        country: answers.country,
-        relationshipStatus: answers.relationshipStatus,
-
-        communicationStyle: answers.communicationStyle,
-        affectionStyle: answers.affectionStyle,
-        loveLanguages: answers.loveLanguages,
-
-        favoriteFood: answers.favoriteFood,
-        favoriteSnack: answers.favoriteSnack,
-        favoriteDrink: answers.favoriteDrink,
-        favoriteColor: answers.favoriteColor,
-
-        musicGenre: answers.musicGenre,
-        movieGenre: answers.movieGenre,
-
-        personalityType: answers.personalityType,
-        conflictStyle: answers.conflictStyle,
-        focusAreas: answers.focusAreas,
-      }),
+    return saveAnswers({
+      userId,
+      email: user?.primaryEmailAddress?.emailAddress || "",
+      answers,
     });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(
-        data?.error || "Unable to save your onboarding information.",
-      );
-    }
-
-    return data;
   };
 
   const saveAndGoHome = async () => {
@@ -326,10 +268,7 @@ export default function OnboardingScreen() {
     <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
       <Glow height={260} />
 
-      <KeyboardAvoidingView
-        style={styles.fill}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <KeyboardAvoidingView style={styles.fill} behavior={keyboardBehavior}>
         {/* Back, where you are, Skip. */}
         <View style={styles.nav}>
           <View style={styles.navSide}>
@@ -362,10 +301,8 @@ export default function OnboardingScreen() {
           <ProgressBar current={currentQuestion} total={questions.length} />
         </View>
 
-        <ScrollView
+        <KeyboardScroll
           contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
           showsVerticalScrollIndicator={false}
         >
           <QuestionCard
@@ -385,7 +322,7 @@ export default function OnboardingScreen() {
               finish later.
             </Text>
           ) : null}
-        </ScrollView>
+        </KeyboardScroll>
 
         <View style={styles.footer}>
           <Button

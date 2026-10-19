@@ -42,8 +42,8 @@ export default function FinishProfileCard({ answered, onPress }) {
             {remaining === 1
               ? "Just 1 question left."
               : `${remaining} quick questions left.`}{" "}
-            Your trivia, insights and what your partner sees all get better
-            with them.
+            Your trivia, insights and what your partner sees all get better with
+            them.
           </Text>
 
           <View style={styles.track}>

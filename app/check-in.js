@@ -15,6 +15,7 @@ import { apiFetch } from "../lib/api";
 import { getCachedData, setCachedData } from "../lib/dataCache";
 import { useIsConnected } from "../lib/connection";
 import { T } from "../lib/theme";
+import { useDiscardGuard } from "../lib/useDiscardGuard";
 import {
   Avatar,
   Button,
@@ -149,6 +150,10 @@ export default function CheckInScreen() {
     .slice(0, 8)
     .reverse();
 
+  useDiscardGuard(
+    note.trim() !== String(data?.your_checkin?.note || "").trim(),
+  );
+
   if (connected === false) {
     return <ConnectFirst feature="Check-in" showBack />;
   }
@@ -159,7 +164,7 @@ export default function CheckInScreen() {
   };
 
   return (
-    <Screen>
+    <Screen keyboard>
       <NavBar
         left={<GlassButton icon="back" label="Back" onPress={goBack} />}
       />

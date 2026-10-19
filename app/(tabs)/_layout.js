@@ -29,6 +29,27 @@ const tint =
     ? DynamicColorIOS({ light: T.accent, dark: T.accentDark })
     : T.accent;
 
+/*
+ * Android's Material bar takes the app's own colours: white,
+ * like the cards, with a soft plum pill behind the selected
+ * tab. iOS keeps the system glass, which a background colour
+ * would cover.
+ */
+const ANDROID_BAR =
+  Platform.OS === "android"
+    ? {
+        backgroundColor: T.surface,
+        indicatorColor: T.accentTint,
+        rippleColor: T.fill3,
+        iconColor: { default: T.label2, selected: T.accent },
+        labelVisibilityMode: "labeled",
+        labelStyle: {
+          default: { color: T.label2, fontSize: 12, fontWeight: "500" },
+          selected: { color: T.accent, fontSize: 12, fontWeight: "600" },
+        },
+      }
+    : {};
+
 /* A known background under every tab, so switching never
  * flashes white behind the glass. */
 const navigationTheme = {
@@ -43,7 +64,11 @@ const navigationTheme = {
 export default function TabsLayout() {
   return (
     <ThemeProvider value={navigationTheme}>
-      <NativeTabs tintColor={tint} minimizeBehavior="onScrollDown">
+      <NativeTabs
+        tintColor={tint}
+        minimizeBehavior="onScrollDown"
+        {...ANDROID_BAR}
+      >
         <NativeTabs.Trigger name="home">
           <NativeTabs.Trigger.Icon
             sf={{ default: "house", selected: "house.fill" }}

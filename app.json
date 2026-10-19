@@ -14,7 +14,7 @@
     "android": {
       "package": "com.betweenus.app",
       "adaptiveIcon": {
-        "backgroundColor": "#FDFAF5",
+        "backgroundColor": "#F5F2F8",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
@@ -28,7 +28,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#FFF8F5",
+          "backgroundColor": "#ECEBF2",
           "image": "./assets/splash-blank.png",
           "imageWidth": 1
         }

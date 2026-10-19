@@ -8,6 +8,7 @@ import { timeAgo } from "../lib/activity";
 import { getCachedData, setCachedData } from "../lib/dataCache";
 import { useIsConnected } from "../lib/connection";
 import { T } from "../lib/theme";
+import { useMyName } from "../lib/useMyName";
 import {
   Avatar,
   Button,
@@ -51,6 +52,7 @@ export default function TriviaHistoryScreen() {
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
   const connected = useIsConnected();
+  const myName = useMyName();
 
   const cacheKey = userId ? `trivia-history:${userId}` : null;
   const cached = cacheKey ? getCachedData(cacheKey) : undefined;
@@ -200,7 +202,7 @@ export default function TriviaHistoryScreen() {
                   key={session.id}
                   leading={
                     <Avatar
-                      name={name}
+                      name={session.is_you ? myName || name : name}
                       who={session.is_you ? "you" : "them"}
                       size={40}
                     />

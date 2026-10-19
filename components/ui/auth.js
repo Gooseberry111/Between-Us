@@ -3,7 +3,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -15,6 +14,7 @@ import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
 import { T } from "../../lib/theme";
 import Icon from "./Icon";
 import { GlassButton } from "./layout";
+import { KeyboardScroll, keyboardBehavior } from "./keyboard";
 
 /*
  * ==========================================
@@ -94,24 +94,19 @@ export function AuthScreen({ children, onBack, footer, centred }) {
     <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
       <Glow />
 
-      <KeyboardAvoidingView
-        style={styles.fill}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <KeyboardAvoidingView style={styles.fill} behavior={keyboardBehavior}>
         {onBack ? (
           <View style={styles.nav}>
             <GlassButton icon="back" label="Back" onPress={onBack} />
           </View>
         ) : null}
 
-        <ScrollView
+        <KeyboardScroll
           contentContainerStyle={[styles.content, centred && styles.centred]}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
           showsVerticalScrollIndicator={false}
         >
           {children}
-        </ScrollView>
+        </KeyboardScroll>
 
         {footer ? <View style={styles.footer}>{footer}</View> : null}
       </KeyboardAvoidingView>

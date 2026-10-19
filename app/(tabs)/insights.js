@@ -20,6 +20,7 @@ import { apiFetch } from "../../lib/api";
 import { getCachedData, setCachedData } from "../../lib/dataCache";
 import { useIsConnected } from "../../lib/connection";
 import { T } from "../../lib/theme";
+import { useMyName } from "../../lib/useMyName";
 import {
   Avatar,
   Button,
@@ -211,6 +212,7 @@ export default function InsightsScreen() {
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
   const connected = useIsConnected();
+  const myName = useMyName();
 
   const cacheKey = userId ? `insights:${userId}` : null;
   const cached = cacheKey ? getCachedData(cacheKey) : undefined;
@@ -340,7 +342,7 @@ export default function InsightsScreen() {
         <GlassButton
           icon="edit"
           label="Edit your answers"
-          onPress={() => router.push("/onboarding")}
+          onPress={() => router.push("/answers")}
         />
       </NavBar>
 
@@ -360,7 +362,7 @@ export default function InsightsScreen() {
           action={{
             title: "Finish Your Answers",
             icon: "edit",
-            onPress: () => router.push("/onboarding"),
+            onPress: () => router.push("/answers"),
           }}
         />
       ) : (
@@ -373,7 +375,7 @@ export default function InsightsScreen() {
 
               <View style={styles.ringCentre}>
                 <View style={styles.pair}>
-                  <Avatar name="You" who="you" size={34} />
+                  <Avatar name={myName || "You"} who="you" size={34} />
 
                   <Avatar
                     name={partnerName}

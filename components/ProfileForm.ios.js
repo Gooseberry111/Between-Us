@@ -77,10 +77,7 @@ export default function ProfileForm({
 
                 {subtitle ? (
                   <Text
-                    modifiers={[
-                      font({ size: 13 }),
-                      foregroundStyle("#8A8A8E"),
-                    ]}
+                    modifiers={[font({ size: 13 }), foregroundStyle("#8A8A8E")]}
                   >
                     {subtitle}
                   </Text>
@@ -144,7 +141,7 @@ export default function ProfileForm({
             <Label title="Goals" systemImage="flag" />
           </Button>
 
-          <Button onPress={() => onOpen("/onboarding")}>
+          <Button onPress={() => onOpen("/answers")}>
             <Label title="Your answers" systemImage="square.and.pencil" />
           </Button>
 
@@ -158,7 +155,10 @@ export default function ProfileForm({
           <Section
             title="Relationship"
             footer={
-              <Text>Unlinking closes your shared space. Link again with the same person and it all comes back.</Text>
+              <Text>
+                Unlinking closes your shared space. Link again with the same
+                person and it all comes back.
+              </Text>
             }
           >
             <LabeledContent label="Status">
@@ -185,7 +185,11 @@ export default function ProfileForm({
 
           <Button label="Sign Out" onPress={onSignOut} />
 
-          <Button label="Delete Account" role="destructive" onPress={onDelete} />
+          <Button
+            label="Delete Account"
+            role="destructive"
+            onPress={onDelete}
+          />
         </Section>
       </Form>
     </Host>

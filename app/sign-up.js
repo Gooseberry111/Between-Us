@@ -261,6 +261,7 @@ export default function SignUpScreen() {
   if (pendingVerification) {
     return (
       <AuthScreen
+        centred
         onBack={() => {
           if (busy) return;
 
@@ -304,6 +305,7 @@ export default function SignUpScreen() {
 
   return (
     <AuthScreen
+      centred
       onBack={goBack}
       footer={
         <TextLink onPress={() => router.replace("/sign-in")} disabled={busy}>

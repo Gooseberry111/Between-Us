@@ -235,6 +235,7 @@ export default function ForgotPasswordScreen() {
 
   return (
     <AuthScreen
+      centred
       onBack={goBack}
       footer={
         <TextLink onPress={() => router.replace("/sign-in")} disabled={busy}>

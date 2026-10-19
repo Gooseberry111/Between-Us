@@ -16,6 +16,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { apiFetch } from "../lib/api";
 import { useIsConnected } from "../lib/connection";
 import { T } from "../lib/theme";
+import { useDiscardGuard } from "../lib/useDiscardGuard";
 import {
   Avatar,
   Button,
@@ -28,6 +29,8 @@ import {
   Icon,
   Press,
   SheetHeader,
+  KeyboardScroll,
+  keyboardBehavior,
 } from "../components/ui";
 import ConnectFirst from "../components/ConnectFirst";
 import { SkeletonList } from "../components/Skeleton";
@@ -213,13 +216,21 @@ export default function RepairScreen() {
       setSorry("");
       setAgreement("");
 
-      router.back();
+      /* After the fields clear, so leaving doesn't ask. */
+      setTimeout(() => router.back(), 50);
     } catch (err) {
       Alert.alert("We couldn't close that", err?.message || "Try again.");
     } finally {
       setBusy(false);
     }
   };
+
+  /* Your side, or the agreement, typed but not yet saved. */
+  useDiscardGuard(
+    (!repair?.your_side &&
+      Boolean(felt.trim() || needed.trim() || sorry.trim())) ||
+      Boolean(agreement.trim()),
+  );
 
   if (connected === false) {
     return <ConnectFirst feature="Repair" showBack={true} />;
@@ -230,19 +241,15 @@ export default function RepairScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
-      <KeyboardAvoidingView
-        style={styles.fill}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <KeyboardAvoidingView style={styles.fill} behavior={keyboardBehavior}>
         <SheetHeader
           onClose={() => router.back()}
           closeIcon="chevronDown"
           title="Repair"
         />
 
-        <ScrollView
+        <KeyboardScroll
           contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           {loading ? (
@@ -453,7 +460,7 @@ export default function RepairScreen() {
               <Button title="We're Good" onPress={close} busy={busy} />
             </>
           )}
-        </ScrollView>
+        </KeyboardScroll>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

@@ -8,6 +8,7 @@ import { activityHandlers, loadActivity, routeFor } from "../lib/activity";
 import { getCachedData, setCachedData } from "../lib/dataCache";
 import { useIsConnected } from "../lib/connection";
 import { T } from "../lib/theme";
+import { useMyName } from "../lib/useMyName";
 import {
   Empty,
   GlassButton,
@@ -38,6 +39,7 @@ export default function ActivityScreen() {
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
   const connected = useIsConnected();
+  const myName = useMyName();
 
   const cacheKey = userId ? `activity:${userId}` : null;
   const cached = cacheKey ? getCachedData(cacheKey) : undefined;
@@ -104,7 +106,12 @@ export default function ActivityScreen() {
   };
 
   const them = partnerName || "Them";
-  const feed = activityHandlers({ userId, setItems: setTheirs, router });
+  const feed = activityHandlers({
+    userId,
+    setItems: setTheirs,
+    router,
+    partnerName: them,
+  });
 
   /* Your own rows open what they refer to, and nothing else. */
   const openOwn = (item) => {
@@ -176,7 +183,7 @@ export default function ActivityScreen() {
               <ActivityRow
                 key={item.id}
                 item={item}
-                name={side === "theirs" ? them : "You"}
+                name={side === "theirs" ? them : myName || "You"}
                 mine={side === "mine"}
                 onPress={() =>
                   side === "theirs" ? feed.open(item) : openOwn(item)

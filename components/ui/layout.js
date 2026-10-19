@@ -1,9 +1,9 @@
 import { useRef } from "react";
 import {
   Animated,
+  KeyboardAvoidingView,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -25,6 +25,7 @@ import {
 
 import { T } from "../../lib/theme";
 import Icon, { sfSymbol } from "./Icon";
+import { KeyboardScroll, keyboardBehavior } from "./keyboard";
 
 /*
  * ==========================================
@@ -96,6 +97,7 @@ export function Screen({
   scroll = true,
   refreshControl,
   bottom = 32,
+  keyboard,
 }) {
   if (!scroll) {
     return (
@@ -105,20 +107,30 @@ export function Screen({
     );
   }
 
+  /* The system tab bar insets the content itself, and on
+   * iOS 26 the glass shrinks as this scrolls down. The field
+   * you are typing in is scrolled clear of the keyboard. */
+  const list = (
+    <KeyboardScroll
+      showsVerticalScrollIndicator={false}
+      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={[styles.content, { paddingBottom: bottom }]}
+      refreshControl={refreshControl}
+    >
+      {children}
+    </KeyboardScroll>
+  );
+
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
-      {/* The system tab bar insets the content itself, and on
-          iOS 26 the glass shrinks as this scrolls down. */}
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={[styles.content, { paddingBottom: bottom }]}
-        refreshControl={refreshControl}
-      >
-        {children}
-      </ScrollView>
+      {/* Screens with fields lift above the keyboard too. */}
+      {keyboard ? (
+        <KeyboardAvoidingView style={styles.fill} behavior={keyboardBehavior}>
+          {list}
+        </KeyboardAvoidingView>
+      ) : (
+        list
+      )}
     </SafeAreaView>
   );
 }
@@ -262,6 +274,10 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: T.appBackground,
+  },
+
+  fill: {
+    flex: 1,
   },
 
   content: {

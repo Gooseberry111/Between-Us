@@ -20,6 +20,7 @@ import { apiFetch } from "../lib/api";
 import { clearCachedData } from "../lib/dataCache";
 import { useIsConnected } from "../lib/connection";
 import { T } from "../lib/theme";
+import { useDiscardGuard } from "../lib/useDiscardGuard";
 import {
   Avatar,
   Button,
@@ -29,6 +30,8 @@ import {
   Press,
   motionAllowed,
   SheetHeader,
+  KeyboardScroll,
+  keyboardBehavior,
 } from "../components/ui";
 import ConnectFirst from "../components/ConnectFirst";
 import { SkeletonList } from "../components/Skeleton";
@@ -219,6 +222,16 @@ export default function DailyQuestionScreen() {
     }
   };
 
+  /* An answer typed but not sent is not thrown away silently. */
+  const savedAnswer = String(
+    (Array.isArray(daily?.questions) ? daily.questions : [])[index]
+      ?.your_answer || "",
+  ).trim();
+
+  useDiscardGuard(
+    step === "answer" && answer.trim() !== "" && answer.trim() !== savedAnswer,
+  );
+
   if (connected === false) {
     return <ConnectFirst feature="Tonight's question" showBack={true} />;
   }
@@ -234,10 +247,7 @@ export default function DailyQuestionScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
-      <KeyboardAvoidingView
-        style={styles.fill}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <KeyboardAvoidingView style={styles.fill} behavior={keyboardBehavior}>
         {/* Where you are in the ritual. */}
         <SheetHeader
           onClose={() => router.back()}
@@ -257,9 +267,8 @@ export default function DailyQuestionScreen() {
           }
         />
 
-        <ScrollView
+        <KeyboardScroll
           contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           {loading ? (
@@ -548,7 +557,7 @@ export default function DailyQuestionScreen() {
               />
             </>
           )}
-        </ScrollView>
+        </KeyboardScroll>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

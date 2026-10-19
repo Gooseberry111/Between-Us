@@ -1,5 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
-import { RefreshControl, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useAuth } from "@clerk/expo";
 import { useFocusEffect, useRouter } from "expo-router";
 
@@ -26,7 +32,12 @@ import {
 } from "../../components/ui";
 import ActivityRow from "../../components/ActivityRow";
 import BondHero from "../../components/BondHero";
-import { activityHandlers, loadActivity } from "../../lib/activity";
+import {
+  activityHandlers,
+  loadActivity,
+  updateActivity,
+} from "../../lib/activity";
+import { playHug } from "../../lib/hugs";
 import { SkeletonList } from "../../components/Skeleton";
 
 /*
@@ -45,6 +56,7 @@ import { SkeletonList } from "../../components/Skeleton";
  *   From {partner}
  */
 
+/* Good days and hard ones. The keys match the API's. */
 const MOODS = [
   {
     key: "glowing",
@@ -52,7 +64,20 @@ const MOODS = [
     line: "Glowing. {name} will see it on your avatar.",
   },
   { key: "happy", emoji: "😊", line: "Happy. Want to tell {name} why?" },
+  { key: "excited", emoji: "🤩", line: "Excited. Tell {name} what about." },
   { key: "okay", emoji: "🙂", line: "Okay. Steady days count too." },
+  { key: "missing", emoji: "🥹", line: "Missing {name}. Send a note?" },
+  {
+    key: "tired",
+    emoji: "😴",
+    line: "Tired. Be gentle with yourself tonight.",
+  },
+  {
+    key: "stressed",
+    emoji: "😮‍💨",
+    line: "Stressed. {name} will know to go easy.",
+  },
+  { key: "sad", emoji: "😢", line: "Sad. {name} can see you might need them." },
   {
     key: "distant",
     emoji: "😶",
@@ -62,6 +87,11 @@ const MOODS = [
     key: "hurt",
     emoji: "🥺",
     line: "Hurting. Start a gentle check-in with {name}?",
+  },
+  {
+    key: "angry",
+    emoji: "😠",
+    line: "Angry. Take a breath; Repair is there when you're ready.",
   },
 ];
 
@@ -244,7 +274,54 @@ export default function HomeScreen() {
     partnerMood,
   ]);
 
-  const feed = activityHandlers({ userId, setItems: setActivity, router });
+  const partnerName =
+    partner?.nickname?.trim() ||
+    partner?.first_name?.trim() ||
+    connection?.other_first_name?.trim() ||
+    "Your person";
+
+  /* A hug they sent while you were away plays when you
+   * arrive, once, and is then marked seen. */
+  const playedHugs = useRef(new Set());
+
+  useEffect(() => {
+    const fresh = activity.filter(
+      (item) =>
+        item.kind === "hug" && !item.read && !playedHugs.current.has(item.id),
+    );
+
+    if (fresh.length === 0) return;
+
+    fresh.forEach((item) => {
+      playedHugs.current.add(item.id);
+      updateActivity(userId, item.id, { read: true }).catch(() => {});
+    });
+
+    playHug({ from: partnerName });
+
+    setActivity((current) =>
+      current.map((item) =>
+        fresh.some((hug) => hug.id === item.id)
+          ? { ...item, read: true }
+          : item,
+      ),
+    );
+  }, [activity, partnerName, userId]);
+
+  const feed = activityHandlers({
+    userId,
+    setItems: setActivity,
+    router,
+    partnerName,
+  });
+
+  /* Holding the heart sends a real hug. */
+  const sendHug = () => {
+    apiFetch(`/users/${userId}/hug`, {
+      method: "POST",
+      body: JSON.stringify({ clerk_id: userId }),
+    }).catch(() => {});
+  };
 
   /* Shown at once, saved behind it, taken back if it fails. */
   const chooseMood = (next) => {
@@ -287,12 +364,6 @@ export default function HomeScreen() {
 
   const youName =
     profile?.nickname?.trim() || profile?.first_name?.trim() || "You";
-
-  const partnerName =
-    partner?.nickname?.trim() ||
-    partner?.first_name?.trim() ||
-    connection?.other_first_name?.trim() ||
-    "Your person";
 
   const days = connection?.connected_at
     ? Math.max(
@@ -425,7 +496,7 @@ export default function HomeScreen() {
         streak={Number(daily?.streak || 0)}
         mood={MOODS.find((item) => item.key === mood)?.emoji}
         partnerMood={partnerMood?.emoji}
-        onHug={() => {}}
+        onHug={sendHug}
         onPickMood={() => setMoodSheet(true)}
       />
 
@@ -497,7 +568,12 @@ export default function HomeScreen() {
       <Card>
         <Text style={styles.moodTitle}>How are you feeling about us?</Text>
 
-        <View style={styles.moodRow}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.moodScroll}
+          contentContainerStyle={styles.moodRow}
+        >
           {MOODS.map((item) => (
             <Press
               key={item.key}
@@ -509,7 +585,7 @@ export default function HomeScreen() {
               </View>
             </Press>
           ))}
-        </View>
+        </ScrollView>
 
         <Text style={styles.moodLine}>{moodLine}</Text>
       </Card>
@@ -736,10 +812,15 @@ const styles = StyleSheet.create({
     color: T.label,
   },
 
-  moodRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  /* Runs to the card's edges so the row scrolls under them. */
+  moodScroll: {
+    marginHorizontal: -16,
     marginTop: 12,
+  },
+
+  moodRow: {
+    paddingHorizontal: 16,
+    gap: 10,
   },
 
   mood: {

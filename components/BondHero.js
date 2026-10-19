@@ -454,7 +454,7 @@ export default function BondHero({
                 { color: youAnswered ? "#1E8E3E" : T.youText },
               ]}
             >
-              {youAnswered ? "Answered" : "Your turn"}
+              {youAnswered ? "Answered tonight" : "Your turn tonight"}
             </Text>
           </Animated.View>
         </View>
@@ -607,7 +607,7 @@ export default function BondHero({
                 { color: partnerAnswered ? "#1E8E3E" : T.label2 },
               ]}
             >
-              {partnerAnswered ? "Answered" : "Waiting"}
+              {partnerAnswered ? "Answered tonight" : "Not answered yet"}
             </Text>
           </View>
         </View>

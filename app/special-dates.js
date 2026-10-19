@@ -338,6 +338,7 @@ export default function SpecialDatesScreen() {
         onCancel={resetForm}
         onSave={saveSpecialDate}
         saveDisabled={!title.trim() || !eventDate.trim() || saving}
+        dirty={Boolean(title.trim() || eventDate.trim())}
       >
         <View style={styles.chips}>
           {SUGGESTIONS.map((label) => (

@@ -22,7 +22,15 @@ import { chooseAction } from "../lib/actions";
 import { getCachedData, setCachedData } from "../lib/dataCache";
 import { useIsConnected } from "../lib/connection";
 import { T } from "../lib/theme";
-import { Chip, GlassButton, Icon, Mark, Notice } from "../components/ui";
+import { useDiscardGuard } from "../lib/useDiscardGuard";
+import {
+  Chip,
+  GlassButton,
+  Icon,
+  Mark,
+  Notice,
+  keyboardBehavior,
+} from "../components/ui";
 import ConnectFirst from "../components/ConnectFirst";
 import { SkeletonList } from "../components/Skeleton";
 
@@ -179,6 +187,12 @@ export default function AppreciationsScreen() {
     ]);
   };
 
+  /* A half-written note, not just a tapped starter. */
+  useDiscardGuard(
+    draft.trim() !== "" &&
+      !STARTERS.some((text) => text.trim() === draft.trim()),
+  );
+
   if (connected === false) {
     return <ConnectFirst feature="Notes" showBack />;
   }
@@ -256,10 +270,7 @@ function NotesThread({
 
   return (
     <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
-      <KeyboardAvoidingView
-        style={styles.fill}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <KeyboardAvoidingView style={styles.fill} behavior={keyboardBehavior}>
         <View style={styles.nav}>
           <View style={styles.navSide}>
             <GlassButton icon="back" label="Back" onPress={onBack} />

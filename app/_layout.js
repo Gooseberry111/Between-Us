@@ -16,6 +16,8 @@ import { onProfileSaved } from "../lib/profileProgress";
 import ErrorCatcher from "../components/ErrorCatcher";
 import OfflineBanner from "../components/OfflineBanner";
 import Splash from "../components/Splash";
+import HugOverlay from "../components/HugOverlay";
+import { playHug } from "../lib/hugs";
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
@@ -201,9 +203,11 @@ function AuthGuard() {
 
   const [profileStatus, setProfileStatus] = useState("unknown");
 
+  /* The animated opening is drawn by now and sits on the same
+   * ground, so the system launch screen can go straight away. */
   useEffect(() => {
-    if (isLoaded) SplashScreen.hideAsync().catch(() => {});
-  }, [isLoaded]);
+    SplashScreen.hideAsync().catch(() => {});
+  }, []);
 
   /*
    * ==========================================
@@ -450,17 +454,70 @@ function AuthGuard() {
 /*
  * Shows the name until the app knows where it is going.
  */
+/*
+ * The opening: the rings meet and the name settles. It
+ * stays at least long enough to be seen, and until sign-in
+ * has loaded, then fades away.
+ */
+const SPLASH_MINIMUM_MS = 1700;
+
 function SplashGate() {
   const { isLoaded } = useAuth();
 
-  if (isLoaded) return null;
+  const [shownLongEnough, setShownLongEnough] = useState(false);
+  const [gone, setGone] = useState(false);
 
-  return <Splash />;
+  useEffect(() => {
+    const timer = setTimeout(() => setShownLongEnough(true), SPLASH_MINIMUM_MS);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  const leaving = isLoaded && shownLongEnough;
+
+  useEffect(() => {
+    if (!leaving) return;
+
+    const timer = setTimeout(() => setGone(true), 360);
+
+    return () => clearTimeout(timer);
+  }, [leaving]);
+
+  if (gone) return null;
+
+  return <Splash leaving={leaving} />;
 }
 
 export default function RootLayout() {
   useEffect(() => {
     configureNotifications();
+  }, []);
+
+  /* A hug arriving while the app is open, or opened from its
+   * notification, plays the hug. */
+  useEffect(() => {
+    const play = (notification) => {
+      const data = notification?.request?.content?.data;
+
+      if (data?.type === "hug") playHug({ from: data.from });
+    };
+
+    let received = null;
+    let opened = null;
+
+    try {
+      received = Notifications.addNotificationReceivedListener(play);
+      opened = Notifications.addNotificationResponseReceivedListener(
+        (response) => play(response?.notification),
+      );
+    } catch (error) {
+      console.log("HUG LISTENER FAILED:", error?.message);
+    }
+
+    return () => {
+      received?.remove();
+      opened?.remove();
+    };
   }, []);
 
   /*
@@ -486,6 +543,7 @@ export default function RootLayout() {
           <AuthGuard />
 
           <OfflineBanner />
+          <HugOverlay />
 
           {/* Held over the top until Clerk has answered, so
               nobody sees a half-built screen on the way in. */}

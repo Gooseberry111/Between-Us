@@ -78,6 +78,7 @@ export default function DreamSheet({
   const [newStep, setNewStep] = useState("");
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(null);
+  const [openedWith, setOpenedWith] = useState(null);
 
   const stepInput = useRef(null);
 
@@ -88,28 +89,52 @@ export default function DreamSheet({
 
     const source = dream || starter;
 
-    setTitle(source?.title || "");
-    setDescription(dream?.description || "");
-    setTargetDate(
-      dream?.target_date ? String(dream.target_date).slice(0, 10) : "",
-    );
-    setKind(dream?.category || starter?.kind || "Other");
-    setCover(dream ? coverFor(dream) : starter?.cover || "sunset");
-    setIcon(starter?.icon || null);
-    setPhotoId(dream?.photo_id || null);
-    setLocalUri(null);
-    setSteps(
-      (source?.steps || []).map((step) => ({
+    const start = {
+      title: source?.title || "",
+      description: dream?.description || "",
+      targetDate: dream?.target_date
+        ? String(dream.target_date).slice(0, 10)
+        : "",
+      kind: dream?.category || starter?.kind || "Other",
+      cover: dream ? coverFor(dream) : starter?.cover || "sunset",
+      photoId: dream?.photo_id || null,
+      steps: (source?.steps || []).map((step) => ({
         ...step,
         id: starter ? newStepId() : step.id,
       })),
-    );
-    setNewStep("");
+      newStep: "",
+    };
+
+    setTitle(start.title);
+    setDescription(start.description);
+    setTargetDate(start.targetDate);
+    setKind(start.kind);
+    setCover(start.cover);
+    setIcon(starter?.icon || null);
+    setPhotoId(start.photoId);
+    setLocalUri(null);
+    setSteps(start.steps);
+    setNewStep(start.newStep);
+    setOpenedWith(JSON.stringify(start));
     setUploading(false);
     setBusy(null);
   }, [visible, dream, starter]);
 
   const progress = progressOf({ steps });
+
+  /* Anything changed since it opened counts as unsaved. */
+  const dirty =
+    openedWith !== null &&
+    JSON.stringify({
+      title,
+      description,
+      targetDate,
+      kind,
+      cover,
+      photoId,
+      steps,
+      newStep,
+    }) !== openedWith;
 
   /* ---------- the cover ---------- */
 
@@ -373,6 +398,7 @@ export default function DreamSheet({
       onSave={save}
       saveLabel={busy === "save" ? "Saving" : "Save"}
       saveDisabled={!title.trim() || uploading || Boolean(busy)}
+      dirty={dirty}
     >
       {/* COVER */}
 
