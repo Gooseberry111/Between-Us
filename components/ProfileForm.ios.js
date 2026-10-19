@@ -141,6 +141,14 @@ export default function ProfileForm({
             <Label title="Goals" systemImage="flag" />
           </Button>
 
+          <Button onPress={() => onOpen("/trivia-history")}>
+            <Label title="Trivia" systemImage="sparkles" />
+          </Button>
+
+          <Button onPress={() => onOpen("/check-in")}>
+            <Label title="Weekly check-in" systemImage="waveform.path.ecg" />
+          </Button>
+
           <Button onPress={() => onOpen("/answers")}>
             <Label title="Your answers" systemImage="square.and.pencil" />
           </Button>

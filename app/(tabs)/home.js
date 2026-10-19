@@ -610,6 +610,34 @@ export default function HomeScreen() {
 
       {finishProfile}
 
+      {/* JUST THE TWO OF YOU */}
+
+      <Group inset={58}>
+        <Cell
+          leading={
+            <View style={styles.repairIcon}>
+              <Icon name="sparkle" size={16} color={T.accentText} />
+            </View>
+          }
+          title="Couple trivia"
+          subtitle={`How well do you know ${partnerName}?`}
+          chevron
+          onPress={() => router.push("/trivia")}
+        />
+
+        <Cell
+          leading={
+            <View style={styles.repairIcon}>
+              <Icon name="heart" size={16} color={T.accentText} />
+            </View>
+          }
+          title="Weekly check-in"
+          subtitle="One number each: how are we doing?"
+          chevron
+          onPress={() => router.push("/check-in")}
+        />
+      </Group>
+
       {/* WHEN IT'S GONE WRONG */}
 
       <Group inset={58}>

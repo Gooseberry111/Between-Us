@@ -474,6 +474,20 @@ export default function ProfileScreen() {
             />
 
             <Cell
+              leading={<Ionicons name="sparkles" size={21} color={T.accent} />}
+              title="Trivia"
+              chevron
+              onPress={() => router.push("/trivia-history")}
+            />
+
+            <Cell
+              leading={<Ionicons name="pulse" size={21} color={T.accent} />}
+              title="Weekly check-in"
+              chevron
+              onPress={() => router.push("/check-in")}
+            />
+
+            <Cell
               leading={
                 <Ionicons name="create-outline" size={21} color={T.accent} />
               }
