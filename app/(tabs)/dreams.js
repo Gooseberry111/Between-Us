@@ -290,6 +290,7 @@ export default function DreamsScreen() {
               <DreamCover
                 cover={coverFor(featured)}
                 photoId={featured.photo_id}
+                photoUrl={featured.photo_url}
                 height={130}
                 iconSize={34}
               >
@@ -401,6 +402,7 @@ export default function DreamsScreen() {
                       <DreamCover
                         cover={coverFor(dream)}
                         photoId={dream.photo_id}
+                        photoUrl={dream.photo_url}
                         height={42}
                         iconSize={16}
                         radius={10}

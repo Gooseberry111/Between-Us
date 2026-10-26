@@ -23,6 +23,7 @@ export default function DreamCover({
   cover = "sunset",
   icon,
   photoId,
+  photoUrl,
   localUri,
   height = 120,
   iconSize = 30,
@@ -38,6 +39,7 @@ export default function DreamCover({
       {photoId || localUri ? (
         <RemotePhoto
           id={photoId}
+          url={photoUrl}
           localUri={localUri}
           style={StyleSheet.absoluteFill}
         />

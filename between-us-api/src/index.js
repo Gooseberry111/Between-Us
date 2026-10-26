@@ -1,3 +1,4 @@
+import { DEEP as DEEP_QUESTIONS, LIGHT as LIGHT_QUESTIONS, US as US_QUESTIONS } from './questions.js';
 import { neon } from '@neondatabase/serverless';
 
 /*
@@ -132,6 +133,81 @@ async function verifySessionToken(request, env) {
  * Open endpoints. Everything else needs a token.
  */
 const PUBLIC_PATHS = new Set(['/', '/health']);
+
+/*
+ * ==========================================
+ * SIGNED PHOTO LINKS
+ * ==========================================
+ *
+ * A photo used to be read with the session token in a
+ * header, and Android's image loader did not reliably send
+ * it, so a partner on Android saw blanks. Now the lists
+ * that include a photo (memories, dreams) also hand back a
+ * link signed for that photo, good for about a week. Only
+ * the couple ever receives it, and it loads like any image.
+ *
+ * The expiry is rounded to the day so the link stays the
+ * same all day and phones can cache it.
+ */
+const MEDIA_LINK_DAYS = 8;
+
+function base64Url(buffer) {
+	let text = '';
+	const bytes = new Uint8Array(buffer);
+
+	for (let index = 0; index < bytes.length; index++) {
+		text += String.fromCharCode(bytes[index]);
+	}
+
+	return btoa(text).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+async function mediaSignature(env, id, expires) {
+	const key = await crypto.subtle.importKey(
+		'raw',
+		new TextEncoder().encode(env.MEDIA_SIGNING_KEY),
+		{ name: 'HMAC', hash: 'SHA-256' },
+		false,
+		['sign'],
+	);
+
+	const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`${id}.${expires}`));
+
+	return base64Url(signature);
+}
+
+async function signedMediaPath(env, id) {
+	if (!id || !env.MEDIA_SIGNING_KEY) return null;
+
+	const today = Math.floor(Date.now() / 86400000);
+	const expires = (today + MEDIA_LINK_DAYS) * 86400;
+
+	return `/media/${id}?exp=${expires}&sig=${await mediaSignature(env, id, expires)}`;
+}
+
+async function mediaSignatureValid(env, id, expires, signature) {
+	if (!env.MEDIA_SIGNING_KEY || !expires || !signature) return false;
+
+	if (Number(expires) * 1000 < Date.now()) return false;
+
+	const expected = await mediaSignature(env, id, expires);
+
+	/* Same length, compared without stopping early. */
+	if (expected.length !== signature.length) return false;
+
+	let difference = 0;
+
+	for (let index = 0; index < expected.length; index++) {
+		difference |= expected.charCodeAt(index) ^ signature.charCodeAt(index);
+	}
+
+	return difference === 0;
+}
+
+/* A signed photo read carries its own proof, not a session. */
+function isSignedMediaRead(url, request) {
+	return request.method === 'GET' && /^\/media\/[A-Za-z0-9-]+$/.test(url.pathname) && url.searchParams.has('sig');
+}
 
 function unauthorized(message) {
 	return Response.json({ error: message }, { status: 401 });
@@ -655,11 +731,11 @@ function questionForDate(date) {
 }
 
 /*
- * Three a night, spaced far apart in the list so they are
- * not three versions of the same question, and the same
- * three for both people on the same day.
+ * The first rotation: 45 questions, three a night, which
+ * came round again every fifteen days. Kept for the nights
+ * already asked, so their answers keep their questions.
  */
-function questionsForDate(date) {
+function legacyQuestionsForDate(date) {
 	const startOfYear = new Date(date.getFullYear(), 0, 0);
 	const dayOfYear = Math.floor((date - startOfYear) / MS_PER_DAY);
 	const total = DAILY_QUESTIONS.length;
@@ -676,6 +752,56 @@ function questionsForDate(date) {
 	}
 
 	return picked;
+}
+
+/*
+ * From the night after they shipped, one question from each
+ * of three pools: something light, something about the two
+ * of you, something deeper. Each pool is walked in its own
+ * fixed shuffle, a step a night, so nothing repeats until
+ * the whole pool has been through -- about five months.
+ * Both of you get the same three, and they hold all day.
+ */
+const POOLS_FROM = Date.UTC(2026, 9, 27);
+
+function shuffled(length, seed) {
+	let state = seed >>> 0;
+
+	/* mulberry32: small, fast, the same everywhere. */
+	const random = () => {
+		state = (state + 0x6d2b79f5) | 0;
+		let t = Math.imul(state ^ (state >>> 15), 1 | state);
+		t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+		return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+	};
+
+	const order = Array.from({ length }, (_, index) => index);
+
+	for (let index = length - 1; index > 0; index--) {
+		const swap = Math.floor(random() * (index + 1));
+		[order[index], order[swap]] = [order[swap], order[index]];
+	}
+
+	return order;
+}
+
+const POOLS = [LIGHT_QUESTIONS, US_QUESTIONS, DEEP_QUESTIONS].map((pool, index) => ({
+	pool,
+	order: shuffled(pool.length, 1009 * (index + 1)),
+}));
+
+function questionsForDate(date) {
+	const day = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+
+	if (day < POOLS_FROM) return legacyQuestionsForDate(date);
+
+	const night = Math.floor((day - POOLS_FROM) / MS_PER_DAY);
+
+	return POOLS.map(({ pool, order }) => {
+		const text = pool[order[night % pool.length]];
+
+		return { key: slugifyQuestion(text), text };
+	});
 }
 
 function toIsoDate(value) {
@@ -1345,7 +1471,7 @@ export default {
 			 * to know without taking it from the path. */
 			let callerClerkId = null;
 
-			if (!PUBLIC_PATHS.has(url.pathname)) {
+			if (!PUBLIC_PATHS.has(url.pathname) && !isSignedMediaRead(url, request)) {
 				const callerId = await verifySessionToken(request, env);
 
 				callerClerkId = callerId;
@@ -3714,7 +3840,14 @@ VALUES (
     ORDER BY memory_date DESC, created_at DESC
   `;
 
-				return Response.json(memories);
+				return Response.json(
+					await Promise.all(
+						memories.map(async (memory) => ({
+							...memory,
+							photo_url: await signedMediaPath(env, memory.photo_id),
+						})),
+					),
+				);
 			}
 
 			// CREATE MEMORY
@@ -3896,7 +4029,12 @@ VALUES (
   `;
 
 				return Response.json({
-					dreams,
+					dreams: await Promise.all(
+						dreams.map(async (dream) => ({
+							...dream,
+							photo_url: await signedMediaPath(env, dream.photo_id),
+						})),
+					),
 				});
 			}
 
@@ -7192,6 +7330,35 @@ VALUES (
 					return new Response('Not found', { status: 404 });
 				}
 
+				const mediaId = mediaReadMatch[1];
+				const signature = url.searchParams.get('sig');
+
+				/* A signed link: the signature is the permission. */
+				if (signature) {
+					const valid = await mediaSignatureValid(env, mediaId, url.searchParams.get('exp'), signature);
+
+					if (!valid) {
+						console.log('MEDIA READ: bad or expired signature', mediaId);
+
+						return new Response('Not found', { status: 404 });
+					}
+
+					const signed = await env.MEDIA.getWithMetadata(`photo:${mediaId}`, {
+						type: 'arrayBuffer',
+					});
+
+					if (!signed?.value) {
+						return new Response('Not found', { status: 404 });
+					}
+
+					return new Response(signed.value, {
+						headers: {
+							'Content-Type': signed.metadata?.contentType || 'image/jpeg',
+							'Cache-Control': 'private, max-age=86400',
+						},
+					});
+				}
+
 				const caller = await sql`
           SELECT id FROM users WHERE clerk_id = ${callerClerkId} LIMIT 1
         `;
@@ -7200,12 +7367,12 @@ VALUES (
 					return new Response('Not found', { status: 404 });
 				}
 
-				const stored = await env.MEDIA.getWithMetadata(`photo:${mediaReadMatch[1]}`, {
+				const stored = await env.MEDIA.getWithMetadata(`photo:${mediaId}`, {
 					type: 'arrayBuffer',
 				});
 
 				if (!stored?.value) {
-					console.log('MEDIA READ: no such photo', mediaReadMatch[1]);
+					console.log('MEDIA READ: no such photo', mediaId);
 
 					return new Response('Not found', { status: 404 });
 				}

@@ -407,6 +407,9 @@ export default function DreamSheet({
           cover={cover}
           icon={icon}
           photoId={photoId}
+          photoUrl={
+            dream && photoId === dream.photo_id ? dream.photo_url : undefined
+          }
           localUri={localUri}
           height={170}
           iconSize={40}

@@ -207,6 +207,7 @@ export default function CompletedDreamsScreen() {
               <DreamCover
                 cover={coverFor(dream)}
                 photoId={dream.photo_id}
+                photoUrl={dream.photo_url}
                 height={110}
                 iconSize={30}
               >

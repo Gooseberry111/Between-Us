@@ -28,6 +28,7 @@ import {
   Screen,
   Segmented,
   Sheet,
+  Icon,
 } from "../../components/ui";
 import ConnectFirst from "../../components/ConnectFirst";
 import { SkeletonList } from "../../components/Skeleton";
@@ -94,6 +95,9 @@ export default function TimelineScreen() {
   const [note, setNote] = useState("");
   const [when, setWhen] = useState("");
   const [photoId, setPhotoId] = useState(null);
+
+  /* The memory open in full, from tapping its card. */
+  const [viewing, setViewing] = useState(null);
   const [localUri, setLocalUri] = useState(null);
   const [uploading, setUploading] = useState(false);
 
@@ -124,6 +128,7 @@ export default function TimelineScreen() {
           note: item.description,
           date: item.memory_date,
           photoId: item.photo_id || null,
+          photoUrl: item.photo_url || null,
         }),
       );
 
@@ -321,12 +326,16 @@ export default function TimelineScreen() {
                       ? router.push("/special-dates")
                       : entry.kind === "Dates"
                         ? router.push("/dates")
-                        : null
+                        : setViewing(entry)
                   }
                 >
                   <Card padded={false} style={styles.entryCard}>
                     {entry.photoId ? (
-                      <RemotePhoto id={entry.photoId} style={styles.photo} />
+                      <RemotePhoto
+                        id={entry.photoId}
+                        url={entry.photoUrl}
+                        style={styles.photo}
+                      />
                     ) : null}
 
                     <View style={styles.entry}>
@@ -361,6 +370,10 @@ export default function TimelineScreen() {
                           </Text>
                         ) : null}
                       </View>
+
+                      {entry.kind === "Memories" ? (
+                        <Icon name="chevron" size={16} color={T.label3} />
+                      ) : null}
                     </View>
                   </Card>
                 </Press>
@@ -369,6 +382,51 @@ export default function TimelineScreen() {
           ))
         )}
       </Screen>
+
+      {/* A MEMORY IN FULL */}
+
+      <Sheet
+        visible={Boolean(viewing)}
+        title="Memory"
+        onCancel={() => setViewing(null)}
+      >
+        {viewing ? (
+          <>
+            {viewing.photoId ? (
+              <View style={styles.fullPhotoWrap}>
+                <RemotePhoto
+                  id={viewing.photoId}
+                  url={viewing.photoUrl}
+                  style={styles.fullPhoto}
+                />
+              </View>
+            ) : null}
+
+            <View style={styles.full}>
+              <Text style={styles.fullTitle}>{viewing.title}</Text>
+
+              {viewing.date ? (
+                <Text style={styles.fullDate}>
+                  {new Date(
+                    `${String(viewing.date).slice(0, 10)}T12:00:00`,
+                  ).toLocaleDateString(undefined, {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </Text>
+              ) : null}
+
+              {viewing.note ? (
+                <Text style={styles.fullNote} selectable>
+                  {viewing.note}
+                </Text>
+              ) : null}
+            </View>
+          </>
+        ) : null}
+      </Sheet>
 
       {/* NEW MEMORY SHEET */}
 
@@ -503,6 +561,42 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     color: T.label2,
     marginTop: 2,
+  },
+
+  fullPhotoWrap: {
+    marginHorizontal: 16,
+    borderRadius: 20,
+    overflow: "hidden",
+  },
+
+  fullPhoto: {
+    width: "100%",
+    aspectRatio: 4 / 3,
+  },
+
+  full: {
+    paddingHorizontal: 20,
+    gap: 6,
+  },
+
+  fullTitle: {
+    fontSize: 24,
+    lineHeight: 29,
+    fontWeight: "700",
+    letterSpacing: -0.5,
+    color: T.label,
+  },
+
+  fullDate: {
+    fontSize: 14,
+    color: T.label2,
+  },
+
+  fullNote: {
+    fontSize: 17,
+    lineHeight: 25,
+    color: T.label,
+    marginTop: 8,
   },
 
   entryCard: {

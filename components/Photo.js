@@ -88,16 +88,20 @@ export async function uploadPhoto(userId, base64) {
 const TOKEN_TRIES = 5;
 const LOAD_TRIES = 2;
 
-export function RemotePhoto({ id, localUri, style }) {
+export function RemotePhoto({ id, url, localUri, style }) {
   const [headers, setHeaders] = useState(null);
   const [attempt, setAttempt] = useState(0);
   const [failed, setFailed] = useState(false);
+
+  /* The signed link from the list, until it fails once. */
+  const [signedFailed, setSignedFailed] = useState(false);
+  const signed = url && !signedFailed;
 
   useEffect(() => {
     let live = true;
     let timer = null;
 
-    if (!id || localUri) return undefined;
+    if (!id || localUri || signed) return undefined;
 
     setFailed(false);
 
@@ -121,11 +125,23 @@ export function RemotePhoto({ id, localUri, style }) {
 
       if (timer) clearTimeout(timer);
     };
-  }, [id, localUri, attempt]);
+  }, [id, localUri, attempt, signed]);
 
   if (localUri) {
     return (
       <Image source={{ uri: localUri }} style={style} resizeMode="cover" />
+    );
+  }
+
+  /* Signed: a plain image request, nothing for the loader to drop. */
+  if (signed) {
+    return (
+      <Image
+        source={{ uri: `${API_URL}${url}` }}
+        style={style}
+        resizeMode="cover"
+        onError={() => setSignedFailed(true)}
+      />
     );
   }
 
