@@ -41,6 +41,9 @@ const KINDS = {
   love: { icon: "heart", tint: T.you, to: "/activity" },
   mood: { icon: "mood", tint: T.you, to: "/(tabs)/home" },
   hug: { icon: "heart", tint: T.you, to: "/(tabs)/home" },
+  hug_declined: { icon: "heartOutline", tint: T.label2, to: null },
+  game_turn: { icon: "sparkle", tint: T.accent, to: "/game" },
+  game_over: { icon: "trophy", tint: T.secondary, to: "/game" },
   daily_question: { icon: "lock", tint: T.accent, to: "/daily-question" },
   daily_question_answered: {
     icon: "lock",

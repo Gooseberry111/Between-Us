@@ -1,6 +1,6 @@
 import { ClerkProvider, useAuth } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
-import { Stack, useRouter, useSegments } from "expo-router";
+import { Stack, router, useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
 import * as SecureStore from "expo-secure-store";
 import * as Notifications from "expo-notifications";
@@ -502,14 +502,23 @@ export default function RootLayout() {
       if (data?.type === "hug") playHug({ from: data.from });
     };
 
+    /* Tapping "your move" opens the board. */
+    const open = (response) => {
+      const data = response?.notification?.request?.content?.data;
+
+      play(response?.notification);
+
+      if (data?.type === "game_turn" || data?.type === "game_over") {
+        router.push("/game");
+      }
+    };
+
     let received = null;
     let opened = null;
 
     try {
       received = Notifications.addNotificationReceivedListener(play);
-      opened = Notifications.addNotificationResponseReceivedListener(
-        (response) => play(response?.notification),
-      );
+      opened = Notifications.addNotificationResponseReceivedListener(open);
     } catch (error) {
       console.log("HUG LISTENER FAILED:", error?.message);
     }

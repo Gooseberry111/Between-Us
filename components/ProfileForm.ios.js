@@ -145,6 +145,10 @@ export default function ProfileForm({
             <Label title="Trivia" systemImage="sparkles" />
           </Button>
 
+          <Button onPress={() => onOpen("/game")}>
+            <Label title="Four in a Row" systemImage="circle.grid.3x3.fill" />
+          </Button>
+
           <Button onPress={() => onOpen("/check-in")}>
             <Label title="Weekly check-in" systemImage="waveform.path.ecg" />
           </Button>

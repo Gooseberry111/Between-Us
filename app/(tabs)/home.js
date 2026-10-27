@@ -619,6 +619,18 @@ export default function HomeScreen() {
               <Icon name="sparkle" size={16} color={T.accentText} />
             </View>
           }
+          title="Four in a Row"
+          subtitle={`A game against ${partnerName}, turn by turn`}
+          chevron
+          onPress={() => router.push("/game")}
+        />
+
+        <Cell
+          leading={
+            <View style={styles.repairIcon}>
+              <Icon name="bulb" size={16} color={T.accentText} />
+            </View>
+          }
           title="Couple trivia"
           subtitle={`How well do you know ${partnerName}?`}
           chevron

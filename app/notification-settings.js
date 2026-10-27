@@ -44,6 +44,13 @@ const NOTIFICATION_GROUPS = [
       { type: "mood", title: "Their mood", icon: "mood" },
       { type: "hug", title: "Hugs", icon: "heart" },
       {
+        type: "hug_declined",
+        title: "When they need space",
+        icon: "heartOutline",
+      },
+      { type: "game_turn", title: "Your move in a game", icon: "sparkle" },
+      { type: "game_over", title: "How a game ended", icon: "trophy" },
+      {
         type: "daily_question_answered",
         title: "They answered tonight",
         icon: "lock",

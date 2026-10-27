@@ -509,6 +509,85 @@ function currentMood(mood, moodAt) {
 	return { mood, emoji: MOODS[mood].emoji, at: at.toISOString() };
 }
 
+/*
+ * ==========================================
+ * FOUR IN A ROW
+ * ==========================================
+ */
+const FOUR_ROWS = 6;
+const FOUR_COLUMNS = 7;
+const EMPTY_BOARD = '.'.repeat(FOUR_ROWS * FOUR_COLUMNS);
+
+/* The row a counter dropped in this column lands on, or -1. */
+function landingRow(board, column) {
+	for (let row = FOUR_ROWS - 1; row >= 0; row--) {
+		if (board[row * FOUR_COLUMNS + column] === '.') return row;
+	}
+
+	return -1;
+}
+
+/* The four (or more) cells through this one in a line, or null. */
+function winningLine(board, row, column) {
+	const mark = board[row * FOUR_COLUMNS + column];
+
+	for (const [dr, dc] of [
+		[0, 1],
+		[1, 0],
+		[1, 1],
+		[1, -1],
+	]) {
+		const line = [[row, column]];
+
+		for (const direction of [1, -1]) {
+			let r = row + dr * direction;
+			let c = column + dc * direction;
+
+			while (r >= 0 && r < FOUR_ROWS && c >= 0 && c < FOUR_COLUMNS && board[r * FOUR_COLUMNS + c] === mark) {
+				line.push([r, c]);
+				r += dr * direction;
+				c += dc * direction;
+			}
+		}
+
+		if (line.length >= 4) return line;
+	}
+
+	return null;
+}
+
+/* The game as one player sees it: their counters are "you". */
+function gameFor(game, viewerId) {
+	if (!game) return null;
+
+	const mine = game.player_a === viewerId ? 'a' : 'b';
+	const rows = [];
+
+	for (let row = 0; row < FOUR_ROWS; row++) {
+		const cells = [];
+
+		for (let column = 0; column < FOUR_COLUMNS; column++) {
+			const mark = game.board[row * FOUR_COLUMNS + column];
+			cells.push(mark === '.' ? null : mark === mine ? 'you' : 'them');
+		}
+
+		rows.push(cells);
+	}
+
+	return {
+		id: game.id,
+		board: rows,
+		status: game.status,
+		turn: game.status === 'playing' ? (game.turn === viewerId ? 'you' : 'them') : null,
+		winner: game.winner ? (game.winner === viewerId ? 'you' : 'them') : null,
+		winning: game.winning ? JSON.parse(game.winning) : [],
+		last_move: game.last_move,
+		moves: game.moves,
+		you_started: game.player_a === viewerId,
+		updated_at: game.updated_at,
+	};
+}
+
 async function ensureSchema(sql) {
 	if (schemaReady) return;
 
@@ -708,6 +787,36 @@ async function ensureSchema(sql) {
 	await sql`
 		CREATE INDEX IF NOT EXISTS checkins_connection_idx
 			ON checkins (connection_id, week_key DESC)
+	`;
+
+	/*
+	 * Four in a Row. The board is 42 characters, top row
+	 * first: '.' empty, 'a' the player who started, 'b' the
+	 * other. `moves` doubles as a version, so two taps that
+	 * race each other cannot both land.
+	 */
+	await sql`
+		CREATE TABLE IF NOT EXISTS games (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			connection_id UUID NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
+			kind TEXT NOT NULL DEFAULT 'four',
+			board TEXT NOT NULL,
+			player_a UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			player_b UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			turn UUID,
+			status TEXT NOT NULL DEFAULT 'playing',
+			winner UUID,
+			winning TEXT,
+			last_move INTEGER,
+			moves INTEGER NOT NULL DEFAULT 0,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+			updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+		)
+	`;
+
+	await sql`
+		CREATE INDEX IF NOT EXISTS games_connection_idx
+			ON games (connection_id, created_at DESC)
 	`;
 
 	schemaReady = true;
@@ -6917,6 +7026,226 @@ VALUES (
 
 			/*
 			 * ==========================================
+			 * GAMES
+			 * ==========================================
+			 *
+			 * GET  /users/:clerkId/games                   the game on now (or the last
+			 *                                              one), and the score so far
+			 * POST /users/:clerkId/games                   start one (or return the one on)
+			 * POST /users/:clerkId/games/:id/move          { column, moves }
+			 *
+			 * Turn by turn, in your own time. Whoever did not start
+			 * the last game starts the next. The other one hears
+			 * when it is their move, and both hear how it ended.
+			 */
+
+			const gamesMatch = url.pathname.match(/^\/users\/([^/]+)\/games$/);
+			const gameMoveMatch = url.pathname.match(/^\/users\/([^/]+)\/games\/([0-9a-f-]{36})\/move$/);
+
+			if ((gamesMatch && (request.method === 'GET' || request.method === 'POST')) || (gameMoveMatch && request.method === 'POST')) {
+				await ensureSchema(sql);
+
+				const clerkId = (gamesMatch || gameMoveMatch)[1];
+
+				const me = (
+					await sql`
+            SELECT u.id, p.first_name, p.nickname
+            FROM users u
+            LEFT JOIN profiles p ON p.user_id = u.id
+            WHERE u.clerk_id = ${clerkId}
+            LIMIT 1
+          `
+				)[0];
+
+				if (!me) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const connection = (
+					await sql`
+            SELECT id, user_one, user_two
+            FROM connections
+            WHERE (user_one = ${me.id} OR user_two = ${me.id})
+              AND status = 'accepted'
+            LIMIT 1
+          `
+				)[0];
+
+				if (!connection) {
+					return Response.json({ error: 'You are not connected to anyone yet.' }, { status: 404 });
+				}
+
+				const partnerId = connection.user_one === me.id ? connection.user_two : connection.user_one;
+				const myName = me.nickname?.trim() || me.first_name?.trim() || 'Your partner';
+
+				const score = async () => {
+					const rows = await sql`
+            SELECT winner, status FROM games
+            WHERE connection_id = ${connection.id} AND status <> 'playing'
+          `;
+
+					return {
+						you: rows.filter((row) => row.winner === me.id).length,
+						them: rows.filter((row) => row.winner === partnerId).length,
+						draws: rows.filter((row) => row.status === 'draw').length,
+					};
+				};
+
+				const latest = async () =>
+					(
+						await sql`
+              SELECT * FROM games
+              WHERE connection_id = ${connection.id}
+              ORDER BY created_at DESC
+              LIMIT 1
+            `
+					)[0] || null;
+
+				const partner = async () =>
+					(
+						await sql`
+              SELECT push_token, notification_preferences FROM users WHERE id = ${partnerId} LIMIT 1
+            `
+					)[0];
+
+				if (gamesMatch && request.method === 'GET') {
+					return Response.json({ game: gameFor(await latest(), me.id), score: await score() });
+				}
+
+				if (gamesMatch) {
+					const last = await latest();
+
+					if (last && last.status === 'playing') {
+						return Response.json({ game: gameFor(last, me.id), score: await score() });
+					}
+
+					/* Take turns going first. */
+					const starter = last ? (last.player_a === me.id ? partnerId : me.id) : me.id;
+					const other = starter === me.id ? partnerId : me.id;
+
+					const created = (
+						await sql`
+              INSERT INTO games (connection_id, board, player_a, player_b, turn)
+              VALUES (${connection.id}, ${EMPTY_BOARD}, ${starter}, ${other}, ${starter})
+              RETURNING *
+            `
+					)[0];
+
+					const theirs = await partner();
+
+					await notifyUser(sql, {
+						userId: partnerId,
+						pushToken: theirs?.push_token,
+						preferences: theirs?.notification_preferences,
+						type: 'game_turn',
+						title: `${myName} wants a game of Four in a Row`,
+						message: starter === partnerId ? 'You go first.' : `${myName} goes first.`,
+						dedupeKey: `game-start:${created.id}`,
+						data: { gameId: created.id },
+					});
+
+					return Response.json({ game: gameFor(created, me.id), score: await score() }, { status: 201 });
+				}
+
+				/* A move. */
+				const game = (
+					await sql`
+            SELECT * FROM games
+            WHERE id = ${gameMoveMatch[2]} AND connection_id = ${connection.id}
+            LIMIT 1
+          `
+				)[0];
+
+				if (!game) {
+					return Response.json({ error: 'That game is not here any more.' }, { status: 404 });
+				}
+
+				const body = await request.json().catch(() => ({}));
+				const column = Number(body?.column);
+
+				if (game.status !== 'playing') {
+					return Response.json({ error: 'That game is over.', game: gameFor(game, me.id) }, { status: 409 });
+				}
+
+				if (game.turn !== me.id) {
+					return Response.json({ error: 'It is their move.', game: gameFor(game, me.id) }, { status: 409 });
+				}
+
+				if (!Number.isInteger(column) || column < 0 || column >= FOUR_COLUMNS) {
+					return Response.json({ error: 'Pick a column.' }, { status: 400 });
+				}
+
+				const row = landingRow(game.board, column);
+
+				if (row === -1) {
+					return Response.json({ error: 'That column is full.', game: gameFor(game, me.id) }, { status: 409 });
+				}
+
+				const mark = game.player_a === me.id ? 'a' : 'b';
+				const index = row * FOUR_COLUMNS + column;
+				const board = game.board.slice(0, index) + mark + game.board.slice(index + 1);
+
+				const line = winningLine(board, row, column);
+				const full = !board.includes('.');
+
+				const status = line ? 'won' : full ? 'draw' : 'playing';
+
+				const updated = (
+					await sql`
+            UPDATE games
+            SET
+              board = ${board},
+              moves = moves + 1,
+              last_move = ${index},
+              turn = ${status === 'playing' ? partnerId : null},
+              status = ${status},
+              winner = ${line ? me.id : null},
+              winning = ${line ? JSON.stringify(line) : null},
+              updated_at = NOW()
+            WHERE id = ${game.id} AND moves = ${game.moves}
+            RETURNING *
+          `
+				)[0];
+
+				/* Someone else's tap landed first. */
+				if (!updated) {
+					return Response.json({ error: 'The board changed. Have another look.', game: gameFor(await latest(), me.id) }, { status: 409 });
+				}
+
+				const theirs = await partner();
+
+				await notifyUser(sql, {
+					userId: partnerId,
+					pushToken: theirs?.push_token,
+					preferences: theirs?.notification_preferences,
+					type: status === 'playing' ? 'game_turn' : 'game_over',
+					title:
+						status === 'won'
+							? `${myName} won Four in a Row`
+							: status === 'draw'
+								? 'Four in a Row: a draw'
+								: `Your move, against ${myName}`,
+					message: status === 'playing' ? 'They have dropped their counter.' : 'Fancy a rematch?',
+					dedupeKey: `game:${game.id}:${updated.moves}`,
+					data: { gameId: game.id },
+				});
+
+				if (status !== 'playing') {
+					await recordActivity(sql, {
+						connectionId: connection.id,
+						actorId: me.id,
+						kind: 'game',
+						title: status === 'won' ? 'Won a game of Four in a Row' : 'Drew a game of Four in a Row',
+						targetId: game.id,
+						dedupeKey: `game-end:${game.id}`,
+					});
+				}
+
+				return Response.json({ game: gameFor(updated, me.id), score: await score() });
+			}
+
+			/*
+			 * ==========================================
 			 * HUG
 			 * ==========================================
 			 *
@@ -6991,6 +7320,78 @@ VALUES (
 				});
 
 				return Response.json({ sent: true });
+			}
+
+			/*
+			 * POST /users/:clerkId/hug/decline
+			 *
+			 * "Not now." The one who sent it hears, gently, that
+			 * the other one needs a little space, once per hug.
+			 */
+			const hugDeclineMatch = url.pathname.match(/^\/users\/([^/]+)\/hug\/decline$/);
+
+			if (hugDeclineMatch && request.method === 'POST') {
+				await ensureSchema(sql);
+
+				const me = (
+					await sql`
+            SELECT u.id, p.first_name, p.nickname
+            FROM users u
+            LEFT JOIN profiles p ON p.user_id = u.id
+            WHERE u.clerk_id = ${hugDeclineMatch[1]}
+            LIMIT 1
+          `
+				)[0];
+
+				if (!me) {
+					return Response.json({ error: 'User not found' }, { status: 404 });
+				}
+
+				const connection = (
+					await sql`
+            SELECT id, user_one, user_two
+            FROM connections
+            WHERE (user_one = ${me.id} OR user_two = ${me.id})
+              AND status = 'accepted'
+            LIMIT 1
+          `
+				)[0];
+
+				if (!connection) {
+					return Response.json({ error: 'You are not connected to anyone yet.' }, { status: 404 });
+				}
+
+				const partnerId = connection.user_one === me.id ? connection.user_two : connection.user_one;
+
+				const sender = (
+					await sql`
+            SELECT push_token, notification_preferences FROM users WHERE id = ${partnerId} LIMIT 1
+          `
+				)[0];
+
+				const myName = me.nickname?.trim() || me.first_name?.trim() || 'Your partner';
+				const window = Math.floor(Date.now() / 60000);
+
+				await notifyUser(sql, {
+					userId: partnerId,
+					pushToken: sender?.push_token,
+					preferences: sender?.notification_preferences,
+					type: 'hug_declined',
+					title: `${myName} needs a little space right now`,
+					message: 'They saw your hug. Give it a moment.',
+					dedupeKey: `hug-declined:${me.id}:${window}`,
+				});
+
+				await recordActivity(sql, {
+					connectionId: connection.id,
+					actorId: me.id,
+					kind: 'hug_declined',
+					title: 'Needs a little space right now',
+					detail: 'They saw your hug',
+					dedupeKey: `hug-declined:${me.id}:${window}`,
+				});
+
+				return Response.json({ declined: true });
 			}
 
 			/*
