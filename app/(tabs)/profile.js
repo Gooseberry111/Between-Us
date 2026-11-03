@@ -532,6 +532,21 @@ export default function ProfileScreen() {
             />
 
             <Cell
+              leading={<Ionicons name="mail" size={21} color={T.accent} />}
+              title="Letters"
+              chevron
+              onPress={() => router.push("/letters")}
+            />
+
+            <Cell
+              leading={<Ionicons name="gift" size={21} color={T.accent} />}
+              title="Gift ideas"
+              subtitle="Only you can see this"
+              chevron
+              onPress={() => router.push("/wishlist")}
+            />
+
+            <Cell
               leading={<Ionicons name="pulse" size={21} color={T.accent} />}
               title="Weekly check-in"
               chevron

@@ -588,6 +588,73 @@ function gameFor(game, viewerId) {
 	};
 }
 
+/* Days from today (UTC) until this date next comes round. */
+function daysUntilNext(dateValue, today = new Date()) {
+	if (!dateValue) return null;
+
+	const source = new Date(dateValue);
+
+	if (Number.isNaN(source.getTime())) return null;
+
+	const start = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+	let next = Date.UTC(today.getUTCFullYear(), source.getUTCMonth(), source.getUTCDate());
+
+	if (next < start) {
+		next = Date.UTC(today.getUTCFullYear() + 1, source.getUTCMonth(), source.getUTCDate());
+	}
+
+	return Math.round((next - start) / MS_PER_DAY);
+}
+
+/* The couple a signed-in caller belongs to, with names. */
+async function coupleFor(sql, clerkId) {
+	const me = (
+		await sql`
+      SELECT u.id, p.first_name, p.nickname
+      FROM users u
+      LEFT JOIN profiles p ON p.user_id = u.id
+      WHERE u.clerk_id = ${clerkId}
+      LIMIT 1
+    `
+	)[0];
+
+	if (!me) return { error: Response.json({ error: 'User not found' }, { status: 404 }) };
+
+	const connection = (
+		await sql`
+      SELECT id, user_one, user_two, connected_at
+      FROM connections
+      WHERE (user_one = ${me.id} OR user_two = ${me.id})
+        AND status = 'accepted'
+      LIMIT 1
+    `
+	)[0];
+
+	if (!connection) {
+		return { error: Response.json({ error: 'You are not connected to anyone yet.' }, { status: 404 }) };
+	}
+
+	const partnerId = connection.user_one === me.id ? connection.user_two : connection.user_one;
+
+	const partner = (
+		await sql`
+      SELECT u.id, u.push_token, u.notification_preferences, p.first_name, p.nickname, p.birthday
+      FROM users u
+      LEFT JOIN profiles p ON p.user_id = u.id
+      WHERE u.id = ${partnerId}
+      LIMIT 1
+    `
+	)[0];
+
+	return {
+		me,
+		connection,
+		partner,
+		myName: me.nickname?.trim() || me.first_name?.trim() || 'Your partner',
+		partnerName: partner?.nickname?.trim() || partner?.first_name?.trim() || 'Your partner',
+	};
+}
+
 async function ensureSchema(sql) {
 	if (schemaReady) return;
 
@@ -817,6 +884,52 @@ async function ensureSchema(sql) {
 	await sql`
 		CREATE INDEX IF NOT EXISTS games_connection_idx
 			ON games (connection_id, created_at DESC)
+	`;
+
+	/*
+	 * Time-capsule letters: written now, sealed until a day
+	 * the writer picks. The body is only ever sent to the one
+	 * it is for once they have opened it on or after that day.
+	 */
+	await sql`
+		CREATE TABLE IF NOT EXISTS letters (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			connection_id UUID NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
+			from_user UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			to_user UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			title TEXT NOT NULL,
+			body TEXT NOT NULL,
+			open_on DATE NOT NULL,
+			opened_at TIMESTAMPTZ,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+		)
+	`;
+
+	await sql`
+		CREATE INDEX IF NOT EXISTS letters_connection_idx
+			ON letters (connection_id, open_on)
+	`;
+
+	/*
+	 * Gift ideas: one person's private list of things the
+	 * other has mentioned wanting. Never shown to the other.
+	 */
+	await sql`
+		CREATE TABLE IF NOT EXISTS wishlist (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			connection_id UUID NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
+			owner UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			title TEXT NOT NULL,
+			note TEXT,
+			link TEXT,
+			bought BOOLEAN NOT NULL DEFAULT false,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+		)
+	`;
+
+	await sql`
+		CREATE INDEX IF NOT EXISTS wishlist_owner_idx
+			ON wishlist (owner, created_at DESC)
 	`;
 
 	schemaReady = true;
@@ -1557,6 +1670,90 @@ export default {
 					message: quote,
 					dedupeKey: `quote_of_day:${todayIso}`,
 				});
+			}
+
+			/*
+			 * ==========================================
+			 * 11. LETTERS READY TO OPEN — on their day
+			 * ==========================================
+			 */
+			await ensureSchema(sql);
+
+			const readyLetters = await sql`
+				SELECT l.id, l.to_user, l.title, u.push_token, u.notification_preferences, p.first_name, p.nickname
+				FROM letters l
+				INNER JOIN users u ON u.id = l.to_user
+				LEFT JOIN profiles p ON p.user_id = l.from_user
+				WHERE l.open_on = ${todayIso} AND l.opened_at IS NULL
+			`;
+
+			for (const letter of readyLetters) {
+				const writer = letter.nickname?.trim() || letter.first_name?.trim() || 'Your partner';
+
+				await notifyUser(sql, {
+					userId: letter.to_user,
+					pushToken: letter.push_token,
+					preferences: letter.notification_preferences,
+					type: 'letter',
+					title: `A letter from ${writer} is ready to open`,
+					message: `"${letter.title}"`,
+					dedupeKey: `letter-ready:${letter.id}`,
+				});
+			}
+
+			/*
+			 * ==========================================
+			 * 12. GIFT IDEAS — a fortnight before their
+			 *     birthday or your anniversary
+			 * ==========================================
+			 */
+			const ideaCounts = await sql`
+				SELECT owner, COUNT(*)::int AS ideas
+				FROM wishlist
+				WHERE bought = false
+				GROUP BY owner
+			`;
+
+			const ideasBy = new Map(ideaCounts.map((row) => [row.owner, row.ideas]));
+
+			for (const connection of connections) {
+				const pairs = [
+					[connection.user_one, connection.user_one_push_token, connection.user_one_preferences, connection.user_two_birthday, connection.user_two_first_name],
+					[connection.user_two, connection.user_two_push_token, connection.user_two_preferences, connection.user_one_birthday, connection.user_one_first_name],
+				];
+
+				for (const [owner, pushToken, preferences, partnerBirthday, partnerName] of pairs) {
+					const ideas = ideasBy.get(owner) || 0;
+
+					if (!ideas) continue;
+
+					const name = partnerName?.trim() || 'their';
+					const plural = ideas === 1 ? 'idea' : 'ideas';
+
+					if (daysUntilNext(partnerBirthday, today) === 14) {
+						await notifyUser(sql, {
+							userId: owner,
+							pushToken,
+							preferences,
+							type: 'gift_reminder',
+							title: `${name}'s birthday is in two weeks`,
+							message: `You have ${ideas} gift ${plural} saved.`,
+							dedupeKey: `gift-birthday:${owner}:${todayIso}`,
+						});
+					}
+
+					if (daysUntilNext(connection.connected_at, today) === 14) {
+						await notifyUser(sql, {
+							userId: owner,
+							pushToken,
+							preferences,
+							type: 'gift_reminder',
+							title: 'Your anniversary is in two weeks',
+							message: `You have ${ideas} gift ${plural} saved.`,
+							dedupeKey: `gift-anniversary:${owner}:${todayIso}`,
+						});
+					}
+				}
 			}
 
 			console.log('BETWEEN US: Scheduled notification job finished');
@@ -7022,6 +7219,372 @@ VALUES (
 						planner_name: row.planner_nickname?.trim() || row.planner_first_name?.trim() || 'Someone',
 					})),
 				});
+			}
+
+			/*
+			 * ==========================================
+			 * LETTERS
+			 * ==========================================
+			 *
+			 * GET    /users/:clerkId/letters             { inbox, sent }
+			 * POST   /users/:clerkId/letters             { title, body, open_on }
+			 * POST   /users/:clerkId/letters/:id/open    opens one that is ready
+			 * DELETE /users/:clerkId/letters/:id         the writer, before it is opened
+			 *
+			 * A letter's words never leave the server for the one it
+			 * is for until they open it on or after its day.
+			 */
+
+			const lettersMatch = url.pathname.match(/^\/users\/([^/]+)\/letters$/);
+			const letterOpenMatch = url.pathname.match(/^\/users\/([^/]+)\/letters\/([0-9a-f-]{36})\/open$/);
+			const letterItemMatch = url.pathname.match(/^\/users\/([^/]+)\/letters\/([0-9a-f-]{36})$/);
+
+			if (
+				(lettersMatch && (request.method === 'GET' || request.method === 'POST')) ||
+				(letterOpenMatch && request.method === 'POST') ||
+				(letterItemMatch && request.method === 'DELETE')
+			) {
+				await ensureSchema(sql);
+
+				const clerkId = (lettersMatch || letterOpenMatch || letterItemMatch)[1];
+				const couple = await coupleFor(sql, clerkId);
+
+				if (couple.error) return couple.error;
+
+				const { me, connection, partner, myName } = couple;
+				const todayIso = new Date().toISOString().slice(0, 10);
+
+				const shape = (letter) => {
+					const openOn = toIsoDate(letter.open_on);
+					const mine = letter.from_user === me.id;
+					const opened = Boolean(letter.opened_at);
+
+					return {
+						id: letter.id,
+						title: letter.title,
+						open_on: openOn,
+						ready: openOn <= todayIso,
+						opened,
+						opened_at: letter.opened_at,
+						created_at: letter.created_at,
+						mine,
+						body: mine || opened ? letter.body : null,
+					};
+				};
+
+				if (lettersMatch && request.method === 'GET') {
+					const rows = await sql`
+            SELECT * FROM letters
+            WHERE connection_id = ${connection.id}
+            ORDER BY open_on ASC, created_at DESC
+          `;
+
+					return Response.json({
+						inbox: rows.filter((row) => row.to_user === me.id).map(shape),
+						sent: rows.filter((row) => row.from_user === me.id).map(shape),
+					});
+				}
+
+				if (lettersMatch) {
+					const body = await request.json().catch(() => ({}));
+					const title = String(body?.title || '').trim().slice(0, 120);
+					const text = String(body?.body || '').trim().slice(0, 10000);
+					const openOn = toIsoDate(body?.open_on);
+
+					if (!title || !text) {
+						return Response.json({ error: 'A letter needs a title and some words.' }, { status: 400 });
+					}
+
+					if (!openOn || !/^\d{4}-\d{2}-\d{2}$/.test(openOn) || openOn < todayIso) {
+						return Response.json({ error: 'Pick today or a day in the future.' }, { status: 400 });
+					}
+
+					const created = (
+						await sql`
+              INSERT INTO letters (connection_id, from_user, to_user, title, body, open_on)
+              VALUES (${connection.id}, ${me.id}, ${partner.id}, ${title}, ${text}, ${openOn})
+              RETURNING *
+            `
+					)[0];
+
+					await notifyUser(sql, {
+						userId: partner.id,
+						pushToken: partner.push_token,
+						preferences: partner.notification_preferences,
+						type: 'letter',
+						title: `${myName} wrote you a letter`,
+						message: openOn === todayIso ? 'It is ready to open now.' : `It stays sealed until ${openOn}.`,
+						dedupeKey: `letter:${created.id}`,
+						data: { letterId: created.id },
+					});
+
+					await recordActivity(sql, {
+						connectionId: connection.id,
+						actorId: me.id,
+						kind: 'letter',
+						title: 'Wrote you a letter',
+						detail: openOn === todayIso ? 'Ready to open' : `Sealed until ${openOn}`,
+						targetId: created.id,
+						dedupeKey: `letter:${created.id}`,
+					});
+
+					return Response.json({ letter: shape(created) }, { status: 201 });
+				}
+
+				const letterId = (letterOpenMatch || letterItemMatch)[2];
+
+				const letter = (
+					await sql`
+            SELECT * FROM letters WHERE id = ${letterId} AND connection_id = ${connection.id} LIMIT 1
+          `
+				)[0];
+
+				if (!letter) {
+					return Response.json({ error: 'That letter is not here.' }, { status: 404 });
+				}
+
+				if (letterItemMatch) {
+					if (letter.from_user !== me.id || letter.opened_at) {
+						return Response.json({ error: 'Only an unopened letter you wrote can be deleted.' }, { status: 403 });
+					}
+
+					await sql`DELETE FROM letters WHERE id = ${letter.id}`;
+
+					return Response.json({ deleted: true });
+				}
+
+				if (letter.to_user !== me.id) {
+					return Response.json({ error: 'That letter is not for you.' }, { status: 403 });
+				}
+
+				if (toIsoDate(letter.open_on) > todayIso) {
+					return Response.json({ error: `Not yet. It opens on ${toIsoDate(letter.open_on)}.` }, { status: 409 });
+				}
+
+				const opened = letter.opened_at
+					? letter
+					: (
+							await sql`
+                UPDATE letters SET opened_at = NOW() WHERE id = ${letter.id} RETURNING *
+              `
+						)[0];
+
+				if (!letter.opened_at) {
+					const writer = (
+						await sql`
+              SELECT push_token, notification_preferences FROM users WHERE id = ${letter.from_user} LIMIT 1
+            `
+					)[0];
+
+					await notifyUser(sql, {
+						userId: letter.from_user,
+						pushToken: writer?.push_token,
+						preferences: writer?.notification_preferences,
+						type: 'letter_opened',
+						title: `${myName} opened your letter`,
+						message: `"${letter.title}"`,
+						dedupeKey: `letter-opened:${letter.id}`,
+					});
+				}
+
+				return Response.json({ letter: shape(opened) });
+			}
+
+			/*
+			 * ==========================================
+			 * GIFT IDEAS
+			 * ==========================================
+			 *
+			 * GET    /users/:clerkId/wishlist          your list, and how long until
+			 *                                          their birthday and your anniversary
+			 * POST   /users/:clerkId/wishlist          { title, note, link }
+			 * PATCH  /users/:clerkId/wishlist/:id      { bought, title, note, link }
+			 * DELETE /users/:clerkId/wishlist/:id
+			 *
+			 * Yours alone: nothing here is ever shown to them.
+			 */
+
+			const wishlistMatch = url.pathname.match(/^\/users\/([^/]+)\/wishlist$/);
+			const wishItemMatch = url.pathname.match(/^\/users\/([^/]+)\/wishlist\/([0-9a-f-]{36})$/);
+
+			if (
+				(wishlistMatch && (request.method === 'GET' || request.method === 'POST')) ||
+				(wishItemMatch && (request.method === 'PATCH' || request.method === 'DELETE'))
+			) {
+				await ensureSchema(sql);
+
+				const clerkId = (wishlistMatch || wishItemMatch)[1];
+				const couple = await coupleFor(sql, clerkId);
+
+				if (couple.error) return couple.error;
+
+				const { me, connection, partner } = couple;
+
+				const clean = (value, length) => {
+					const text = String(value ?? '').trim();
+					return text ? text.slice(0, length) : null;
+				};
+
+				if (wishlistMatch && request.method === 'GET') {
+					const items = await sql`
+            SELECT id, title, note, link, bought, created_at
+            FROM wishlist
+            WHERE owner = ${me.id} AND connection_id = ${connection.id}
+            ORDER BY bought ASC, created_at DESC
+          `;
+
+					return Response.json({
+						items,
+						birthday_in: daysUntilNext(partner?.birthday),
+						anniversary_in: daysUntilNext(connection.connected_at),
+					});
+				}
+
+				if (wishlistMatch) {
+					const body = await request.json().catch(() => ({}));
+					const title = clean(body?.title, 140);
+
+					if (!title) {
+						return Response.json({ error: 'What is the idea?' }, { status: 400 });
+					}
+
+					const created = (
+						await sql`
+              INSERT INTO wishlist (connection_id, owner, title, note, link)
+              VALUES (${connection.id}, ${me.id}, ${title}, ${clean(body?.note, 500)}, ${clean(body?.link, 500)})
+              RETURNING id, title, note, link, bought, created_at
+            `
+					)[0];
+
+					return Response.json({ item: created }, { status: 201 });
+				}
+
+				const item = (
+					await sql`
+            SELECT * FROM wishlist WHERE id = ${wishItemMatch[2]} AND owner = ${me.id} LIMIT 1
+          `
+				)[0];
+
+				if (!item) {
+					return Response.json({ error: 'That idea is not here.' }, { status: 404 });
+				}
+
+				if (request.method === 'DELETE') {
+					await sql`DELETE FROM wishlist WHERE id = ${item.id}`;
+
+					return Response.json({ deleted: true });
+				}
+
+				const body = await request.json().catch(() => ({}));
+
+				const updated = (
+					await sql`
+            UPDATE wishlist
+            SET
+              title = ${body?.title !== undefined ? clean(body.title, 140) || item.title : item.title},
+              note = ${body?.note !== undefined ? clean(body.note, 500) : item.note},
+              link = ${body?.link !== undefined ? clean(body.link, 500) : item.link},
+              bought = ${body?.bought !== undefined ? Boolean(body.bought) : item.bought}
+            WHERE id = ${item.id}
+            RETURNING id, title, note, link, bought, created_at
+          `
+				)[0];
+
+				return Response.json({ item: updated });
+			}
+
+			/*
+			 * ==========================================
+			 * ON THIS DAY
+			 * ==========================================
+			 *
+			 * GET /users/:clerkId/on-this-day
+			 *
+			 * Memories, dates and finished dreams from this same day
+			 * in an earlier year.
+			 */
+
+			const onThisDayMatch = url.pathname.match(/^\/users\/([^/]+)\/on-this-day$/);
+
+			if (onThisDayMatch && request.method === 'GET') {
+				await ensureSchema(sql);
+
+				const couple = await coupleFor(sql, onThisDayMatch[1]);
+
+				if (couple.error) return couple.error;
+
+				const { connection } = couple;
+				const now = new Date();
+				const month = now.getUTCMonth() + 1;
+				const day = now.getUTCDate();
+				const year = now.getUTCFullYear();
+
+				const memories = await sql`
+          SELECT id, title, description, memory_date, photo_id
+          FROM memories
+          WHERE ((user_one = ${connection.user_one} AND user_two = ${connection.user_two})
+              OR (user_one = ${connection.user_two} AND user_two = ${connection.user_one}))
+            AND EXTRACT(MONTH FROM memory_date) = ${month}
+            AND EXTRACT(DAY FROM memory_date) = ${day}
+            AND EXTRACT(YEAR FROM memory_date) < ${year}
+          ORDER BY memory_date DESC
+          LIMIT 3
+        `;
+
+				const dates = await sql`
+          SELECT id, title, place, plan_date
+          FROM date_plans
+          WHERE connection_id = ${connection.id}
+            AND status = 'done'
+            AND plan_date IS NOT NULL
+            AND EXTRACT(MONTH FROM plan_date) = ${month}
+            AND EXTRACT(DAY FROM plan_date) = ${day}
+            AND EXTRACT(YEAR FROM plan_date) < ${year}
+          LIMIT 3
+        `;
+
+				const dreams = await sql`
+          SELECT id, title, completed_at
+          FROM dreams
+          WHERE connection_id = ${connection.id}
+            AND is_completed = true
+            AND completed_at IS NOT NULL
+            AND EXTRACT(MONTH FROM completed_at) = ${month}
+            AND EXTRACT(DAY FROM completed_at) = ${day}
+            AND EXTRACT(YEAR FROM completed_at) < ${year}
+          LIMIT 3
+        `;
+
+				const yearsAgo = (value) => year - new Date(value).getUTCFullYear();
+
+				const items = [
+					...(await Promise.all(
+						memories.map(async (memory) => ({
+							kind: 'memory',
+							id: memory.id,
+							title: memory.title,
+							detail: memory.description,
+							years_ago: yearsAgo(memory.memory_date),
+							photo_id: memory.photo_id,
+							photo_url: await signedMediaPath(env, memory.photo_id),
+						})),
+					)),
+					...dates.map((date) => ({
+						kind: 'date',
+						id: date.id,
+						title: date.title,
+						detail: date.place,
+						years_ago: yearsAgo(date.plan_date),
+					})),
+					...dreams.map((dream) => ({
+						kind: 'dream',
+						id: dream.id,
+						title: `Finished: ${dream.title}`,
+						years_ago: yearsAgo(dream.completed_at),
+					})),
+				];
+
+				return Response.json({ items });
 			}
 
 			/*

@@ -172,6 +172,14 @@ export default function ProfileForm({
             <Label title="Four in a Row" systemImage="circle.grid.3x3.fill" />
           </Button>
 
+          <Button onPress={() => onOpen("/letters")}>
+            <Label title="Letters" systemImage="envelope" />
+          </Button>
+
+          <Button onPress={() => onOpen("/wishlist")}>
+            <Label title="Gift ideas" systemImage="gift" />
+          </Button>
+
           <Button onPress={() => onOpen("/check-in")}>
             <Label title="Weekly check-in" systemImage="waveform.path.ecg" />
           </Button>

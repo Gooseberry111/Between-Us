@@ -32,6 +32,7 @@ import {
 } from "../../components/ui";
 import ActivityRow from "../../components/ActivityRow";
 import BondHero from "../../components/BondHero";
+import { LetterWaiting, OnThisDay } from "../../components/HomeExtras";
 import {
   activityHandlers,
   loadActivity,
@@ -500,6 +501,10 @@ export default function HomeScreen() {
         onPickMood={() => setMoodSheet(true)}
       />
 
+      {/* A LETTER WAITING */}
+
+      <LetterWaiting partnerName={partnerName} />
+
       {/* TONIGHT'S QUESTION */}
 
       {/* Not tappable as a whole: the button inside is the
@@ -590,6 +595,10 @@ export default function HomeScreen() {
         <Text style={styles.moodLine}>{moodLine}</Text>
       </Card>
 
+      {/* ON THIS DAY */}
+
+      <OnThisDay />
+
       {/* QUICK ACTIONS */}
 
       <View style={styles.actions}>
@@ -613,6 +622,18 @@ export default function HomeScreen() {
       {/* JUST THE TWO OF YOU */}
 
       <Group inset={58}>
+        <Cell
+          leading={
+            <View style={styles.repairIcon}>
+              <Icon name="mail" size={16} color={T.accentText} />
+            </View>
+          }
+          title="Letters"
+          subtitle="Write one now, sealed until a day you choose"
+          chevron
+          onPress={() => router.push("/letters")}
+        />
+
         <Cell
           leading={
             <View style={styles.repairIcon}>

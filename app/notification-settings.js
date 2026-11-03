@@ -49,6 +49,13 @@ const NOTIFICATION_GROUPS = [
         icon: "heartOutline",
       },
       { type: "game_turn", title: "Your move in a game", icon: "sparkle" },
+      { type: "letter", title: "Letters, and when they open", icon: "mail" },
+      {
+        type: "letter_opened",
+        title: "When they read your letter",
+        icon: "mail",
+      },
+      { type: "gift_reminder", title: "Gift idea reminders", icon: "heart" },
       { type: "game_over", title: "How a game ended", icon: "trophy" },
       {
         type: "daily_question_answered",
