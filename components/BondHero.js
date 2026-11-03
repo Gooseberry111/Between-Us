@@ -735,7 +735,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 3,
-    borderColor: "#FFFFFF",
+    borderColor: T.surface,
     shadowColor: "#000000",
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -796,7 +796,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: T.surface,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000000",
@@ -819,7 +819,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: T.green,
     borderWidth: 3,
-    borderColor: "#FFFFFF",
+    borderColor: T.surface,
   },
 
   thread: {
@@ -853,7 +853,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: T.surface,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: T.accent,
@@ -894,7 +894,7 @@ const styles = StyleSheet.create({
     height: 30,
     paddingHorizontal: 12,
     borderRadius: 999,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: T.surface,
   },
 
   chipText: {

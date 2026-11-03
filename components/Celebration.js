@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Animated, Easing, Modal, StyleSheet, Text, View } from "react-native";
+import { T } from "../lib/theme";
 
 /*
  * ==========================================
@@ -172,7 +173,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 26,
     paddingVertical: 28,
     borderRadius: 26,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: T.surface,
     alignItems: "center",
     shadowColor: "#3A2A25",
     shadowOpacity: 0.22,

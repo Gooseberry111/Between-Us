@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(255,255,255,0.85)",
+    backgroundColor: T.surface,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000000",
@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: T.red,
     borderWidth: 2,
-    borderColor: "#FFFFFF",
+    borderColor: T.surface,
   },
 
   largeTitle: {

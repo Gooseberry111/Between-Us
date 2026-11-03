@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
   root: {
     ...StyleSheet.absoluteFill,
     zIndex: 300,
-    backgroundColor: "rgba(236,235,242,0.94)",
+    backgroundColor: T.dark ? "rgba(14,12,17,0.94)" : "rgba(236,235,242,0.94)",
   },
 
   choices: {

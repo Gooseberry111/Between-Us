@@ -1,5 +1,6 @@
 import { Component } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { T } from "../lib/theme";
 
 /*
  * ==========================================
@@ -72,7 +73,7 @@ export default class ErrorCatcher extends Component {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#ECEBF2",
+    backgroundColor: T.appBackground,
     paddingHorizontal: 24,
     paddingTop: 80,
     paddingBottom: 40,
@@ -93,7 +94,7 @@ const styles = StyleSheet.create({
   box: {
     marginTop: 18,
     borderRadius: 14,
-    backgroundColor: "#E9E6EB",
+    backgroundColor: T.accentTint,
   },
 
   boxInner: {

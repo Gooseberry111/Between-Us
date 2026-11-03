@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Animated, StyleSheet, View } from "react-native";
+import { T } from "../lib/theme";
 
 /*
  * ==========================================
@@ -92,15 +93,15 @@ export function SkeletonList({ count = 3 }) {
 
 const styles = StyleSheet.create({
   block: {
-    backgroundColor: "#E6DED9",
+    backgroundColor: T.fill3,
   },
 
   card: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: T.surface,
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: "#E9E6EB",
+    borderColor: T.separator,
   },
 
   title: {

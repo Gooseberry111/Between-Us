@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import * as SecureStore from "expo-secure-store";
 import * as Notifications from "expo-notifications";
 import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
 import { Platform, StyleSheet, Text, View } from "react-native";
@@ -17,6 +18,7 @@ import ErrorCatcher from "../components/ErrorCatcher";
 import OfflineBanner from "../components/OfflineBanner";
 import Splash from "../components/Splash";
 import HugOverlay from "../components/HugOverlay";
+import AppLock from "../components/AppLock";
 import { playHug } from "../lib/hugs";
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
@@ -551,8 +553,11 @@ export default function RootLayout() {
         <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
           <AuthGuard />
 
+          {/* Dark text on light, light text on dark. */}
+          <StatusBar style={T.dark ? "light" : "dark"} />
           <OfflineBanner />
           <HugOverlay />
+          <AppLock />
 
           {/* Held over the top until Clerk has answered, so
               nobody sees a half-built screen on the way in. */}

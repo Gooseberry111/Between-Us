@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { T } from "../lib/theme";
 
 /*
  * ==========================================
@@ -103,9 +104,9 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: "#E9E6EB",
+    backgroundColor: T.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#E9E6EB",
+    borderTopColor: T.separator,
   },
 
   doneButton: {

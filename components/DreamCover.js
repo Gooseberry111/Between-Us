@@ -5,6 +5,7 @@ import Svg, { Circle, Polygon } from "react-native-svg";
 import { COVERS } from "../lib/dreams";
 import { Icon } from "./ui";
 import { RemotePhoto } from "./Photo";
+import { T } from "../lib/theme";
 
 /*
  * ==========================================
@@ -84,7 +85,7 @@ export default function DreamCover({
 const styles = StyleSheet.create({
   cover: {
     overflow: "hidden",
-    backgroundColor: "#E9E6EB",
+    backgroundColor: T.fill3,
   },
 
   symbol: {

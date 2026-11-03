@@ -22,6 +22,7 @@ import {
 import { connectionCacheKey } from "../../lib/connection";
 import { RETURNING_USER_KEY } from "../../lib/auth";
 import { T } from "../../lib/theme";
+import { lockAvailable, lockEnabled, setLockEnabled } from "../../lib/appLock";
 import {
   Avatar,
   Button,
@@ -93,6 +94,25 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(!cached);
   const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  /* The lock lives on this phone, not the account. */
+  const [lockOn, setLockOn] = useState(false);
+  const [lockCan, setLockCan] = useState(false);
+
+  useEffect(() => {
+    lockEnabled().then(setLockOn);
+    lockAvailable().then(setLockCan);
+  }, []);
+
+  const changeLock = async (value) => {
+    try {
+      const done = await setLockEnabled(value);
+
+      if (done) setLockOn(value);
+    } catch (err) {
+      Alert.alert("Can't lock yet", err?.message || "Please try again.");
+    }
+  };
 
   const load = useCallback(async () => {
     if (!isLoaded || !isSignedIn || !userId) {
@@ -330,6 +350,9 @@ export default function ProfileScreen() {
             onNudge={() => router.push("/daily-question")}
             onFindPerson={() => router.push("/find-person")}
             onReminder={setReminder}
+            lockOn={lockOn}
+            lockAvailable={lockCan}
+            onLock={changeLock}
             onOpen={(route) => router.push(route)}
             onUnlink={busy ? () => {} : unlink}
             onSignOut={signOutPrompt}
@@ -439,6 +462,25 @@ export default function ProfileScreen() {
           <GroupFooter>
             Everything else lives in notification settings.
           </GroupFooter>
+
+          {/* PRIVACY */}
+
+          {lockCan ? (
+            <>
+              <GroupHeader>Privacy</GroupHeader>
+
+              <Group inset={52}>
+                <Cell
+                  leading={
+                    <Ionicons name="finger-print" size={21} color={T.accent} />
+                  }
+                  title="Lock the app"
+                  subtitle="Fingerprint or face to open it"
+                  trailing={<Toggle value={lockOn} onChange={changeLock} />}
+                />
+              </Group>
+            </>
+          ) : null}
 
           {/* YOUR SPACE */}
 

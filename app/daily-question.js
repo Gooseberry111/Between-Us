@@ -585,7 +585,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(255,255,255,0.85)",
+    backgroundColor: T.surface,
     alignItems: "center",
     justifyContent: "center",
   },

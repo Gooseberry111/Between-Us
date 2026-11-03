@@ -266,7 +266,7 @@ export function Button({
     filled: { bg: T.accent, fg: "#FFFFFF" },
     tinted: { bg: T.accentTint, fg: T.accentText },
     gray: { bg: T.fill3, fg: T.accentText },
-    white: { bg: "#FFFFFF", fg: T.accentText },
+    white: { bg: T.surface, fg: T.accentText },
     plain: { bg: "transparent", fg: T.accent },
     destructive: { bg: "rgba(255,59,48,0.12)", fg: T.red },
   }[kind];
@@ -419,9 +419,9 @@ export function Toggle({ value, onChange }) {
     <NativeSwitch
       value={value}
       onValueChange={onChange}
-      trackColor={{ false: "#E9E9EB", true: T.accent }}
+      trackColor={{ false: T.fill2, true: T.accent }}
       thumbColor="#FFFFFF"
-      ios_backgroundColor="#E9E9EB"
+      ios_backgroundColor={T.fill2}
     />
   );
 }
@@ -961,7 +961,7 @@ const styles = StyleSheet.create({
   },
 
   segmentItemActive: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: T.surface,
     shadowColor: "#000000",
     shadowOpacity: 0.12,
     shadowRadius: 8,

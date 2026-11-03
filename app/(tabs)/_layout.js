@@ -1,5 +1,5 @@
 import { DynamicColorIOS, Platform } from "react-native";
-import { DefaultTheme, ThemeProvider } from "expo-router";
+import { DarkTheme, DefaultTheme, ThemeProvider } from "expo-router";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 
 import { T } from "../../lib/theme";
@@ -52,10 +52,12 @@ const ANDROID_BAR =
 
 /* A known background under every tab, so switching never
  * flashes white behind the glass. */
+const BASE = T.dark ? DarkTheme : DefaultTheme;
+
 const navigationTheme = {
-  ...DefaultTheme,
+  ...BASE,
   colors: {
-    ...DefaultTheme.colors,
+    ...BASE.colors,
     primary: T.accent,
     background: T.appBackground,
   },

@@ -52,6 +52,9 @@ export default function ProfileForm({
   onNudge,
   onFindPerson,
   onReminder,
+  lockOn,
+  lockAvailable,
+  onLock,
   onOpen,
   onUnlink,
   onSignOut,
@@ -122,6 +125,26 @@ export default function ProfileForm({
             />
           ))}
         </Section>
+
+        {/* PRIVACY */}
+        {lockAvailable ? (
+          <Section
+            title="Privacy"
+            footer={
+              <Text>
+                Asks for Face ID or your passcode when the app opens, and after
+                a minute away.
+              </Text>
+            }
+          >
+            <Toggle
+              label="Lock the app"
+              systemImage="faceid"
+              isOn={Boolean(lockOn)}
+              onIsOnChange={onLock}
+            />
+          </Section>
+        ) : null}
 
         {/* YOUR SPACE */}
         <Section title="Your space">

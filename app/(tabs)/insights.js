@@ -597,7 +597,7 @@ const styles = StyleSheet.create({
   pairThem: {
     marginLeft: -10,
     borderWidth: 2,
-    borderColor: "#FFFFFF",
+    borderColor: T.surface,
   },
 
   percent: {
