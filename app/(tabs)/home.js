@@ -32,13 +32,18 @@ import {
 } from "../../components/ui";
 import ActivityRow from "../../components/ActivityRow";
 import BondHero from "../../components/BondHero";
-import { LetterWaiting, OnThisDay } from "../../components/HomeExtras";
+import {
+  Challenge,
+  LetterWaiting,
+  OnThisDay,
+  Taps,
+} from "../../components/HomeExtras";
 import {
   activityHandlers,
   loadActivity,
   updateActivity,
 } from "../../lib/activity";
-import { playHug } from "../../lib/hugs";
+import { playHug, playTap } from "../../lib/hugs";
 import { SkeletonList } from "../../components/Skeleton";
 
 /*
@@ -288,7 +293,9 @@ export default function HomeScreen() {
   useEffect(() => {
     const fresh = activity.filter(
       (item) =>
-        item.kind === "hug" && !item.read && !playedHugs.current.has(item.id),
+        (item.kind === "hug" || item.kind === "tap") &&
+        !item.read &&
+        !playedHugs.current.has(item.id),
     );
 
     if (fresh.length === 0) return;
@@ -298,7 +305,11 @@ export default function HomeScreen() {
       updateActivity(userId, item.id, { read: true }).catch(() => {});
     });
 
-    playHug({ from: partnerName });
+    /* A hug outranks a tap; the newest of each plays. */
+    const hug = fresh.find((item) => item.kind === "hug");
+
+    if (hug) playHug({ from: partnerName });
+    else playTap({ kind: fresh[0].detail, from: partnerName });
 
     setActivity((current) =>
       current.map((item) =>
@@ -505,6 +516,10 @@ export default function HomeScreen() {
 
       <LetterWaiting partnerName={partnerName} />
 
+      {/* A LITTLE SOMETHING */}
+
+      <Taps partnerName={partnerName} />
+
       {/* TONIGHT'S QUESTION */}
 
       {/* Not tappable as a whole: the button inside is the
@@ -595,9 +610,11 @@ export default function HomeScreen() {
         <Text style={styles.moodLine}>{moodLine}</Text>
       </Card>
 
-      {/* ON THIS DAY */}
+      {/* ON THIS DAY, AND THIS WEEK'S CHALLENGE */}
 
       <OnThisDay />
+
+      <Challenge />
 
       {/* QUICK ACTIONS */}
 
@@ -640,22 +657,10 @@ export default function HomeScreen() {
               <Icon name="sparkle" size={16} color={T.accentText} />
             </View>
           }
-          title="Four in a Row"
-          subtitle={`A game against ${partnerName}, turn by turn`}
+          title="Games"
+          subtitle="Four in a Row, This or That, trivia and more"
           chevron
-          onPress={() => router.push("/game")}
-        />
-
-        <Cell
-          leading={
-            <View style={styles.repairIcon}>
-              <Icon name="bulb" size={16} color={T.accentText} />
-            </View>
-          }
-          title="Couple trivia"
-          subtitle={`How well do you know ${partnerName}?`}
-          chevron
-          onPress={() => router.push("/trivia")}
+          onPress={() => router.push("/games")}
         />
 
         <Cell

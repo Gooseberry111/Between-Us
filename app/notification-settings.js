@@ -49,6 +49,12 @@ const NOTIFICATION_GROUPS = [
         icon: "heartOutline",
       },
       { type: "game_turn", title: "Your move in a game", icon: "sparkle" },
+      {
+        type: "round",
+        title: "This or That and other rounds",
+        icon: "sparkle",
+      },
+      { type: "tap", title: "Kisses and little somethings", icon: "heart" },
       { type: "letter", title: "Letters, and when they open", icon: "mail" },
       {
         type: "letter_opened",

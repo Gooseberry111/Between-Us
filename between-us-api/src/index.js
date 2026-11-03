@@ -1,5 +1,6 @@
 import { DEEP as DEEP_QUESTIONS, LIGHT as LIGHT_QUESTIONS, US as US_QUESTIONS } from './questions.js';
 import { neon } from '@neondatabase/serverless';
+import { LOVE_CHALLENGES, MORE_LIKELY, THIS_OR_THAT } from './play.js';
 
 /*
  * ==========================================
@@ -655,6 +656,70 @@ async function coupleFor(sql, clerkId) {
 	};
 }
 
+/* Ten different picks from a list, in a random order. */
+function pickTen(list) {
+	const copy = list.slice();
+
+	for (let index = copy.length - 1; index > 0; index--) {
+		const swap = Math.floor(Math.random() * (index + 1));
+		[copy[index], copy[swap]] = [copy[swap], copy[index]];
+	}
+
+	return copy.slice(0, 10);
+}
+
+const ROUND_KINDS = {
+	this_or_that: { name: 'This or That', items: () => pickTen(THIS_OR_THAT).map(([a, b]) => ({ a, b })) },
+	likely: { name: "Who's More Likely To", items: () => pickTen(MORE_LIKELY).map((text) => ({ text })) },
+};
+
+/* A round as one player sees it. Their answers are "mine". */
+function roundFor(round, viewerId) {
+	if (!round) return null;
+
+	const iAmA = round.player_a === viewerId;
+	const mine = iAmA ? round.answers_a : round.answers_b;
+	const theirs = iAmA ? round.answers_b : round.answers_a;
+	const both = Boolean(mine && theirs);
+
+	let matches = null;
+
+	if (both) {
+		matches = round.items.filter((_, index) => {
+			if (round.kind === 'likely') {
+				/* "me" from one and "you" from the other is agreement. */
+				return mine[index] && theirs[index] && mine[index] !== theirs[index];
+			}
+
+			return mine[index] === theirs[index];
+		}).length;
+	}
+
+	return {
+		id: round.id,
+		kind: round.kind,
+		items: round.items,
+		mine: mine || null,
+		theirs: both ? theirs : null,
+		they_answered: Boolean(theirs),
+		finished: both,
+		matches,
+		created_at: round.created_at,
+	};
+}
+
+/* The love language a challenge should speak to. */
+function challengeLanguage(languages) {
+	const first = String((Array.isArray(languages) ? languages[0] : languages) || '').toLowerCase();
+
+	if (first.includes('word')) return 'words';
+	if (first.includes('act')) return 'acts';
+	if (first.includes('gift')) return 'gifts';
+	if (first.includes('touch')) return 'touch';
+
+	return 'quality';
+}
+
 async function ensureSchema(sql) {
 	if (schemaReady) return;
 
@@ -930,6 +995,42 @@ async function ensureSchema(sql) {
 	await sql`
 		CREATE INDEX IF NOT EXISTS wishlist_owner_idx
 			ON wishlist (owner, created_at DESC)
+	`;
+
+	/*
+	 * Quick rounds (This or That, Who's More Likely To): the
+	 * same ten prompts for both, each answers alone, and the
+	 * answers only meet once both are in.
+	 */
+	await sql`
+		CREATE TABLE IF NOT EXISTS rounds (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			connection_id UUID NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
+			kind TEXT NOT NULL,
+			items JSONB NOT NULL,
+			player_a UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			player_b UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			answers_a JSONB,
+			answers_b JSONB,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+			finished_at TIMESTAMPTZ
+		)
+	`;
+
+	await sql`
+		CREATE INDEX IF NOT EXISTS rounds_connection_idx
+			ON rounds (connection_id, kind, created_at DESC)
+	`;
+
+	/* The weekly love challenge, ticked off per person per week. */
+	await sql`
+		CREATE TABLE IF NOT EXISTS challenges_done (
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			week_key TEXT NOT NULL,
+			challenge TEXT NOT NULL,
+			done_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+			PRIMARY KEY (user_id, week_key)
+		)
 	`;
 
 	schemaReady = true;
@@ -7219,6 +7320,260 @@ VALUES (
 						planner_name: row.planner_nickname?.trim() || row.planner_first_name?.trim() || 'Someone',
 					})),
 				});
+			}
+
+			/*
+			 * ==========================================
+			 * QUICK ROUNDS
+			 * ==========================================
+			 *
+			 * GET  /users/:clerkId/rounds?kind=this_or_that|likely
+			 * POST /users/:clerkId/rounds                   { kind }
+			 * POST /users/:clerkId/rounds/:id/answers       { answers }
+			 *
+			 * The latest round of a kind; a new one if the last is
+			 * finished. Your answers stay yours until theirs are in.
+			 */
+
+			const roundsMatch = url.pathname.match(/^\/users\/([^/]+)\/rounds$/);
+			const roundAnswerMatch = url.pathname.match(/^\/users\/([^/]+)\/rounds\/([0-9a-f-]{36})\/answers$/);
+
+			if ((roundsMatch && (request.method === 'GET' || request.method === 'POST')) || (roundAnswerMatch && request.method === 'POST')) {
+				await ensureSchema(sql);
+
+				const couple = await coupleFor(sql, (roundsMatch || roundAnswerMatch)[1]);
+
+				if (couple.error) return couple.error;
+
+				const { me, connection, partner, myName } = couple;
+
+				const stats = async (kind) => {
+					const rows = await sql`
+            SELECT * FROM rounds
+            WHERE connection_id = ${connection.id} AND kind = ${kind} AND finished_at IS NOT NULL
+          `;
+
+					const scored = rows.map((row) => roundFor(row, me.id));
+					const total = scored.reduce((sum, round) => sum + round.matches, 0);
+
+					return {
+						played: scored.length,
+						average: scored.length ? Math.round((total / (scored.length * 10)) * 100) : null,
+					};
+				};
+
+				const latest = async (kind) =>
+					(
+						await sql`
+              SELECT * FROM rounds
+              WHERE connection_id = ${connection.id} AND kind = ${kind}
+              ORDER BY created_at DESC
+              LIMIT 1
+            `
+					)[0] || null;
+
+				if (roundsMatch) {
+					const body = request.method === 'POST' ? await request.json().catch(() => ({})) : {};
+					const kind = request.method === 'POST' ? body?.kind : url.searchParams.get('kind');
+
+					if (!ROUND_KINDS[kind]) {
+						return Response.json({ error: 'Which game?' }, { status: 400 });
+					}
+
+					if (request.method === 'GET') {
+						return Response.json({ round: roundFor(await latest(kind), me.id), stats: await stats(kind) });
+					}
+
+					const last = await latest(kind);
+
+					/* An unfinished round carries on rather than starting over. */
+					if (last && !last.finished_at) {
+						return Response.json({ round: roundFor(last, me.id), stats: await stats(kind) });
+					}
+
+					const created = (
+						await sql`
+              INSERT INTO rounds (connection_id, kind, items, player_a, player_b)
+              VALUES (${connection.id}, ${kind}, ${JSON.stringify(ROUND_KINDS[kind].items())}::jsonb, ${me.id}, ${partner.id})
+              RETURNING *
+            `
+					)[0];
+
+					return Response.json({ round: roundFor(created, me.id), stats: await stats(kind) }, { status: 201 });
+				}
+
+				const round = (
+					await sql`
+            SELECT * FROM rounds WHERE id = ${roundAnswerMatch[2]} AND connection_id = ${connection.id} LIMIT 1
+          `
+				)[0];
+
+				if (!round) {
+					return Response.json({ error: 'That round is not here.' }, { status: 404 });
+				}
+
+				const body = await request.json().catch(() => ({}));
+				const allowed = round.kind === 'likely' ? ['me', 'you'] : ['a', 'b'];
+				const answers = Array.isArray(body?.answers) ? body.answers : [];
+
+				if (answers.length !== round.items.length || !answers.every((answer) => allowed.includes(answer))) {
+					return Response.json({ error: 'Answer every one first.' }, { status: 400 });
+				}
+
+				const iAmA = round.player_a === me.id;
+
+				const updated = (
+					iAmA
+						? await sql`
+                UPDATE rounds SET answers_a = ${JSON.stringify(answers)}::jsonb,
+                  finished_at = CASE WHEN answers_b IS NOT NULL THEN NOW() ELSE NULL END
+                WHERE id = ${round.id}
+                RETURNING *
+              `
+						: await sql`
+                UPDATE rounds SET answers_b = ${JSON.stringify(answers)}::jsonb,
+                  finished_at = CASE WHEN answers_a IS NOT NULL THEN NOW() ELSE NULL END
+                WHERE id = ${round.id}
+                RETURNING *
+              `
+				)[0];
+
+				const view = roundFor(updated, me.id);
+				const gameName = ROUND_KINDS[round.kind].name;
+
+				await notifyUser(sql, {
+					userId: partner.id,
+					pushToken: partner.push_token,
+					preferences: partner.notification_preferences,
+					type: 'round',
+					title: view.finished ? `Your ${gameName} results are in` : `${myName} played ${gameName}`,
+					message: view.finished ? `You matched on ${view.matches} of 10.` : 'Your turn. Their answers stay hidden until you play.',
+					dedupeKey: `round:${round.id}:${view.finished ? 'done' : me.id}`,
+					data: { kind: round.kind },
+				});
+
+				return Response.json({ round: view, stats: await stats(round.kind) });
+			}
+
+			/*
+			 * ==========================================
+			 * THINKING OF YOU
+			 * ==========================================
+			 *
+			 * POST /users/:clerkId/tap   { kind: kiss | miss | proud | thinking }
+			 *
+			 * A small signal with its own little animation on their
+			 * phone. A repeat within a minute counts as one.
+			 */
+
+			const tapMatch = url.pathname.match(/^\/users\/([^/]+)\/tap$/);
+
+			if (tapMatch && request.method === 'POST') {
+				await ensureSchema(sql);
+
+				const couple = await coupleFor(sql, tapMatch[1]);
+
+				if (couple.error) return couple.error;
+
+				const { me, connection, partner, myName } = couple;
+
+				const TAPS = {
+					kiss: { emoji: '😘', line: 'sent you a kiss' },
+					miss: { emoji: '🥺', line: 'misses you' },
+					proud: { emoji: '🌟', line: 'is proud of you' },
+					thinking: { emoji: '💭', line: 'is thinking of you' },
+				};
+
+				const body = await request.json().catch(() => ({}));
+				const tap = TAPS[body?.kind];
+
+				if (!tap) {
+					return Response.json({ error: 'Which one?' }, { status: 400 });
+				}
+
+				const window = Math.floor(Date.now() / 60000);
+				const key = `tap:${me.id}:${body.kind}:${window}`;
+
+				await recordActivity(sql, {
+					connectionId: connection.id,
+					actorId: me.id,
+					kind: 'tap',
+					title: `${tap.line.charAt(0).toUpperCase()}${tap.line.slice(1)} ${tap.emoji}`,
+					detail: body.kind,
+					dedupeKey: key,
+				});
+
+				await notifyUser(sql, {
+					userId: partner.id,
+					pushToken: partner.push_token,
+					preferences: partner.notification_preferences,
+					type: 'tap',
+					title: `${myName} ${tap.line} ${tap.emoji}`,
+					message: 'Open Between Us to send something back.',
+					dedupeKey: key,
+					data: { tap: body.kind, from: myName },
+				});
+
+				return Response.json({ sent: true });
+			}
+
+			/*
+			 * ==========================================
+			 * LOVE CHALLENGE
+			 * ==========================================
+			 *
+			 * GET  /users/:clerkId/challenge        this week's, for how they
+			 *                                       most like to receive love
+			 * POST /users/:clerkId/challenge/done   tick it off; they hear
+			 */
+
+			const challengeMatch = url.pathname.match(/^\/users\/([^/]+)\/challenge(\/done)?$/);
+
+			if (challengeMatch && ((request.method === 'GET' && !challengeMatch[2]) || (request.method === 'POST' && challengeMatch[2]))) {
+				await ensureSchema(sql);
+
+				const couple = await coupleFor(sql, challengeMatch[1]);
+
+				if (couple.error) return couple.error;
+
+				const { me, connection, partner, myName, partnerName } = couple;
+
+				const theirPreferences = (
+					await sql`SELECT love_languages FROM preferences WHERE user_id = ${partner.id} LIMIT 1`
+				)[0];
+
+				const language = challengeLanguage(theirPreferences?.love_languages);
+				const weekKey = isoWeekKey(new Date());
+				const pool = LOVE_CHALLENGES[language];
+
+				/* The same for the whole week, different for each of you. */
+				const seed = [...`${weekKey}:${me.id}`].reduce((sum, char) => sum + char.charCodeAt(0), 0);
+				const challenge = pool[seed % pool.length];
+
+				const done = (
+					await sql`SELECT 1 FROM challenges_done WHERE user_id = ${me.id} AND week_key = ${weekKey} LIMIT 1`
+				).length > 0;
+
+				if (request.method === 'GET') {
+					return Response.json({ challenge, language, for_name: partnerName, done, week: weekKey });
+				}
+
+				await sql`
+          INSERT INTO challenges_done (user_id, week_key, challenge)
+          VALUES (${me.id}, ${weekKey}, ${challenge})
+          ON CONFLICT (user_id, week_key) DO NOTHING
+        `;
+
+				await recordActivity(sql, {
+					connectionId: connection.id,
+					actorId: me.id,
+					kind: 'challenge',
+					title: "Did this week's love challenge for you",
+					detail: challenge,
+					dedupeKey: `challenge:${me.id}:${weekKey}`,
+				});
+
+				return Response.json({ challenge, language, for_name: partnerName, done: true, week: weekKey });
 			}
 
 			/*

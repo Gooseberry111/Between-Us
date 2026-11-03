@@ -526,9 +526,9 @@ export default function ProfileScreen() {
               leading={
                 <Ionicons name="grid-outline" size={21} color={T.accent} />
               }
-              title="Four in a Row"
+              title="Games"
               chevron
-              onPress={() => router.push("/game")}
+              onPress={() => router.push("/games")}
             />
 
             <Cell

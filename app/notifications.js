@@ -44,6 +44,8 @@ const KINDS = {
   hug_declined: { icon: "heartOutline", tint: T.label2, to: null },
   game_turn: { icon: "sparkle", tint: T.accent, to: "/game" },
   letter: { icon: "mail", tint: T.you, to: "/letters" },
+  round: { icon: "sparkle", tint: T.accent, to: "/games" },
+  tap: { icon: "heart", tint: T.you, to: "/(tabs)/home" },
   letter_opened: { icon: "envelopeOpen", tint: T.accent, to: "/letters" },
   gift_reminder: { icon: "heart", tint: T.secondary, to: "/wishlist" },
   game_over: { icon: "trophy", tint: T.secondary, to: "/game" },

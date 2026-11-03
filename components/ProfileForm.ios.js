@@ -168,8 +168,8 @@ export default function ProfileForm({
             <Label title="Trivia" systemImage="sparkles" />
           </Button>
 
-          <Button onPress={() => onOpen("/game")}>
-            <Label title="Four in a Row" systemImage="circle.grid.3x3.fill" />
+          <Button onPress={() => onOpen("/games")}>
+            <Label title="Games" systemImage="gamecontroller" />
           </Button>
 
           <Button onPress={() => onOpen("/letters")}>

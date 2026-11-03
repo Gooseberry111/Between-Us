@@ -18,8 +18,9 @@ import ErrorCatcher from "../components/ErrorCatcher";
 import OfflineBanner from "../components/OfflineBanner";
 import Splash from "../components/Splash";
 import HugOverlay from "../components/HugOverlay";
+import TapOverlay from "../components/TapOverlay";
 import AppLock from "../components/AppLock";
-import { playHug } from "../lib/hugs";
+import { playHug, playTap } from "../lib/hugs";
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
@@ -502,6 +503,7 @@ export default function RootLayout() {
       const data = notification?.request?.content?.data;
 
       if (data?.type === "hug") playHug({ from: data.from });
+      if (data?.type === "tap") playTap({ kind: data.tap, from: data.from });
     };
 
     /* Tapping "your move" opens the board. */
@@ -557,6 +559,7 @@ export default function RootLayout() {
           <StatusBar style={T.dark ? "light" : "dark"} />
           <OfflineBanner />
           <HugOverlay />
+          <TapOverlay />
           <AppLock />
 
           {/* Held over the top until Clerk has answered, so
