@@ -23,16 +23,20 @@ import { connectionCacheKey } from "../../lib/connection";
 import { RETURNING_USER_KEY } from "../../lib/auth";
 import { T } from "../../lib/theme";
 import { lockAvailable, lockEnabled, setLockEnabled } from "../../lib/appLock";
+import { currentAppearance, setAppearance } from "../../lib/appearance";
+import { openMenu } from "../../lib/menu";
 import {
   Avatar,
   Button,
   Cell,
+  GlassButton,
   Group,
   GroupFooter,
   GroupHeader,
   LargeTitle,
   NavBar,
   Screen,
+  Segmented,
   Toggle,
 } from "../../components/ui";
 import { SkeletonList } from "../../components/Skeleton";
@@ -73,8 +77,7 @@ const REMINDERS = [
     type: "inactivity",
     icon: "pulse",
     sf: "waveform.path.ecg",
-    title: "Weekly check-in",
-    subtitle: "Sundays",
+    title: "A nudge when it's been quiet",
   },
 ];
 
@@ -97,6 +100,7 @@ export default function ProfileScreen() {
 
   /* The lock lives on this phone, not the account. */
   const [lockOn, setLockOn] = useState(false);
+  const appearance = currentAppearance();
   const [lockCan, setLockCan] = useState(false);
 
   useEffect(() => {
@@ -327,6 +331,10 @@ export default function ProfileScreen() {
   if (Platform.OS === "ios") {
     return (
       <SafeAreaView style={styles.iosScreen} edges={["top"]}>
+        <NavBar
+          left={<GlassButton icon="menu" label="Menu" onPress={openMenu} />}
+        />
+
         <LargeTitle style={styles.iosTitle}>Profile</LargeTitle>
 
         {loading ? (
@@ -353,6 +361,8 @@ export default function ProfileScreen() {
             lockOn={lockOn}
             lockAvailable={lockCan}
             onLock={changeLock}
+            appearance={appearance}
+            onAppearance={setAppearance}
             onOpen={(route) => router.push(route)}
             onUnlink={busy ? () => {} : unlink}
             onSignOut={signOutPrompt}
@@ -376,7 +386,9 @@ export default function ProfileScreen() {
         />
       }
     >
-      <NavBar />
+      <NavBar
+        left={<GlassButton icon="menu" label="Menu" onPress={openMenu} />}
+      />
 
       <LargeTitle>Profile</LargeTitle>
 
@@ -482,99 +494,27 @@ export default function ProfileScreen() {
             </>
           ) : null}
 
-          {/* YOUR SPACE */}
+          {/* APPEARANCE */}
 
-          <GroupHeader>Your space</GroupHeader>
+          <GroupHeader>Appearance</GroupHeader>
+
+          <Segmented
+            options={["System", "Light", "Dark"]}
+            value={
+              { system: "System", light: "Light", dark: "Dark" }[appearance]
+            }
+            onChange={(value) => setAppearance(value.toLowerCase())}
+          />
+
+          {/* MAKE IT YOURS */}
 
           <Group inset={52}>
             <Cell
-              leading={<Ionicons name="time" size={21} color={T.accent} />}
-              title="Timeline"
+              leading={<Ionicons name="apps" size={21} color={T.accent} />}
+              title="Features"
+              subtitle="Add the extras your relationship needs"
               chevron
-              onPress={() => router.push("/(tabs)/memories")}
-            />
-
-            <Cell
-              leading={<Ionicons name="sparkles" size={21} color={T.accent} />}
-              title="Dreams"
-              chevron
-              onPress={() => router.push("/(tabs)/dreams")}
-            />
-
-            <Cell
-              leading={<Ionicons name="calendar" size={21} color={T.accent} />}
-              title="Dates"
-              chevron
-              onPress={() => router.push("/dates")}
-            />
-
-            <Cell
-              leading={<Ionicons name="flag" size={21} color={T.accent} />}
-              title="Goals"
-              chevron
-              onPress={() => router.push("/goals")}
-            />
-
-            <Cell
-              leading={<Ionicons name="sparkles" size={21} color={T.accent} />}
-              title="Trivia"
-              chevron
-              onPress={() => router.push("/trivia-history")}
-            />
-
-            <Cell
-              leading={
-                <Ionicons name="grid-outline" size={21} color={T.accent} />
-              }
-              title="Games"
-              chevron
-              onPress={() => router.push("/games")}
-            />
-
-            <Cell
-              leading={<Ionicons name="mail" size={21} color={T.accent} />}
-              title="Letters"
-              chevron
-              onPress={() => router.push("/letters")}
-            />
-
-            <Cell
-              leading={<Ionicons name="list" size={21} color={T.accent} />}
-              title="Lists"
-              chevron
-              onPress={() => router.push("/lists")}
-            />
-
-            <Cell
-              leading={
-                <Ionicons name="globe-outline" size={21} color={T.accent} />
-              }
-              title="Far apart"
-              subtitle="Both your times, and when you next meet"
-              chevron
-              onPress={() => router.push("/distance")}
-            />
-
-            <Cell
-              leading={<Ionicons name="sparkles" size={21} color={T.accent} />}
-              title="Monthly recap"
-              chevron
-              onPress={() => router.push("/recap")}
-            />
-
-            <Cell
-              leading={<Ionicons name="gift" size={21} color={T.accent} />}
-              title="Gift ideas"
-              subtitle="Only you can see this"
-              chevron
-              onPress={() => router.push("/wishlist")}
-            />
-
-            <Cell
-              leading={<Ionicons name="pulse" size={21} color={T.accent} />}
-              title="Weekly check-in"
-              chevron
-              onPress={() => router.push("/check-in")}
+              onPress={() => router.push("/features")}
             />
 
             <Cell
@@ -582,24 +522,23 @@ export default function ProfileScreen() {
                 <Ionicons name="create-outline" size={21} color={T.accent} />
               }
               title="Your answers"
-              subtitle="Tastes change. Update what you told us."
               chevron
               onPress={() => router.push("/answers")}
             />
 
             <Cell
               leading={
-                <Ionicons
-                  name="notifications-outline"
-                  size={21}
-                  color={T.accent}
-                />
+                <Ionicons name="notifications" size={21} color={T.accent} />
               }
               title="All notifications"
               chevron
               onPress={() => router.push("/notification-settings")}
             />
           </Group>
+
+          <GroupFooter>
+            Everything else you share is in the menu on Home.
+          </GroupFooter>
 
           {/* RELATIONSHIP */}
 

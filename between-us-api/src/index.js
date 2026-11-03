@@ -177,13 +177,63 @@ async function mediaSignature(env, id, expires) {
 	return base64Url(signature);
 }
 
-async function signedMediaPath(env, id) {
+async function signedMediaPath(env, id, extension) {
 	if (!id || !env.MEDIA_SIGNING_KEY) return null;
 
 	const today = Math.floor(Date.now() / 86400000);
 	const expires = (today + MEDIA_LINK_DAYS) * 86400;
 
-	return `/media/${id}?exp=${expires}&sig=${await mediaSignature(env, id, expires)}`;
+	/* An extension helps players that judge a file by its name. */
+	const name = extension ? `${id}.${extension}` : id;
+
+	return `/media/${name}?exp=${expires}&sig=${await mediaSignature(env, id, expires)}`;
+}
+
+/*
+ * A media file, honouring a Range request. iPhone's player
+ * asks for audio in pieces and will not play a file served
+ * any other way.
+ */
+function mediaResponse(request, value, contentType) {
+	const bytes = new Uint8Array(value);
+	const total = bytes.length;
+	const range = request.headers.get('Range');
+
+	const headers = {
+		'Content-Type': contentType,
+		'Cache-Control': 'private, max-age=86400',
+		'Accept-Ranges': 'bytes',
+	};
+
+	const match = range && /^bytes=(\d*)-(\d*)$/.exec(range.trim());
+
+	if (match && total > 0) {
+		let start = match[1] === '' ? null : Number(match[1]);
+		let end = match[2] === '' ? null : Number(match[2]);
+
+		if (start === null) {
+			/* "the last N bytes" */
+			start = Math.max(0, total - (end ?? 0));
+			end = total - 1;
+		} else {
+			end = end === null ? total - 1 : Math.min(end, total - 1);
+		}
+
+		if (start > end || start >= total) {
+			return new Response(null, { status: 416, headers: { ...headers, 'Content-Range': `bytes */${total}` } });
+		}
+
+		return new Response(bytes.slice(start, end + 1), {
+			status: 206,
+			headers: {
+				...headers,
+				'Content-Range': `bytes ${start}-${end}/${total}`,
+				'Content-Length': String(end - start + 1),
+			},
+		});
+	}
+
+	return new Response(bytes, { headers: { ...headers, 'Content-Length': String(total) } });
 }
 
 async function mediaSignatureValid(env, id, expires, signature) {
@@ -207,7 +257,7 @@ async function mediaSignatureValid(env, id, expires, signature) {
 
 /* A signed photo read carries its own proof, not a session. */
 function isSignedMediaRead(url, request) {
-	return request.method === 'GET' && /^\/media\/[A-Za-z0-9-]+$/.test(url.pathname) && url.searchParams.has('sig');
+	return request.method === 'GET' && /^\/media\/[A-Za-z0-9-]+(\.[a-z0-9]{2,4})?$/.test(url.pathname) && url.searchParams.has('sig');
 }
 
 function unauthorized(message) {
@@ -668,9 +718,32 @@ function pickTen(list) {
 	return copy.slice(0, 10);
 }
 
+/*
+ * Ten prompts for a new round, none of them used in this
+ * couple's earlier rounds until every prompt has had a turn.
+ */
+function pickFresh(list, used, keyOf) {
+	const fresh = list.filter((item) => !used.has(keyOf(item)));
+
+	if (fresh.length >= 10) return pickTen(fresh);
+
+	/* Nearly through the whole list: the fresh ones first, then start over. */
+	const rest = pickTen(list.filter((item) => !fresh.includes(item)));
+
+	return [...pickTen(fresh), ...rest].slice(0, 10);
+}
+
 const ROUND_KINDS = {
-	this_or_that: { name: 'This or That', items: () => pickTen(THIS_OR_THAT).map(([a, b]) => ({ a, b })) },
-	likely: { name: "Who's More Likely To", items: () => pickTen(MORE_LIKELY).map((text) => ({ text })) },
+	this_or_that: {
+		name: 'This or That',
+		key: (item) => `${item.a}|${item.b}`,
+		items: (used) => pickFresh(THIS_OR_THAT, used, ([a, b]) => `${a}|${b}`).map(([a, b]) => ({ a, b })),
+	},
+	likely: {
+		name: "Who's More Likely To",
+		key: (item) => item.text,
+		items: (used) => pickFresh(MORE_LIKELY, used, (text) => text).map((text) => ({ text })),
+	},
 };
 
 /* A round as one player sees it. Their answers are "mine". */
@@ -1069,6 +1142,9 @@ async function ensureSchema(sql) {
 	/* Long distance: where each of you is, and when you next meet. */
 	await sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS timezone TEXT`;
 	await sql`ALTER TABLE connections ADD COLUMN IF NOT EXISTS next_meet DATE`;
+
+	/* The optional features each person has switched on. */
+	await sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS features JSONB`;
 
 	schemaReady = true;
 }
@@ -7061,7 +7137,7 @@ VALUES (
 						notes.map(async (row) => ({
 							...row,
 							mine: row.from_user_id === userId,
-							audio_url: await signedMediaPath(env, row.audio_id),
+							audio_url: await signedMediaPath(env, row.audio_id, 'm4a'),
 						})),
 					),
 				});
@@ -7396,6 +7472,67 @@ VALUES (
 
 			/*
 			 * ==========================================
+			 * FEATURES
+			 * ==========================================
+			 *
+			 * GET /users/:clerkId/features    what is switched on, and what the
+			 *                                 relationship suggests
+			 * PUT /users/:clerkId/features    { features: { lists: true, ... } }
+			 *
+			 * Each person chooses the extras in their own app.
+			 */
+
+			const featuresMatch = url.pathname.match(/^\/users\/([^/]+)\/features$/);
+
+			if (featuresMatch && (request.method === 'GET' || request.method === 'PUT')) {
+				await ensureSchema(sql);
+
+				const user = (
+					await sql`
+            SELECT u.id, p.features, p.relationship_status
+            FROM users u LEFT JOIN profiles p ON p.user_id = u.id
+            WHERE u.clerk_id = ${featuresMatch[1]}
+            LIMIT 1
+          `
+				)[0];
+
+				if (!user) return Response.json({ error: 'User not found' }, { status: 404 });
+
+				const connection = (
+					await sql`
+            SELECT relationship_type FROM connections
+            WHERE (user_one = ${user.id} OR user_two = ${user.id}) AND status = 'accepted'
+            LIMIT 1
+          `
+				)[0];
+
+				const focus = (await sql`SELECT focus_areas FROM relationship_insights WHERE user_id = ${user.id} LIMIT 1`)[0]?.focus_areas;
+
+				let features = user.features || {};
+
+				if (request.method === 'PUT') {
+					const body = await request.json().catch(() => ({}));
+					const next = { ...features };
+
+					for (const [key, value] of Object.entries(body?.features || {})) {
+						if (/^[a-z_]{2,24}$/.test(key)) next[key] = Boolean(value);
+					}
+
+					await sql`UPDATE profiles SET features = ${JSON.stringify(next)}::jsonb WHERE user_id = ${user.id}`;
+
+					features = next;
+				}
+
+				return Response.json({
+					features,
+					relationship_type: connection?.relationship_type || null,
+					relationship_status: user.relationship_status || null,
+					focus_areas: Array.isArray(focus) ? focus : [],
+				});
+			}
+
+			/*
+			 * ==========================================
 			 * SHARED LISTS
 			 * ==========================================
 			 *
@@ -7678,20 +7815,86 @@ VALUES (
           `),
 				};
 
-				const photo = (
-					await sql`
-            SELECT photo_id, title FROM memories
-            WHERE user_one = ANY(${pair}) AND user_two = ANY(${pair})
-              AND photo_id IS NOT NULL AND created_at >= ${from} AND created_at < ${to}
-            ORDER BY created_at DESC
-            LIMIT 1
-          `
-				)[0];
+				/* Every memory of the month, oldest first, photos signed. */
+				const memoryRows = await sql`
+          SELECT id, title, description, memory_date, photo_id, created_at
+          FROM memories
+          WHERE user_one = ANY(${pair}) AND user_two = ANY(${pair})
+            AND COALESCE(memory_date::timestamptz, created_at) >= ${from}
+            AND COALESCE(memory_date::timestamptz, created_at) < ${to}
+          ORDER BY COALESCE(memory_date::timestamptz, created_at) ASC
+          LIMIT 40
+        `;
+
+				const memoriesOut = await Promise.all(
+					memoryRows.map(async (memory) => ({
+						title: memory.title,
+						description: memory.description,
+						date: toIsoDate(memory.memory_date || memory.created_at),
+						photo_id: memory.photo_id,
+						photo_url: await signedMediaPath(env, memory.photo_id),
+					})),
+				);
+
+				const dateRows = await sql`
+          SELECT title, place, plan_date FROM date_plans
+          WHERE connection_id = ${connection.id} AND status = 'done' AND updated_at >= ${from} AND updated_at < ${to}
+          ORDER BY updated_at ASC
+          LIMIT 12
+        `;
+
+				const dreamRows = await sql`
+          SELECT title, photo_id FROM dreams
+          WHERE connection_id = ${connection.id} AND is_completed = true AND completed_at >= ${from} AND completed_at < ${to}
+          ORDER BY completed_at ASC
+          LIMIT 12
+        `;
+
+				const dreamsOut = await Promise.all(
+					dreamRows.map(async (dream) => ({
+						title: dream.title,
+						photo_id: dream.photo_id,
+						photo_url: await signedMediaPath(env, dream.photo_id),
+					})),
+				);
+
+				/* A few nights you both answered, side by side. */
+				const answerRows = await sql`
+          SELECT user_id, question_date, question_key, answer
+          FROM daily_answers
+          WHERE connection_id = ${connection.id} AND question_date >= ${from.slice(0, 10)} AND question_date < ${to.slice(0, 10)}
+          ORDER BY question_date DESC
+        `;
+
+				const byQuestion = new Map();
+
+				for (const row of answerRows) {
+					const key = `${toIsoDate(row.question_date)}:${row.question_key}`;
+					const entry = byQuestion.get(key) || { date: toIsoDate(row.question_date), key: row.question_key };
+
+					if (row.user_id === me.id) entry.mine = row.answer;
+					else entry.theirs = row.answer;
+
+					byQuestion.set(key, entry);
+				}
+
+				const answered = [...byQuestion.values()]
+					.filter((entry) => entry.mine && entry.theirs)
+					.slice(0, 4)
+					.map((entry) => {
+						const asked = questionsForDate(new Date(`${entry.date}T12:00:00Z`)).find((question) => question.key === entry.key);
+
+						return { question: asked?.text || null, mine: entry.mine, theirs: entry.theirs, date: entry.date };
+					})
+					.filter((entry) => entry.question);
 
 				return Response.json({
 					month,
 					stats,
-					photo: photo ? { id: photo.photo_id, url: await signedMediaPath(env, photo.photo_id), title: photo.title } : null,
+					memories: memoriesOut,
+					dates: dateRows.map((date) => ({ title: date.title, place: date.place, date: toIsoDate(date.plan_date) })),
+					dreams: dreamsOut,
+					answers: answered,
 				});
 			}
 
@@ -7764,10 +7967,17 @@ VALUES (
 						return Response.json({ round: roundFor(last, me.id), stats: await stats(kind) });
 					}
 
+					/* Everything this couple has already seen in this game. */
+					const earlier = await sql`
+            SELECT items FROM rounds WHERE connection_id = ${connection.id} AND kind = ${kind}
+          `;
+
+					const used = new Set(earlier.flatMap((row) => (row.items || []).map(ROUND_KINDS[kind].key)));
+
 					const created = (
 						await sql`
               INSERT INTO rounds (connection_id, kind, items, player_a, player_b)
-              VALUES (${connection.id}, ${kind}, ${JSON.stringify(ROUND_KINDS[kind].items())}::jsonb, ${me.id}, ${partner.id})
+              VALUES (${connection.id}, ${kind}, ${JSON.stringify(ROUND_KINDS[kind].items(used))}::jsonb, ${me.id}, ${partner.id})
               RETURNING *
             `
 					)[0];
@@ -9018,7 +9228,7 @@ VALUES (
 				return Response.json({ id, url: `/media/${id}` }, { status: 201 });
 			}
 
-			const mediaReadMatch = url.pathname.match(/^\/media\/([A-Za-z0-9-]+)$/);
+			const mediaReadMatch = url.pathname.match(/^\/media\/([A-Za-z0-9-]+)(?:\.[a-z0-9]{2,4})?$/);
 
 			if (mediaReadMatch && request.method === 'GET') {
 				if (!env.MEDIA) {
@@ -9046,12 +9256,7 @@ VALUES (
 						return new Response('Not found', { status: 404 });
 					}
 
-					return new Response(signed.value, {
-						headers: {
-							'Content-Type': signed.metadata?.contentType || 'image/jpeg',
-							'Cache-Control': 'private, max-age=86400',
-						},
-					});
+					return mediaResponse(request, signed.value, signed.metadata?.contentType || 'image/jpeg');
 				}
 
 				const caller = await sql`
@@ -9095,12 +9300,7 @@ VALUES (
 					}
 				}
 
-				return new Response(stored.value, {
-					headers: {
-						'Content-Type': stored.metadata?.contentType || 'image/jpeg',
-						'Cache-Control': 'private, max-age=86400',
-					},
-				});
+				return mediaResponse(request, stored.value, stored.metadata?.contentType || 'image/jpeg');
 			}
 
 			/*

@@ -24,7 +24,6 @@ import { useIsConnected } from "../lib/connection";
 import { T } from "../lib/theme";
 import { useDiscardGuard } from "../lib/useDiscardGuard";
 import {
-  Chip,
   GlassButton,
   Icon,
   Mark,
@@ -323,7 +322,10 @@ function NotesThread({
         <ScrollView
           ref={scroller}
           style={styles.fill}
-          contentContainerStyle={styles.thread}
+          contentContainerStyle={[
+            styles.thread,
+            !loading && rows.length === 0 && styles.threadEmpty,
+          ]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
           showsVerticalScrollIndicator={false}
@@ -346,12 +348,31 @@ function NotesThread({
             </View>
           ) : rows.length === 0 ? (
             <View style={styles.empty}>
+              <Mark size={52} />
+
               <Text style={styles.emptyTitle}>Say it out loud</Text>
 
               <Text style={styles.emptyText}>
                 The small things are the ones worth saying. They see it the
                 moment you send it.
               </Text>
+
+              {/* A way in: tap one and finish the sentence. */}
+              <View style={styles.starterList}>
+                {STARTERS.map((text) => (
+                  <Pressable
+                    key={text}
+                    onPress={() => onDraft(text)}
+                    style={({ pressed }) => [
+                      styles.starter,
+                      pressed && styles.starterPressed,
+                    ]}
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.starterText}>{text.trim()}…</Text>
+                  </Pressable>
+                ))}
+              </View>
             </View>
           ) : (
             rows.map((row) =>
@@ -401,25 +422,6 @@ function NotesThread({
             )
           )}
         </ScrollView>
-
-        {/* A way in when the box is empty. */}
-        {!draft && !recording ? (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.starters}
-            keyboardShouldPersistTaps="always"
-          >
-            {STARTERS.map((text) => (
-              <Chip
-                key={text}
-                label={`${text.trim()}…`}
-                tinted
-                onPress={() => onDraft(text)}
-              />
-            ))}
-          </ScrollView>
-        ) : null}
 
         <View style={styles.composer}>
           {!recording ? (
@@ -519,13 +521,40 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
 
+  threadEmpty: {
+    justifyContent: "center",
+  },
+
   empty: {
     alignItems: "center",
-    paddingHorizontal: 32,
-    paddingBottom: 40,
+    paddingHorizontal: 28,
+    gap: 4,
+  },
+
+  starterList: {
+    alignSelf: "stretch",
+    gap: 8,
+    marginTop: 20,
+  },
+
+  starter: {
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderRadius: 18,
+    backgroundColor: T.surface,
+  },
+
+  starterPressed: {
+    backgroundColor: T.pressed,
+  },
+
+  starterText: {
+    fontSize: 16,
+    color: T.label,
   },
 
   emptyTitle: {
+    marginTop: 14,
     fontSize: 20,
     fontWeight: "700",
     letterSpacing: -0.4,

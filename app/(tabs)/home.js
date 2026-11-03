@@ -38,8 +38,9 @@ import {
   LetterWaiting,
   OnThisDay,
   RecapReady,
-  Taps,
 } from "../../components/HomeExtras";
+import { useFeatures } from "../../lib/features";
+import { openMenu } from "../../lib/menu";
 import {
   activityHandlers,
   loadActivity,
@@ -120,6 +121,7 @@ function dateLine() {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const features = useFeatures();
   const { isLoaded, isSignedIn, userId } = useAuth();
 
   const cacheKey = userId ? `home:${userId}` : null;
@@ -329,6 +331,14 @@ export default function HomeScreen() {
     partnerName,
   });
 
+  /* A kiss, "miss you"... from the burst around their circle. */
+  const sendTap = (kind) => {
+    apiFetch(`/users/${userId}/tap`, {
+      method: "POST",
+      body: JSON.stringify({ clerk_id: userId, kind }),
+    }).catch(() => {});
+  };
+
   /* Holding the heart sends a real hug. */
   const sendHug = () => {
     apiFetch(`/users/${userId}/hug`, {
@@ -416,7 +426,15 @@ export default function HomeScreen() {
   if (!connection) {
     return (
       <Screen refreshControl={refresh}>
-        <NavBar left={<Text style={styles.dateline}>{dateLine()}</Text>}>
+        <NavBar
+          left={
+            <View style={styles.navLeft}>
+              <GlassButton icon="menu" label="Menu" onPress={openMenu} />
+
+              <Text style={styles.dateline}>{dateLine()}</Text>
+            </View>
+          }
+        >
           <GlassButton
             icon="bell"
             badge={hasUnread}
@@ -492,7 +510,15 @@ export default function HomeScreen() {
 
   return (
     <Screen refreshControl={refresh}>
-      <NavBar left={<Text style={styles.dateline}>{dateLine()}</Text>}>
+      <NavBar
+        left={
+          <View style={styles.navLeft}>
+            <GlassButton icon="menu" label="Menu" onPress={openMenu} />
+
+            <Text style={styles.dateline}>{dateLine()}</Text>
+          </View>
+        }
+      >
         <GlassButton
           icon="bell"
           badge={hasUnread}
@@ -511,20 +537,21 @@ export default function HomeScreen() {
         mood={MOODS.find((item) => item.key === mood)?.emoji}
         partnerMood={partnerMood?.emoji}
         onHug={sendHug}
+        onSendTap={features.enabled("taps") ? sendTap : undefined}
         onPickMood={() => setMoodSheet(true)}
       />
 
       {/* A LETTER WAITING */}
 
-      <LetterWaiting partnerName={partnerName} />
+      {features.enabled("letters") ? (
+        <LetterWaiting partnerName={partnerName} />
+      ) : null}
 
-      <RecapReady />
+      {features.enabled("recap") ? <RecapReady /> : null}
 
-      <Distance partnerName={partnerName} />
-
-      {/* A LITTLE SOMETHING */}
-
-      <Taps partnerName={partnerName} />
+      {features.enabled("distance") ? (
+        <Distance partnerName={partnerName} />
+      ) : null}
 
       {/* TONIGHT'S QUESTION */}
 
@@ -620,7 +647,7 @@ export default function HomeScreen() {
 
       <OnThisDay />
 
-      <Challenge />
+      {features.enabled("challenge") ? <Challenge /> : null}
 
       {/* QUICK ACTIONS */}
 
@@ -641,74 +668,6 @@ export default function HomeScreen() {
       </View>
 
       {finishProfile}
-
-      {/* JUST THE TWO OF YOU */}
-
-      <Group inset={58}>
-        <Cell
-          leading={
-            <View style={styles.repairIcon}>
-              <Icon name="mail" size={16} color={T.accentText} />
-            </View>
-          }
-          title="Letters"
-          subtitle="Write one now, sealed until a day you choose"
-          chevron
-          onPress={() => router.push("/letters")}
-        />
-
-        <Cell
-          leading={
-            <View style={styles.repairIcon}>
-              <Icon name="list" size={16} color={T.accentText} />
-            </View>
-          }
-          title="Lists"
-          subtitle="Groceries, the house, things to watch"
-          chevron
-          onPress={() => router.push("/lists")}
-        />
-
-        <Cell
-          leading={
-            <View style={styles.repairIcon}>
-              <Icon name="sparkle" size={16} color={T.accentText} />
-            </View>
-          }
-          title="Games"
-          subtitle="Four in a Row, This or That, trivia and more"
-          chevron
-          onPress={() => router.push("/games")}
-        />
-
-        <Cell
-          leading={
-            <View style={styles.repairIcon}>
-              <Icon name="heart" size={16} color={T.accentText} />
-            </View>
-          }
-          title="Weekly check-in"
-          subtitle="One number each: how are we doing?"
-          chevron
-          onPress={() => router.push("/check-in")}
-        />
-      </Group>
-
-      {/* WHEN IT'S GONE WRONG */}
-
-      <Group inset={58}>
-        <Cell
-          leading={
-            <View style={styles.repairIcon}>
-              <Icon name="pulse" size={16} color={T.accentText} />
-            </View>
-          }
-          title="Something's off between us"
-          subtitle="Take a pause, then say it properly"
-          chevron
-          onPress={() => router.push("/repair")}
-        />
-      </Group>
 
       {/* COMING UP */}
 
@@ -823,6 +782,12 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   loading: {
     paddingTop: 20,
+  },
+
+  navLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
 
   dateline: {

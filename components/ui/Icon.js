@@ -71,6 +71,7 @@ const MAP = {
   eye: ["eye", "eye-outline", "eye"],
   arrowUp: ["arrow.up", "arrow-up", "arrow-up"],
   mic: ["mic.fill", "mic-outline", "mic"],
+  menu: ["line.3.horizontal", "menu-outline", "menu"],
   play: ["play.fill", "play", "play"],
   pause: ["pause.fill", "pause", "pause"],
   globe: ["globe", "globe-outline", "globe"],

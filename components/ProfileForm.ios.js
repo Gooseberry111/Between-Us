@@ -6,6 +6,7 @@ import {
   Image,
   Label,
   LabeledContent,
+  Picker,
   Section,
   Spacer,
   Text,
@@ -17,7 +18,9 @@ import {
   controlSize,
   font,
   foregroundStyle,
+  pickerStyle,
   scrollContentBackground,
+  tag,
   tint,
 } from "@expo/ui/swift-ui/modifiers";
 
@@ -55,6 +58,8 @@ export default function ProfileForm({
   lockOn,
   lockAvailable,
   onLock,
+  appearance,
+  onAppearance,
   onOpen,
   onUnlink,
   onSignOut,
@@ -146,54 +151,29 @@ export default function ProfileForm({
           </Section>
         ) : null}
 
-        {/* YOUR SPACE */}
-        <Section title="Your space">
-          <Button onPress={() => onOpen("/(tabs)/memories")}>
-            <Label title="Timeline" systemImage="clock" />
-          </Button>
+        {/* APPEARANCE */}
+        <Section title="Appearance">
+          <Picker
+            label="Look"
+            systemImage="circle.lefthalf.filled"
+            selection={appearance}
+            onSelectionChange={onAppearance}
+            modifiers={[pickerStyle("segmented")]}
+          >
+            <Text modifiers={[tag("system")]}>System</Text>
+            <Text modifiers={[tag("light")]}>Light</Text>
+            <Text modifiers={[tag("dark")]}>Dark</Text>
+          </Picker>
+        </Section>
 
-          <Button onPress={() => onOpen("/(tabs)/dreams")}>
-            <Label title="Dreams" systemImage="sparkles" />
-          </Button>
-
-          <Button onPress={() => onOpen("/dates")}>
-            <Label title="Dates" systemImage="calendar" />
-          </Button>
-
-          <Button onPress={() => onOpen("/goals")}>
-            <Label title="Goals" systemImage="flag" />
-          </Button>
-
-          <Button onPress={() => onOpen("/trivia-history")}>
-            <Label title="Trivia" systemImage="sparkles" />
-          </Button>
-
-          <Button onPress={() => onOpen("/games")}>
-            <Label title="Games" systemImage="gamecontroller" />
-          </Button>
-
-          <Button onPress={() => onOpen("/letters")}>
-            <Label title="Letters" systemImage="envelope" />
-          </Button>
-
-          <Button onPress={() => onOpen("/lists")}>
-            <Label title="Lists" systemImage="checklist" />
-          </Button>
-
-          <Button onPress={() => onOpen("/distance")}>
-            <Label title="Far apart" systemImage="globe" />
-          </Button>
-
-          <Button onPress={() => onOpen("/recap")}>
-            <Label title="Monthly recap" systemImage="sparkles" />
-          </Button>
-
-          <Button onPress={() => onOpen("/wishlist")}>
-            <Label title="Gift ideas" systemImage="gift" />
-          </Button>
-
-          <Button onPress={() => onOpen("/check-in")}>
-            <Label title="Weekly check-in" systemImage="waveform.path.ecg" />
+        {/* MAKE IT YOURS */}
+        <Section
+          footer={
+            <Text>Everything else you share is in the menu on Home.</Text>
+          }
+        >
+          <Button onPress={() => onOpen("/features")}>
+            <Label title="Features" systemImage="square.grid.2x2" />
           </Button>
 
           <Button onPress={() => onOpen("/answers")}>

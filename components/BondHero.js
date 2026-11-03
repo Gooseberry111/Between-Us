@@ -91,6 +91,7 @@ export default function BondHero({
   partnerOnline,
   onHug,
   onPickMood,
+  onSendTap,
 }) {
   const [sent, setSent] = useState(false);
   const [animate, setAnimate] = useState(true);
@@ -546,8 +547,12 @@ export default function BondHero({
           </Pressable>
         </View>
 
-        {/* THEM */}
+        {/* THEM -- tap their circle for a burst of little somethings. */}
         <View style={styles.person}>
+          {onSendTap ? (
+            <TapBurst onSend={onSendTap} name={partnerName} />
+          ) : null}
+
           <Animated.View
             style={[styles.orb, { transform: [{ scale: themPop }] }]}
           >
@@ -642,6 +647,144 @@ export default function BondHero({
   );
 }
 
+/*
+ * The little somethings, as a burst around their circle.
+ * Tap the circle: four bubbles spring out in an arc. Tap
+ * one: it flies up off the circle and is sent, with a tap
+ * you can feel. Tap the circle again to fold them away.
+ */
+const BURST = [
+  { kind: "kiss", emoji: "😘", x: -74, y: -34 },
+  { kind: "miss", emoji: "🥺", x: -28, y: -76 },
+  { kind: "proud", emoji: "🌟", x: 28, y: -76 },
+  { kind: "thinking", emoji: "💭", x: 74, y: -34 },
+];
+
+function TapBurst({ onSend, name }) {
+  const [open, setOpen] = useState(false);
+  const [flying, setFlying] = useState(null);
+
+  const spread = useRef(new Animated.Value(0)).current;
+  const fly = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.spring(spread, {
+      toValue: open ? 1 : 0,
+      friction: 6,
+      tension: 90,
+      useNativeDriver: true,
+    }).start();
+  }, [open, spread]);
+
+  const toggle = () => {
+    Haptics.selectionAsync().catch(() => {});
+    setOpen((current) => !current);
+  };
+
+  const send = (item) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+
+    onSend(item.kind);
+    setOpen(false);
+    setFlying(item);
+
+    fly.setValue(0);
+
+    Animated.timing(fly, {
+      toValue: 1,
+      duration: 900,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start(() => setFlying(null));
+  };
+
+  return (
+    <>
+      {/* Over the circle, so a tap there opens the burst. */}
+      <Pressable
+        onPress={toggle}
+        style={styles.burstTarget}
+        accessibilityRole="button"
+        accessibilityLabel={`Send ${name} a little something`}
+      />
+
+      {BURST.map((item, index) => (
+        <Animated.View
+          key={item.kind}
+          pointerEvents={open ? "auto" : "none"}
+          style={[
+            styles.burstBubble,
+            {
+              opacity: spread,
+              transform: [
+                {
+                  translateX: spread.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, item.x],
+                  }),
+                },
+                {
+                  translateY: spread.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, item.y],
+                  }),
+                },
+                {
+                  scale: spread.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.3, 1],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <Pressable
+            onPress={() => send(item)}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel={item.kind}
+            style={styles.burstPress}
+          >
+            <Text style={styles.burstEmoji}>{item.emoji}</Text>
+          </Pressable>
+        </Animated.View>
+      ))}
+
+      {flying ? (
+        <Animated.Text
+          pointerEvents="none"
+          style={[
+            styles.flyer,
+            {
+              opacity: fly.interpolate({
+                inputRange: [0, 0.7, 1],
+                outputRange: [1, 1, 0],
+              }),
+              transform: [
+                {
+                  translateY: fly.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -150],
+                  }),
+                },
+                {
+                  scale: fly.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [1, 2.2],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          {flying.emoji}
+        </Animated.Text>
+      ) : null}
+    </>
+  );
+}
+
 const styles = StyleSheet.create({
   wrap: {
     alignItems: "center",
@@ -719,6 +862,52 @@ const styles = StyleSheet.create({
     width: 96,
     alignItems: "center",
     gap: 3,
+  },
+
+  /* The burst sits over their 90pt circle, centred on it. */
+  burstTarget: {
+    position: "absolute",
+    top: 0,
+    left: 3,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    zIndex: 5,
+  },
+
+  burstBubble: {
+    position: "absolute",
+    top: 21,
+    left: 24,
+    width: 48,
+    height: 48,
+    zIndex: 6,
+  },
+
+  burstPress: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: T.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000000",
+    shadowOpacity: 0.16,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
+  },
+
+  burstEmoji: {
+    fontSize: 24,
+  },
+
+  flyer: {
+    position: "absolute",
+    top: 24,
+    alignSelf: "center",
+    fontSize: 36,
+    zIndex: 7,
   },
 
   orb: {

@@ -19,6 +19,7 @@ import OfflineBanner from "../components/OfflineBanner";
 import Splash from "../components/Splash";
 import HugOverlay from "../components/HugOverlay";
 import TapOverlay from "../components/TapOverlay";
+import SideMenu from "../components/SideMenu";
 import AppLock from "../components/AppLock";
 import { playHug, playTap } from "../lib/hugs";
 
@@ -560,6 +561,7 @@ export default function RootLayout() {
           <OfflineBanner />
           <HugOverlay />
           <TapOverlay />
+          <SideMenu />
           <AppLock />
 
           {/* Held over the top until Clerk has answered, so
