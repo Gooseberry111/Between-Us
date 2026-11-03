@@ -4,6 +4,7 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { API_URL, apiFetch, authHeaders } from "../lib/api";
 import { T } from "../lib/theme";
 import { Icon } from "./ui";
+import { cropPhoto, croppingAvailable } from "./Cropper";
 
 /*
  * ==========================================
@@ -38,6 +39,20 @@ export const photosAvailable = Boolean(ImagePicker);
 export async function pickPhoto({ aspect = [16, 10] } = {}) {
   if (!ImagePicker) {
     throw new Error("Photos need the latest version of the app.");
+  }
+
+  /* With the cropper, the picker just picks; ours frames it. */
+  if (croppingAvailable) {
+    const picked = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 1,
+    });
+
+    if (picked.canceled || !picked.assets?.[0]?.uri) return null;
+
+    const cropped = await cropPhoto(picked.assets[0], aspect);
+
+    return cropped?.base64 ? cropped : null;
   }
 
   const result = await ImagePicker.launchImageLibraryAsync({

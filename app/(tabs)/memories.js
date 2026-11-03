@@ -31,6 +31,8 @@ import {
   Icon,
 } from "../../components/ui";
 import ConnectFirst from "../../components/ConnectFirst";
+import RecapCard from "../../components/RecapCard";
+import { useFeatures } from "../../lib/features";
 import { SkeletonList } from "../../components/Skeleton";
 import DateInput from "../../components/DateInput";
 import {
@@ -51,7 +53,26 @@ import {
  * top, and a sheet for adding a memory.
  */
 
-const FILTERS = ["All", "Memories", "Dates", "Milestones"];
+const FILTERS = ["All", "Memories", "Date nights", "Special days"];
+
+/* What each kind is, so the two dated ones never blur. */
+const ABOUT = {
+  Memories: "Moments either of you added here.",
+  "Date nights": "Dates you planned in Dates and went on.",
+  "Special days": "Birthdays and anniversaries that come round every year.",
+};
+
+function everyYear(date) {
+  if (!date) return "Every year";
+
+  const [, month, day] = String(date).slice(0, 10).split("-").map(Number);
+  const when = new Date(2000, (month || 1) - 1, day || 1);
+
+  return `Every year on ${when.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "long",
+  })}`;
+}
 
 const PROMPTS = ["Our first date", "Our song", "An inside joke"];
 
@@ -78,6 +99,7 @@ function groupLabel(iso) {
 
 export default function TimelineScreen() {
   const router = useRouter();
+  const features = useFeatures();
   const { isLoaded, isSignedIn, userId } = useAuth();
   const connected = useIsConnected();
 
@@ -136,18 +158,18 @@ export default function TimelineScreen() {
         .filter((plan) => plan.status === "done")
         .map((plan) => ({
           id: `date-${plan.id}`,
-          kind: "Dates",
+          kind: "Date nights",
           title: plan.title,
-          note: plan.place,
+          note: plan.place ? `Date night · ${plan.place}` : "A date night",
           date: plan.plan_date,
         }));
 
       const milestones = (Array.isArray(datesData) ? datesData : []).map(
         (item) => ({
           id: `milestone-${item.id}`,
-          kind: "Milestones",
+          kind: "Special days",
           title: item.title,
-          note: "Comes round every year",
+          note: everyYear(item.event_date),
           date: item.event_date,
         }),
       );
@@ -285,7 +307,13 @@ export default function TimelineScreen() {
 
         <LargeTitle>Timeline</LargeTitle>
 
+        {features.enabled("recap") ? <RecapCard /> : null}
+
         <Segmented options={FILTERS} value={filter} onChange={setFilter} />
+
+        {filter !== "All" ? (
+          <Text style={styles.about}>{ABOUT[filter]}</Text>
+        ) : null}
 
         {loading ? (
           <View style={{ paddingHorizontal: 16 }}>
@@ -322,9 +350,9 @@ export default function TimelineScreen() {
                 <Press
                   key={entry.id}
                   onPress={() =>
-                    entry.kind === "Milestones"
+                    entry.kind === "Special days"
                       ? router.push("/special-dates")
-                      : entry.kind === "Dates"
+                      : entry.kind === "Date nights"
                         ? router.push("/dates")
                         : setViewing(entry)
                   }
@@ -342,21 +370,21 @@ export default function TimelineScreen() {
                       <View
                         style={[
                           styles.entryIcon,
-                          entry.kind === "Dates" && styles.entryIconDate,
-                          entry.kind === "Milestones" && styles.entryIconMile,
+                          entry.kind === "Date nights" && styles.entryIconDate,
+                          entry.kind === "Special days" && styles.entryIconMile,
                         ]}
                       >
                         <Ionicons
                           name={
-                            entry.kind === "Dates"
+                            entry.kind === "Date nights"
                               ? "calendar"
-                              : entry.kind === "Milestones"
-                                ? "heart"
+                              : entry.kind === "Special days"
+                                ? "star"
                                 : "camera"
                           }
                           size={17}
                           color={
-                            entry.kind === "Milestones" ? T.accentText : T.you
+                            entry.kind === "Special days" ? T.accentText : T.you
                           }
                         />
                       </View>
@@ -518,6 +546,15 @@ export default function TimelineScreen() {
 }
 
 const styles = StyleSheet.create({
+  about: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: T.label2,
+    textAlign: "center",
+    paddingHorizontal: 24,
+    marginTop: -4,
+  },
+
   group: {
     gap: 10,
   },

@@ -37,7 +37,6 @@ import {
   Distance,
   LetterWaiting,
   OnThisDay,
-  RecapReady,
 } from "../../components/HomeExtras";
 import { useFeatures } from "../../lib/features";
 import { openMenu } from "../../lib/menu";
@@ -377,7 +376,10 @@ export default function HomeScreen() {
   if (loading) {
     return (
       <Screen scroll={false}>
-        <NavBar left={<Text style={styles.dateline}>{dateLine()}</Text>} />
+        <NavBar
+          left={<GlassButton icon="menu" label="Menu" onPress={openMenu} />}
+          centre={<Text style={styles.dateline}>{dateLine()}</Text>}
+        />
 
         <View style={styles.loading}>
           <SkeletonList count={4} />
@@ -427,13 +429,8 @@ export default function HomeScreen() {
     return (
       <Screen refreshControl={refresh}>
         <NavBar
-          left={
-            <View style={styles.navLeft}>
-              <GlassButton icon="menu" label="Menu" onPress={openMenu} />
-
-              <Text style={styles.dateline}>{dateLine()}</Text>
-            </View>
-          }
+          left={<GlassButton icon="menu" label="Menu" onPress={openMenu} />}
+          centre={<Text style={styles.dateline}>{dateLine()}</Text>}
         >
           <GlassButton
             icon="bell"
@@ -511,13 +508,8 @@ export default function HomeScreen() {
   return (
     <Screen refreshControl={refresh}>
       <NavBar
-        left={
-          <View style={styles.navLeft}>
-            <GlassButton icon="menu" label="Menu" onPress={openMenu} />
-
-            <Text style={styles.dateline}>{dateLine()}</Text>
-          </View>
-        }
+        left={<GlassButton icon="menu" label="Menu" onPress={openMenu} />}
+        centre={<Text style={styles.dateline}>{dateLine()}</Text>}
       >
         <GlassButton
           icon="bell"
@@ -546,8 +538,6 @@ export default function HomeScreen() {
       {features.enabled("letters") ? (
         <LetterWaiting partnerName={partnerName} />
       ) : null}
-
-      {features.enabled("recap") ? <RecapReady /> : null}
 
       {features.enabled("distance") ? (
         <Distance partnerName={partnerName} />
@@ -782,12 +772,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   loading: {
     paddingTop: 20,
-  },
-
-  navLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
   },
 
   dateline: {

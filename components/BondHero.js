@@ -652,12 +652,15 @@ export default function BondHero({
  * Tap the circle: four bubbles spring out in an arc. Tap
  * one: it flies up off the circle and is sent, with a tap
  * you can feel. Tap the circle again to fold them away.
+ *
+ * Their circle sits near the right edge, so the arc fans
+ * up and to the left, towards the middle of the card.
  */
 const BURST = [
-  { kind: "kiss", emoji: "😘", x: -74, y: -34 },
-  { kind: "miss", emoji: "🥺", x: -28, y: -76 },
-  { kind: "proud", emoji: "🌟", x: 28, y: -76 },
-  { kind: "thinking", emoji: "💭", x: 74, y: -34 },
+  { kind: "kiss", emoji: "😘", x: -78, y: -3 },
+  { kind: "miss", emoji: "🥺", x: -64, y: -45 },
+  { kind: "proud", emoji: "🌟", x: -29, y: -72 },
+  { kind: "thinking", emoji: "💭", x: 15, y: -77 },
 ];
 
 function TapBurst({ onSend, name }) {
@@ -877,17 +880,17 @@ const styles = StyleSheet.create({
 
   burstBubble: {
     position: "absolute",
-    top: 21,
-    left: 24,
-    width: 48,
-    height: 48,
+    top: 25,
+    left: 28,
+    width: 40,
+    height: 40,
     zIndex: 6,
   },
 
   burstPress: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: T.surface,
     alignItems: "center",
     justifyContent: "center",
@@ -899,7 +902,7 @@ const styles = StyleSheet.create({
   },
 
   burstEmoji: {
-    fontSize: 24,
+    fontSize: 20,
   },
 
   flyer: {

@@ -355,35 +355,6 @@ export function Distance({ partnerName }) {
   );
 }
 
-/* In the first week of a month, last month's recap. */
-export function RecapReady() {
-  const router = useRouter();
-  const now = new Date();
-
-  if (now.getDate() > 7) return null;
-
-  const last = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const name = last.toLocaleDateString(undefined, { month: "long" });
-
-  return (
-    <Press onPress={() => router.push("/recap")}>
-      <Card style={styles.letter}>
-        <View style={[styles.seal, { backgroundColor: T.secondary }]}>
-          <Icon name="sparkle" size={18} color="#FFFFFF" />
-        </View>
-
-        <View style={styles.text}>
-          <Text style={styles.title}>Your {name} together</Text>
-
-          <Text style={styles.sub}>Hugs, answers, dates and a photo</Text>
-        </View>
-
-        <Icon name="chevron" size={16} color={T.label3} />
-      </Card>
-    </Press>
-  );
-}
-
 const styles = StyleSheet.create({
   letter: {
     flexDirection: "row",

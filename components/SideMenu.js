@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   BackHandler,
   Easing,
+  PanResponder,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,23 +15,67 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
+import { BlurView } from "expo-blur";
+import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 
 import { FEATURES, useFeatures } from "../lib/features";
-import { onMenu } from "../lib/menu";
+import { menuBlurTarget, onMenu } from "../lib/menu";
 import { useMyName } from "../lib/useMyName";
-import { T } from "../lib/theme";
-import { Icon, Mark } from "./ui";
+import { SCHEME, T } from "../lib/theme";
+import { GlassButton, Icon, Mark } from "./ui";
 
 /*
  * ==========================================
  * THE MENU
  * ==========================================
  *
- * Slides in from the left over a dimmed screen, so Home
- * and Profile can stay calm. Everything the two of you
- * share, then the extras you have switched on, then the
- * way to add more. Swipe or tap outside to close.
+ * A pane of glass that slides in from the left, half the
+ * screen wide, so Home and Profile can stay calm.
+ * Everything the two of you share, then the extras you
+ * have switched on, then the way to add more. Swipe it
+ * back, tap outside, or tap the chevron to close.
  */
+
+/* Liquid Glass on iOS 26; the system's frosted material
+ * before that, and on Android. */
+const LIQUID_GLASS = (() => {
+  if (Platform.OS !== "ios") return false;
+
+  try {
+    return isLiquidGlassAvailable();
+  } catch {
+    return false;
+  }
+})();
+
+function Pane() {
+  if (LIQUID_GLASS) {
+    return (
+      <GlassView
+        style={StyleSheet.absoluteFill}
+        glassEffectStyle="regular"
+        colorScheme={SCHEME}
+        tintColor={T.dark ? "rgba(14,12,17,0.35)" : "rgba(245,242,248,0.4)"}
+      />
+    );
+  }
+
+  return (
+    <>
+      <BlurView
+        style={StyleSheet.absoluteFill}
+        tint={T.dark ? "systemThickMaterialDark" : "systemThickMaterialLight"}
+        intensity={Platform.OS === "android" ? 90 : 100}
+        blurMethod="dimezisBlurViewSdk31Plus"
+        blurTarget={menuBlurTarget}
+      />
+
+      {/* A wash of the app's own colour keeps the words
+          readable over anything behind. */}
+      <View style={[StyleSheet.absoluteFill, styles.wash]} />
+    </>
+  );
+}
 
 const SPACES = [
   { icon: "timeline", title: "Timeline", route: "/(tabs)/memories" },
@@ -49,10 +95,23 @@ export default function SideMenu() {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  const panelWidth = Math.min(340, width * 0.84);
+  const panelWidth = Math.max(width * 0.5, 200);
   const slide = useRef(new Animated.Value(0)).current;
 
   useEffect(() => onMenu(setOpen), []);
+
+  /* A swipe to the left puts it away. */
+  const swipe = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_, g) =>
+          g.dx < -12 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+        onPanResponderRelease: (_, g) => {
+          if (g.dx < -50 || g.vx < -0.4) setOpen(false);
+        },
+      }),
+    [],
+  );
 
   useEffect(() => {
     if (open) {
@@ -92,8 +151,10 @@ export default function SideMenu() {
     setTimeout(() => router.push(route), 120);
   };
 
+  /* The recap has its own place, at the top of Timeline. */
   const extras = FEATURES.filter(
-    (feature) => feature.route && enabled(feature.key),
+    (feature) =>
+      feature.route && feature.key !== "recap" && enabled(feature.key),
   );
 
   const row = (item) => (
@@ -103,9 +164,11 @@ export default function SideMenu() {
       style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
       accessibilityRole="button"
     >
-      <Icon name={item.icon} size={20} color={T.accent} />
+      <Icon name={item.icon} size={19} color={T.accent} />
 
-      <Text style={styles.rowText}>{item.title}</Text>
+      <Text style={styles.rowText} numberOfLines={1} adjustsFontSizeToFit>
+        {item.title}
+      </Text>
     </Pressable>
   );
 
@@ -130,6 +193,7 @@ export default function SideMenu() {
       </Animated.View>
 
       <Animated.View
+        {...swipe.panHandlers}
         style={[
           styles.panel,
           {
@@ -147,23 +211,28 @@ export default function SideMenu() {
           },
         ]}
       >
+        <Pane />
+
         <View style={styles.head}>
-          <Mark size={34} />
+          <View style={styles.headTop}>
+            <Mark size={34} />
 
-          <View style={styles.headText}>
-            <Text style={styles.word}>Between Us</Text>
-
-            {myName ? <Text style={styles.hello}>Hi, {myName}</Text> : null}
+            <GlassButton
+              icon="back"
+              label="Close the menu"
+              onPress={() => setOpen(false)}
+            />
           </View>
 
-          <Pressable
-            onPress={() => setOpen(false)}
-            hitSlop={12}
-            accessibilityRole="button"
-            accessibilityLabel="Close"
-          >
-            <Icon name="close" size={18} color={T.label2} />
-          </Pressable>
+          <Text style={styles.word} numberOfLines={1} adjustsFontSizeToFit>
+            Between Us
+          </Text>
+
+          {myName ? (
+            <Text style={styles.hello} numberOfLines={1}>
+              Hi, {myName}
+            </Text>
+          ) : null}
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false}>
@@ -202,10 +271,12 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     zIndex: 290,
-    backgroundColor: T.appBackground,
+    overflow: "hidden",
     borderTopRightRadius: 28,
     borderBottomRightRadius: 28,
-    paddingHorizontal: 12,
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderColor: T.dark ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.7)",
+    paddingHorizontal: 8,
     shadowColor: "#000000",
     shadowOpacity: 0.2,
     shadowRadius: 24,
@@ -213,16 +284,20 @@ const styles = StyleSheet.create({
     elevation: 16,
   },
 
-  head: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 8,
-    paddingBottom: 18,
+  wash: {
+    backgroundColor: T.dark ? "rgba(14,12,17,0.55)" : "rgba(245,242,248,0.6)",
   },
 
-  headText: {
-    flex: 1,
+  head: {
+    paddingHorizontal: 8,
+    paddingBottom: 14,
+  },
+
+  headTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
   },
 
   word: {
@@ -244,7 +319,7 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.4,
     color: T.label2,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     marginTop: 18,
     marginBottom: 6,
   },
@@ -252,9 +327,9 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
-    minHeight: 48,
-    paddingHorizontal: 12,
+    gap: 12,
+    minHeight: 46,
+    paddingHorizontal: 10,
     borderRadius: 14,
   },
 
@@ -263,7 +338,8 @@ const styles = StyleSheet.create({
   },
 
   rowText: {
-    fontSize: 17,
+    flex: 1,
+    fontSize: 16,
     color: T.label,
   },
 });

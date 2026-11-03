@@ -22,8 +22,6 @@ import {
 import { connectionCacheKey } from "../../lib/connection";
 import { RETURNING_USER_KEY } from "../../lib/auth";
 import { T } from "../../lib/theme";
-import { lockAvailable, lockEnabled, setLockEnabled } from "../../lib/appLock";
-import { currentAppearance, setAppearance } from "../../lib/appearance";
 import { openMenu } from "../../lib/menu";
 import {
   Avatar,
@@ -97,26 +95,6 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(!cached);
   const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState(false);
-
-  /* The lock lives on this phone, not the account. */
-  const [lockOn, setLockOn] = useState(false);
-  const appearance = currentAppearance();
-  const [lockCan, setLockCan] = useState(false);
-
-  useEffect(() => {
-    lockEnabled().then(setLockOn);
-    lockAvailable().then(setLockCan);
-  }, []);
-
-  const changeLock = async (value) => {
-    try {
-      const done = await setLockEnabled(value);
-
-      if (done) setLockOn(value);
-    } catch (err) {
-      Alert.alert("Can't lock yet", err?.message || "Please try again.");
-    }
-  };
 
   const load = useCallback(async () => {
     if (!isLoaded || !isSignedIn || !userId) {
@@ -351,22 +329,12 @@ export default function ProfileScreen() {
             relationship={relationship}
             togetherSince={togetherSince}
             connected={Boolean(connection)}
-            reminders={REMINDERS}
-            prefs={prefs}
             busy={busy}
             onAccount={() => router.push("/edit-profile")}
             onNudge={() => router.push("/daily-question")}
             onFindPerson={() => router.push("/find-person")}
-            onReminder={setReminder}
-            lockOn={lockOn}
-            lockAvailable={lockCan}
-            onLock={changeLock}
-            appearance={appearance}
-            onAppearance={setAppearance}
             onOpen={(route) => router.push(route)}
             onUnlink={busy ? () => {} : unlink}
-            onSignOut={signOutPrompt}
-            onDelete={deleteAccount}
           />
         )}
       </SafeAreaView>
@@ -448,64 +416,6 @@ export default function ProfileScreen() {
             </Group>
           )}
 
-          {/* REMINDERS */}
-
-          <GroupHeader>Reminders</GroupHeader>
-
-          <Group inset={52}>
-            {REMINDERS.map((reminder) => (
-              <Cell
-                key={reminder.type}
-                leading={
-                  <Ionicons name={reminder.icon} size={21} color={T.accent} />
-                }
-                title={reminder.title}
-                subtitle={reminder.subtitle}
-                trailing={
-                  <Toggle
-                    value={prefs?.[reminder.type] !== false}
-                    onChange={(value) => setReminder(reminder.type, value)}
-                  />
-                }
-              />
-            ))}
-          </Group>
-
-          <GroupFooter>
-            Everything else lives in notification settings.
-          </GroupFooter>
-
-          {/* PRIVACY */}
-
-          {lockCan ? (
-            <>
-              <GroupHeader>Privacy</GroupHeader>
-
-              <Group inset={52}>
-                <Cell
-                  leading={
-                    <Ionicons name="finger-print" size={21} color={T.accent} />
-                  }
-                  title="Lock the app"
-                  subtitle="Fingerprint or face to open it"
-                  trailing={<Toggle value={lockOn} onChange={changeLock} />}
-                />
-              </Group>
-            </>
-          ) : null}
-
-          {/* APPEARANCE */}
-
-          <GroupHeader>Appearance</GroupHeader>
-
-          <Segmented
-            options={["System", "Light", "Dark"]}
-            value={
-              { system: "System", light: "Light", dark: "Dark" }[appearance]
-            }
-            onChange={(value) => setAppearance(value.toLowerCase())}
-          />
-
           {/* MAKE IT YOURS */}
 
           <Group inset={52}>
@@ -527,12 +437,11 @@ export default function ProfileScreen() {
             />
 
             <Cell
-              leading={
-                <Ionicons name="notifications" size={21} color={T.accent} />
-              }
-              title="All notifications"
+              leading={<Ionicons name="settings" size={21} color={T.accent} />}
+              title="Settings"
+              subtitle="Appearance, privacy, reminders, account"
               chevron
-              onPress={() => router.push("/notification-settings")}
+              onPress={() => router.push("/settings")}
             />
           </Group>
 
@@ -584,43 +493,6 @@ export default function ProfileScreen() {
               </GroupFooter>
             </>
           ) : null}
-
-          {/* ACCOUNT ACTIONS */}
-
-          <GroupHeader>Account</GroupHeader>
-
-          <Group inset={16}>
-            <Cell
-              title="Terms of Use"
-              chevron
-              onPress={() => router.push("/terms")}
-            />
-
-            <Cell
-              title="Privacy Policy"
-              chevron
-              onPress={() => router.push("/privacy")}
-            />
-
-            <Cell
-              title="Sign Out"
-              onPress={() =>
-                Alert.alert("Sign out?", "You can sign back in any time.", [
-                  { text: "Cancel", style: "cancel" },
-                  {
-                    text: "Sign Out",
-                    style: "destructive",
-                    onPress: async () => {
-                      await signOut();
-                      router.replace("/");
-                    },
-                  },
-                ])
-              }
-            />
-
-            <Cell title="Delete Account" destructive onPress={deleteAccount} />
-          </Group>
         </>
       )}
     </Screen>

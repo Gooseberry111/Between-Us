@@ -35,11 +35,12 @@ import { isLiquidGlassAvailable } from "expo-glass-effect";
 import * as Haptics from "expo-haptics";
 import Svg, { Circle } from "react-native-svg";
 
-import { T } from "../../lib/theme";
+import { SCHEME, T } from "../../lib/theme";
 import Icon, { sfSymbol } from "./Icon";
 import { GlassButton, Press } from "./layout";
 import { KeyboardScroll, keyboardBehavior } from "./keyboard";
 import { confirmDiscard } from "../../lib/actions";
+import { CropHost } from "../Cropper";
 
 /*
  * ==========================================
@@ -214,6 +215,7 @@ function NativeButton({
   return (
     <View style={[fill ? styles.buttonBlock : styles.buttonCompact, style]}>
       <Host
+        colorScheme={SCHEME}
         matchContents={fill ? { vertical: true } : true}
         style={fill ? styles.buttonHost : undefined}
       >
@@ -405,7 +407,7 @@ export function Segmented({ options, value, onChange, style }) {
 export function Toggle({ value, onChange }) {
   if (Platform.OS === "ios") {
     return (
-      <Host matchContents>
+      <Host matchContents colorScheme={SCHEME}>
         <SwiftToggle
           isOn={value}
           onIsOnChange={onChange}
@@ -683,6 +685,9 @@ export function Sheet({
       >
         {children}
       </KeyboardScroll>
+
+      {/* A photo picked here is framed over this sheet. */}
+      {visible ? <CropHost /> : null}
     </KeyboardAvoidingView>
   );
 

@@ -23,7 +23,7 @@ import {
   tint,
 } from "@expo/ui/swift-ui/modifiers";
 
-import { T } from "../../lib/theme";
+import { SCHEME, T } from "../../lib/theme";
 import Icon, { sfSymbol } from "./Icon";
 import { KeyboardScroll, keyboardBehavior } from "./keyboard";
 
@@ -136,9 +136,16 @@ export function Screen({
 }
 
 /* .nav — 40pt tall, actions on the right. */
-export function NavBar({ left, children }) {
+export function NavBar({ left, centre, children }) {
   return (
     <View style={styles.nav}>
+      {/* Centred on the screen, whatever sits either side. */}
+      {centre ? (
+        <View pointerEvents="none" style={styles.navCentre}>
+          {centre}
+        </View>
+      ) : null}
+
       <View style={styles.navLeft}>{left}</View>
 
       <View style={styles.navRight}>{children}</View>
@@ -202,7 +209,7 @@ export function GlassButton({
 
     return (
       <View>
-        <Host matchContents>
+        <Host matchContents colorScheme={SCHEME}>
           <SwiftButton
             label={label || icon}
             systemImage={sfSymbol(icon)}
@@ -295,6 +302,12 @@ const styles = StyleSheet.create({
 
   navLeft: {
     flex: 1,
+  },
+
+  navCentre: {
+    ...StyleSheet.absoluteFill,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   navRight: {

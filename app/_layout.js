@@ -20,6 +20,10 @@ import Splash from "../components/Splash";
 import HugOverlay from "../components/HugOverlay";
 import TapOverlay from "../components/TapOverlay";
 import SideMenu from "../components/SideMenu";
+import { BlurTargetView } from "expo-blur";
+import { menuBlurTarget } from "../lib/menu";
+import { CropHost } from "../components/Cropper";
+import { useFollowSystem } from "../lib/appearance";
 import AppLock from "../components/AppLock";
 import { playHug, playTap } from "../lib/hugs";
 
@@ -493,6 +497,9 @@ function SplashGate() {
 }
 
 export default function RootLayout() {
+  /* In System mode, a change of phone mode lands on return. */
+  useFollowSystem();
+
   useEffect(() => {
     configureNotifications();
   }, []);
@@ -554,7 +561,9 @@ export default function RootLayout() {
     <ErrorCatcher>
       <SafeAreaProvider>
         <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-          <AuthGuard />
+          <BlurTargetView ref={menuBlurTarget} style={styles.blurTarget}>
+            <AuthGuard />
+          </BlurTargetView>
 
           {/* Dark text on light, light text on dark. */}
           <StatusBar style={T.dark ? "light" : "dark"} />
@@ -562,6 +571,7 @@ export default function RootLayout() {
           <HugOverlay />
           <TapOverlay />
           <SideMenu />
+          <CropHost />
           <AppLock />
 
           {/* Held over the top until Clerk has answered, so
@@ -594,5 +604,11 @@ const missingKeyStyles = StyleSheet.create({
     lineHeight: 21,
     textAlign: "center",
     color: "rgba(60,60,67,0.6)",
+  },
+});
+
+const styles = StyleSheet.create({
+  blurTarget: {
+    flex: 1,
   },
 });
