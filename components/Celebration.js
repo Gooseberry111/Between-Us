@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Animated, Easing, Modal, StyleSheet, Text, View } from "react-native";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 
 /*
  * ==========================================
@@ -29,6 +29,8 @@ const PIECES = [
 ];
 
 function Piece({ x, y, delay, color, size, running }) {
+  useTheme();
+
   const progress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -86,6 +88,8 @@ function Piece({ x, y, delay, color, size, running }) {
 }
 
 export default function Celebration({ visible, title, message, onDone }) {
+  useTheme();
+
   const pop = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -150,7 +154,7 @@ export default function Celebration({ visible, title, message, onDone }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   backdrop: {
     flex: 1,
     alignItems: "center",
@@ -204,4 +208,4 @@ const styles = StyleSheet.create({
     textAlign: "center",
     maxWidth: 230,
   },
-});
+}));

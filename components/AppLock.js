@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, StyleSheet, Text, View } from "react-native";
 
 import { lockEnabled, onLockSettingChanged, unlock } from "../lib/appLock";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import { Button, Glow, Mark } from "./ui";
 
 /*
@@ -19,6 +19,8 @@ import { Button, Glow, Mark } from "./ui";
 const AWAY_MS = 60 * 1000;
 
 export default function AppLock() {
+  useTheme();
+
   const [locked, setLocked] = useState(false);
   const [asking, setAsking] = useState(false);
 
@@ -99,7 +101,7 @@ export default function AppLock() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   root: {
     ...StyleSheet.absoluteFill,
     zIndex: 350,
@@ -131,4 +133,4 @@ const styles = StyleSheet.create({
   footer: {
     paddingBottom: 56,
   },
-});
+}));

@@ -4,7 +4,7 @@ import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 
 import { apiFetch } from "../lib/api";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import {
   Avatar,
   Button,
@@ -67,6 +67,8 @@ function titleCase(text) {
 }
 
 export default function FindPersonScreen() {
+  useTheme();
+
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
 
@@ -685,7 +687,7 @@ export default function FindPersonScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   loading: {
     paddingTop: 80,
     alignItems: "center",
@@ -756,4 +758,4 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: "center",
   },
-});
+}));

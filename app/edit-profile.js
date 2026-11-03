@@ -5,7 +5,7 @@ import { useRouter } from "expo-router";
 
 import { apiFetch } from "../lib/api";
 import { birthdayError } from "../lib/validation";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import { useDiscardGuard } from "../lib/useDiscardGuard";
 import {
   Avatar,
@@ -30,6 +30,8 @@ import DateInput from "../components/DateInput";
  */
 
 export default function EditProfileScreen() {
+  useTheme();
+
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
 
@@ -224,7 +226,7 @@ export default function EditProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   fill: {
     flex: 1,
     backgroundColor: T.appBackground,
@@ -270,4 +272,4 @@ const styles = StyleSheet.create({
     color: T.label,
     paddingVertical: 13,
   },
-});
+}));

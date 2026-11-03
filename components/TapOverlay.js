@@ -10,7 +10,7 @@ import {
 import * as Haptics from "expo-haptics";
 
 import { onTap } from "../lib/hugs";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import { motionAllowed } from "./ui";
 
 /*
@@ -42,6 +42,8 @@ const DRIFTERS = [
 const HOLD_MS = 2400;
 
 function Drifter({ emoji, x, delay, size, play }) {
+  useTheme();
+
   const rise = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -86,6 +88,8 @@ function Drifter({ emoji, x, delay, size, play }) {
 }
 
 export default function TapOverlay() {
+  useTheme();
+
   const [tap, setTap] = useState(null);
   const [motion, setMotion] = useState(true);
 
@@ -198,7 +202,7 @@ export default function TapOverlay() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   root: {
     ...StyleSheet.absoluteFill,
     zIndex: 300,
@@ -230,4 +234,4 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 18,
   },
-});
+}));

@@ -5,7 +5,7 @@ import { useRouter } from "expo-router";
 
 import { apiFetch } from "../lib/api";
 import { getCachedData, setCachedData } from "../lib/dataCache";
-import { T } from "../lib/theme";
+import { T, useTheme } from "../lib/theme";
 import {
   Cell,
   GlassButton,
@@ -108,6 +108,8 @@ const NOTIFICATION_GROUPS = [
 ];
 
 export default function NotificationSettingsScreen() {
+  useTheme();
+
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
 

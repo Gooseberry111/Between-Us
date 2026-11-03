@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Animated, StyleSheet, View } from "react-native";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 
 /*
  * ==========================================
@@ -20,6 +20,8 @@ import { T } from "../lib/theme";
  */
 
 export function Skeleton({ width, height = 14, radius = 8, style }) {
+  useTheme();
+
   const pulse = useRef(new Animated.Value(0.4)).current;
 
   useEffect(() => {
@@ -59,6 +61,8 @@ export function Skeleton({ width, height = 14, radius = 8, style }) {
  * white rounded cards used across the app.
  */
 export function SkeletonCard({ lines = 3, style }) {
+  useTheme();
+
   return (
     <View style={[styles.card, style]}>
       <Skeleton width={92} height={11} radius={6} />
@@ -82,6 +86,8 @@ export function SkeletonCard({ lines = 3, style }) {
  * first ever load when nothing is cached yet.
  */
 export function SkeletonList({ count = 3 }) {
+  useTheme();
+
   return (
     <View>
       {Array.from({ length: count }).map((_, index) => (
@@ -91,7 +97,7 @@ export function SkeletonList({ count = 3 }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   block: {
     backgroundColor: T.fill3,
   },
@@ -115,6 +121,6 @@ const styles = StyleSheet.create({
   spaced: {
     marginBottom: 13,
   },
-});
+}));
 
 export default Skeleton;

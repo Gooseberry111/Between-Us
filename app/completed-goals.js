@@ -11,7 +11,7 @@ import {
   setCachedData,
 } from "../lib/dataCache";
 import { useIsConnected } from "../lib/connection";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import {
   Card,
   Cell,
@@ -53,6 +53,8 @@ function finishedOn(date) {
 }
 
 export default function CompletedGoalsScreen() {
+  useTheme();
+
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
   const connected = useIsConnected();
@@ -245,7 +247,7 @@ export default function CompletedGoalsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   loading: {
     paddingHorizontal: 16,
   },
@@ -271,4 +273,4 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: T.label,
   },
-});
+}));

@@ -1,9 +1,11 @@
 import { StyleSheet, View } from "react-native";
 
-import { T } from "../../lib/theme";
+import { T, themedStyles, useTheme } from "../../lib/theme";
 
 /* A thin bar, filled to the question you are on. */
 export default function ProgressBar({ current, total }) {
+  useTheme();
+
   const percentage = ((current + 1) / total) * 100;
 
   return (
@@ -13,7 +15,7 @@ export default function ProgressBar({ current, total }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   track: {
     height: 4,
     borderRadius: 2,
@@ -26,4 +28,4 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: T.accent,
   },
-});
+}));

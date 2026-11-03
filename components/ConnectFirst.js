@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import { AuthScreen, Button, Mark } from "./ui";
 
 /*
@@ -23,6 +23,8 @@ export default function ConnectFirst({
   description,
   showBack = true,
 }) {
+  useTheme();
+
   const router = useRouter();
 
   const back = () => {
@@ -58,7 +60,7 @@ export default function ConnectFirst({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   body: {
     alignItems: "center",
     paddingHorizontal: 32,
@@ -90,4 +92,4 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 8,
   },
-});
+}));

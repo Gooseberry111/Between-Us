@@ -16,7 +16,7 @@ import { apiFetch } from "../lib/api";
 import { getCachedData, setCachedData } from "../lib/dataCache";
 import { useIsConnected } from "../lib/connection";
 import { useMyName } from "../lib/useMyName";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import {
   Avatar,
   Button,
@@ -65,6 +65,8 @@ function landingRow(board, column) {
 const tap = (style) => Haptics.impactAsync(style).catch(() => {});
 
 export default function GameScreen() {
+  useTheme();
+
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
   const connected = useIsConnected();
@@ -489,7 +491,7 @@ export default function GameScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   score: {
     flexDirection: "row",
     alignItems: "center",
@@ -585,4 +587,4 @@ const styles = StyleSheet.create({
     borderWidth: 4,
     borderColor: T.secondary,
   },
-});
+}));

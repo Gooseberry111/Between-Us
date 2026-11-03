@@ -23,7 +23,7 @@ import {
   tint,
 } from "@expo/ui/swift-ui/modifiers";
 
-import { SCHEME, T } from "../../lib/theme";
+import { T, themedStyles, useTheme } from "../../lib/theme";
 import Icon, { sfSymbol } from "./Icon";
 import { KeyboardScroll, keyboardBehavior } from "./keyboard";
 
@@ -52,6 +52,8 @@ export function Press({
   hitSlop,
   accessibilityLabel,
 }) {
+  useTheme();
+
   const scale = useRef(new Animated.Value(1)).current;
   const dim = useRef(new Animated.Value(1)).current;
 
@@ -99,6 +101,8 @@ export function Screen({
   bottom = 32,
   keyboard,
 }) {
+  useTheme();
+
   if (!scroll) {
     return (
       <SafeAreaView style={styles.screen} edges={["top"]}>
@@ -137,6 +141,8 @@ export function Screen({
 
 /* .nav — 40pt tall, actions on the right. */
 export function NavBar({ left, centre, children }) {
+  useTheme();
+
   return (
     <View style={styles.nav}>
       {/* Centred on the screen, whatever sits either side. */}
@@ -188,6 +194,8 @@ export function GlassButton({
   prominent,
   disabled,
 }) {
+  useTheme();
+
   if (Platform.OS === "ios") {
     const look = prominent
       ? LIQUID_GLASS
@@ -209,7 +217,7 @@ export function GlassButton({
 
     return (
       <View>
-        <Host matchContents colorScheme={SCHEME}>
+        <Host matchContents colorScheme={T.scheme}>
           <SwiftButton
             label={label || icon}
             systemImage={sfSymbol(icon)}
@@ -244,16 +252,22 @@ export function GlassButton({
 
 /* .lt — 34pt bold, tight. */
 export function LargeTitle({ children, style }) {
+  useTheme();
+
   return <Text style={[styles.largeTitle, style]}>{children}</Text>;
 }
 
 /* .lt-sub */
 export function SubTitle({ children }) {
+  useTheme();
+
   return <Text style={styles.subTitle}>{children}</Text>;
 }
 
 /* .h2 — a 20pt heading with an optional plain link. */
 export function SectionHeader({ children, action, onAction }) {
+  useTheme();
+
   return (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{children}</Text>
@@ -269,15 +283,19 @@ export function SectionHeader({ children, action, onAction }) {
 
 /* .gh — the small uppercase label above a group. */
 export function GroupHeader({ children }) {
+  useTheme();
+
   return <Text style={styles.groupHeader}>{children}</Text>;
 }
 
 /* .gfoot — the explanatory line under one. */
 export function GroupFooter({ children }) {
+  useTheme();
+
   return <Text style={styles.groupFooter}>{children}</Text>;
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   screen: {
     flex: 1,
     backgroundColor: T.appBackground,
@@ -404,4 +422,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginTop: -6,
   },
-});
+}));

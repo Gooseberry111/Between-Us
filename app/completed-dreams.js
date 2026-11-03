@@ -7,7 +7,7 @@ import { apiFetch } from "../lib/api";
 import { getCachedData, setCachedData } from "../lib/dataCache";
 import { useIsConnected } from "../lib/connection";
 import { coverFor, progressOf } from "../lib/dreams";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import {
   Button,
   Card,
@@ -47,6 +47,8 @@ function finishedOn(date) {
 }
 
 export default function CompletedDreamsScreen() {
+  useTheme();
+
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
   const connected = useIsConnected();
@@ -251,7 +253,7 @@ export default function CompletedDreamsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   loading: {
     paddingHorizontal: 16,
   },
@@ -305,4 +307,4 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     marginTop: 14,
   },
-});
+}));

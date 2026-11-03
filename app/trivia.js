@@ -14,7 +14,7 @@ import { useRouter } from "expo-router";
 import { apiFetch } from "../lib/api";
 import { clearCachedData } from "../lib/dataCache";
 import { useIsConnected } from "../lib/connection";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import {
   AuthHeader,
   AuthScreen,
@@ -43,6 +43,8 @@ import ProgressBar from "../components/onboarding/ProgressBar";
  */
 
 export default function TriviaScreen() {
+  useTheme();
+
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
   const connected = useIsConnected();
@@ -404,7 +406,7 @@ export default function TriviaScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   screen: {
     flex: 1,
     backgroundColor: T.appBackground,
@@ -542,4 +544,4 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 8,
   },
-});
+}));

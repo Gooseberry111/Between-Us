@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
 
-import { T } from "../../lib/theme";
+import { T, themedStyles, useTheme } from "../../lib/theme";
 import Icon from "./Icon";
 import { GlassButton } from "./layout";
 import { KeyboardScroll, keyboardBehavior } from "./keyboard";
@@ -30,6 +30,8 @@ import { KeyboardScroll, keyboardBehavior } from "./keyboard";
 
 /* The bond's glow: rose on the left, plum on the right. */
 export function Glow({ height = 360 }) {
+  useTheme();
+
   return (
     <View style={[styles.glow, { height }]} pointerEvents="none">
       <Svg width="100%" height="100%">
@@ -54,6 +56,8 @@ export function Glow({ height = 360 }) {
 
 /* The splash's mark on a light ground: you and them, overlapping. */
 export function Mark({ size = 56 }) {
+  useTheme();
+
   const circle = {
     width: size,
     height: size,
@@ -90,6 +94,8 @@ export function Mark({ size = 56 }) {
  * optional footer pinned to the bottom.
  */
 export function AuthScreen({ children, onBack, footer, centred }) {
+  useTheme();
+
   return (
     <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
       <Glow />
@@ -116,6 +122,8 @@ export function AuthScreen({ children, onBack, footer, centred }) {
 
 /* The mark, a title and a line under it, centred. */
 export function AuthHeader({ title, subtitle, mark = true, kicker }) {
+  useTheme();
+
   return (
     <View style={styles.header}>
       {mark ? <Mark /> : null}
@@ -138,6 +146,8 @@ export const FieldRow = forwardRef(function FieldRow(
   { label, trailing, ...input },
   ref,
 ) {
+  useTheme();
+
   return (
     <View style={styles.row}>
       <Text style={styles.rowLabel}>{label}</Text>
@@ -159,6 +169,8 @@ export const PasswordRow = forwardRef(function PasswordRow(
   { label = "Password", ...input },
   ref,
 ) {
+  useTheme();
+
   const [revealed, setRevealed] = useState(false);
 
   return (
@@ -194,6 +206,8 @@ export function CodeField({
   onSubmitEditing,
   length = 6,
 }) {
+  useTheme();
+
   return (
     <View style={styles.codeCard}>
       <TextInput
@@ -218,6 +232,8 @@ export function CodeField({
 
 /* A short line in the flow of the form: what went wrong, or what happened. */
 export function Notice({ tone = "error", children }) {
+  useTheme();
+
   if (!children) return null;
 
   const error = tone === "error";
@@ -241,6 +257,8 @@ export function Notice({ tone = "error", children }) {
 
 /* A plain text link, centred: "Forgot your password?" */
 export function TextLink({ children, onPress, disabled }) {
+  useTheme();
+
   return (
     <Text
       style={[styles.link, disabled && styles.linkOff]}
@@ -253,7 +271,7 @@ export function TextLink({ children, onPress, disabled }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   screen: {
     flex: 1,
     backgroundColor: T.appBackground,
@@ -412,4 +430,4 @@ const styles = StyleSheet.create({
   linkOff: {
     opacity: 0.4,
   },
-});
+}));

@@ -7,7 +7,7 @@ import { apiFetch } from "../lib/api";
 import { activityHandlers, loadActivity, routeFor } from "../lib/activity";
 import { getCachedData, setCachedData } from "../lib/dataCache";
 import { useIsConnected } from "../lib/connection";
-import { T } from "../lib/theme";
+import { T, useTheme } from "../lib/theme";
 import { useMyName } from "../lib/useMyName";
 import {
   Empty,
@@ -36,6 +36,8 @@ import { SkeletonList } from "../components/Skeleton";
  */
 
 export default function ActivityScreen() {
+  useTheme();
+
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
   const connected = useIsConnected();

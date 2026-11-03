@@ -2,7 +2,7 @@ import { Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SymbolView } from "expo-symbols";
 
-import { T } from "../../lib/theme";
+import { T, useTheme } from "../../lib/theme";
 
 /*
  * ==========================================
@@ -112,6 +112,8 @@ export function sfSymbol(name, filled) {
 }
 
 export default function Icon({ name, size = 20, color = T.label, filled }) {
+  useTheme();
+
   const entry = MAP[name];
 
   if (!entry) {

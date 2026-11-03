@@ -32,6 +32,8 @@ const GLOBALS = new Set([
   "Set",
   "Map",
   "AbortController",
+  "Reflect",
+  "Proxy",
 ]);
 
 function check(dir) {

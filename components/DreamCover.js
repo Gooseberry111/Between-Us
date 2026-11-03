@@ -5,7 +5,7 @@ import Svg, { Circle, Polygon } from "react-native-svg";
 import { COVERS } from "../lib/dreams";
 import { Icon } from "./ui";
 import { RemotePhoto } from "./Photo";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 
 /*
  * ==========================================
@@ -32,6 +32,8 @@ export default function DreamCover({
   style,
   children,
 }) {
+  useTheme();
+
   const preset = COVERS[cover] || COVERS.sunset;
   const symbol = icon || preset.icon;
 
@@ -82,7 +84,7 @@ export default function DreamCover({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   cover: {
     overflow: "hidden",
     backgroundColor: T.fill3,
@@ -93,4 +95,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-});
+}));

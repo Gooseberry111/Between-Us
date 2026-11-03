@@ -21,7 +21,7 @@ import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import { FEATURES, useFeatures } from "../lib/features";
 import { menuBlurTarget, onMenu } from "../lib/menu";
 import { useMyName } from "../lib/useMyName";
-import { SCHEME, T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import { GlassButton, Icon, Mark } from "./ui";
 
 /*
@@ -49,12 +49,14 @@ const LIQUID_GLASS = (() => {
 })();
 
 function Pane() {
+  useTheme();
+
   if (LIQUID_GLASS) {
     return (
       <GlassView
         style={StyleSheet.absoluteFill}
         glassEffectStyle="regular"
-        colorScheme={SCHEME}
+        colorScheme={T.scheme}
         tintColor={T.dark ? "rgba(14,12,17,0.35)" : "rgba(245,242,248,0.4)"}
       />
     );
@@ -87,6 +89,8 @@ const SPACES = [
 ];
 
 export default function SideMenu() {
+  useTheme();
+
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const { enabled } = useFeatures();
@@ -258,7 +262,7 @@ export default function SideMenu() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   scrim: {
     ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(0,0,0,0.32)",
@@ -342,4 +346,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: T.label,
   },
-});
+}));

@@ -19,7 +19,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { apiFetch } from "../../lib/api";
 import { getCachedData, setCachedData } from "../../lib/dataCache";
 import { useIsConnected } from "../../lib/connection";
-import { T } from "../../lib/theme";
+import { T, themedStyles, useTheme } from "../../lib/theme";
 import { useMyName } from "../../lib/useMyName";
 import {
   Avatar,
@@ -136,6 +136,8 @@ function same(a, b) {
  * have in common.
  */
 function SyncRing({ value, size = 132 }) {
+  useTheme();
+
   const stroke = 12;
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -209,6 +211,8 @@ function SyncRing({ value, size = 132 }) {
 }
 
 export default function InsightsScreen() {
+  useTheme();
+
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
   const connected = useIsConnected();
@@ -567,7 +571,7 @@ export default function InsightsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   loading: {
     paddingHorizontal: 16,
   },
@@ -802,4 +806,4 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     marginTop: 14,
   },
-});
+}));

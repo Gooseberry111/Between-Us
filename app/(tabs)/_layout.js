@@ -1,8 +1,8 @@
-import { DynamicColorIOS, Platform } from "react-native";
+import { Platform } from "react-native";
 import { DarkTheme, DefaultTheme, ThemeProvider } from "expo-router";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 
-import { T } from "../../lib/theme";
+import { T, useTheme } from "../../lib/theme";
 
 /*
  * ==========================================
@@ -24,10 +24,8 @@ import { T } from "../../lib/theme";
  */
 
 /* The accent in light mode, its lighter twin in dark. */
-const tint =
-  Platform.OS === "ios"
-    ? DynamicColorIOS({ light: T.accent, dark: T.accentDark })
-    : T.accent;
+const tabTint = () =>
+  Platform.OS === "ios" && T.dark ? T.accentDark : T.accent;
 
 /*
  * Android's Material bar takes the app's own colours: white,
@@ -35,7 +33,7 @@ const tint =
  * tab. iOS keeps the system glass, which a background colour
  * would cover.
  */
-const ANDROID_BAR =
+const androidBar = () =>
   Platform.OS === "android"
     ? {
         backgroundColor: T.surface,
@@ -52,24 +50,28 @@ const ANDROID_BAR =
 
 /* A known background under every tab, so switching never
  * flashes white behind the glass. */
-const BASE = T.dark ? DarkTheme : DefaultTheme;
+function navigationTheme() {
+  const base = T.dark ? DarkTheme : DefaultTheme;
 
-const navigationTheme = {
-  ...BASE,
-  colors: {
-    ...BASE.colors,
-    primary: T.accent,
-    background: T.appBackground,
-  },
-};
+  return {
+    ...base,
+    colors: {
+      ...base.colors,
+      primary: T.accent,
+      background: T.appBackground,
+    },
+  };
+}
 
 export default function TabsLayout() {
+  useTheme();
+
   return (
-    <ThemeProvider value={navigationTheme}>
+    <ThemeProvider value={navigationTheme()}>
       <NativeTabs
-        tintColor={tint}
+        tintColor={tabTint()}
         minimizeBehavior="onScrollDown"
-        {...ANDROID_BAR}
+        {...androidBar()}
       >
         <NativeTabs.Trigger name="home">
           <NativeTabs.Trigger.Icon

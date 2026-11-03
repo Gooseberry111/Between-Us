@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
 import { FEATURES, suggestionFor, useFeatures } from "../lib/features";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import {
   Cell,
   GlassButton,
@@ -29,6 +29,8 @@ import {
  */
 
 export default function FeaturesScreen() {
+  useTheme();
+
   const router = useRouter();
   const { enabled, set, context, ready } = useFeatures();
 
@@ -116,7 +118,7 @@ export default function FeaturesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   section: {
     gap: 14,
   },
@@ -129,4 +131,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-});
+}));

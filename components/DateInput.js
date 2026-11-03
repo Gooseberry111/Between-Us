@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 
 /*
  * ==========================================
@@ -49,6 +49,8 @@ export default function DateInput({
   placeholderTextColor,
   ...rest
 }) {
+  useTheme();
+
   /*
    * iOS's number pad has no Done or Return key, so once it
    * is open there is no way to close it -- and it covers
@@ -98,7 +100,7 @@ export default function DateInput({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   bar: {
     flexDirection: "row",
     justifyContent: "flex-end",
@@ -119,4 +121,4 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#4A2D5C",
   },
-});
+}));

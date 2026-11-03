@@ -19,7 +19,7 @@ import { apiFetch } from "../lib/api";
 import { birthdayError } from "../lib/validation";
 import { clearCachedData } from "../lib/dataCache";
 import { isAnswered, notifyProfileSaved } from "../lib/profileProgress";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import { EMPTY_ANSWERS, saveAnswers } from "../lib/answers";
 import {
   AuthHeader,
@@ -45,6 +45,8 @@ import {
  */
 
 export default function OnboardingScreen() {
+  useTheme();
+
   const router = useRouter();
 
   const { signOut } = useClerk();
@@ -345,7 +347,7 @@ export default function OnboardingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   screen: {
     flex: 1,
     backgroundColor: T.appBackground,
@@ -412,4 +414,4 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     gap: 4,
   },
-});
+}));

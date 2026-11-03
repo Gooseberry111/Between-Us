@@ -12,7 +12,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 
 import { apiFetch } from "../lib/api";
 import { chooseAction } from "../lib/actions";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import {
   Check,
   GlassButton,
@@ -40,6 +40,8 @@ import {
 const REFRESH_MS = 6000;
 
 export default function ListScreen() {
+  useTheme();
+
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const { isLoaded, isSignedIn, userId } = useAuth();
@@ -270,7 +272,7 @@ export default function ListScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -306,4 +308,4 @@ const styles = StyleSheet.create({
     color: T.label2,
     textDecorationLine: "line-through",
   },
-});
+}));

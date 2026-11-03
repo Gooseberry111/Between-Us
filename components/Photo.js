@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { API_URL, apiFetch, authHeaders } from "../lib/api";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import { Icon } from "./ui";
 import { cropPhoto, croppingAvailable } from "./Cropper";
 
@@ -109,6 +109,8 @@ const TOKEN_TRIES = 5;
 const LOAD_TRIES = 2;
 
 export function RemotePhoto({ id, url, localUri, style }) {
+  useTheme();
+
   const [headers, setHeaders] = useState(null);
   const [attempt, setAttempt] = useState(0);
   const [failed, setFailed] = useState(false);
@@ -205,7 +207,7 @@ export function RemotePhoto({ id, url, localUri, style }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   placeholder: {
     backgroundColor: T.fill3,
   },
@@ -220,4 +222,4 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: T.label2,
   },
-});
+}));

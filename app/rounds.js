@@ -6,7 +6,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 
 import { apiFetch } from "../lib/api";
 import { useIsConnected } from "../lib/connection";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import {
   Button,
   Card,
@@ -50,6 +50,8 @@ const KINDS = {
 };
 
 export default function RoundsScreen() {
+  useTheme();
+
   const router = useRouter();
   const { kind: kindParam } = useLocalSearchParams();
   const { isLoaded, isSignedIn, userId } = useAuth();
@@ -411,7 +413,7 @@ export default function RoundsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   progress: {
     paddingHorizontal: 20,
     gap: 8,
@@ -552,4 +554,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 3,
   },
-});
+}));

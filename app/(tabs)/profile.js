@@ -21,7 +21,7 @@ import {
 } from "../../lib/dataCache";
 import { connectionCacheKey } from "../../lib/connection";
 import { RETURNING_USER_KEY } from "../../lib/auth";
-import { T } from "../../lib/theme";
+import { T, themedStyles, useTheme } from "../../lib/theme";
 import { openMenu } from "../../lib/menu";
 import {
   Avatar,
@@ -80,6 +80,8 @@ const REMINDERS = [
 ];
 
 export default function ProfileScreen() {
+  useTheme();
+
   const router = useRouter();
   const { signOut } = useClerk();
   const { user } = useUser();
@@ -499,7 +501,7 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   iosScreen: {
     flex: 1,
     backgroundColor: T.appBackground,
@@ -514,4 +516,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: T.label2,
   },
-});
+}));

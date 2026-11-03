@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Animated, Easing, Pressable, StyleSheet, View } from "react-native";
 
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 
 /*
  * ==========================================
@@ -19,11 +19,15 @@ import { T } from "../lib/theme";
  */
 
 export function GlassBackground({ children, style }) {
+  useTheme();
+
   return <View style={[styles.ground, style]}>{children}</View>;
 }
 
 /* A plain white card. */
 export function GlassCard({ children, style, radius = 20, padding = 16 }) {
+  useTheme();
+
   return (
     <View style={[styles.card, { borderRadius: radius, padding }, style]}>
       {children}
@@ -36,6 +40,8 @@ export function GlassCard({ children, style, radius = 20, padding = 16 }) {
  * surface per screen: accent fill, white text.
  */
 export function GlassPanel({ children, style, radius = 20, padding = 18 }) {
+  useTheme();
+
   return (
     <View style={[styles.panel, { borderRadius: radius, padding }, style]}>
       {children}
@@ -44,6 +50,8 @@ export function GlassPanel({ children, style, radius = 20, padding = 18 }) {
 }
 
 export function Card({ children, style, dark = false, ...rest }) {
+  useTheme();
+
   return (
     <View
       style={[dark ? styles.panel : styles.card, styles.cardSpace, style]}
@@ -56,6 +64,8 @@ export function Card({ children, style, dark = false, ...rest }) {
 
 /* A press that dims and shrinks, the iOS way. */
 export function GlassPressable({ children, onPress, style, disabled }) {
+  useTheme();
+
   const scale = useRef(new Animated.Value(1)).current;
   const dim = useRef(new Animated.Value(1)).current;
 
@@ -80,6 +90,8 @@ export function GlassPressable({ children, onPress, style, disabled }) {
 }
 
 export function FadeIn({ children, delay = 0, style, distance = 10 }) {
+  useTheme();
+
   const value = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -114,7 +126,7 @@ export function FadeIn({ children, delay = 0, style, distance = 10 }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   ground: {
     flex: 1,
     backgroundColor: T.appBackground,
@@ -132,4 +144,4 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 16,
   },
-});
+}));

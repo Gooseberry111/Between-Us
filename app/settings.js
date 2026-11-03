@@ -10,7 +10,7 @@ import { clearCachedData } from "../lib/dataCache";
 import { RETURNING_USER_KEY } from "../lib/auth";
 import { lockAvailable, lockEnabled, setLockEnabled } from "../lib/appLock";
 import { savedAppearance, setAppearance } from "../lib/appearance";
-import { T } from "../lib/theme";
+import { T, useTheme } from "../lib/theme";
 import {
   Cell,
   GlassButton,
@@ -19,7 +19,6 @@ import {
   GroupHeader,
   LargeTitle,
   NavBar,
-  Notice,
   Screen,
   Segmented,
   Toggle,
@@ -62,6 +61,8 @@ const REMINDERS = [
 const LOOKS = { system: "System", light: "Light", dark: "Dark" };
 
 export default function SettingsScreen() {
+  useTheme();
+
   const router = useRouter();
   const { signOut } = useClerk();
   const { user } = useUser();
@@ -71,7 +72,6 @@ export default function SettingsScreen() {
   const [lockOn, setLockOn] = useState(false);
   const [lockCan, setLockCan] = useState(false);
   const [look, setLook] = useState(savedAppearance());
-  const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -90,20 +90,14 @@ export default function SettingsScreen() {
     }, [userId]),
   );
 
-  const changeLook = async (label) => {
+  /* The whole app repaints the moment it is chosen. */
+  const changeLook = (label) => {
     const value = Object.keys(LOOKS).find((key) => LOOKS[key] === label);
 
     if (!value || value === look) return;
 
-    /* Show the choice at once; the reload repaints the rest. */
     setLook(value);
-    setNotice("");
-
-    const reloaded = await setAppearance(value);
-
-    if (!reloaded) {
-      setNotice("Saved. Close Between Us and open it again to see it.");
-    }
+    setAppearance(value);
   };
 
   const changeLock = async (value) => {
@@ -224,8 +218,6 @@ export default function SettingsScreen() {
           value={LOOKS[look]}
           onChange={changeLook}
         />
-
-        <Notice tone="info">{notice}</Notice>
 
         <GroupFooter>
           System follows your phone, switching as it does.

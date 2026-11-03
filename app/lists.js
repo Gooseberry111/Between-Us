@@ -13,7 +13,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { apiFetch } from "../lib/api";
 import { getCachedData, setCachedData } from "../lib/dataCache";
 import { useIsConnected } from "../lib/connection";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import {
   Button,
   Cell,
@@ -44,6 +44,8 @@ import { SkeletonList } from "../components/Skeleton";
 const EMOJIS = ["🛒", "🏠", "🎬", "✈️", "🎁", "📚", "🍽️", "💡"];
 
 export default function ListsScreen() {
+  useTheme();
+
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
   const connected = useIsConnected();
@@ -236,7 +238,7 @@ export default function ListsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   loading: {
     paddingHorizontal: 16,
   },
@@ -268,4 +270,4 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 16,
   },
-});
+}));

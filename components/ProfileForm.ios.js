@@ -20,7 +20,7 @@ import {
   tint,
 } from "@expo/ui/swift-ui/modifiers";
 
-import { SCHEME, T } from "../lib/theme";
+import { T, useTheme } from "../lib/theme";
 
 /*
  * ==========================================
@@ -51,12 +51,14 @@ export default function ProfileForm({
   onOpen,
   onUnlink,
 }) {
+  useTheme();
+
   return (
     <Host
       style={{ flex: 1 }}
       useViewportSizeMeasurement
       seedColor={T.accent}
-      colorScheme={SCHEME}
+      colorScheme={T.scheme}
     >
       <Form modifiers={[scrollContentBackground("hidden"), tint(T.accent)]}>
         {/* ACCOUNT */}

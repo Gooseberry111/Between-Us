@@ -12,7 +12,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { apiFetch } from "../../lib/api";
 import { getCachedData, setCachedData } from "../../lib/dataCache";
 import { TOTAL_QUESTIONS, countAnswered } from "../../lib/profileProgress";
-import { T } from "../../lib/theme";
+import { T, themedStyles, useTheme } from "../../lib/theme";
 import {
   Avatar,
   Button,
@@ -119,6 +119,8 @@ function dateLine() {
 }
 
 export default function HomeScreen() {
+  useTheme();
+
   const router = useRouter();
   const features = useFeatures();
   const { isLoaded, isSignedIn, userId } = useAuth();
@@ -769,7 +771,7 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   loading: {
     paddingTop: 20,
   },
@@ -933,4 +935,4 @@ const styles = StyleSheet.create({
   sheetFace: {
     fontSize: 26,
   },
-});
+}));

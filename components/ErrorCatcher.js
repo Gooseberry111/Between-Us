@@ -1,6 +1,6 @@
 import { Component } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
-import { T } from "../lib/theme";
+import { T, themedStyles } from "../lib/theme";
 
 /*
  * ==========================================
@@ -70,7 +70,7 @@ export default class ErrorCatcher extends Component {
   }
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   screen: {
     flex: 1,
     backgroundColor: T.appBackground,
@@ -114,4 +114,4 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     color: "#4A2D5C",
   },
-});
+}));

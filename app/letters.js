@@ -16,7 +16,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { apiFetch } from "../lib/api";
 import { getCachedData, setCachedData } from "../lib/dataCache";
 import { useIsConnected } from "../lib/connection";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import {
   Button,
   Card,
@@ -90,6 +90,8 @@ function daysTo(iso) {
 }
 
 export default function LettersScreen() {
+  useTheme();
+
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
   const connected = useIsConnected();
@@ -564,7 +566,7 @@ export default function LettersScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   loading: {
     paddingHorizontal: 16,
   },
@@ -673,4 +675,4 @@ const styles = StyleSheet.create({
     color: T.label,
     marginTop: 18,
   },
-});
+}));

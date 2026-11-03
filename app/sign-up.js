@@ -3,7 +3,7 @@ import { StyleSheet, Text } from "react-native";
 import { useSignUp } from "@clerk/expo";
 import { useRouter } from "expo-router";
 
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import {
   AuthHeader,
   AuthScreen,
@@ -79,6 +79,8 @@ async function withRetry(action) {
 }
 
 export default function SignUpScreen() {
+  useTheme();
+
   const { signUp } = useSignUp();
   const router = useRouter();
 
@@ -381,7 +383,7 @@ export default function SignUpScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   terms: {
     fontSize: 13,
     lineHeight: 18,
@@ -393,4 +395,4 @@ const styles = StyleSheet.create({
   termsLink: {
     color: T.accent,
   },
-});
+}));

@@ -11,7 +11,7 @@ import Constants from "expo-constants";
 import { Platform, StyleSheet, Text, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { RETURNING_USER_KEY } from "../lib/auth";
-import { T } from "../lib/theme";
+import { T, useTheme } from "../lib/theme";
 import { apiFetch, setTokenProvider } from "../lib/api";
 import { onProfileSaved } from "../lib/profileProgress";
 import ErrorCatcher from "../components/ErrorCatcher";
@@ -195,6 +195,8 @@ async function registerForPushNotificationsAsync(userId) {
  */
 
 function AuthGuard() {
+  useTheme();
+
   const { isLoaded, isSignedIn, userId, getToken } = useAuth();
 
   /*
@@ -470,6 +472,8 @@ function AuthGuard() {
 const SPLASH_MINIMUM_MS = 1700;
 
 function SplashGate() {
+  useTheme();
+
   const { isLoaded } = useAuth();
 
   const [shownLongEnough, setShownLongEnough] = useState(false);
@@ -497,6 +501,8 @@ function SplashGate() {
 }
 
 export default function RootLayout() {
+  useTheme();
+
   /* In System mode, a change of phone mode lands on return. */
   useFollowSystem();
 

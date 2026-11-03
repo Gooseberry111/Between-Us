@@ -35,7 +35,7 @@ import { isLiquidGlassAvailable } from "expo-glass-effect";
 import * as Haptics from "expo-haptics";
 import Svg, { Circle } from "react-native-svg";
 
-import { SCHEME, T } from "../../lib/theme";
+import { T, themedStyles, useTheme } from "../../lib/theme";
 import Icon, { sfSymbol } from "./Icon";
 import { GlassButton, Press } from "./layout";
 import { KeyboardScroll, keyboardBehavior } from "./keyboard";
@@ -55,6 +55,8 @@ import { CropHost } from "../Cropper";
 
 /* .card — white, radius 20. */
 export function Card({ children, style, padded = true, inset = true }) {
+  useTheme();
+
   return (
     <View
       style={[
@@ -71,6 +73,8 @@ export function Card({ children, style, padded = true, inset = true }) {
 
 /* .group — an inset grouped list. */
 export function Group({ children, style, inset = 16 }) {
+  useTheme();
+
   const rows = (Array.isArray(children) ? children : [children]).filter(
     Boolean,
   );
@@ -106,6 +110,8 @@ export function Cell({
   destructive,
   centred,
 }) {
+  useTheme();
+
   const [held, setHeld] = useState(false);
 
   const body = (
@@ -183,6 +189,8 @@ function NativeButton({
   style,
   block,
 }) {
+  useTheme();
+
   const style_ = {
     filled: GLASS ? "glassProminent" : "borderedProminent",
     tinted: GLASS ? "glass" : "bordered",
@@ -215,7 +223,7 @@ function NativeButton({
   return (
     <View style={[fill ? styles.buttonBlock : styles.buttonCompact, style]}>
       <Host
-        colorScheme={SCHEME}
+        colorScheme={T.scheme}
         matchContents={fill ? { vertical: true } : true}
         style={fill ? styles.buttonHost : undefined}
       >
@@ -248,6 +256,8 @@ export function Button({
   style,
   block = true,
 }) {
+  useTheme();
+
   if (Platform.OS === "ios") {
     return (
       <NativeButton
@@ -318,6 +328,8 @@ export function Button({
 
 /* .chip — a 34pt capsule; solid accent when selected. */
 export function Chip({ label, selected, tinted, onPress, style }) {
+  useTheme();
+
   return (
     <Press onPress={onPress} style={style} scaleTo={0.94}>
       <View
@@ -346,6 +358,8 @@ export function Chip({ label, selected, tinted, onPress, style }) {
  * or the accent with a white gap around a filled dot.
  */
 export function Check({ on, onPress, label }) {
+  useTheme();
+
   return (
     <Press
       onPress={() => {
@@ -366,6 +380,8 @@ export function Check({ on, onPress, label }) {
 
 /* .seg — the real iOS control on iOS. */
 export function Segmented({ options, value, onChange, style }) {
+  useTheme();
+
   if (Platform.OS === "ios") {
     return (
       <View style={[styles.segmentWrap, style]}>
@@ -405,9 +421,11 @@ export function Segmented({ options, value, onChange, style }) {
 
 /* .sw — the system switch, with the accent track. */
 export function Toggle({ value, onChange }) {
+  useTheme();
+
   if (Platform.OS === "ios") {
     return (
-      <Host matchContents colorScheme={SCHEME}>
+      <Host matchContents colorScheme={T.scheme}>
         <SwiftToggle
           isOn={value}
           onIsOnChange={onChange}
@@ -430,6 +448,8 @@ export function Toggle({ value, onChange }) {
 
 /* .av — yours is purple, theirs is pink, always. */
 export function Avatar({ name, who = "them", size = 40, ring, style }) {
+  useTheme();
+
   const tint = who === "you" ? T.youTint : T.accentTint;
   const ink = who === "you" ? T.youText : T.accentText;
   const edge = who === "you" ? T.you : T.accent;
@@ -458,6 +478,8 @@ export function Avatar({ name, who = "them", size = 40, ring, style }) {
 
 /* .cal — the little date block on a list row. */
 export function DateBlock({ date, tone = "them" }) {
+  useTheme();
+
   if (!date) return null;
 
   const value = new Date(`${String(date).slice(0, 10)}T00:00:00`);
@@ -477,6 +499,8 @@ export function DateBlock({ date, tone = "them" }) {
 
 /* .love — the iMessage-style heart reaction. */
 export function LoveButton({ value, onChange }) {
+  useTheme();
+
   const pop = useRef(new Animated.Value(1)).current;
 
   const press = () => {
@@ -518,6 +542,8 @@ export function LoveButton({ value, onChange }) {
 
 /* .empty — a symbol, a title, a sentence, a first step. */
 export function Empty({ icon, title, text, chips, action }) {
+  useTheme();
+
   return (
     <Card style={styles.empty}>
       <View style={styles.emptyIcon}>
@@ -580,6 +606,8 @@ export function SheetHeader({
   doneLabel = "Save",
   doneDisabled,
 }) {
+  useTheme();
+
   const ios = Platform.OS === "ios";
 
   const close = onClose ? (
@@ -653,6 +681,8 @@ export function Sheet({
   dirty,
   children,
 }) {
+  useTheme();
+
   const insets = useSafeAreaInsets();
   const android = Platform.OS === "android";
 
@@ -737,6 +767,8 @@ export function Sheet({
 
 /* .ring — the Fitness-style progress ring. */
 export function Ring({ value, size = 54, label }) {
+  useTheme();
+
   const radius = size / 2 - 5;
   const circumference = 2 * Math.PI * radius;
 
@@ -784,7 +816,7 @@ export async function motionAllowed() {
   }
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   card: {
     backgroundColor: T.surface,
     borderRadius: 20,
@@ -1204,4 +1236,4 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: T.accentText,
   },
-});
+}));

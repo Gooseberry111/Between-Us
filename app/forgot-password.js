@@ -3,7 +3,7 @@ import { StyleSheet, View } from "react-native";
 import { useSignIn } from "@clerk/expo";
 import { useRouter } from "expo-router";
 
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import {
   AuthHeader,
   AuthScreen,
@@ -36,6 +36,8 @@ import {
  */
 
 export default function ForgotPasswordScreen() {
+  useTheme();
+
   const router = useRouter();
   const { signIn } = useSignIn();
 
@@ -358,7 +360,7 @@ export default function ForgotPasswordScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   progress: {
     flexDirection: "row",
     gap: 6,
@@ -376,4 +378,4 @@ const styles = StyleSheet.create({
   barOn: {
     backgroundColor: T.accent,
   },
-});
+}));

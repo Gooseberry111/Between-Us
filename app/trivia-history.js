@@ -7,7 +7,7 @@ import { apiFetch } from "../lib/api";
 import { timeAgo } from "../lib/activity";
 import { getCachedData, setCachedData } from "../lib/dataCache";
 import { useIsConnected } from "../lib/connection";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import { useMyName } from "../lib/useMyName";
 import {
   Avatar,
@@ -39,6 +39,8 @@ import { SkeletonList } from "../components/Skeleton";
  */
 
 function Stat({ value, label }) {
+  useTheme();
+
   return (
     <View style={styles.stat}>
       <Text style={styles.statValue}>{value}</Text>
@@ -49,6 +51,8 @@ function Stat({ value, label }) {
 }
 
 export default function TriviaHistoryScreen() {
+  useTheme();
+
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
   const connected = useIsConnected();
@@ -224,7 +228,7 @@ export default function TriviaHistoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   loading: {
     paddingHorizontal: 16,
   },
@@ -263,4 +267,4 @@ const styles = StyleSheet.create({
     alignSelf: "stretch",
     backgroundColor: T.separator,
   },
-});
+}));

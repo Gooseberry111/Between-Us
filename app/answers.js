@@ -7,7 +7,7 @@ import { EMPTY_ANSWERS, loadAnswers, saveAnswers } from "../lib/answers";
 import { clearCachedData } from "../lib/dataCache";
 import { isAnswered, notifyProfileSaved } from "../lib/profileProgress";
 import { birthdayError } from "../lib/validation";
-import { T } from "../lib/theme";
+import { T, useTheme } from "../lib/theme";
 import {
   Button,
   Cell,
@@ -88,6 +88,8 @@ function clip(text, length = 26) {
 }
 
 export default function AnswersScreen() {
+  useTheme();
+
   const router = useRouter();
   const { isLoaded, userId } = useAuth();
   const { user } = useUser();

@@ -13,7 +13,7 @@ import { useAuth } from "@clerk/expo";
 
 import { apiFetch } from "../lib/api";
 import { onHug } from "../lib/hugs";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import { Button, Icon, motionAllowed } from "./ui";
 
 /*
@@ -58,6 +58,8 @@ function heartbeat() {
 }
 
 export default function HugOverlay() {
+  useTheme();
+
   const { userId } = useAuth();
 
   const [hug, setHug] = useState(null);
@@ -235,7 +237,7 @@ export default function HugOverlay() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   root: {
     ...StyleSheet.absoluteFill,
     zIndex: 300,
@@ -312,4 +314,4 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 6,
   },
-});
+}));

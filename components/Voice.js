@@ -3,7 +3,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
 
 import { API_URL } from "../lib/api";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import { Icon } from "./ui";
 import { uploadMedia } from "./Photo";
 
@@ -56,12 +56,16 @@ async function readBase64(uri) {
  * `onSent(audioId, seconds)` once it is uploaded.
  */
 export function VoiceRecorder({ userId, onRecording, onSent }) {
+  useTheme();
+
   if (!Audio) return null;
 
   return <Recorder userId={userId} onRecording={onRecording} onSent={onSent} />;
 }
 
 function Recorder({ userId, onRecording, onSent }) {
+  useTheme();
+
   const recorder = Audio.useAudioRecorder(Audio.RecordingPresets.HIGH_QUALITY);
   const state = Audio.useAudioRecorderState(recorder, 250);
 
@@ -206,6 +210,8 @@ function Recorder({ userId, onRecording, onSent }) {
  * is, and a thin line filling as it plays.
  */
 export function VoicePlayer({ url, seconds, light }) {
+  useTheme();
+
   if (!Audio || !url) {
     return (
       <Text style={[styles.unavailable, light && styles.lightText]}>
@@ -218,6 +224,8 @@ export function VoicePlayer({ url, seconds, light }) {
 }
 
 function Player({ url, seconds, light }) {
+  useTheme();
+
   const player = Audio.useAudioPlayer({ uri: `${API_URL}${url}` });
   const status = Audio.useAudioPlayerStatus(player);
 
@@ -273,7 +281,7 @@ function Player({ url, seconds, light }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   mic: {
     width: 32,
     height: 32,
@@ -372,4 +380,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: T.label,
   },
-});
+}));

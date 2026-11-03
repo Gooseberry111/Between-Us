@@ -2,7 +2,7 @@ import { useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import * as Haptics from "expo-haptics";
 
-import { T } from "../../lib/theme";
+import { T, themedStyles, useTheme } from "../../lib/theme";
 import { Cell, Check, Group, GroupFooter, Icon } from "../ui";
 import DateInput from "../DateInput";
 
@@ -28,6 +28,8 @@ import DateInput from "../DateInput";
 const isOtherOption = (option) => /^other/i.test(String(option).trim());
 
 export default function QuestionCard({ question, value, onChange }) {
+  useTheme();
+
   const [writingOther, setWritingOther] = useState(false);
   const [otherText, setOtherText] = useState("");
 
@@ -190,7 +192,7 @@ export default function QuestionCard({ question, value, onChange }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   wrap: {
     gap: 14,
   },
@@ -237,4 +239,4 @@ const styles = StyleSheet.create({
     color: T.label,
     paddingVertical: 12,
   },
-});
+}));

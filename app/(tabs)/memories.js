@@ -15,7 +15,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { apiFetch } from "../../lib/api";
 import { getCachedData, setCachedData } from "../../lib/dataCache";
 import { useIsConnected } from "../../lib/connection";
-import { T } from "../../lib/theme";
+import { T, themedStyles, useTheme } from "../../lib/theme";
 import {
   Button,
   Card,
@@ -98,6 +98,8 @@ function groupLabel(iso) {
 }
 
 export default function TimelineScreen() {
+  useTheme();
+
   const router = useRouter();
   const features = useFeatures();
   const { isLoaded, isSignedIn, userId } = useAuth();
@@ -545,7 +547,7 @@ export default function TimelineScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   about: {
     fontSize: 13,
     lineHeight: 18,
@@ -714,4 +716,4 @@ const styles = StyleSheet.create({
     backgroundColor: T.separator,
     marginLeft: 16,
   },
-});
+}));

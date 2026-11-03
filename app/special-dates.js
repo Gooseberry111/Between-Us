@@ -13,7 +13,7 @@ import { apiFetch } from "../lib/api";
 import { chooseAction } from "../lib/actions";
 import { getCachedData, setCachedData } from "../lib/dataCache";
 import { useIsConnected } from "../lib/connection";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import {
   Button,
   Cell,
@@ -78,6 +78,8 @@ function countdown(days) {
 }
 
 export default function SpecialDatesScreen() {
+  useTheme();
+
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
   const connected = useIsConnected();
@@ -383,7 +385,7 @@ export default function SpecialDatesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   loading: {
     paddingHorizontal: 16,
   },
@@ -402,4 +404,4 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     minHeight: 50,
   },
-});
+}));

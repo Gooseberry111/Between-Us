@@ -3,7 +3,7 @@ import { ActivityIndicator } from "react-native";
 import { useSignIn, useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 
-import { T } from "../lib/theme";
+import { T, useTheme } from "../lib/theme";
 import {
   AuthHeader,
   AuthScreen,
@@ -28,6 +28,8 @@ import {
  */
 
 export default function SignInScreen() {
+  useTheme();
+
   const router = useRouter();
 
   const { signIn, errors } = useSignIn();

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Animated, Easing, StyleSheet, View } from "react-native";
 
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import { Glow, motionAllowed } from "./ui";
 
 /*
@@ -23,6 +23,8 @@ const OVERLAP = SIZE * 0.34;
 const APART = 46;
 
 export default function Splash({ leaving }) {
+  useTheme();
+
   const meet = useRef(new Animated.Value(0)).current;
   const breath = useRef(new Animated.Value(1)).current;
   const word = useRef(new Animated.Value(0)).current;
@@ -152,7 +154,7 @@ export default function Splash({ leaving }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   screen: {
     ...StyleSheet.absoluteFill,
     backgroundColor: T.appBackground,
@@ -197,4 +199,4 @@ const styles = StyleSheet.create({
     color: T.label,
     marginTop: 26,
   },
-});
+}));

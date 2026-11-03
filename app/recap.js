@@ -18,7 +18,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { apiFetch } from "../lib/api";
 import { useIsConnected } from "../lib/connection";
 import { useMyName } from "../lib/useMyName";
-import { T } from "../lib/theme";
+import { T, useTheme } from "../lib/theme";
 import { Icon, motionAllowed } from "../components/ui";
 import ConnectFirst from "../components/ConnectFirst";
 import { RemotePhoto } from "../components/Photo";
@@ -147,6 +147,8 @@ function buildSlides(data) {
 
 /* A number that counts up from zero as its slide opens. */
 function CountUp({ to, delay }) {
+  useTheme();
+
   const value = useRef(new Animated.Value(0)).current;
   const [shown, setShown] = useState(0);
 
@@ -170,6 +172,8 @@ function CountUp({ to, delay }) {
 }
 
 export default function RecapScreen() {
+  useTheme();
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();

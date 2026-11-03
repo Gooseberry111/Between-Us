@@ -5,7 +5,7 @@ import { useAuth } from "@clerk/expo";
 import * as SecureStore from "expo-secure-store";
 
 import { RETURNING_USER_KEY } from "../lib/auth";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import {
   AuthScreen,
   Button,
@@ -50,6 +50,8 @@ const WHAT_YOU_GET = [
 ];
 
 export default function WelcomeScreen() {
+  useTheme();
+
   const router = useRouter();
   const { isLoaded, isSignedIn } = useAuth();
 
@@ -147,7 +149,7 @@ export default function WelcomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   blank: {
     flex: 1,
     backgroundColor: T.appBackground,
@@ -194,4 +196,4 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingHorizontal: 32,
   },
-});
+}));

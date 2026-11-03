@@ -17,7 +17,7 @@ import {
   setCachedData,
 } from "../lib/dataCache";
 import { useIsConnected } from "../lib/connection";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import {
   Button,
   Cell,
@@ -64,6 +64,8 @@ function byWhen(date) {
 }
 
 export default function GoalsScreen() {
+  useTheme();
+
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
   const connected = useIsConnected();
@@ -494,7 +496,7 @@ export default function GoalsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   loading: {
     paddingHorizontal: 16,
   },
@@ -521,4 +523,4 @@ const styles = StyleSheet.create({
   fieldTall: {
     minHeight: 92,
   },
-});
+}));

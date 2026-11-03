@@ -6,7 +6,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 
 import { apiFetch } from "../lib/api";
 import { daysUntil, myTimeZone, timeIn } from "../lib/distance";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import { Button, Card, Icon, Press } from "./ui";
 import { RemotePhoto } from "./Photo";
 
@@ -56,6 +56,8 @@ function useOnFocus(path, pick) {
 }
 
 export function LetterWaiting({ partnerName }) {
+  useTheme();
+
   const router = useRouter();
 
   const ready = useOnFocus("letters", (data) =>
@@ -90,6 +92,8 @@ export function LetterWaiting({ partnerName }) {
 }
 
 export function OnThisDay() {
+  useTheme();
+
   const router = useRouter();
 
   const items = useOnFocus("on-this-day", (data) => data.items || []);
@@ -157,6 +161,8 @@ const TAP_BUTTONS = [
 ];
 
 export function Taps({ partnerName }) {
+  useTheme();
+
   const { userId } = useAuth();
   const [sent, setSent] = useState(null);
 
@@ -204,6 +210,8 @@ export function Taps({ partnerName }) {
 }
 
 export function Challenge() {
+  useTheme();
+
   const { userId } = useAuth();
   const [busy, setBusy] = useState(false);
   const [override, setOverride] = useState(null);
@@ -281,6 +289,8 @@ export function Challenge() {
  * time zone as Home opens, so theirs can show it too.
  */
 export function Distance({ partnerName }) {
+  useTheme();
+
   const { userId } = useAuth();
   const router = useRouter();
   const [data, setData] = useState(null);
@@ -355,7 +365,7 @@ export function Distance({ partnerName }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   letter: {
     flexDirection: "row",
     alignItems: "center",
@@ -533,4 +543,4 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: T.accent,
   },
-});
+}));

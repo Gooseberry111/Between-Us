@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import { Card, GlassButton, LargeTitle, NavBar, Screen, SubTitle } from "./ui";
 
 /*
@@ -16,6 +16,8 @@ import { Card, GlassButton, LargeTitle, NavBar, Screen, SubTitle } from "./ui";
  */
 
 export default function LegalPage({ title, updated, intro, sections }) {
+  useTheme();
+
   const router = useRouter();
 
   const goBack = () => {
@@ -56,7 +58,7 @@ export default function LegalPage({ title, updated, intro, sections }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   intro: {
     fontSize: 17,
     lineHeight: 24,
@@ -91,4 +93,4 @@ const styles = StyleSheet.create({
     color: T.label2,
     textAlign: "center",
   },
-});
+}));

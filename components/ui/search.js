@@ -6,7 +6,7 @@ import {
   View,
 } from "react-native";
 
-import { T } from "../../lib/theme";
+import { T, themedStyles, useTheme } from "../../lib/theme";
 import Icon from "./Icon";
 
 /*
@@ -21,6 +21,8 @@ export function SearchField({
   placeholder,
   ...input
 }) {
+  useTheme();
+
   return (
     <View style={styles.field}>
       <Icon name="search" size={17} color={T.label2} />
@@ -56,7 +58,7 @@ export function SearchField({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   field: {
     flexDirection: "row",
     alignItems: "center",
@@ -83,4 +85,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-});
+}));

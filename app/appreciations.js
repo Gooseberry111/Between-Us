@@ -21,7 +21,7 @@ import { apiFetch } from "../lib/api";
 import { chooseAction } from "../lib/actions";
 import { getCachedData, setCachedData } from "../lib/dataCache";
 import { useIsConnected } from "../lib/connection";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import { useDiscardGuard } from "../lib/useDiscardGuard";
 import {
   GlassButton,
@@ -72,6 +72,8 @@ function dayLabel(iso) {
 }
 
 export default function AppreciationsScreen() {
+  useTheme();
+
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
   const connected = useIsConnected();
@@ -266,6 +268,8 @@ function NotesThread({
   onRefresh,
   onBack,
 }) {
+  useTheme();
+
   const scroller = useRef(null);
   const [recording, setRecording] = useState(false);
 
@@ -472,7 +476,7 @@ function NotesThread({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   screen: {
     flex: 1,
     backgroundColor: T.appBackground,
@@ -667,4 +671,4 @@ const styles = StyleSheet.create({
   sendOff: {
     backgroundColor: T.label3,
   },
-});
+}));

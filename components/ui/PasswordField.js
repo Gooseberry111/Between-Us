@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { T } from "../../lib/theme";
+import { T, themedStyles, useTheme } from "../../lib/theme";
 
 /*
  * ==========================================
@@ -40,6 +40,8 @@ export default function PasswordField({
   textContentType = "password",
   onSubmitEditing,
 }) {
+  useTheme();
+
   const [revealed, setRevealed] = useState(false);
 
   const problem = showRule ? passwordProblem(value) : null;
@@ -87,7 +89,7 @@ export default function PasswordField({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   label: {
     fontSize: 13,
     fontWeight: "600",
@@ -128,4 +130,4 @@ const styles = StyleSheet.create({
   ruleOk: {
     color: "#1E8E3E",
   },
-});
+}));

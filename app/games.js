@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
 import { useIsConnected } from "../lib/connection";
-import { T } from "../lib/theme";
+import { T, useTheme } from "../lib/theme";
 import {
   Cell,
   GlassButton,
@@ -35,7 +35,7 @@ const GAMES = [
     items: [
       {
         icon: "flag",
-        tint: T.you,
+        tint: "you",
         title: "Four in a Row",
         text: "Turn by turn, in your own time",
         route: "/game",
@@ -47,14 +47,14 @@ const GAMES = [
     items: [
       {
         icon: "sparkle",
-        tint: T.accent,
+        tint: "accent",
         title: "This or That",
         text: "Ten quick picks each, then see where you match",
         route: "/rounds?kind=this_or_that",
       },
       {
         icon: "person",
-        tint: T.secondary,
+        tint: "secondary",
         title: "Who's More Likely To",
         text: "Point at each other, then see if you agree",
         route: "/rounds?kind=likely",
@@ -66,7 +66,7 @@ const GAMES = [
     items: [
       {
         icon: "bulb",
-        tint: T.green,
+        tint: "green",
         title: "Couple trivia",
         text: "Questions from what they told the app",
         route: "/trivia",
@@ -76,6 +76,8 @@ const GAMES = [
 ];
 
 export default function GamesScreen() {
+  useTheme();
+
   const router = useRouter();
   const connected = useIsConnected();
 
@@ -107,7 +109,9 @@ export default function GamesScreen() {
               <Cell
                 key={game.title}
                 leading={
-                  <View style={[styles.badge, { backgroundColor: game.tint }]}>
+                  <View
+                    style={[styles.badge, { backgroundColor: T[game.tint] }]}
+                  >
                     <Icon name={game.icon} size={17} color="#FFFFFF" filled />
                   </View>
                 }

@@ -20,7 +20,7 @@ import Svg, {
   Stop,
 } from "react-native-svg";
 
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import { motionAllowed } from "./ui";
 
 /*
@@ -93,6 +93,8 @@ export default function BondHero({
   onPickMood,
   onSendTap,
 }) {
+  useTheme();
+
   const [sent, setSent] = useState(false);
   const [animate, setAnimate] = useState(true);
 
@@ -664,6 +666,8 @@ const BURST = [
 ];
 
 function TapBurst({ onSend, name }) {
+  useTheme();
+
   const [open, setOpen] = useState(false);
   const [flying, setFlying] = useState(null);
 
@@ -788,7 +792,7 @@ function TapBurst({ onSend, name }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   wrap: {
     alignItems: "center",
     paddingTop: 2,
@@ -1094,4 +1098,4 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: T.label,
   },
-});
+}));

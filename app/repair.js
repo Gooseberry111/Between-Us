@@ -15,7 +15,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 
 import { apiFetch } from "../lib/api";
 import { useIsConnected } from "../lib/connection";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import { useDiscardGuard } from "../lib/useDiscardGuard";
 import {
   Avatar,
@@ -95,6 +95,8 @@ function pauseLabel(ms) {
 }
 
 export default function RepairScreen() {
+  useTheme();
+
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
   const connected = useIsConnected();
@@ -467,6 +469,8 @@ export default function RepairScreen() {
 }
 
 function Side({ side }) {
+  useTheme();
+
   if (!side) return null;
 
   return (
@@ -498,7 +502,7 @@ function Side({ side }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   screen: {
     flex: 1,
     backgroundColor: T.appBackground,
@@ -642,4 +646,4 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     color: T.label,
   },
-});
+}));

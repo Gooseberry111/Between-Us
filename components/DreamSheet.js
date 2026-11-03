@@ -17,7 +17,7 @@ import {
   newStepId,
   progressOf,
 } from "../lib/dreams";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import {
   Button,
   Card,
@@ -64,6 +64,8 @@ export default function DreamSheet({
   onChanged,
   onCompleted,
 }) {
+  useTheme();
+
   const editing = Boolean(dream);
 
   const [title, setTitle] = useState("");
@@ -564,7 +566,7 @@ export default function DreamSheet({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   coverCard: {
     overflow: "hidden",
   },
@@ -664,4 +666,4 @@ const styles = StyleSheet.create({
   stepTextDone: {
     color: T.label2,
   },
-});
+}));

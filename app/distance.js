@@ -5,7 +5,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 
 import { apiFetch } from "../lib/api";
 import { useIsConnected } from "../lib/connection";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import { daysUntil, myTimeZone, timeIn } from "../lib/distance";
 import {
   Button,
@@ -41,6 +41,8 @@ function place(zone) {
 }
 
 export default function DistanceScreen() {
+  useTheme();
+
   const router = useRouter();
   const { isLoaded, isSignedIn, userId } = useAuth();
   const connected = useIsConnected();
@@ -216,7 +218,7 @@ export default function DistanceScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   clocks: {
     flexDirection: "row",
     gap: 12,
@@ -280,4 +282,4 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     minHeight: 50,
   },
-});
+}));

@@ -1,7 +1,7 @@
 import { StyleSheet, View } from "react-native";
 
 import { timeAgo } from "../lib/activity";
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 import { Avatar, Cell, Icon, LoveButton } from "./ui";
 
 /*
@@ -24,6 +24,8 @@ function clip(text, length = 70) {
 }
 
 export default function ActivityRow({ item, name, mine, onPress, onLove }) {
+  useTheme();
+
   return (
     <Cell
       leading={
@@ -53,7 +55,7 @@ export default function ActivityRow({ item, name, mine, onPress, onLove }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   unread: {
     position: "absolute",
     top: -1,
@@ -69,4 +71,4 @@ const styles = StyleSheet.create({
   lovedMark: {
     paddingHorizontal: 4,
   },
-});
+}));

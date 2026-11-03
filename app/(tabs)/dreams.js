@@ -14,7 +14,7 @@ import { apiFetch } from "../../lib/api";
 import { getCachedData, setCachedData } from "../../lib/dataCache";
 import { useIsConnected } from "../../lib/connection";
 import { STARTERS, coverFor, hopingFor, progressOf } from "../../lib/dreams";
-import { T } from "../../lib/theme";
+import { T, themedStyles, useTheme } from "../../lib/theme";
 import {
   Card,
   Cell,
@@ -65,6 +65,8 @@ const SHOWN_STEPS = 5;
 const SHEET_HANDOFF_MS = 450;
 
 export default function DreamsScreen() {
+  useTheme();
+
   const router = useRouter();
   const { open: openId } = useLocalSearchParams();
   const { isLoaded, isSignedIn, userId } = useAuth();
@@ -547,6 +549,8 @@ export default function DreamsScreen() {
 
 /* The App Store's GET button: Add, or a check once it is on the board. */
 function GetPill({ added }) {
+  useTheme();
+
   return (
     <View style={[styles.get, added && styles.getAdded]}>
       {added ? <Icon name="check" size={12} color={T.accentText} /> : null}
@@ -556,7 +560,7 @@ function GetPill({ added }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   loading: {
     paddingHorizontal: 16,
   },
@@ -727,4 +731,4 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: T.accent,
   },
-});
+}));

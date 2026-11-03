@@ -13,7 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 
-import { T } from "../lib/theme";
+import { T, themedStyles, useTheme } from "../lib/theme";
 
 /*
  * ==========================================
@@ -78,6 +78,8 @@ export async function cropPhoto(asset, aspect) {
 }
 
 export function CropHost() {
+  useTheme();
+
   const [job, setJob] = useState(null);
 
   useEffect(() => {
@@ -107,6 +109,8 @@ function ratioLabel([w, h]) {
 }
 
 function CropView({ job, onFinish }) {
+  useTheme();
+
   const insets = useSafeAreaInsets();
   const { photo } = job;
 
@@ -443,7 +447,7 @@ function CropView({ job, onFinish }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   root: {
     flex: 1,
     backgroundColor: "#000000",
@@ -542,4 +546,4 @@ const styles = StyleSheet.create({
   shapeTextOn: {
     color: "#000000",
   },
-});
+}));
