@@ -539,6 +539,30 @@ export default function ProfileScreen() {
             />
 
             <Cell
+              leading={<Ionicons name="list" size={21} color={T.accent} />}
+              title="Lists"
+              chevron
+              onPress={() => router.push("/lists")}
+            />
+
+            <Cell
+              leading={
+                <Ionicons name="globe-outline" size={21} color={T.accent} />
+              }
+              title="Far apart"
+              subtitle="Both your times, and when you next meet"
+              chevron
+              onPress={() => router.push("/distance")}
+            />
+
+            <Cell
+              leading={<Ionicons name="sparkles" size={21} color={T.accent} />}
+              title="Monthly recap"
+              chevron
+              onPress={() => router.push("/recap")}
+            />
+
+            <Cell
               leading={<Ionicons name="gift" size={21} color={T.accent} />}
               title="Gift ideas"
               subtitle="Only you can see this"

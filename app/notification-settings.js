@@ -55,6 +55,7 @@ const NOTIFICATION_GROUPS = [
         icon: "sparkle",
       },
       { type: "tap", title: "Kisses and little somethings", icon: "heart" },
+      { type: "recap", title: "Your monthly recap", icon: "sparkle" },
       { type: "letter", title: "Letters, and when they open", icon: "mail" },
       {
         type: "letter_opened",

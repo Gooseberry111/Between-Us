@@ -34,8 +34,10 @@ import ActivityRow from "../../components/ActivityRow";
 import BondHero from "../../components/BondHero";
 import {
   Challenge,
+  Distance,
   LetterWaiting,
   OnThisDay,
+  RecapReady,
   Taps,
 } from "../../components/HomeExtras";
 import {
@@ -516,6 +518,10 @@ export default function HomeScreen() {
 
       <LetterWaiting partnerName={partnerName} />
 
+      <RecapReady />
+
+      <Distance partnerName={partnerName} />
+
       {/* A LITTLE SOMETHING */}
 
       <Taps partnerName={partnerName} />
@@ -649,6 +655,18 @@ export default function HomeScreen() {
           subtitle="Write one now, sealed until a day you choose"
           chevron
           onPress={() => router.push("/letters")}
+        />
+
+        <Cell
+          leading={
+            <View style={styles.repairIcon}>
+              <Icon name="list" size={16} color={T.accentText} />
+            </View>
+          }
+          title="Lists"
+          subtitle="Groceries, the house, things to watch"
+          chevron
+          onPress={() => router.push("/lists")}
         />
 
         <Cell

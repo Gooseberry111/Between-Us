@@ -62,6 +62,13 @@ Shared: `lib/api.js`, `lib/dataCache.js`, `lib/connection.js`, `lib/profileProgr
 - Glass buttons use the icon-only label style, so their names no longer show next to the symbol.
 - Insights rebuilt: an in-sync ring, the traits you share as a list, each difference as a card with a way in, love languages side by side, and one thing to try this week.
 
+## Added (seventh pass)
+
+- Private and comfortable: dark mode (a second Velvet palette, chosen from the phone's setting as the app opens) and an app lock (Face ID, Touch ID or fingerprint; the passcode in Expo Go on iPhone), switched on in Profile.
+- Keepsakes: time-capsule letters sealed until a chosen day, a private gift-ideas list with reminders two weeks before their birthday and your anniversary, and On This Day on Home.
+- Fun: a Games hub; This or That and Who's More Likely To (ten prompts each, answered alone, revealed side by side); kisses and other little somethings with their own animation; a weekly love challenge picked for how your partner likes to be loved.
+- Everyday: shared lists (groceries, the house, things to watch, and your own), voice notes in Notes, Far Apart (both local times and a countdown to when you meet), and a monthly recap on the first of each month.
+
 ## Changed (sixth pass, Android round)
 
 - Android tab bar: white, with a soft plum pill behind the selected tab and plum label (iOS keeps the system glass).

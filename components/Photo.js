@@ -55,24 +55,29 @@ export async function pickPhoto({ aspect = [16, 10] } = {}) {
   return { uri: asset.uri, base64: asset.base64 };
 }
 
-/* Sends one photo to the media store. Resolves to its id. */
-export async function uploadPhoto(userId, base64) {
+/* Sends one file to the media store. Resolves to its id. */
+export async function uploadMedia(userId, base64, contentType) {
   const response = await apiFetch(`/users/${userId}/media`, {
     method: "POST",
     body: JSON.stringify({
       clerk_id: userId,
       data: base64,
-      content_type: "image/jpeg",
+      content_type: contentType,
     }),
   });
 
   const data = await response.json().catch(() => null);
 
   if (!response.ok || !data?.id) {
-    throw new Error(data?.error || "That photo didn't upload.");
+    throw new Error(data?.error || "That didn't upload.");
   }
 
   return data.id;
+}
+
+/* Sends one photo to the media store. Resolves to its id. */
+export function uploadPhoto(userId, base64) {
+  return uploadMedia(userId, base64, "image/jpeg");
 }
 
 /*

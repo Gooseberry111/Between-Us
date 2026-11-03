@@ -32,6 +32,11 @@ import {
   keyboardBehavior,
 } from "../components/ui";
 import ConnectFirst from "../components/ConnectFirst";
+import {
+  VoicePlayer,
+  VoiceRecorder,
+  voiceAvailable,
+} from "../components/Voice";
 import { SkeletonList } from "../components/Skeleton";
 
 /*
@@ -152,6 +157,31 @@ export default function AppreciationsScreen() {
     }
   };
 
+  /* A voice note, already uploaded by the recorder. */
+  const sendVoice = async (audioId, seconds) => {
+    try {
+      const response = await apiFetch(`/users/${userId}/appreciations`, {
+        method: "POST",
+        body: JSON.stringify({ audio_id: audioId, audio_seconds: seconds }),
+      });
+
+      const json = await response.json();
+
+      if (!response.ok) throw new Error(json?.error || "Unable to send that.");
+
+      const list = Array.isArray(json?.appreciations) ? json.appreciations : [];
+
+      setNotes(list);
+
+      if (cacheKey) setCachedData(cacheKey, list);
+    } catch (err) {
+      Alert.alert(
+        "Something went wrong",
+        err?.message || "Unable to send that.",
+      );
+    }
+  };
+
   const remove = (note) => {
     Alert.alert("Delete this note?", "It will be removed for both of you.", [
       { text: "Cancel", style: "cancel" },
@@ -207,6 +237,8 @@ export default function AppreciationsScreen() {
       sending={sending}
       onDraft={setDraft}
       onSend={send}
+      onSendVoice={sendVoice}
+      userId={userId}
       onRemove={remove}
       onRefresh={() => {
         setRefreshing(true);
@@ -229,11 +261,14 @@ function NotesThread({
   sending,
   onDraft,
   onSend,
+  onSendVoice,
+  userId,
   onRemove,
   onRefresh,
   onBack,
 }) {
   const scroller = useRef(null);
+  const [recording, setRecording] = useState(false);
 
   /* Oldest at the top, like any conversation. */
   const thread = [...notes].sort(
@@ -340,14 +375,22 @@ function NotesThread({
                       row.note.mine ? styles.bubbleMine : styles.bubbleTheirs,
                     ]}
                   >
-                    <Text
-                      style={[
-                        styles.bubbleText,
-                        row.note.mine && styles.bubbleTextMine,
-                      ]}
-                    >
-                      {row.note.message}
-                    </Text>
+                    {row.note.audio_id ? (
+                      <VoicePlayer
+                        url={row.note.audio_url}
+                        seconds={row.note.audio_seconds}
+                        light={row.note.mine}
+                      />
+                    ) : (
+                      <Text
+                        style={[
+                          styles.bubbleText,
+                          row.note.mine && styles.bubbleTextMine,
+                        ]}
+                      >
+                        {row.note.message}
+                      </Text>
+                    )}
                   </View>
 
                   {!row.note.mine && row.note.from_first_name ? (
@@ -360,7 +403,7 @@ function NotesThread({
         </ScrollView>
 
         {/* A way in when the box is empty. */}
-        {!draft ? (
+        {!draft && !recording ? (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -379,35 +422,48 @@ function NotesThread({
         ) : null}
 
         <View style={styles.composer}>
-          <TextInput
-            value={draft}
-            onChangeText={onDraft}
-            placeholder="Say thank you…"
-            placeholderTextColor={T.label3}
-            style={styles.input}
-            multiline
-          />
+          {!recording ? (
+            <TextInput
+              value={draft}
+              onChangeText={onDraft}
+              placeholder="Say thank you…"
+              placeholderTextColor={T.label3}
+              style={styles.input}
+              multiline
+            />
+          ) : null}
 
-          <Pressable
-            onPress={onSend}
-            disabled={!draft.trim() || sending}
-            accessibilityRole="button"
-            accessibilityLabel="Send"
-            hitSlop={8}
-          >
-            <View
-              style={[
-                styles.send,
-                (!draft.trim() || sending) && styles.sendOff,
-              ]}
+          {/* No text yet: the mic, which becomes the recording bar. */}
+          {!draft.trim() && voiceAvailable ? (
+            <VoiceRecorder
+              userId={userId}
+              onRecording={setRecording}
+              onSent={onSendVoice}
+            />
+          ) : null}
+
+          {recording ? null : (
+            <Pressable
+              onPress={onSend}
+              disabled={!draft.trim() || sending}
+              accessibilityRole="button"
+              accessibilityLabel="Send"
+              hitSlop={8}
             >
-              {sending ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Icon name="arrowUp" size={16} color="#FFFFFF" />
-              )}
-            </View>
-          </Pressable>
+              <View
+                style={[
+                  styles.send,
+                  (!draft.trim() || sending) && styles.sendOff,
+                ]}
+              >
+                {sending ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Icon name="arrowUp" size={16} color="#FFFFFF" />
+                )}
+              </View>
+            </Pressable>
+          )}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

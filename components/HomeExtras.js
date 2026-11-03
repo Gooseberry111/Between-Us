@@ -5,6 +5,7 @@ import { useAuth } from "@clerk/expo";
 import { useFocusEffect, useRouter } from "expo-router";
 
 import { apiFetch } from "../lib/api";
+import { daysUntil, myTimeZone, timeIn } from "../lib/distance";
 import { T } from "../lib/theme";
 import { Button, Card, Icon, Press } from "./ui";
 import { RemotePhoto } from "./Photo";
@@ -274,6 +275,115 @@ export function Challenge() {
   );
 }
 
+/*
+ * Far apart: their local time when it differs from yours,
+ * and the countdown to when you next meet. Shares your
+ * time zone as Home opens, so theirs can show it too.
+ */
+export function Distance({ partnerName }) {
+  const { userId } = useAuth();
+  const router = useRouter();
+  const [data, setData] = useState(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      let live = true;
+
+      if (!userId) return undefined;
+
+      apiFetch(`/users/${userId}/distance`, {
+        method: "PUT",
+        body: JSON.stringify({ clerk_id: userId, timezone: myTimeZone() }),
+      })
+        .then((response) => (response.ok ? response.json() : null))
+        .then((value) => {
+          if (live && value) setData(value);
+        })
+        .catch(() => {});
+
+      return () => {
+        live = false;
+      };
+    }, [userId]),
+  );
+
+  if (!data) return null;
+
+  const apart =
+    data.partner_timezone &&
+    data.my_timezone &&
+    data.partner_timezone !== data.my_timezone &&
+    timeIn(data.partner_timezone) !== timeIn(data.my_timezone);
+
+  const days = daysUntil(data.next_meet);
+  const counting = days !== null && days >= 0;
+
+  if (!apart && !counting) return null;
+
+  return (
+    <Press onPress={() => router.push("/distance")}>
+      <Card style={styles.distance}>
+        {apart ? (
+          <View style={styles.distanceSide}>
+            <Text style={styles.distanceBig}>
+              {timeIn(data.partner_timezone)}
+            </Text>
+
+            <Text style={styles.sub}>for {partnerName}</Text>
+          </View>
+        ) : null}
+
+        {apart && counting ? <View style={styles.distanceRule} /> : null}
+
+        {counting ? (
+          <View style={styles.distanceSide}>
+            <Text style={[styles.distanceBig, { color: T.you }]}>
+              {days === 0 ? "Today" : days}
+            </Text>
+
+            <Text style={styles.sub}>
+              {days === 0
+                ? "you see each other"
+                : days === 1
+                  ? "day until you meet"
+                  : "days until you meet"}
+            </Text>
+          </View>
+        ) : null}
+      </Card>
+    </Press>
+  );
+}
+
+/* In the first week of a month, last month's recap. */
+export function RecapReady() {
+  const router = useRouter();
+  const now = new Date();
+
+  if (now.getDate() > 7) return null;
+
+  const last = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const name = last.toLocaleDateString(undefined, { month: "long" });
+
+  return (
+    <Press onPress={() => router.push("/recap")}>
+      <Card style={styles.letter}>
+        <View style={[styles.seal, { backgroundColor: T.secondary }]}>
+          <Icon name="sparkle" size={18} color="#FFFFFF" />
+        </View>
+
+        <View style={styles.text}>
+          <Text style={styles.title}>Your {name} together</Text>
+
+          <Text style={styles.sub}>Hugs, answers, dates and a photo</Text>
+        </View>
+
+        <Icon name="chevron" size={16} color={T.label3} />
+      </Card>
+    </Press>
+  );
+}
+
 const styles = StyleSheet.create({
   letter: {
     flexDirection: "row",
@@ -427,5 +537,29 @@ const styles = StyleSheet.create({
 
   challengeButton: {
     marginTop: 8,
+  },
+
+  distance: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  distanceSide: {
+    flex: 1,
+    alignItems: "center",
+  },
+
+  distanceRule: {
+    width: StyleSheet.hairlineWidth,
+    alignSelf: "stretch",
+    backgroundColor: T.separator,
+  },
+
+  distanceBig: {
+    fontFamily: "ui-rounded",
+    fontSize: 30,
+    lineHeight: 36,
+    fontWeight: "700",
+    color: T.accent,
   },
 });

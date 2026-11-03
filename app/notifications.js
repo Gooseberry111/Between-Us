@@ -45,6 +45,7 @@ const KINDS = {
   game_turn: { icon: "sparkle", tint: T.accent, to: "/game" },
   letter: { icon: "mail", tint: T.you, to: "/letters" },
   round: { icon: "sparkle", tint: T.accent, to: "/games" },
+  recap: { icon: "sparkle", tint: T.secondary, to: "/recap" },
   tap: { icon: "heart", tint: T.you, to: "/(tabs)/home" },
   letter_opened: { icon: "envelopeOpen", tint: T.accent, to: "/letters" },
   gift_reminder: { icon: "heart", tint: T.secondary, to: "/wishlist" },

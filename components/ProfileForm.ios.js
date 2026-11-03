@@ -176,6 +176,18 @@ export default function ProfileForm({
             <Label title="Letters" systemImage="envelope" />
           </Button>
 
+          <Button onPress={() => onOpen("/lists")}>
+            <Label title="Lists" systemImage="checklist" />
+          </Button>
+
+          <Button onPress={() => onOpen("/distance")}>
+            <Label title="Far apart" systemImage="globe" />
+          </Button>
+
+          <Button onPress={() => onOpen("/recap")}>
+            <Label title="Monthly recap" systemImage="sparkles" />
+          </Button>
+
           <Button onPress={() => onOpen("/wishlist")}>
             <Label title="Gift ideas" systemImage="gift" />
           </Button>

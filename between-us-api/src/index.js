@@ -1033,6 +1033,43 @@ async function ensureSchema(sql) {
 		)
 	`;
 
+	/* A note can be a voice note: the recording lives in the media store. */
+	await sql`ALTER TABLE appreciations ADD COLUMN IF NOT EXISTS audio_id TEXT`;
+	await sql`ALTER TABLE appreciations ADD COLUMN IF NOT EXISTS audio_seconds INTEGER`;
+
+	/* Shared lists: groceries, the house, things to watch. */
+	await sql`
+		CREATE TABLE IF NOT EXISTS lists (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			connection_id UUID NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
+			title TEXT NOT NULL,
+			emoji TEXT,
+			created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+		)
+	`;
+
+	await sql`
+		CREATE TABLE IF NOT EXISTS list_items (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			list_id UUID NOT NULL REFERENCES lists(id) ON DELETE CASCADE,
+			text TEXT NOT NULL,
+			done BOOLEAN NOT NULL DEFAULT false,
+			created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+			done_by UUID REFERENCES users(id) ON DELETE SET NULL,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+		)
+	`;
+
+	await sql`
+		CREATE INDEX IF NOT EXISTS list_items_list_idx
+			ON list_items (list_id, done, created_at)
+	`;
+
+	/* Long distance: where each of you is, and when you next meet. */
+	await sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS timezone TEXT`;
+	await sql`ALTER TABLE connections ADD COLUMN IF NOT EXISTS next_meet DATE`;
+
 	schemaReady = true;
 }
 
@@ -1852,6 +1889,34 @@ export default {
 							title: 'Your anniversary is in two weeks',
 							message: `You have ${ideas} gift ${plural} saved.`,
 							dedupeKey: `gift-anniversary:${owner}:${todayIso}`,
+						});
+					}
+				}
+			}
+
+			/*
+			 * ==========================================
+			 * 13. MONTHLY RECAP — the morning of the 1st
+			 * ==========================================
+			 */
+			if (today.getUTCDate() === 1 && today.getUTCHours() === 9) {
+				const lastMonth = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - 1, 1));
+				const monthName = lastMonth.toLocaleString('en-GB', { month: 'long', timeZone: 'UTC' });
+				const monthKey = lastMonth.toISOString().slice(0, 7);
+
+				for (const connection of connections) {
+					for (const [userId, pushToken, preferences] of [
+						[connection.user_one, connection.user_one_push_token, connection.user_one_preferences],
+						[connection.user_two, connection.user_two_push_token, connection.user_two_preferences],
+					]) {
+						await notifyUser(sql, {
+							userId,
+							pushToken,
+							preferences,
+							type: 'recap',
+							title: `Your ${monthName} together`,
+							message: 'Answers, hugs, dates and a photo. Take a look back.',
+							dedupeKey: `recap:${monthKey}`,
 						});
 					}
 				}
@@ -6927,7 +6992,9 @@ VALUES (
 
 				if (request.method === 'POST') {
 					const body = await request.json();
-					const message = body?.message?.trim();
+					const audioId = cleanKey(body?.audio_id);
+					const audioSeconds = Number.isFinite(Number(body?.audio_seconds)) ? Math.min(600, Math.round(Number(body.audio_seconds))) : null;
+					const message = body?.message?.trim() || (audioId ? 'A voice note' : '');
 
 					if (!message) {
 						return Response.json({ error: 'message is required' }, { status: 400 });
@@ -6935,10 +7002,10 @@ VALUES (
 
 					await sql`
             INSERT INTO appreciations (
-              connection_id, from_user_id, to_user_id, message
+              connection_id, from_user_id, to_user_id, message, audio_id, audio_seconds
             )
             VALUES (
-              ${connection.id}, ${userId}, ${partnerId}, ${message}
+              ${connection.id}, ${userId}, ${partnerId}, ${message}, ${audioId}, ${audioSeconds}
             )
           `;
 
@@ -6978,6 +7045,8 @@ VALUES (
             a.from_user_id,
             a.to_user_id,
             a.message,
+            a.audio_id,
+            a.audio_seconds,
             a.created_at,
             p.first_name AS from_first_name
           FROM appreciations a
@@ -6988,10 +7057,13 @@ VALUES (
         `;
 
 				return Response.json({
-					appreciations: notes.map((row) => ({
-						...row,
-						mine: row.from_user_id === userId,
-					})),
+					appreciations: await Promise.all(
+						notes.map(async (row) => ({
+							...row,
+							mine: row.from_user_id === userId,
+							audio_url: await signedMediaPath(env, row.audio_id),
+						})),
+					),
 				});
 			}
 
@@ -7319,6 +7391,307 @@ VALUES (
 						mine: row.created_by === userId,
 						planner_name: row.planner_nickname?.trim() || row.planner_first_name?.trim() || 'Someone',
 					})),
+				});
+			}
+
+			/*
+			 * ==========================================
+			 * SHARED LISTS
+			 * ==========================================
+			 *
+			 * GET    /users/:clerkId/lists                     every list, with counts
+			 * POST   /users/:clerkId/lists                     { title, emoji }
+			 * GET    /users/:clerkId/lists/:id                 one list and its items
+			 * DELETE /users/:clerkId/lists/:id
+			 * POST   /users/:clerkId/lists/:id/items           { text }
+			 * PATCH  /users/:clerkId/lists/:id/items/:item     { done, text }
+			 * DELETE /users/:clerkId/lists/:id/items/:item
+			 *
+			 * A couple's first look gets three lists to start with.
+			 */
+
+			const listsMatch = url.pathname.match(/^\/users\/([^/]+)\/lists$/);
+			const listMatch = url.pathname.match(/^\/users\/([^/]+)\/lists\/([0-9a-f-]{36})$/);
+			const listItemsMatch = url.pathname.match(/^\/users\/([^/]+)\/lists\/([0-9a-f-]{36})\/items$/);
+			const listItemMatch = url.pathname.match(/^\/users\/([^/]+)\/lists\/([0-9a-f-]{36})\/items\/([0-9a-f-]{36})$/);
+
+			if (listsMatch || listMatch || listItemsMatch || listItemMatch) {
+				await ensureSchema(sql);
+
+				const match = listsMatch || listMatch || listItemsMatch || listItemMatch;
+				const couple = await coupleFor(sql, match[1]);
+
+				if (couple.error) return couple.error;
+
+				const { me, connection } = couple;
+				const clean = (value, length) => String(value ?? '').trim().slice(0, length);
+
+				if (listsMatch && request.method === 'GET') {
+					let lists = await sql`
+            SELECT
+              l.id, l.title, l.emoji, l.created_at,
+              COUNT(i.id) FILTER (WHERE i.done = false)::int AS open_count,
+              COUNT(i.id)::int AS total_count
+            FROM lists l
+            LEFT JOIN list_items i ON i.list_id = l.id
+            WHERE l.connection_id = ${connection.id}
+            GROUP BY l.id
+            ORDER BY l.created_at ASC
+          `;
+
+					if (lists.length === 0) {
+						for (const [title, emoji] of [
+							['Groceries', '🛒'],
+							['Around the house', '🏠'],
+							['To watch together', '🎬'],
+						]) {
+							await sql`
+                INSERT INTO lists (connection_id, title, emoji, created_by)
+                VALUES (${connection.id}, ${title}, ${emoji}, ${me.id})
+              `;
+						}
+
+						lists = await sql`
+              SELECT id, title, emoji, created_at, 0 AS open_count, 0 AS total_count
+              FROM lists WHERE connection_id = ${connection.id}
+              ORDER BY created_at ASC
+            `;
+					}
+
+					return Response.json({ lists });
+				}
+
+				if (listsMatch && request.method === 'POST') {
+					const body = await request.json().catch(() => ({}));
+					const title = clean(body?.title, 60);
+
+					if (!title) return Response.json({ error: 'Name the list.' }, { status: 400 });
+
+					const created = (
+						await sql`
+              INSERT INTO lists (connection_id, title, emoji, created_by)
+              VALUES (${connection.id}, ${title}, ${clean(body?.emoji, 8) || null}, ${me.id})
+              RETURNING id, title, emoji, created_at
+            `
+					)[0];
+
+					return Response.json({ list: { ...created, open_count: 0, total_count: 0 } }, { status: 201 });
+				}
+
+				const listId = match[2];
+
+				const list = (
+					await sql`
+            SELECT id, title, emoji FROM lists WHERE id = ${listId} AND connection_id = ${connection.id} LIMIT 1
+          `
+				)[0];
+
+				if (!list) return Response.json({ error: 'That list is not here.' }, { status: 404 });
+
+				const items = async () =>
+					sql`
+            SELECT id, text, done, created_by, done_by, created_at
+            FROM list_items
+            WHERE list_id = ${list.id}
+            ORDER BY done ASC, created_at ASC
+          `;
+
+				if (listMatch && request.method === 'GET') {
+					return Response.json({ list, items: await items() });
+				}
+
+				if (listMatch && request.method === 'DELETE') {
+					await sql`DELETE FROM lists WHERE id = ${list.id}`;
+
+					return Response.json({ deleted: true });
+				}
+
+				if (listItemsMatch && request.method === 'POST') {
+					const body = await request.json().catch(() => ({}));
+					const text = clean(body?.text, 200);
+
+					if (!text) return Response.json({ error: 'Write something.' }, { status: 400 });
+
+					await sql`
+            INSERT INTO list_items (list_id, text, created_by) VALUES (${list.id}, ${text}, ${me.id})
+          `;
+
+					return Response.json({ list, items: await items() }, { status: 201 });
+				}
+
+				if (listItemMatch && (request.method === 'PATCH' || request.method === 'DELETE')) {
+					const item = (
+						await sql`
+              SELECT * FROM list_items WHERE id = ${listItemMatch[3]} AND list_id = ${list.id} LIMIT 1
+            `
+					)[0];
+
+					if (!item) return Response.json({ error: 'That item is not here.' }, { status: 404 });
+
+					if (request.method === 'DELETE') {
+						await sql`DELETE FROM list_items WHERE id = ${item.id}`;
+					} else {
+						const body = await request.json().catch(() => ({}));
+						const done = body?.done !== undefined ? Boolean(body.done) : item.done;
+						const text = body?.text !== undefined ? clean(body.text, 200) || item.text : item.text;
+
+						await sql`
+              UPDATE list_items
+              SET done = ${done}, text = ${text}, done_by = ${done ? me.id : null}
+              WHERE id = ${item.id}
+            `;
+					}
+
+					return Response.json({ list, items: await items() });
+				}
+			}
+
+			/*
+			 * ==========================================
+			 * LONG DISTANCE
+			 * ==========================================
+			 *
+			 * GET /users/:clerkId/distance    both time zones, and the day you next meet
+			 * PUT /users/:clerkId/distance    { timezone, next_meet }
+			 */
+
+			const distanceMatch = url.pathname.match(/^\/users\/([^/]+)\/distance$/);
+
+			if (distanceMatch && (request.method === 'GET' || request.method === 'PUT')) {
+				await ensureSchema(sql);
+
+				const couple = await coupleFor(sql, distanceMatch[1]);
+
+				if (couple.error) return couple.error;
+
+				const { me, connection, partner } = couple;
+
+				if (request.method === 'PUT') {
+					const body = await request.json().catch(() => ({}));
+
+					/* An IANA zone name, like Europe/London. */
+					if (body?.timezone !== undefined) {
+						const zone = String(body.timezone || '').trim();
+
+						if (zone && /^[A-Za-z_]+(\/[A-Za-z0-9_+-]+)*$/.test(zone)) {
+							await sql`UPDATE profiles SET timezone = ${zone} WHERE user_id = ${me.id}`;
+						}
+					}
+
+					if (body?.next_meet !== undefined) {
+						const day = body.next_meet ? toIsoDate(body.next_meet) : null;
+
+						if (day === null || /^\d{4}-\d{2}-\d{2}$/.test(day)) {
+							await sql`UPDATE connections SET next_meet = ${day} WHERE id = ${connection.id}`;
+						}
+					}
+				}
+
+				const zones = await sql`
+          SELECT user_id, timezone FROM profiles WHERE user_id IN (${me.id}, ${partner.id})
+        `;
+
+				const meet = (await sql`SELECT next_meet FROM connections WHERE id = ${connection.id}`)[0]?.next_meet;
+
+				return Response.json({
+					my_timezone: zones.find((row) => row.user_id === me.id)?.timezone || null,
+					partner_timezone: zones.find((row) => row.user_id === partner.id)?.timezone || null,
+					next_meet: meet ? toIsoDate(meet) : null,
+				});
+			}
+
+			/*
+			 * ==========================================
+			 * MONTHLY RECAP
+			 * ==========================================
+			 *
+			 * GET /users/:clerkId/recap?month=YYYY-MM
+			 *
+			 * The month the two of you had, in numbers and one photo.
+			 * Defaults to last month.
+			 */
+
+			const recapMatch = url.pathname.match(/^\/users\/([^/]+)\/recap$/);
+
+			if (recapMatch && request.method === 'GET') {
+				await ensureSchema(sql);
+
+				const couple = await coupleFor(sql, recapMatch[1]);
+
+				if (couple.error) return couple.error;
+
+				const { me, connection, partner } = couple;
+
+				const now = new Date();
+				const fallback = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+				const asked = url.searchParams.get('month');
+				const month = /^\d{4}-\d{2}$/.test(asked || '') ? asked : fallback.toISOString().slice(0, 7);
+
+				const [year, monthNumber] = month.split('-').map(Number);
+				const from = new Date(Date.UTC(year, monthNumber - 1, 1)).toISOString();
+				const to = new Date(Date.UTC(year, monthNumber, 1)).toISOString();
+
+				const count = async (query) => (await query)[0]?.n || 0;
+
+				const pair = [connection.user_one, connection.user_two];
+
+				const stats = {
+					answers: await count(sql`
+            SELECT COUNT(*)::int AS n FROM daily_answers
+            WHERE connection_id = ${connection.id} AND created_at >= ${from} AND created_at < ${to}
+          `),
+					hugs: await count(sql`
+            SELECT COUNT(*)::int AS n FROM activity
+            WHERE connection_id = ${connection.id} AND kind = 'hug' AND created_at >= ${from} AND created_at < ${to}
+          `),
+					taps: await count(sql`
+            SELECT COUNT(*)::int AS n FROM activity
+            WHERE connection_id = ${connection.id} AND kind = 'tap' AND created_at >= ${from} AND created_at < ${to}
+          `),
+					notes: await count(sql`
+            SELECT COUNT(*)::int AS n FROM appreciations
+            WHERE connection_id = ${connection.id} AND created_at >= ${from} AND created_at < ${to}
+          `),
+					memories: await count(sql`
+            SELECT COUNT(*)::int AS n FROM memories
+            WHERE user_one = ANY(${pair}) AND user_two = ANY(${pair}) AND created_at >= ${from} AND created_at < ${to}
+          `),
+					dates: await count(sql`
+            SELECT COUNT(*)::int AS n FROM date_plans
+            WHERE connection_id = ${connection.id} AND status = 'done' AND updated_at >= ${from} AND updated_at < ${to}
+          `),
+					dreams: await count(sql`
+            SELECT COUNT(*)::int AS n FROM dreams
+            WHERE connection_id = ${connection.id} AND is_completed = true AND completed_at >= ${from} AND completed_at < ${to}
+          `),
+					letters: await count(sql`
+            SELECT COUNT(*)::int AS n FROM letters
+            WHERE connection_id = ${connection.id} AND created_at >= ${from} AND created_at < ${to}
+          `),
+					my_wins: await count(sql`
+            SELECT COUNT(*)::int AS n FROM games
+            WHERE connection_id = ${connection.id} AND winner = ${me.id} AND updated_at >= ${from} AND updated_at < ${to}
+          `),
+					their_wins: await count(sql`
+            SELECT COUNT(*)::int AS n FROM games
+            WHERE connection_id = ${connection.id} AND winner = ${partner.id} AND updated_at >= ${from} AND updated_at < ${to}
+          `),
+				};
+
+				const photo = (
+					await sql`
+            SELECT photo_id, title FROM memories
+            WHERE user_one = ANY(${pair}) AND user_two = ANY(${pair})
+              AND photo_id IS NOT NULL AND created_at >= ${from} AND created_at < ${to}
+            ORDER BY created_at DESC
+            LIMIT 1
+          `
+				)[0];
+
+				return Response.json({
+					month,
+					stats,
+					photo: photo ? { id: photo.photo_id, url: await signedMediaPath(env, photo.photo_id), title: photo.title } : null,
 				});
 			}
 
@@ -8614,7 +8987,10 @@ VALUES (
 				const body = await request.json();
 
 				const base64 = String(body?.data || '');
-				const contentType = ['image/jpeg', 'image/png', 'image/webp'].includes(body?.content_type)
+				/* Photos, and voice notes from the phone's recorder. */
+				const contentType = ['image/jpeg', 'image/png', 'image/webp', 'audio/mp4', 'audio/m4a', 'audio/aac', 'audio/mpeg'].includes(
+					body?.content_type,
+				)
 					? body.content_type
 					: 'image/jpeg';
 
