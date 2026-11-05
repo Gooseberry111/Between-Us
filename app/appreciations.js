@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   KeyboardAvoidingView,
+  PanResponder,
   Platform,
   Pressable,
   RefreshControl,
@@ -13,24 +15,39 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 
 import { apiFetch } from "../lib/api";
 import { onLive } from "../lib/live";
-import { chooseAction } from "../lib/actions";
 import { getCachedData, setCachedData } from "../lib/dataCache";
 import { useIsConnected } from "../lib/connection";
 import { T, themedStyles, useTheme } from "../lib/theme";
 import { useDiscardGuard } from "../lib/useDiscardGuard";
 import {
+  BUBBLES,
+  WALLPAPERS,
+  bubbleFor,
+  useNoteStyle,
+  wallpaperFor,
+} from "../lib/noteStyle";
+import {
+  Avatar,
   GlassButton,
   Icon,
   Mark,
   Notice,
+  Sheet,
   keyboardBehavior,
 } from "../components/ui";
+import {
+  RemotePhoto,
+  photosAvailable,
+  pickPhoto,
+  uploadPhoto,
+} from "../components/Photo";
 import ConnectFirst from "../components/ConnectFirst";
 import {
   VoicePlayer,
@@ -50,7 +67,9 @@ import { SkeletonList } from "../components/Skeleton";
  * rose on the right, theirs in plum on the left, newest
  * at the bottom, and the box to write in always there.
  *
- * Hold one of yours to delete it.
+ * Swipe a note to the right to answer it. Notes are never
+ * deleted: what was said stays, for both of you. Each of
+ * you can pick your bubble colours and a wallpaper.
  */
 
 const STARTERS = ["Thank you for ", "I noticed ", "I loved it when "];
@@ -202,41 +221,6 @@ export default function AppreciationsScreen() {
     }
   };
 
-  const remove = (note) => {
-    Alert.alert("Delete this note?", "It will be removed for both of you.", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            const response = await apiFetch(
-              `/users/${userId}/appreciations/${note.id}`,
-              { method: "DELETE" },
-            );
-
-            const json = await response.json();
-
-            if (!response.ok) {
-              throw new Error(json?.error || "Unable to delete that.");
-            }
-
-            setNotes((current) => {
-              const next = current.filter((item) => item.id !== note.id);
-              if (cacheKey) setCachedData(cacheKey, next);
-              return next;
-            });
-          } catch (err) {
-            Alert.alert(
-              "Something went wrong",
-              err?.message || "Unable to delete that.",
-            );
-          }
-        },
-      },
-    ]);
-  };
-
   /* A half-written note, not just a tapped starter. */
   useDiscardGuard(
     draft.trim() !== "" &&
@@ -259,7 +243,6 @@ export default function AppreciationsScreen() {
       onSend={send}
       onSendVoice={sendVoice}
       userId={userId}
-      onRemove={remove}
       replyTo={replyTo}
       onReply={setReplyTo}
       onRefresh={() => {
@@ -279,6 +262,228 @@ function partnerFirst(notes) {
   return notes.find((note) => !note.mine)?.from_first_name || "Them";
 }
 
+function timeLabel(iso) {
+  const date = new Date(iso);
+
+  if (Number.isNaN(date.getTime())) return "";
+
+  return date.toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+/* Notes from the same one of you, close together, read as one. */
+const GROUP_MS = 4 * 60 * 1000;
+
+function sameGroup(a, b) {
+  if (!a || !b || a.mine !== b.mine) return false;
+
+  return (
+    Math.abs(new Date(b.created_at) - new Date(a.created_at)) < GROUP_MS &&
+    dayLabel(a.created_at) === dayLabel(b.created_at)
+  );
+}
+
+/* ---------- the wallpaper ---------- */
+
+/* Fixed spots, so the pattern never jumps between renders. */
+const SPRINKLE = Array.from({ length: 26 }, (_, index) => ({
+  left: `${(index * 37 + 11) % 96}%`,
+  top: `${(index * 53 + 7) % 97}%`,
+  size: 10 + ((index * 7) % 14),
+  turn: `${((index * 41) % 60) - 30}deg`,
+}));
+
+function Wallpaper({ look, photoId, userId }) {
+  useTheme();
+
+  if (look.key === "photo" && photoId) {
+    return (
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <RemotePhoto id={photoId} style={StyleSheet.absoluteFill} />
+        <View style={styles.photoDim} />
+      </View>
+    );
+  }
+
+  if (!look.colors) return null;
+
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <LinearGradient
+        colors={look.colors}
+        start={{ x: 0.1, y: 0 }}
+        end={{ x: 0.9, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {look.hearts
+        ? SPRINKLE.map((spot, index) => (
+            <Text
+              key={index}
+              style={[
+                styles.sprinkleHeart,
+                {
+                  left: spot.left,
+                  top: spot.top,
+                  fontSize: spot.size,
+                  transform: [{ rotate: spot.turn }],
+                },
+              ]}
+            >
+              ♥
+            </Text>
+          ))
+        : null}
+
+      {look.stars
+        ? SPRINKLE.map((spot, index) => (
+            <View
+              key={index}
+              style={[
+                styles.star,
+                {
+                  left: spot.left,
+                  top: spot.top,
+                  width: spot.size > 18 ? 3 : 2,
+                  height: spot.size > 18 ? 3 : 2,
+                  opacity: spot.size > 16 ? 0.9 : 0.5,
+                },
+              ]}
+            />
+          ))
+        : null}
+    </View>
+  );
+}
+
+/* ---------- one bubble ---------- */
+
+function BubbleFace({ mine, colour, last, flash, children }) {
+  useTheme();
+
+  const shape = [
+    styles.bubble,
+    mine ? styles.bubbleMine : styles.bubbleTheirs,
+    !last && (mine ? styles.bubbleMineJoined : styles.bubbleTheirsJoined),
+    flash && styles.bubbleFlash,
+  ];
+
+  if (!colour) {
+    return <View style={[shape, styles.bubblePlain]}>{children}</View>;
+  }
+
+  return (
+    <LinearGradient
+      colors={colour.colors}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={shape}
+    >
+      {children}
+    </LinearGradient>
+  );
+}
+
+/*
+ * Swipe a bubble to the right to answer it, like Messages.
+ * The reply arrow fades in behind it; past the line the
+ * phone taps once, and letting go starts the reply.
+ */
+const SWIPE_AT = 56;
+
+function SwipeToReply({ onReply, children }) {
+  useTheme();
+
+  const drag = useRef(new Animated.Value(0)).current;
+  const armed = useRef(false);
+
+  /* The latest handler, so a re-render mid-swipe changes nothing. */
+  const replyRef = useRef(onReply);
+  replyRef.current = onReply;
+
+  const pan = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_, g) =>
+          g.dx > 10 && Math.abs(g.dx) > Math.abs(g.dy) * 1.6,
+        onPanResponderTerminationRequest: () => false,
+        onPanResponderGrant: () => {
+          armed.current = false;
+        },
+        onPanResponderMove: (_, g) => {
+          const pull = Math.max(0, g.dx);
+          const eased =
+            pull < SWIPE_AT ? pull : SWIPE_AT + (pull - SWIPE_AT) * 0.3;
+
+          drag.setValue(eased);
+
+          if (!armed.current && pull >= SWIPE_AT) {
+            armed.current = true;
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(
+              () => {},
+            );
+          } else if (armed.current && pull < SWIPE_AT) {
+            armed.current = false;
+          }
+        },
+        onPanResponderRelease: () => {
+          if (armed.current) replyRef.current();
+          armed.current = false;
+
+          Animated.spring(drag, {
+            toValue: 0,
+            friction: 7,
+            tension: 120,
+            useNativeDriver: true,
+          }).start();
+        },
+        onPanResponderTerminate: () => {
+          armed.current = false;
+          Animated.spring(drag, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+        },
+      }),
+    [drag],
+  );
+
+  return (
+    <View {...pan.panHandlers}>
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.swipeIcon,
+          {
+            opacity: drag.interpolate({
+              inputRange: [10, SWIPE_AT],
+              outputRange: [0, 1],
+              extrapolate: "clamp",
+            }),
+            transform: [
+              {
+                scale: drag.interpolate({
+                  inputRange: [10, SWIPE_AT, SWIPE_AT + 10],
+                  outputRange: [0.4, 1, 1.15],
+                  extrapolate: "clamp",
+                }),
+              },
+            ],
+          },
+        ]}
+      >
+        <Icon name="reply" size={16} color={T.accent} />
+      </Animated.View>
+
+      <Animated.View style={{ transform: [{ translateX: drag }] }}>
+        {children}
+      </Animated.View>
+    </View>
+  );
+}
+
 function NotesThread({
   notes,
   loading,
@@ -290,7 +495,6 @@ function NotesThread({
   onSend,
   onSendVoice,
   userId,
-  onRemove,
   replyTo,
   onReply,
   onRefresh,
@@ -301,6 +505,18 @@ function NotesThread({
   const scroller = useRef(null);
   const input = useRef(null);
   const [recording, setRecording] = useState(false);
+  const [customising, setCustomising] = useState(false);
+
+  const [look, saveLook] = useNoteStyle(userId);
+  const mineColour = bubbleFor(look.mine) || BUBBLES[0];
+  const theirColour = look.theirs === "default" ? null : bubbleFor(look.theirs);
+  const wall =
+    look.wallpaper === "photo" && look.photoId
+      ? { key: "photo", dark: true }
+      : wallpaperFor(look.wallpaper);
+  /* Over a dark wallpaper the day labels and times go light. */
+  const overDark = wall.dark === true;
+  const onWall = wall.dark !== null;
 
   /* Where each note sits, so a quote can take you to it. */
   const positions = useRef({});
@@ -326,56 +542,81 @@ function NotesThread({
   /* A day label wherever the day changes. */
   const rows = [];
 
-  thread.forEach((note) => {
+  thread.forEach((note, index) => {
     const label = dayLabel(note.created_at);
 
     if (rows.length === 0 || rows[rows.length - 1].label !== label) {
       rows.push({ type: "day", key: `day-${label}-${note.id}`, label });
     }
 
-    rows.push({ type: "note", key: note.id, label, note });
+    rows.push({
+      type: "note",
+      key: note.id,
+      label,
+      note,
+      first: !sameGroup(thread[index - 1], note),
+      last: !sameGroup(note, thread[index + 1]),
+    });
   });
 
+  const them = partnerFirst(notes);
+
   const reply = (note) => {
+    Haptics.selectionAsync().catch(() => {});
     onReply(note);
     setTimeout(() => input.current?.focus(), 150);
   };
 
-  const hold = (note) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+  const pickWallpaper = async () => {
+    try {
+      const photo = await pickPhoto({ aspect: [9, 16] });
 
-    chooseAction({
-      title: note.mine ? "Your note" : "Their note",
-      options: [
-        { label: "Reply", onPress: () => reply(note) },
-        ...(note.mine
-          ? [
-              {
-                label: "Delete",
-                destructive: true,
-                onPress: () => onRemove(note),
-              },
-            ]
-          : []),
-      ],
-    });
+      if (!photo?.base64) return;
+
+      const id = await uploadPhoto(userId, photo.base64);
+
+      saveLook({ wallpaper: "photo", photoId: id });
+    } catch (err) {
+      Alert.alert("That photo didn't work", err?.message || "Try another one.");
+    }
   };
+
+  const dayStyle = [
+    styles.day,
+    onWall && styles.dayOnWall,
+    overDark && styles.dayOnDark,
+  ];
 
   return (
     <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
+      <Wallpaper look={wall} photoId={look.photoId} userId={userId} />
+
       <KeyboardAvoidingView style={styles.fill} behavior={keyboardBehavior}>
-        <View style={styles.nav}>
+        <View style={[styles.nav, onWall && styles.navOnWall]}>
           <View style={styles.navSide}>
             <GlassButton icon="back" label="Back" onPress={onBack} />
           </View>
 
           <View style={styles.navCentre}>
-            <Mark size={22} />
+            <Avatar name={them} size={30} />
 
-            <Text style={styles.navTitle}>Notes</Text>
+            <Text
+              style={[styles.navTitle, overDark && styles.navTitleOnDark]}
+              numberOfLines={1}
+            >
+              {notes.some((note) => !note.mine)
+                ? `Notes with ${them}`
+                : "Notes"}
+            </Text>
           </View>
 
-          <View style={styles.navSide} />
+          <View style={[styles.navSide, styles.navSideEnd]}>
+            <GlassButton
+              icon="palette"
+              label="Customise"
+              onPress={() => setCustomising(true)}
+            />
+          </View>
         </View>
 
         <ScrollView
@@ -406,7 +647,7 @@ function NotesThread({
               <SkeletonList count={3} />
             </View>
           ) : rows.length === 0 ? (
-            <View style={styles.empty}>
+            <View style={[styles.empty, onWall && styles.emptyOnWall]}>
               <Mark size={52} />
 
               <Text style={styles.emptyTitle}>Say it out loud</Text>
@@ -434,89 +675,105 @@ function NotesThread({
               </View>
             </View>
           ) : (
-            rows.map((row) =>
-              row.type === "day" ? (
-                <Text key={row.key} style={styles.day}>
-                  {row.label}
-                </Text>
-              ) : (
-                <Pressable
+            rows.map((row) => {
+              if (row.type === "day") {
+                return (
+                  <Text key={row.key} style={dayStyle}>
+                    {row.label}
+                  </Text>
+                );
+              }
+
+              const { note } = row;
+              const colour = note.mine ? mineColour : theirColour;
+              const ink = colour ? colour.text : T.label;
+
+              return (
+                <View
                   key={row.key}
-                  onLongPress={() => hold(row.note)}
-                  delayLongPress={350}
                   onLayout={(event) => {
-                    positions.current[row.note.id] = event.nativeEvent.layout.y;
+                    positions.current[note.id] = event.nativeEvent.layout.y;
                   }}
-                  style={[
-                    styles.bubbleRow,
-                    row.note.mine ? styles.rowMine : styles.rowTheirs,
-                  ]}
+                  style={[styles.noteRow, row.first && styles.noteRowFirst]}
                 >
-                  <View
-                    style={[
-                      styles.bubble,
-                      row.note.mine ? styles.bubbleMine : styles.bubbleTheirs,
-                      flash === row.note.id && styles.bubbleFlash,
-                    ]}
-                  >
-                    {/* The note this answers: tap it to see it. */}
-                    {row.note.reply ? (
-                      <Pressable
-                        onPress={() => goTo(row.note.reply.id)}
-                        style={[
-                          styles.quote,
-                          row.note.mine && styles.quoteMine,
-                        ]}
-                        accessibilityRole="button"
-                        accessibilityLabel="Show the note this answers"
+                  <SwipeToReply onReply={() => reply(note)}>
+                    <View
+                      style={[
+                        styles.bubbleRow,
+                        note.mine ? styles.rowMine : styles.rowTheirs,
+                      ]}
+                    >
+                      <BubbleFace
+                        mine={note.mine}
+                        colour={colour}
+                        last={row.last}
+                        flash={flash === note.id}
                       >
+                        {/* The note this answers: tap it to see it. */}
+                        {note.reply ? (
+                          <Pressable
+                            onPress={() => goTo(note.reply.id)}
+                            style={[
+                              styles.quote,
+                              colour && styles.quoteOnColour,
+                              colour && { borderLeftColor: ink },
+                            ]}
+                            accessibilityRole="button"
+                            accessibilityLabel="Show the note this answers"
+                          >
+                            <Text
+                              style={[
+                                styles.quoteWho,
+                                colour && { color: ink },
+                              ]}
+                            >
+                              {note.reply.mine ? "You" : them}
+                            </Text>
+
+                            <Text
+                              style={[
+                                styles.quoteText,
+                                colour && { color: ink, opacity: 0.85 },
+                              ]}
+                              numberOfLines={2}
+                            >
+                              {note.reply.voice
+                                ? "🎙 Voice note"
+                                : note.reply.message}
+                            </Text>
+                          </Pressable>
+                        ) : null}
+
+                        {note.audio_id ? (
+                          <VoicePlayer
+                            url={note.audio_url}
+                            seconds={note.audio_seconds}
+                            light={Boolean(colour) && ink === "#FFFFFF"}
+                          />
+                        ) : (
+                          <Text style={[styles.bubbleText, { color: ink }]}>
+                            {note.message}
+                          </Text>
+                        )}
+                      </BubbleFace>
+
+                      {row.last ? (
                         <Text
                           style={[
-                            styles.quoteWho,
-                            row.note.mine && styles.quoteTextMine,
+                            styles.stamp,
+                            note.mine ? styles.stampMine : styles.stampTheirs,
+                            onWall && styles.stampOnWall,
+                            overDark && styles.stampOnDark,
                           ]}
                         >
-                          {row.note.reply.mine ? "You" : partnerFirst(notes)}
+                          {timeLabel(note.created_at)}
                         </Text>
-
-                        <Text
-                          style={[
-                            styles.quoteText,
-                            row.note.mine && styles.quoteTextMine,
-                          ]}
-                          numberOfLines={2}
-                        >
-                          {row.note.reply.voice
-                            ? "🎙 Voice note"
-                            : row.note.reply.message}
-                        </Text>
-                      </Pressable>
-                    ) : null}
-
-                    {row.note.audio_id ? (
-                      <VoicePlayer
-                        url={row.note.audio_url}
-                        seconds={row.note.audio_seconds}
-                        light={row.note.mine}
-                      />
-                    ) : (
-                      <Text
-                        style={[
-                          styles.bubbleText,
-                          row.note.mine && styles.bubbleTextMine,
-                        ]}
-                      >
-                        {row.note.message}
-                      </Text>
-                    )}
-                  </View>
-
-                  {!row.note.mine && row.note.from_first_name ? (
-                    <Text style={styles.from}>{row.note.from_first_name}</Text>
-                  ) : null}
-                </Pressable>
-              ),
-            )
+                      ) : null}
+                    </View>
+                  </SwipeToReply>
+                </View>
+              );
+            })
           )}
         </ScrollView>
 
@@ -526,7 +783,7 @@ function NotesThread({
 
             <View style={styles.replyText}>
               <Text style={styles.quoteWho}>
-                Replying to {replyTo.mine ? "yourself" : partnerFirst(notes)}
+                Replying to {replyTo.mine ? "yourself" : them}
               </Text>
 
               <Text style={styles.quoteText} numberOfLines={1}>
@@ -545,13 +802,15 @@ function NotesThread({
           </View>
         ) : null}
 
-        <View style={styles.composer}>
+        <View style={[styles.composer, onWall && styles.composerOnWall]}>
           {!recording ? (
             <TextInput
               ref={input}
               value={draft}
               onChangeText={onDraft}
-              placeholder={replyTo ? "Write your reply…" : "Say thank you…"}
+              placeholder={
+                replyTo ? "Write your reply…" : "Say something sweet…"
+              }
               placeholderTextColor={T.label3}
               style={styles.input}
               multiline
@@ -575,23 +834,230 @@ function NotesThread({
               accessibilityLabel="Send"
               hitSlop={8}
             >
-              <View
-                style={[
-                  styles.send,
-                  (!draft.trim() || sending) && styles.sendOff,
-                ]}
+              <LinearGradient
+                colors={
+                  !draft.trim() || sending
+                    ? [T.label3, T.label3]
+                    : mineColour.colors
+                }
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.send}
               >
                 {sending ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
                   <Icon name="arrowUp" size={16} color="#FFFFFF" />
                 )}
-              </View>
+              </LinearGradient>
             </Pressable>
           )}
         </View>
       </KeyboardAvoidingView>
+
+      <Customise
+        visible={customising}
+        look={look}
+        onChange={saveLook}
+        onPhoto={pickWallpaper}
+        onClose={() => setCustomising(false)}
+        them={them}
+        userId={userId}
+      />
     </SafeAreaView>
+  );
+}
+
+/* ---------- making it yours ---------- */
+
+function Swatch({ colour, on, label, onPress }) {
+  useTheme();
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={styles.swatchWrap}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: on }}
+    >
+      <View style={[styles.swatchRing, on && styles.swatchRingOn]}>
+        {colour ? (
+          <LinearGradient
+            colors={colour.colors}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.swatch}
+          />
+        ) : (
+          <View style={[styles.swatch, styles.swatchPlain]} />
+        )}
+      </View>
+
+      <Text style={[styles.swatchLabel, on && styles.swatchLabelOn]}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function Customise({
+  visible,
+  look,
+  onChange,
+  onPhoto,
+  onClose,
+  them,
+  userId,
+}) {
+  useTheme();
+
+  const tap = (next) => {
+    Haptics.selectionAsync().catch(() => {});
+    onChange(next);
+  };
+
+  const mine = bubbleFor(look.mine) || BUBBLES[0];
+  const theirs = look.theirs === "default" ? null : bubbleFor(look.theirs);
+  const wall =
+    look.wallpaper === "photo" && look.photoId
+      ? { key: "photo", dark: true }
+      : wallpaperFor(look.wallpaper);
+
+  return (
+    <Sheet
+      visible={visible}
+      title="Make it yours"
+      subtitle="Only you see these"
+      onCancel={onClose}
+      onSave={onClose}
+      saveLabel="Done"
+    >
+      {/* A little thread, so you see it as you choose. */}
+      <View style={styles.preview}>
+        <Wallpaper look={wall} photoId={look.photoId} userId={userId} />
+
+        <View style={[styles.rowTheirs, styles.previewRow]}>
+          <BubbleFace mine={false} colour={theirs} last>
+            <Text
+              style={[
+                styles.bubbleText,
+                { color: theirs ? theirs.text : T.label },
+              ]}
+            >
+              Thinking of you 💭
+            </Text>
+          </BubbleFace>
+        </View>
+
+        <View style={[styles.rowMine, styles.previewRow]}>
+          <BubbleFace mine colour={mine} last>
+            <Text style={[styles.bubbleText, { color: mine.text }]}>
+              Come home soon ❤️
+            </Text>
+          </BubbleFace>
+        </View>
+      </View>
+
+      <Text style={styles.pickTitle}>Your bubbles</Text>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.swatches}
+      >
+        {BUBBLES.map((item) => (
+          <Swatch
+            key={item.key}
+            colour={item}
+            label={item.label}
+            on={look.mine === item.key}
+            onPress={() => tap({ mine: item.key })}
+          />
+        ))}
+      </ScrollView>
+
+      <Text style={styles.pickTitle}>{them}'s bubbles</Text>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.swatches}
+      >
+        <Swatch
+          colour={null}
+          label="Classic"
+          on={look.theirs === "default"}
+          onPress={() => tap({ theirs: "default" })}
+        />
+
+        {BUBBLES.map((item) => (
+          <Swatch
+            key={item.key}
+            colour={item}
+            label={item.label}
+            on={look.theirs === item.key}
+            onPress={() => tap({ theirs: item.key })}
+          />
+        ))}
+      </ScrollView>
+
+      <Text style={styles.pickTitle}>Wallpaper</Text>
+
+      <View style={styles.walls}>
+        {photosAvailable ? (
+          <Pressable
+            onPress={onPhoto}
+            style={[
+              styles.wallTile,
+              styles.wallPhoto,
+              look.wallpaper === "photo" && styles.wallTileOn,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Use one of your photos"
+          >
+            {look.photoId ? (
+              <RemotePhoto id={look.photoId} style={StyleSheet.absoluteFill} />
+            ) : null}
+
+            <View style={styles.wallPhotoBadge}>
+              <Icon name="photo" size={16} color="#FFFFFF" />
+            </View>
+
+            <Text style={[styles.wallLabel, styles.wallLabelLight]}>
+              {look.photoId ? "Change photo" : "Your photo"}
+            </Text>
+          </Pressable>
+        ) : null}
+
+        {WALLPAPERS.map((item) => {
+          const on = look.wallpaper === item.key;
+
+          return (
+            <Pressable
+              key={item.key}
+              onPress={() => tap({ wallpaper: item.key })}
+              style={[styles.wallTile, on && styles.wallTileOn]}
+              accessibilityRole="button"
+              accessibilityLabel={`${item.label} wallpaper`}
+              accessibilityState={{ selected: on }}
+            >
+              {item.colors ? (
+                <Wallpaper look={item} />
+              ) : (
+                <View style={[StyleSheet.absoluteFill, styles.wallPlain]} />
+              )}
+
+              <Text
+                style={[styles.wallLabel, item.dark && styles.wallLabelLight]}
+              >
+                {item.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </Sheet>
   );
 }
 
@@ -611,9 +1077,8 @@ const styles = themedStyles(() => ({
     marginBottom: 6,
   },
 
-  quoteMine: {
-    borderLeftColor: "rgba(255,255,255,0.85)",
-    backgroundColor: "rgba(255,255,255,0.16)",
+  quoteOnColour: {
+    backgroundColor: "rgba(255,255,255,0.18)",
   },
 
   quoteWho: {
@@ -628,20 +1093,21 @@ const styles = themedStyles(() => ({
     color: T.label2,
   },
 
-  quoteTextMine: {
-    color: "rgba(255,255,255,0.88)",
-  },
-
   replyBar: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
     marginHorizontal: 12,
-    marginBottom: 4,
+    marginBottom: 6,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 14,
+    borderRadius: 16,
     backgroundColor: T.surface,
+    shadowColor: "#000000",
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
 
   replyAccent: {
@@ -664,14 +1130,35 @@ const styles = themedStyles(() => ({
     flex: 1,
   },
 
+  photoDim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.28)",
+  },
+
+  sprinkleHeart: {
+    position: "absolute",
+    color: "#E0607E",
+    opacity: 0.14,
+  },
+
+  star: {
+    position: "absolute",
+    borderRadius: 2,
+    backgroundColor: "#FFFFFF",
+  },
+
   nav: {
     flexDirection: "row",
     alignItems: "center",
-    minHeight: 52,
+    minHeight: 56,
     paddingHorizontal: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: T.separator,
     paddingBottom: 6,
+  },
+
+  navOnWall: {
+    borderBottomWidth: 0,
   },
 
   navSide: {
@@ -679,9 +1166,14 @@ const styles = themedStyles(() => ({
     flexDirection: "row",
   },
 
+  navSideEnd: {
+    justifyContent: "flex-end",
+  },
+
   navCentre: {
     alignItems: "center",
-    gap: 2,
+    gap: 3,
+    maxWidth: "50%",
   },
 
   navTitle: {
@@ -690,13 +1182,16 @@ const styles = themedStyles(() => ({
     color: T.label,
   },
 
+  navTitleOnDark: {
+    color: "#FFFFFF",
+  },
+
   thread: {
     flexGrow: 1,
     justifyContent: "flex-end",
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingTop: 16,
     paddingBottom: 12,
-    gap: 4,
   },
 
   loading: {
@@ -713,6 +1208,13 @@ const styles = themedStyles(() => ({
     gap: 4,
   },
 
+  emptyOnWall: {
+    marginHorizontal: 8,
+    paddingVertical: 24,
+    borderRadius: 24,
+    backgroundColor: T.surface,
+  },
+
   starterList: {
     alignSelf: "stretch",
     gap: 8,
@@ -723,7 +1225,7 @@ const styles = themedStyles(() => ({
     paddingHorizontal: 18,
     paddingVertical: 14,
     borderRadius: 18,
-    backgroundColor: T.surface,
+    backgroundColor: T.fill4,
   },
 
   starterPressed: {
@@ -756,8 +1258,43 @@ const styles = themedStyles(() => ({
     fontSize: 12,
     fontWeight: "600",
     color: T.label2,
-    marginTop: 14,
-    marginBottom: 4,
+    marginTop: 16,
+    marginBottom: 6,
+  },
+
+  dayOnWall: {
+    overflow: "hidden",
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.6)",
+    color: "#4A2D3C",
+  },
+
+  dayOnDark: {
+    backgroundColor: "rgba(0,0,0,0.3)",
+    color: "#FFFFFF",
+  },
+
+  noteRow: {
+    marginTop: 2,
+  },
+
+  noteRowFirst: {
+    marginTop: 8,
+  },
+
+  swipeIcon: {
+    position: "absolute",
+    left: 4,
+    top: "50%",
+    marginTop: -15,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: T.surface,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   bubbleRow: {
@@ -778,16 +1315,33 @@ const styles = themedStyles(() => ({
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: 20,
+    shadowColor: "#000000",
+    shadowOpacity: 0.07,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+  },
+
+  bubblePlain: {
+    backgroundColor: T.surface,
   },
 
   bubbleMine: {
-    backgroundColor: T.you,
     borderBottomRightRadius: 6,
   },
 
   bubbleTheirs: {
-    backgroundColor: T.surface,
     borderBottomLeftRadius: 6,
+  },
+
+  /* Inside a run, the corner on your side stays soft. */
+  bubbleMineJoined: {
+    borderBottomRightRadius: 20,
+    borderTopRightRadius: 8,
+  },
+
+  bubbleTheirsJoined: {
+    borderBottomLeftRadius: 20,
+    borderTopLeftRadius: 8,
   },
 
   bubbleText: {
@@ -796,21 +1350,27 @@ const styles = themedStyles(() => ({
     color: T.label,
   },
 
-  bubbleTextMine: {
-    color: "#FFFFFF",
-  },
-
-  from: {
+  stamp: {
     fontSize: 11,
-    color: T.label2,
+    color: T.label3,
     marginTop: 3,
-    marginLeft: 8,
+    marginBottom: 2,
   },
 
-  starters: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    gap: 8,
+  stampMine: {
+    marginRight: 6,
+  },
+
+  stampTheirs: {
+    marginLeft: 6,
+  },
+
+  stampOnWall: {
+    color: "rgba(74,45,60,0.65)",
+  },
+
+  stampOnDark: {
+    color: "rgba(255,255,255,0.75)",
   },
 
   composer: {
@@ -828,6 +1388,15 @@ const styles = themedStyles(() => ({
     backgroundColor: T.surface,
   },
 
+  composerOnWall: {
+    borderWidth: 0,
+    shadowColor: "#000000",
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+
   input: {
     flex: 1,
     fontSize: 17,
@@ -841,12 +1410,128 @@ const styles = themedStyles(() => ({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: T.accent,
     alignItems: "center",
     justifyContent: "center",
   },
 
-  sendOff: {
-    backgroundColor: T.label3,
+  /* the customise sheet */
+
+  preview: {
+    height: 150,
+    borderRadius: 20,
+    overflow: "hidden",
+    justifyContent: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    backgroundColor: T.appBackground,
+    marginBottom: 8,
+  },
+
+  previewRow: {
+    maxWidth: "80%",
+  },
+
+  pickTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: T.label2,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+    marginTop: 18,
+    marginBottom: 10,
+  },
+
+  swatches: {
+    gap: 14,
+    paddingRight: 8,
+  },
+
+  swatchWrap: {
+    alignItems: "center",
+    gap: 5,
+  },
+
+  swatchRing: {
+    padding: 3,
+    borderRadius: 26,
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+
+  swatchRingOn: {
+    borderColor: T.accent,
+  },
+
+  swatch: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+
+  swatchPlain: {
+    backgroundColor: T.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: T.separator,
+  },
+
+  swatchLabel: {
+    fontSize: 11,
+    color: T.label2,
+  },
+
+  swatchLabelOn: {
+    color: T.label,
+    fontWeight: "600",
+  },
+
+  walls: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+
+  wallTile: {
+    width: "31%",
+    aspectRatio: 0.72,
+    borderRadius: 16,
+    overflow: "hidden",
+    justifyContent: "flex-end",
+    padding: 8,
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+
+  wallTileOn: {
+    borderColor: T.accent,
+  },
+
+  wallPlain: {
+    backgroundColor: T.appBackground,
+  },
+
+  wallPhoto: {
+    backgroundColor: T.accent,
+  },
+
+  wallPhotoBadge: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  wallLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#4A2D3C",
+  },
+
+  wallLabelLight: {
+    color: "#FFFFFF",
   },
 }));

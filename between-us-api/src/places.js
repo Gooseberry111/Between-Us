@@ -12,9 +12,14 @@
  *   Nominatim                  turning a typed area into a
  *                              point on the map, and back
  *
- * Results are kept in KV for a day, so the same corner of
- * town is not asked about twice, and every request names
- * the app, as those services ask.
+ * Fast first: the first look at a new area asks two free
+ * services at once about the few km around you -- Photon
+ * (komoot's OpenStreetMap search) and a small Overpass
+ * query -- and shows whichever answers first. The app then asks for the whole neighbourhood
+ * (`full`), which takes longer and is kept in KV for a
+ * week, so every look after that is instant. The same area
+ * is never asked about twice at once, and every request
+ * names the app, as those services ask.
  */
 
 const AGENT = 'BetweenUs/1.0 (couples app; contact via app)';
@@ -35,7 +40,11 @@ export const PLACE_KINDS = {
 	outdoors: {
 		label: 'Outdoors',
 		emoji: '🌳',
-		tags: { leisure: ['park', 'garden', 'nature_reserve', 'beach_resort', 'marina'], natural: ['beach'], tourism: ['viewpoint', 'picnic_site'] },
+		tags: {
+			leisure: ['park', 'garden', 'nature_reserve', 'beach_resort', 'marina'],
+			natural: ['beach'],
+			tourism: ['viewpoint', 'picnic_site'],
+		},
 	},
 	culture: { label: 'Culture', emoji: '🎨', tags: { tourism: ['museum', 'gallery', 'attraction'], amenity: ['theatre', 'arts_centre'] } },
 	fun: {
@@ -63,27 +72,88 @@ function filterLines(kinds, around) {
 	return Object.entries(byKey).map(([key, values]) => `  nwr["${key}"~"^(${values.join('|')})$"]["name"](${around});`);
 }
 
-async function overpass(body) {
-	for (const server of OVERPASS) {
-		try {
-			const response = await fetch(server, {
+/*
+ * Asks the main server; if it has not answered in a few
+ * seconds the next one is asked too, and the first good
+ * answer wins (the others are called off). A server that
+ * refuses straight away hands over at once.
+ */
+const HEDGE_MS = 6000;
+
+function overpass(body, timeoutMs = 45000) {
+	return new Promise((resolve, reject) => {
+		const calls = [];
+		let next = 0;
+		let failed = 0;
+		let settled = false;
+		let timer = null;
+
+		const finish = () => {
+			settled = true;
+			clearTimeout(timer);
+			for (const call of calls) call.abort();
+		};
+
+		const start = () => {
+			if (settled || next >= OVERPASS.length) return;
+
+			const server = OVERPASS[next++];
+			const call = new AbortController();
+			const stop = setTimeout(() => call.abort(), timeoutMs);
+
+			calls.push(call);
+			clearTimeout(timer);
+			timer = setTimeout(start, HEDGE_MS);
+
+			fetch(server, {
 				method: 'POST',
 				headers: { 'User-Agent': AGENT, 'Content-Type': 'application/x-www-form-urlencoded' },
 				body: `data=${encodeURIComponent(body)}`,
-				signal: AbortSignal.timeout(50000),
-			});
+				signal: call.signal,
+			})
+				.then(async (response) => {
+					if (!response.ok) throw new Error(`overpass ${response.status}`);
 
-			if (!response.ok) continue;
+					const data = await response.json();
 
-			const data = await response.json();
+					if (!Array.isArray(data.elements)) throw new Error('overpass: no elements');
 
-			if (Array.isArray(data.elements)) return data;
-		} catch {
-			/* try the next server */
-		}
+					if (!settled) {
+						finish();
+						resolve(data);
+					}
+				})
+				.catch(() => {
+					failed += 1;
+
+					if (settled) return;
+
+					if (failed >= OVERPASS.length) {
+						finish();
+						reject(new Error('The map service is busy. Try again in a moment.'));
+					} else {
+						start();
+					}
+				})
+				.finally(() => clearTimeout(stop));
+		};
+
+		start();
+	});
+}
+
+/* One look per area at a time, however many ask for it. */
+const inflight = new Map();
+
+function once(key, make) {
+	if (!inflight.has(key)) {
+		inflight.set(
+			key,
+			make().finally(() => inflight.delete(key)),
+		);
 	}
 
-	throw new Error('The map service is busy. Try again in a moment.');
+	return inflight.get(key);
 }
 
 function kindOf(tags) {
@@ -96,7 +166,11 @@ function kindOf(tags) {
 	if (['bar', 'pub', 'biergarten', 'nightclub'].includes(a)) return 'drinks';
 	if (a === 'cinema') return 'movies';
 	if (['museum', 'gallery', 'attraction'].includes(t) || ['theatre', 'arts_centre'].includes(a)) return 'culture';
-	if (['park', 'garden', 'nature_reserve', 'beach_resort', 'marina'].includes(l) || tags.natural === 'beach' || ['viewpoint', 'picnic_site'].includes(t))
+	if (
+		['park', 'garden', 'nature_reserve', 'beach_resort', 'marina'].includes(l) ||
+		tags.natural === 'beach' ||
+		['viewpoint', 'picnic_site'].includes(t)
+	)
 		return 'outdoors';
 	return 'fun';
 }
@@ -133,7 +207,9 @@ async function cached(env, key, ttl, make) {
 }
 
 function commonsFile(name) {
-	const file = String(name).replace(/^File:/i, '').trim();
+	const file = String(name)
+		.replace(/^File:/i, '')
+		.trim();
 	return file ? `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=800` : null;
 }
 
@@ -154,9 +230,17 @@ function placeFrom(element, lat, lon) {
 	else if (tags.wikimedia_commons && /^File:/i.test(tags.wikimedia_commons)) image = commonsFile(tags.wikimedia_commons);
 
 	const kind = kindOf(tags);
-	const richness = ['opening_hours', 'website', 'phone', 'cuisine', 'addr:street', 'image', 'wikidata', 'contact:website', 'contact:phone'].filter(
-		(key) => tags[key],
-	).length;
+	const richness = [
+		'opening_hours',
+		'website',
+		'phone',
+		'cuisine',
+		'addr:street',
+		'image',
+		'wikidata',
+		'contact:website',
+		'contact:phone',
+	].filter((key) => tags[key]).length;
 
 	return {
 		id: `${element.type}/${element.id}`,
@@ -170,7 +254,12 @@ function placeFrom(element, lat, lon) {
 		hours: tags.opening_hours || null,
 		website: tags.website || tags['contact:website'] || null,
 		phone: tags.phone || tags['contact:phone'] || null,
-		cuisine: tags.cuisine ? tags.cuisine.split(';').map((c) => c.replace(/_/g, ' ')).slice(0, 3) : [],
+		cuisine: tags.cuisine
+			? tags.cuisine
+					.split(';')
+					.map((c) => c.replace(/_/g, ' '))
+					.slice(0, 3)
+			: [],
 		wikidata: tags.wikidata || null,
 		image,
 		richness,
@@ -250,12 +339,14 @@ async function geoapifyArea(env, lat, lon) {
 		.map((feature) => {
 			const p = feature.properties || {};
 			const raw = p.datasource?.raw || {};
-			const kind = GEOAPIFY_KIND.find(([prefix]) => (p.categories || []).some((c) => c === prefix || c.startsWith(`${prefix}.`)))?.[1] || kindOf(raw);
+			const kind =
+				GEOAPIFY_KIND.find(([prefix]) => (p.categories || []).some((c) => c === prefix || c.startsWith(`${prefix}.`)))?.[1] || kindOf(raw);
 
 			if (!p.name) return null;
 
 			return {
-				id: raw.osm_type && raw.osm_id ? `${{ n: 'node', w: 'way', r: 'relation' }[raw.osm_type] || raw.osm_type}/${raw.osm_id}` : p.place_id,
+				id:
+					raw.osm_type && raw.osm_id ? `${{ n: 'node', w: 'way', r: 'relation' }[raw.osm_type] || raw.osm_type}/${raw.osm_id}` : p.place_id,
 				name: p.name,
 				kind,
 				emoji: PLACE_KINDS[kind].emoji,
@@ -265,7 +356,11 @@ async function geoapifyArea(env, lat, lon) {
 				hours: p.opening_hours || raw.opening_hours || null,
 				website: p.website || raw.website || null,
 				phone: p.contact?.phone || raw.phone || null,
-				cuisine: (p.catering?.cuisine || raw.cuisine || '').split(';').filter(Boolean).map((c) => c.replace(/_/g, ' ')).slice(0, 3),
+				cuisine: (p.catering?.cuisine || raw.cuisine || '')
+					.split(';')
+					.filter(Boolean)
+					.map((c) => c.replace(/_/g, ' '))
+					.slice(0, 3),
 				wikidata: raw.wikidata || null,
 				image: raw.image && /^https:\/\//.test(raw.image) ? raw.image : null,
 				richness: [p.opening_hours, p.website, p.contact?.phone, raw.cuisine, raw.wikidata, raw.image].filter(Boolean).length,
@@ -274,62 +369,247 @@ async function geoapifyArea(env, lat, lon) {
 		.filter(Boolean);
 }
 
-async function overpassArea(lat, lon) {
+async function overpassArea(lat, lon, { radius = 6000, max = 400, timeout = 60 } = {}) {
 	const kinds = Object.keys(PLACE_KINDS);
-	const body = `[out:json][timeout:60];
+	const body = `[out:json][timeout:${timeout}];
 (
-${filterLines(kinds, `around:6000,${lat},${lon}`).join('\n')}
+${filterLines(kinds, `around:${radius},${lat},${lon}`).join('\n')}
 );
-out center tags 400;`;
+out center tags ${max};`;
 
-	const data = await overpass(body);
+	const data = await overpass(body, (timeout - 5) * 1000);
 
 	return (data.elements || []).map((element) => placeFrom(element, lat, lon)).filter(Boolean);
 }
 
-/*
- * A whole neighbourhood at once, kept for a week: the first
- * look at an area waits on the map service, every filter
- * and search after that is instant.
- */
-async function area(env, lat, lon) {
-	const cellLat = round(Math.round(lat / 0.04) * 0.04, 2);
-	const cellLon = round(Math.round(lon / 0.04) * 0.04, 2);
+/* The same place listed twice (a node and a building) once. */
+function dedupe(places) {
+	const seen = new Set();
 
-	return cached(env, `area-places:v2:${cellLat}:${cellLon}`, DAY * 7, async () => {
-		let places = env.GEOAPIFY_KEY ? await geoapifyArea(env, cellLat, cellLon).catch(() => null) : null;
-
-		if (!places) places = await overpassArea(cellLat, cellLon);
-
-		const seen = new Set();
-		places = places.filter((place) => {
-			const k = `${place.name.toLowerCase()}:${Math.round(place.lat * 500)}:${Math.round(place.lon * 500)}`;
-			if (seen.has(k)) return false;
-			seen.add(k);
-			return true;
-		});
-
-		try {
-			const ids = [...new Set(places.filter((p) => !p.image && p.wikidata).map((p) => p.wikidata))];
-			for (let i = 0; i < Math.min(ids.length, 135); i += 45) {
-				const images = await wikidataImages(ids.slice(i, i + 45));
-				places.forEach((p) => {
-					if (!p.image && images[p.wikidata]) p.image = images[p.wikidata];
-				});
-			}
-		} catch {
-			/* photos are a bonus */
-		}
-
-		return { places: places.map(({ wikidata, distance_m, ...rest }) => rest) };
+	return places.filter((place) => {
+		const k = `${place.name.toLowerCase()}:${Math.round(place.lat * 500)}:${Math.round(place.lon * 500)}`;
+		if (seen.has(k)) return false;
+		seen.add(k);
+		return true;
 	});
 }
 
-export async function nearbyPlaces(env, { lat, lon, kind, q, radius }) {
-	const r = Math.min(20000, Math.max(800, radius || 6000));
-	const { places: all } = await area(env, lat, lon);
+async function addPhotos(places, most) {
+	try {
+		const ids = [...new Set(places.filter((p) => !p.image && p.wikidata).map((p) => p.wikidata))];
+		const images = await Promise.all(
+			Array.from({ length: Math.ceil(Math.min(ids.length, most) / 45) }, (_, n) =>
+				wikidataImages(ids.slice(n * 45, n * 45 + 45)).catch(() => ({})),
+			),
+		);
+		const all = Object.assign({}, ...images);
 
-	let places = all.map((p) => ({ ...p, distance_m: distanceM(lat, lon, p.lat, p.lon) })).filter((p) => p.distance_m <= r);
+		places.forEach((p) => {
+			if (!p.image && all[p.wikidata]) p.image = all[p.wikidata];
+		});
+	} catch {
+		/* photos are a bonus */
+	}
+
+	return places.map(({ wikidata, distance_m, ...rest }) => rest);
+}
+
+const cellOf = (lat, lon) => [round(Math.round(lat / 0.04) * 0.04, 2), round(Math.round(lon / 0.04) * 0.04, 2)];
+const fullKey = (lat, lon) => {
+	const [cellLat, cellLon] = cellOf(lat, lon);
+	return `area-places:v2:${cellLat}:${cellLon}`;
+};
+
+/*
+ * A whole neighbourhood at once, kept for a week: once it
+ * is in, every filter and search is instant.
+ */
+function fullArea(env, lat, lon) {
+	const [cellLat, cellLon] = cellOf(lat, lon);
+	const key = fullKey(lat, lon);
+
+	return once(key, () =>
+		cached(env, key, DAY * 7, async () => {
+			let places = env.GEOAPIFY_KEY ? await geoapifyArea(env, cellLat, cellLon).catch(() => null) : null;
+
+			if (!places) places = await overpassArea(cellLat, cellLon);
+
+			return { places: await addPhotos(dedupe(places), 135) };
+		}),
+	);
+}
+
+/*
+ * Photon: the same OpenStreetMap places, nearest first. It
+ * knows names, kinds and addresses, not opening hours; the
+ * full look fills those in later.
+ */
+const PHOTON = 'https://photon.komoot.io/reverse';
+
+const PHOTON_TAGS = {
+	dinner: ['amenity:restaurant'],
+	coffee: ['amenity:cafe', 'amenity:ice_cream', 'shop:bakery'],
+	drinks: ['amenity:bar', 'amenity:pub', 'amenity:nightclub'],
+	outdoors: ['leisure:park', 'leisure:garden', 'tourism:viewpoint', 'natural:beach'],
+	culture: ['tourism:museum', 'tourism:gallery', 'amenity:theatre', 'amenity:arts_centre'],
+	fun: ['leisure:bowling_alley', 'leisure:amusement_arcade', 'leisure:escape_game', 'tourism:zoo', 'tourism:theme_park', 'tourism:aquarium'],
+	movies: ['amenity:cinema'],
+};
+
+const OSM_TYPE = { N: 'node', W: 'way', R: 'relation' };
+
+async function photonArea(lat, lon) {
+	const lists = await Promise.all(
+		Object.entries(PHOTON_TAGS).map(async ([kind, tags]) => {
+			try {
+				const response = await fetch(
+					`${PHOTON}?lat=${lat}&lon=${lon}&radius=3&limit=50&${tags.map((tag) => `osm_tag=${encodeURIComponent(tag)}`).join('&')}`,
+					{ headers: { 'User-Agent': AGENT }, signal: AbortSignal.timeout(20000) },
+				);
+
+				if (!response.ok) return null;
+
+				const data = await response.json();
+
+				return (data.features || [])
+					.map((feature) => {
+						const p = feature.properties || {};
+						const [pLon, pLat] = feature.geometry?.coordinates || [];
+
+						if (!p.name || pLat === undefined) return null;
+
+						const street = [p.housenumber, p.street].filter(Boolean).join(' ');
+
+						return {
+							id: `${OSM_TYPE[p.osm_type] || 'node'}/${p.osm_id}`,
+							name: p.name,
+							kind,
+							emoji: PLACE_KINDS[kind].emoji,
+							lat: round(pLat, 6),
+							lon: round(pLon, 6),
+							address: [street, p.district || p.locality, p.city].filter(Boolean).join(', ') || null,
+							hours: null,
+							website: null,
+							phone: null,
+							cuisine: [],
+							image: null,
+							richness: street ? 1 : 0,
+						};
+					})
+					.filter(Boolean);
+			} catch {
+				return null;
+			}
+		}),
+	);
+
+	/* Every kind failing means Photon is down; let Overpass win. */
+	if (lists.every((list) => list === null)) throw new Error('photon is busy');
+
+	const places = lists.flat().filter(Boolean);
+
+	if (places.length === 0) throw new Error('photon found nothing');
+
+	return places;
+}
+
+/*
+ * Both services at once. A good answer from either (Overpass,
+ * or 30+ places from Photon) is used straight away. A thin
+ * one waits up to 12 s for the other, and the two are merged.
+ */
+const ENOUGH = 30;
+const THIN_WAIT_MS = 12000;
+
+function quickLook(lat, lon) {
+	return new Promise((resolve, reject) => {
+		let photon = null;
+		let over = null;
+		let done = false;
+		const started = Date.now();
+
+		const merged = () => {
+			const seen = new Set();
+			return [...(over || []), ...(photon || [])].filter((place) => {
+				if (seen.has(place.id)) return false;
+				seen.add(place.id);
+				return true;
+			});
+		};
+
+		const check = () => {
+			if (done) return;
+
+			const settled = photon !== null && over !== null;
+			const good = over?.length > 0 || photon?.length >= ENOUGH;
+			const some = merged().length > 0;
+
+			if (good || (some && (settled || Date.now() - started >= THIN_WAIT_MS))) {
+				done = true;
+				resolve(merged());
+			} else if (settled) {
+				done = true;
+				reject(new Error('The map service is busy. Try again in a moment.'));
+			}
+		};
+
+		photonArea(lat, lon)
+			.then((list) => (photon = list))
+			.catch(() => (photon = []))
+			.finally(check);
+
+		overpassArea(lat, lon, { radius: 2500, max: 180, timeout: 40 })
+			.then((list) => (over = list))
+			.catch(() => (over = []))
+			.finally(check);
+
+		setTimeout(check, THIN_WAIT_MS);
+	});
+}
+
+/* Just around you, for the first look at a new area. */
+function quickArea(env, lat, lon) {
+	const qLat = round(lat, 2);
+	const qLon = round(lon, 2);
+	const key = `near-places:v1:${qLat}:${qLon}`;
+
+	return once(key, () =>
+		cached(env, key, DAY * 7, async () => {
+			const places = await quickLook(qLat, qLon);
+
+			return { places: await addPhotos(dedupe(places), 45) };
+		}),
+	);
+}
+
+/* What is already known about here, without asking anyone. */
+async function known(env, key) {
+	try {
+		return await env.MEDIA.get(key, 'json');
+	} catch {
+		return null;
+	}
+}
+
+/*
+ * `full`: wait for the whole neighbourhood (the app asks
+ * for this itself, quietly, after a quick first look).
+ * `all`: every place there, for the app to filter itself.
+ */
+export async function nearbyPlaces(env, { lat, lon, kind, q, radius, full, all: everything }) {
+	const r = Math.min(10000, Math.max(800, radius || 6000));
+
+	let source = await known(env, fullKey(lat, lon));
+	let partial = false;
+
+	if (!source && full) source = await fullArea(env, lat, lon);
+
+	if (!source) {
+		source = await quickArea(env, lat, lon);
+		partial = true;
+	}
+
+	let places = (source.places || []).map((p) => ({ ...p, distance_m: distanceM(lat, lon, p.lat, p.lon) })).filter((p) => p.distance_m <= r);
 
 	if (kind && PLACE_KINDS[kind]) places = places.filter((p) => p.kind === kind);
 
@@ -346,7 +626,7 @@ export async function nearbyPlaces(env, { lat, lon, kind, q, radius }) {
 	/* Close, and well described, first. */
 	places.sort((a, b) => a.distance_m / (1 + (a.richness || 0) * 0.35) - b.distance_m / (1 + (b.richness || 0) * 0.35));
 
-	return { places: places.slice(0, 60).map(({ richness, ...rest }) => rest) };
+	return { places: places.slice(0, everything ? 400 : 60).map(({ richness, ...rest }) => rest), partial };
 }
 
 /* Photos taken at, or right beside, a place. */
@@ -375,17 +655,29 @@ export async function placePhotos(env, { lat, lon, image }) {
 	});
 }
 
-export async function geocode(env, q) {
-	const key = `geo:v1:${q.toLowerCase().slice(0, 60)}`;
+/*
+ * A typed area, looked for around where you are first (a
+ * box about 150 km across); only if nothing there matches
+ * is the rest of the world searched.
+ */
+export async function geocode(env, q, near) {
+	const box = near ? `${round(near.lon - 1.4, 2)},${round(near.lat + 1.4, 2)},${round(near.lon + 1.4, 2)},${round(near.lat - 1.4, 2)}` : '';
+	const key = `geo:v2:${box}:${q.toLowerCase().slice(0, 60)}`;
+
+	const search = async (bounded) => {
+		const response = await fetch(
+			`https://nominatim.openstreetmap.org/search?format=json&limit=6&q=${encodeURIComponent(q)}` +
+				(bounded ? `&viewbox=${box}&bounded=1` : ''),
+			{ headers: { 'User-Agent': AGENT } },
+		);
+
+		return response.ok ? response.json() : [];
+	};
 
 	return cached(env, key, DAY * 30, async () => {
-		const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(q)}`, {
-			headers: { 'User-Agent': AGENT },
-		});
+		let rows = box ? await search(true) : [];
 
-		if (!response.ok) return { results: [] };
-
-		const rows = await response.json();
+		if (!rows.length) rows = await search(false);
 
 		return {
 			results: rows.map((row) => ({

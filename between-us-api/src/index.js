@@ -478,6 +478,7 @@ const DAILY_QUESTIONS = [
  * per isolate rather than per request.
  */
 let schemaReady = false;
+let schemaRetryAt = 0;
 
 /*
  * What a dream's steps, cover and photo may hold. Steps
@@ -821,8 +822,20 @@ function challengeLanguage(languages) {
 
 async function ensureSchema(sql) {
 	if (schemaReady) return;
+	if (schemaRetryAt && Date.now() < schemaRetryAt) return;
 
-	await sql`
+	/*
+	 * Every statement is gathered first and then sent in one
+	 * go, as a single transaction. Each statement sent on its
+	 * own counts as a request, and Cloudflare stops a Worker
+	 * after 50 of them, which this list alone used to pass:
+	 * the newest tables were never reached. In one go it is
+	 * one request, and either all of it lands or none of it.
+	 */
+	const steps = [];
+	const step = (query) => steps.push(query);
+
+	step(sql`
 		CREATE TABLE IF NOT EXISTS daily_answers (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			connection_id UUID NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
@@ -833,16 +846,16 @@ async function ensureSchema(sql) {
 			created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 			updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 		)
-	`;
+	`);
 
 	/*
 	 * These unique indexes are deliberately not partial,
 	 * so a plain ON CONFLICT can infer them.
 	 */
-	await sql`
+	step(sql`
 		CREATE UNIQUE INDEX IF NOT EXISTS daily_answers_user_question_idx
 			ON daily_answers (user_id, question_date, question_key)
-	`;
+	`);
 
 	/*
 	 * Three questions a night means three answers a night. The
@@ -851,14 +864,14 @@ async function ensureSchema(sql) {
 	 * the new key never saw it coming. It goes first, before
 	 * anything tries to write a second answer.
 	 */
-	await sql`DROP INDEX IF EXISTS daily_answers_user_date_idx`;
+	step(sql`DROP INDEX IF EXISTS daily_answers_user_date_idx`);
 
-	await sql`
+	step(sql`
 		CREATE INDEX IF NOT EXISTS daily_answers_connection_date_idx
 			ON daily_answers (connection_id, question_date DESC)
-	`;
+	`);
 
-	await sql`
+	step(sql`
 		CREATE TABLE IF NOT EXISTS appreciations (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			connection_id UUID NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
@@ -867,21 +880,21 @@ async function ensureSchema(sql) {
 			message TEXT NOT NULL,
 			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 		)
-	`;
+	`);
 
-	await sql`
+	step(sql`
 		CREATE INDEX IF NOT EXISTS appreciations_connection_idx
 			ON appreciations (connection_id, created_at DESC)
-	`;
+	`);
 
 	/*
 	 * Nicknames are what the two of them call each other,
 	 * and that is what Home shows.
 	 */
-	await sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS nickname TEXT`;
+	step(sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS nickname TEXT`);
 
 	/* The key of a photo in the media store, if there is one. */
-	await sql`ALTER TABLE memories ADD COLUMN IF NOT EXISTS photo_id TEXT`;
+	step(sql`ALTER TABLE memories ADD COLUMN IF NOT EXISTS photo_id TEXT`);
 
 	/*
 	 * Dreams carry a cover (one of the app's drawn covers,
@@ -889,14 +902,14 @@ async function ensureSchema(sql) {
 	 * that fill their ring, and when one of the two last
 	 * chose to focus on it.
 	 */
-	await sql`ALTER TABLE dreams ADD COLUMN IF NOT EXISTS cover TEXT`;
-	await sql`ALTER TABLE dreams ADD COLUMN IF NOT EXISTS photo_id TEXT`;
-	await sql`ALTER TABLE dreams ADD COLUMN IF NOT EXISTS steps JSONB NOT NULL DEFAULT '[]'::jsonb`;
-	await sql`ALTER TABLE dreams ADD COLUMN IF NOT EXISTS focused_at TIMESTAMPTZ`;
+	step(sql`ALTER TABLE dreams ADD COLUMN IF NOT EXISTS cover TEXT`);
+	step(sql`ALTER TABLE dreams ADD COLUMN IF NOT EXISTS photo_id TEXT`);
+	step(sql`ALTER TABLE dreams ADD COLUMN IF NOT EXISTS steps JSONB NOT NULL DEFAULT '[]'::jsonb`);
+	step(sql`ALTER TABLE dreams ADD COLUMN IF NOT EXISTS focused_at TIMESTAMPTZ`);
 
 	/* How each of them is feeling today, and since when. */
-	await sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS mood TEXT`;
-	await sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS mood_at TIMESTAMPTZ`;
+	step(sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS mood TEXT`);
+	step(sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS mood_at TIMESTAMPTZ`);
 
 	/*
 	 * Activity: what one of the two did, for the other's
@@ -904,7 +917,7 @@ async function ensureSchema(sql) {
 	 * reminders. Each row has one actor; the other person can
 	 * love it (loved_at) and has seen it (read_at).
 	 */
-	await sql`
+	step(sql`
 		CREATE TABLE IF NOT EXISTS activity (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			connection_id UUID NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
@@ -918,19 +931,19 @@ async function ensureSchema(sql) {
 			read_at TIMESTAMPTZ,
 			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 		)
-	`;
+	`);
 
 	/* Not partial, so a plain ON CONFLICT (dedupe_key) infers
 	 * it. NULL keys never clash, so undeduped rows are fine. */
-	await sql`
+	step(sql`
 		CREATE UNIQUE INDEX IF NOT EXISTS activity_dedupe_idx
 			ON activity (dedupe_key)
-	`;
+	`);
 
-	await sql`
+	step(sql`
 		CREATE INDEX IF NOT EXISTS activity_connection_idx
 			ON activity (connection_id, actor_id, created_at DESC)
-	`;
+	`);
 
 	/*
 	 * Dates the two of them are actually planning, as opposed
@@ -945,7 +958,7 @@ async function ensureSchema(sql) {
 	 * the same sealed idea as the nightly question, for the
 	 * same reason: it stops one answer shaping the other.
 	 */
-	await sql`
+	step(sql`
 		CREATE TABLE IF NOT EXISTS repairs (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			connection_id UUID NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
@@ -957,9 +970,9 @@ async function ensureSchema(sql) {
 			created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 			updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 		)
-	`;
+	`);
 
-	await sql`
+	step(sql`
 		CREATE TABLE IF NOT EXISTS repair_sides (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			repair_id UUID NOT NULL REFERENCES repairs(id) ON DELETE CASCADE,
@@ -970,14 +983,14 @@ async function ensureSchema(sql) {
 			created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 			updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 		)
-	`;
+	`);
 
-	await sql`
+	step(sql`
 		CREATE UNIQUE INDEX IF NOT EXISTS repair_sides_unique_idx
 			ON repair_sides (repair_id, user_id)
-	`;
+	`);
 
-	await sql`
+	step(sql`
 		CREATE TABLE IF NOT EXISTS date_plans (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			connection_id UUID NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
@@ -990,14 +1003,14 @@ async function ensureSchema(sql) {
 			created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 			updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 		)
-	`;
+	`);
 
-	await sql`
+	step(sql`
 		CREATE INDEX IF NOT EXISTS date_plans_connection_idx
 			ON date_plans (connection_id, plan_date)
-	`;
+	`);
 
-	await sql`
+	step(sql`
 		CREATE TABLE IF NOT EXISTS checkins (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			connection_id UUID NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
@@ -1008,17 +1021,17 @@ async function ensureSchema(sql) {
 			created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 			updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 		)
-	`;
+	`);
 
-	await sql`
+	step(sql`
 		CREATE UNIQUE INDEX IF NOT EXISTS checkins_user_week_idx
 			ON checkins (user_id, week_key)
-	`;
+	`);
 
-	await sql`
+	step(sql`
 		CREATE INDEX IF NOT EXISTS checkins_connection_idx
 			ON checkins (connection_id, week_key DESC)
-	`;
+	`);
 
 	/*
 	 * Four in a Row. The board is 42 characters, top row
@@ -1026,7 +1039,7 @@ async function ensureSchema(sql) {
 	 * other. `moves` doubles as a version, so two taps that
 	 * race each other cannot both land.
 	 */
-	await sql`
+	step(sql`
 		CREATE TABLE IF NOT EXISTS games (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			connection_id UUID NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
@@ -1043,19 +1056,19 @@ async function ensureSchema(sql) {
 			created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 			updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 		)
-	`;
+	`);
 
-	await sql`
+	step(sql`
 		CREATE INDEX IF NOT EXISTS games_connection_idx
 			ON games (connection_id, created_at DESC)
-	`;
+	`);
 
 	/*
 	 * Time-capsule letters: written now, sealed until a day
 	 * the writer picks. The body is only ever sent to the one
 	 * it is for once they have opened it on or after that day.
 	 */
-	await sql`
+	step(sql`
 		CREATE TABLE IF NOT EXISTS letters (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			connection_id UUID NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
@@ -1067,18 +1080,18 @@ async function ensureSchema(sql) {
 			opened_at TIMESTAMPTZ,
 			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 		)
-	`;
+	`);
 
-	await sql`
+	step(sql`
 		CREATE INDEX IF NOT EXISTS letters_connection_idx
 			ON letters (connection_id, open_on)
-	`;
+	`);
 
 	/*
 	 * Gift ideas: one person's private list of things the
 	 * other has mentioned wanting. Never shown to the other.
 	 */
-	await sql`
+	step(sql`
 		CREATE TABLE IF NOT EXISTS wishlist (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			connection_id UUID NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
@@ -1089,19 +1102,19 @@ async function ensureSchema(sql) {
 			bought BOOLEAN NOT NULL DEFAULT false,
 			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 		)
-	`;
+	`);
 
-	await sql`
+	step(sql`
 		CREATE INDEX IF NOT EXISTS wishlist_owner_idx
 			ON wishlist (owner, created_at DESC)
-	`;
+	`);
 
 	/*
 	 * Quick rounds (This or That, Who's More Likely To): the
 	 * same ten prompts for both, each answers alone, and the
 	 * answers only meet once both are in.
 	 */
-	await sql`
+	step(sql`
 		CREATE TABLE IF NOT EXISTS rounds (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			connection_id UUID NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
@@ -1114,15 +1127,15 @@ async function ensureSchema(sql) {
 			created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 			finished_at TIMESTAMPTZ
 		)
-	`;
+	`);
 
-	await sql`
+	step(sql`
 		CREATE INDEX IF NOT EXISTS rounds_connection_idx
 			ON rounds (connection_id, kind, created_at DESC)
-	`;
+	`);
 
 	/* The weekly love challenge, ticked off per person per week. */
-	await sql`
+	step(sql`
 		CREATE TABLE IF NOT EXISTS challenges_done (
 			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 			week_key TEXT NOT NULL,
@@ -1130,14 +1143,14 @@ async function ensureSchema(sql) {
 			done_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 			PRIMARY KEY (user_id, week_key)
 		)
-	`;
+	`);
 
 	/* A note can be a voice note: the recording lives in the media store. */
-	await sql`ALTER TABLE appreciations ADD COLUMN IF NOT EXISTS audio_id TEXT`;
-	await sql`ALTER TABLE appreciations ADD COLUMN IF NOT EXISTS audio_seconds INTEGER`;
+	step(sql`ALTER TABLE appreciations ADD COLUMN IF NOT EXISTS audio_id TEXT`);
+	step(sql`ALTER TABLE appreciations ADD COLUMN IF NOT EXISTS audio_seconds INTEGER`);
 
 	/* Shared lists: groceries, the house, things to watch. */
-	await sql`
+	step(sql`
 		CREATE TABLE IF NOT EXISTS lists (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			connection_id UUID NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
@@ -1146,9 +1159,9 @@ async function ensureSchema(sql) {
 			created_by UUID REFERENCES users(id) ON DELETE SET NULL,
 			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 		)
-	`;
+	`);
 
-	await sql`
+	step(sql`
 		CREATE TABLE IF NOT EXISTS list_items (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			list_id UUID NOT NULL REFERENCES lists(id) ON DELETE CASCADE,
@@ -1158,84 +1171,81 @@ async function ensureSchema(sql) {
 			done_by UUID REFERENCES users(id) ON DELETE SET NULL,
 			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 		)
-	`;
+	`);
 
-	await sql`
+	step(sql`
 		CREATE INDEX IF NOT EXISTS list_items_list_idx
 			ON list_items (list_id, done, created_at)
-	`;
+	`);
 
 	/* Long distance: where each of you is, and when you next meet. */
-	await sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS timezone TEXT`;
-	await sql`ALTER TABLE connections ADD COLUMN IF NOT EXISTS next_meet DATE`;
+	step(sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS timezone TEXT`);
+	step(sql`ALTER TABLE connections ADD COLUMN IF NOT EXISTS next_meet DATE`);
 
 	/* The optional features each person has switched on. */
-	await sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS features JSONB`;
+	step(sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS features JSONB`);
 
-	/* The newer tables: if one of these ever fails, only its
-	 * feature is affected, never the rest of the app. */
+	/* The newer tables and columns. */
+	step(sql`
+		CREATE TABLE IF NOT EXISTS about_me (
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			question_id TEXT NOT NULL,
+			answer TEXT NOT NULL,
+			answered_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+			PRIMARY KEY (user_id, question_id)
+		)
+	`);
+
+	step(sql`
+		CREATE TABLE IF NOT EXISTS trivia_asked (
+			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			question_id TEXT NOT NULL,
+			asked_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+			PRIMARY KEY (user_id, question_id)
+		)
+	`);
+
+	step(sql`ALTER TABLE appreciations ADD COLUMN IF NOT EXISTS reply_to UUID`);
+	step(sql`ALTER TABLE letters ADD COLUMN IF NOT EXISTS liked_at TIMESTAMPTZ`);
+	step(sql`ALTER TABLE memories ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'memory'`);
+	step(sql`ALTER TABLE date_plans ADD COLUMN IF NOT EXISTS plan_time TEXT`);
+	step(sql`ALTER TABLE date_plans ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION`);
+	step(sql`ALTER TABLE date_plans ADD COLUMN IF NOT EXISTS lon DOUBLE PRECISION`);
+	step(sql`ALTER TABLE date_plans ADD COLUMN IF NOT EXISTS address TEXT`);
+	step(sql`ALTER TABLE date_plans ADD COLUMN IF NOT EXISTS photo_url TEXT`);
+	step(sql`ALTER TABLE date_plans ADD COLUMN IF NOT EXISTS place_kind TEXT`);
+	step(sql`ALTER TABLE date_plans ADD COLUMN IF NOT EXISTS awaiting UUID`);
+	step(sql`
+		CREATE TABLE IF NOT EXISTS duels (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			connection_id UUID NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
+			kind TEXT NOT NULL,
+			player_a UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			player_b UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			state JSONB NOT NULL,
+			turn UUID,
+			status TEXT NOT NULL DEFAULT 'playing',
+			winner UUID,
+			version INTEGER NOT NULL DEFAULT 0,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+			updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+		)
+	`);
+
+	step(sql`
+		CREATE INDEX IF NOT EXISTS duels_connection_idx
+			ON duels (connection_id, kind, created_at DESC)
+	`);
+
+
 	try {
-		/* Trivia that grows: what each of you said about yourself,
-		 * and which questions you have already been asked. */
-		await sql`
-			CREATE TABLE IF NOT EXISTS about_me (
-				user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-				question_id TEXT NOT NULL,
-				answer TEXT NOT NULL,
-				answered_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-				PRIMARY KEY (user_id, question_id)
-			)
-		`;
-
-		await sql`
-			CREATE TABLE IF NOT EXISTS trivia_asked (
-				user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-				question_id TEXT NOT NULL,
-				asked_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-				PRIMARY KEY (user_id, question_id)
-			)
-		`;
-
-		await sql`ALTER TABLE appreciations ADD COLUMN IF NOT EXISTS reply_to UUID`;
-		await sql`ALTER TABLE letters ADD COLUMN IF NOT EXISTS liked_at TIMESTAMPTZ`;
-		await sql`ALTER TABLE memories ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'memory'`;
-
-		/* A date suggested at a real place, waiting on the other
-		 * person to say yes. */
-		await sql`ALTER TABLE date_plans ADD COLUMN IF NOT EXISTS plan_time TEXT`;
-		await sql`ALTER TABLE date_plans ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION`;
-		await sql`ALTER TABLE date_plans ADD COLUMN IF NOT EXISTS lon DOUBLE PRECISION`;
-		await sql`ALTER TABLE date_plans ADD COLUMN IF NOT EXISTS address TEXT`;
-		await sql`ALTER TABLE date_plans ADD COLUMN IF NOT EXISTS photo_url TEXT`;
-		await sql`ALTER TABLE date_plans ADD COLUMN IF NOT EXISTS place_kind TEXT`;
-		await sql`ALTER TABLE date_plans ADD COLUMN IF NOT EXISTS awaiting UUID`;
-
-		await sql`
-			CREATE TABLE IF NOT EXISTS duels (
-				id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-				connection_id UUID NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
-				kind TEXT NOT NULL,
-				player_a UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-				player_b UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-				state JSONB NOT NULL,
-				turn UUID,
-				status TEXT NOT NULL DEFAULT 'playing',
-				winner UUID,
-				version INTEGER NOT NULL DEFAULT 0,
-				created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-				updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-			)
-		`;
-
-		await sql`
-			CREATE INDEX IF NOT EXISTS duels_connection_idx
-				ON duels (connection_id, kind, created_at DESC)
-		`;
+		await sql.transaction(steps);
+		schemaReady = true;
 	} catch (err) {
-		console.error('NEWER SCHEMA FAILED:', err?.message);
+		/* Tried again in a minute; the app carries on meanwhile. */
+		console.error('SCHEMA FAILED:', err?.message);
+		schemaRetryAt = Date.now() + 60_000;
 	}
-
-	schemaReady = true;
 }
 
 function slugifyQuestion(text) {
@@ -2165,9 +2175,13 @@ export default {
           SELECT NOW() AS time
         `;
 
+				/* Also makes sure every table is there, and says so. */
+				await ensureSchema(sql);
+
 				return Response.json({
 					status: 'ok',
 					database: true,
+					schema: schemaReady,
 					time: result[0].time,
 				});
 			}
@@ -5479,9 +5493,9 @@ VALUES (
 			 * PLACES
 			 * ==========================================
 			 *
-			 * GET /users/:clerkId/places?lat=&lon=&kind=&q=&radius=
+			 * GET /users/:clerkId/places?lat=&lon=&kind=&q=&radius=&all=1&full=1
 			 * GET /users/:clerkId/places/photos?lat=&lon=&image=
-			 * GET /users/:clerkId/geocode?q=
+			 * GET /users/:clerkId/geocode?q=&lat=&lon=     (near you first)
 			 */
 			const placesMatch = url.pathname.match(/^\/users\/([^/]+)\/places$/);
 			const placePhotosMatch = url.pathname.match(/^\/users\/([^/]+)\/places\/photos$/);
@@ -5496,7 +5510,7 @@ VALUES (
 					if (geocodeMatch) {
 						const q = String(url.searchParams.get('q') || '').trim();
 						if (q.length < 2) return Response.json({ results: [] });
-						return Response.json(await geocode(env, q.slice(0, 80)));
+						return Response.json(await geocode(env, q.slice(0, 80), okPoint ? { lat, lon } : null));
 					}
 
 					if (!okPoint) return Response.json({ error: 'A location is needed.' }, { status: 400 });
@@ -5513,6 +5527,8 @@ VALUES (
 							kind: url.searchParams.get('kind') || null,
 							q: String(url.searchParams.get('q') || '').slice(0, 60) || null,
 							radius: Number(url.searchParams.get('radius')) || null,
+							full: url.searchParams.get('full') === '1',
+							all: url.searchParams.get('all') === '1',
 						}),
 						areaName(env, lat, lon).catch(() => ({ name: null })),
 					]);
@@ -7731,51 +7747,20 @@ VALUES (
 
 			/*
 			 * ==========================================
-			 * DELETE AN APPRECIATION
+			 * NOTES STAY
 			 * ==========================================
 			 *
 			 * DELETE /users/:clerkId/appreciations/:id
 			 *
-			 * Only the person who wrote it can remove it.
-			 * A note someone wrote about you is theirs to
-			 * take back, not yours to erase.
+			 * Notes are no longer deleted: what was said between
+			 * you stays, for both of you. Older versions of the
+			 * app may still ask, and are told so.
 			 */
 
 			const deleteAppreciationMatch = url.pathname.match(/^\/users\/([^/]+)\/appreciations\/([^/]+)$/);
 
 			if (deleteAppreciationMatch && request.method === 'DELETE') {
-				const clerkId = deleteAppreciationMatch[1];
-				const appreciationId = deleteAppreciationMatch[2];
-
-				const userResult = await sql`
-          SELECT id FROM users WHERE clerk_id = ${clerkId} LIMIT 1
-        `;
-
-				if (userResult.length === 0) {
-					return Response.json({ error: 'User not found' }, { status: 404 });
-				}
-
-				const userId = userResult[0].id;
-
-				await ensureSchema(sql);
-
-				const result = await sql`
-          DELETE FROM appreciations
-          WHERE id = ${appreciationId}
-            AND from_user_id = ${userId}
-          RETURNING id
-        `;
-
-				if (result.length === 0) {
-					return Response.json(
-						{
-							error: 'Note not found, or it is not yours to delete.',
-						},
-						{ status: 404 },
-					);
-				}
-
-				return Response.json({ message: 'Appreciation deleted' });
+				return Response.json({ error: 'Notes stay, for both of you. They can no longer be deleted.' }, { status: 403 });
 			}
 
 			/*
@@ -8718,7 +8703,8 @@ VALUES (
 			 * THINKING OF YOU
 			 * ==========================================
 			 *
-			 * POST /users/:clerkId/tap   { kind: kiss | miss | proud | thinking }
+			 * POST /users/:clerkId/tap   { kind: kiss | miss | proud | thinking | love | ... }
+			 *                             (the same list as lib/taps.js in the app)
 			 *
 			 * A small signal with its own little animation on their
 			 * phone. A repeat within a minute counts as one.
@@ -8740,6 +8726,18 @@ VALUES (
 					miss: { emoji: '🥺', line: 'misses you' },
 					proud: { emoji: '🌟', line: 'is proud of you' },
 					thinking: { emoji: '💭', line: 'is thinking of you' },
+					love: { emoji: '❤️', line: 'loves you' },
+					cuddle: { emoji: '🫂', line: 'wants a cuddle' },
+					rose: { emoji: '🌹', line: 'sent you a rose' },
+					hot: { emoji: '🔥', line: 'thinks you look hot' },
+					wink: { emoji: '😉', line: 'winked at you' },
+					laugh: { emoji: '😂', line: 'is laughing with you' },
+					call: { emoji: '📞', line: 'wants to hear your voice' },
+					food: { emoji: '🍕', line: 'is hungry. Food together?' },
+					coffee: { emoji: '☕', line: 'fancies a coffee with you' },
+					morning: { emoji: '☀️', line: 'says good morning' },
+					night: { emoji: '🌙', line: 'says goodnight' },
+					sorry: { emoji: '🥹', line: 'is sorry' },
 				};
 
 				const body = await request.json().catch(() => ({}));

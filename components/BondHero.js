@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Easing,
+  PanResponder,
   Platform,
   Pressable,
   StyleSheet,
@@ -20,6 +21,7 @@ import Svg, {
   Stop,
 } from "react-native-svg";
 
+import { TAP_LIST } from "../lib/taps";
 import { T, themedStyles, useTheme } from "../lib/theme";
 import { motionAllowed } from "./ui";
 
@@ -70,6 +72,9 @@ function feel(run) {
     /* no haptics on this device */
   }
 }
+/* "a bit lonely" -> "A bit lonely": the pill under each circle. */
+const capital = (word) => word.charAt(0).toUpperCase() + word.slice(1);
+
 const WIRE = "M0,30 C48,2 122,58 170,30";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -99,6 +104,23 @@ export default function BondHero({
 
   const [sent, setSent] = useState(false);
   const [animate, setAnimate] = useState(true);
+
+  /* The wheel of little somethings, and where their circle is. */
+  const [wheelOpen, setWheelOpen] = useState(false);
+  const [rowAt, setRowAt] = useState(null);
+  const [themAt, setThemAt] = useState(null);
+
+  const closeWheel = useCallback(() => setWheelOpen(false), []);
+
+  const toggleWheel = () => {
+    Haptics.selectionAsync().catch(() => {});
+    setWheelOpen((current) => !current);
+  };
+
+  const themCentre =
+    rowAt && themAt
+      ? { x: rowAt.x + themAt.x + 48, y: rowAt.y + themAt.y + 45 }
+      : null;
 
   const hold = useRef(new Animated.Value(0)).current;
   const hug = useRef(new Animated.Value(0)).current;
@@ -385,7 +407,7 @@ export default function BondHero({
         {youName} &amp; {partnerName}
       </Text>
 
-      <View style={styles.row}>
+      <View style={styles.row} onLayout={(e) => setRowAt(e.nativeEvent.layout)}>
         {/* YOU */}
         <View style={styles.person}>
           <View style={styles.orb}>
@@ -452,8 +474,10 @@ export default function BondHero({
             <Text
               style={[styles.stateText, { color: T.youText }]}
               numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
             >
-              {moodLabel ? `Feeling ${moodLabel}` : "How are you feeling?"}
+              {moodLabel ? capital(moodLabel) : "Your mood"}
             </Text>
           </Pressable>
         </View>
@@ -546,9 +570,17 @@ export default function BondHero({
         </View>
 
         {/* THEM -- tap their circle for a burst of little somethings. */}
-        <View style={styles.person}>
+        <View
+          style={styles.person}
+          onLayout={(e) => setThemAt(e.nativeEvent.layout)}
+        >
           {onSendTap ? (
-            <TapBurst onSend={onSendTap} name={partnerName} />
+            <Pressable
+              onPress={toggleWheel}
+              style={styles.burstTarget}
+              accessibilityRole="button"
+              accessibilityLabel={`Send ${partnerName} a little something`}
+            />
           ) : null}
 
           <Animated.View
@@ -599,12 +631,16 @@ export default function BondHero({
               <Text
                 style={[styles.stateText, { color: T.label2 }]}
                 numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
               >
-                {partnerMoodLabel
-                  ? `Feeling ${partnerMoodLabel}`
-                  : partnerOnline
-                    ? "Here now"
-                    : "Tap for a little something"}
+                {wheelOpen
+                  ? "Spin for more"
+                  : partnerMoodLabel
+                    ? capital(partnerMoodLabel)
+                    : partnerOnline
+                      ? "Here now"
+                      : "Tap to send"}
               </Text>
             </View>
           ) : null}
@@ -636,34 +672,110 @@ export default function BondHero({
           ) : null}
         </View>
       ) : null}
+
+      {onSendTap ? (
+        <TapWheel
+          open={wheelOpen}
+          centre={themCentre}
+          name={partnerName}
+          onSend={onSendTap}
+          onClose={closeWheel}
+        />
+      ) : null}
     </View>
   );
 }
 
 /*
- * The little somethings, as a burst around their circle.
- * Tap the circle: four bubbles spring out in an arc. Tap
- * one: it flies up off the circle and is sent, with a tap
- * you can feel. Tap the circle again to fold them away.
+ * The little somethings, on a wheel around their circle.
+ * Tap the circle: the wheel springs out in an arc. Drag
+ * along it to spin through everything there is to send
+ * (lib/taps.js); it settles on the nearest, with a tick
+ * you can feel. Tap one: it flies up off the circle and is
+ * sent. Tap anywhere else on the wheel to fold it away.
  *
- * Their circle sits near the right edge, so the arc fans
- * up and to the left, towards the middle of the card.
+ * Their circle sits near the right edge, so the arc runs
+ * from their left, round the top, towards the middle of
+ * the card. The wheel is drawn over the whole card rather
+ * than inside the circle's own box, because Android does
+ * not pass on touches outside a view's edges.
  */
-const BURST = [
-  { kind: "kiss", emoji: "😘", x: -78, y: -3 },
-  { kind: "miss", emoji: "🥺", x: -64, y: -45 },
-  { kind: "proud", emoji: "🌟", x: -29, y: -72 },
-  { kind: "thinking", emoji: "💭", x: 15, y: -77 },
-];
+const WHEEL_R = 82;
+const WHEEL_START = 190; /* degrees: just left of the circle */
+const WHEEL_STEP = 33;
+const WHEEL_SHOWN = 4;
+const WHEEL_MAX = TAP_LIST.length - WHEEL_SHOWN;
+const WHEEL_BOX = (WHEEL_R + 30) * 2;
+/* Finger travel along the arc for one step of the wheel. */
+const WHEEL_PX = 62;
 
-function TapBurst({ onSend, name }) {
+const toXY = (slot) => {
+  const rad = ((WHEEL_START - slot * WHEEL_STEP) * Math.PI) / 180;
+  return { x: WHEEL_R * Math.cos(rad), y: -WHEEL_R * Math.sin(rad) };
+};
+
+/* Where bubble `index` sits, for every turn of the wheel. */
+function wheelPath(index) {
+  const input = [];
+  const x = [];
+  const y = [];
+  const fade = [];
+  const size = [];
+
+  for (let turn = index - WHEEL_SHOWN - 2; turn <= index + 2; turn += 0.25) {
+    const slot = index - turn;
+    const at = toXY(slot);
+    const out =
+      slot < -0.5
+        ? -0.5 - slot
+        : slot > WHEEL_SHOWN - 0.5
+          ? slot - (WHEEL_SHOWN - 0.5)
+          : 0;
+
+    input.push(turn);
+    x.push(at.x);
+    y.push(at.y);
+    fade.push(Math.max(0, 1 - out * 1.6));
+    size.push(Math.max(0.55, 1 - out * 0.6));
+  }
+
+  return { input, x, y, fade, size };
+}
+
+const WHEEL_PATHS = TAP_LIST.map((_, index) => wheelPath(index));
+
+/* The faint track the bubbles ride on. */
+function arcPath() {
+  const from = toXY(-0.45);
+  const to = toXY(WHEEL_SHOWN - 0.55);
+  const c = WHEEL_BOX / 2;
+
+  return `M${c + from.x},${c + from.y} A${WHEEL_R},${WHEEL_R} 0 0 1 ${c + to.x},${c + to.y}`;
+}
+
+const WHEEL_ARC = arcPath();
+
+function TapWheel({ open, centre, name, onSend, onClose }) {
   useTheme();
 
-  const [open, setOpen] = useState(false);
   const [flying, setFlying] = useState(null);
 
   const spread = useRef(new Animated.Value(0)).current;
   const fly = useRef(new Animated.Value(0)).current;
+  const turn = useRef(new Animated.Value(0)).current;
+
+  const turnNow = useRef(0);
+  const turnStart = useRef(0);
+  const lastTick = useRef(0);
+  const moved = useRef(false);
+
+  useEffect(() => {
+    const id = turn.addListener(({ value }) => {
+      turnNow.current = value;
+    });
+
+    return () => turn.removeListener(id);
+  }, [turn]);
 
   useEffect(() => {
     Animated.spring(spread, {
@@ -674,16 +786,69 @@ function TapBurst({ onSend, name }) {
     }).start();
   }, [open, spread]);
 
-  const toggle = () => {
-    Haptics.selectionAsync().catch(() => {});
-    setOpen((current) => !current);
+  const settle = (target) => {
+    const to = Math.max(0, Math.min(WHEEL_MAX, Math.round(target)));
+
+    Animated.spring(turn, {
+      toValue: to,
+      friction: 7,
+      tension: 70,
+      useNativeDriver: true,
+    }).start();
   };
+
+  const pan = useMemo(
+    () =>
+      PanResponder.create({
+        /* Empty space on the wheel: a tap there folds it away. */
+        onStartShouldSetPanResponder: () => true,
+        /* A drag that starts on a bubble spins the wheel instead. */
+        onMoveShouldSetPanResponderCapture: (_, g) =>
+          Math.abs(g.dx) > 6 || Math.abs(g.dy) > 6,
+        onPanResponderGrant: () => {
+          moved.current = false;
+          turn.stopAnimation((value) => {
+            turnStart.current = value;
+            lastTick.current = Math.round(value);
+          });
+        },
+        onPanResponderMove: (_, g) => {
+          if (Math.abs(g.dx) > 6 || Math.abs(g.dy) > 6) moved.current = true;
+
+          /* Along the arc, from their left round to the top,
+           * is up and to the right: dx goes up, dy goes down. */
+          let next = turnStart.current - (g.dx - g.dy) / WHEEL_PX;
+
+          if (next < 0) next *= 0.35;
+          if (next > WHEEL_MAX) next = WHEEL_MAX + (next - WHEEL_MAX) * 0.35;
+
+          turn.setValue(next);
+
+          const tick = Math.round(next);
+
+          if (tick !== lastTick.current && tick >= 0 && tick <= WHEEL_MAX) {
+            lastTick.current = tick;
+            Haptics.selectionAsync().catch(() => {});
+          }
+        },
+        onPanResponderRelease: (_, g) => {
+          if (!moved.current) {
+            onClose();
+            return;
+          }
+
+          settle(turnNow.current - ((g.vx - g.vy) * 220) / WHEEL_PX);
+        },
+        onPanResponderTerminate: () => settle(turnNow.current),
+      }),
+    [turn, onClose],
+  );
 
   const send = (item) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
 
     onSend(item.kind);
-    setOpen(false);
+    onClose();
     setFlying(item);
 
     fly.setValue(0);
@@ -696,58 +861,81 @@ function TapBurst({ onSend, name }) {
     }).start(() => setFlying(null));
   };
 
+  if (!centre) return null;
+
+  const box = {
+    left: centre.x - WHEEL_BOX / 2,
+    top: centre.y - WHEEL_BOX / 2,
+  };
+
+  const grow = spread.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.3, 1],
+  });
+
   return (
     <>
-      {/* Over the circle, so a tap there opens the burst. */}
-      <Pressable
-        onPress={toggle}
-        style={styles.burstTarget}
-        accessibilityRole="button"
-        accessibilityLabel={`Send ${name} a little something`}
-      />
-
-      {BURST.map((item, index) => (
+      <View
+        {...pan.panHandlers}
+        pointerEvents={open ? "auto" : "none"}
+        style={[styles.wheel, box]}
+      >
         <Animated.View
-          key={item.kind}
-          pointerEvents={open ? "auto" : "none"}
-          style={[
-            styles.burstBubble,
-            {
-              opacity: spread,
-              transform: [
-                {
-                  translateX: spread.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, item.x],
-                  }),
-                },
-                {
-                  translateY: spread.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, item.y],
-                  }),
-                },
-                {
-                  scale: spread.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.3, 1],
-                  }),
-                },
-              ],
-            },
-          ]}
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, { opacity: spread }]}
         >
-          <Pressable
-            onPress={() => send(item)}
-            hitSlop={6}
-            accessibilityRole="button"
-            accessibilityLabel={item.kind}
-            style={styles.burstPress}
-          >
-            <Text style={styles.burstEmoji}>{item.emoji}</Text>
-          </Pressable>
+          <Svg width={WHEEL_BOX} height={WHEEL_BOX}>
+            <Path
+              d={WHEEL_ARC}
+              fill="none"
+              stroke={T.accent}
+              strokeOpacity={0.22}
+              strokeWidth={50}
+              strokeLinecap="round"
+            />
+          </Svg>
         </Animated.View>
-      ))}
+
+        {TAP_LIST.map((item, index) => {
+          const path = WHEEL_PATHS[index];
+          const along = (output) =>
+            turn.interpolate({
+              inputRange: path.input,
+              outputRange: output,
+              extrapolate: "clamp",
+            });
+
+          return (
+            <Animated.View
+              key={item.kind}
+              style={[
+                styles.wheelBubble,
+                {
+                  opacity: Animated.multiply(spread, along(path.fade)),
+                  transform: [
+                    { translateX: Animated.multiply(spread, along(path.x)) },
+                    { translateY: Animated.multiply(spread, along(path.y)) },
+                    { scale: Animated.multiply(grow, along(path.size)) },
+                  ],
+                },
+              ]}
+            >
+              <Pressable
+                onPress={() => send(item)}
+                hitSlop={4}
+                accessibilityRole="button"
+                accessibilityLabel={`Send ${name}: ${item.label}`}
+                style={({ pressed }) => [
+                  styles.burstPress,
+                  pressed && styles.burstPressed,
+                ]}
+              >
+                <Text style={styles.burstEmoji}>{item.emoji}</Text>
+              </Pressable>
+            </Animated.View>
+          );
+        })}
+      </View>
 
       {flying ? (
         <Animated.Text
@@ -755,6 +943,8 @@ function TapBurst({ onSend, name }) {
           style={[
             styles.flyer,
             {
+              left: centre.x - 30,
+              top: centre.y - 24,
               opacity: fly.interpolate({
                 inputRange: [0, 0.7, 1],
                 outputRange: [1, 1, 0],
@@ -873,19 +1063,10 @@ const styles = themedStyles(() => ({
     zIndex: 5,
   },
 
-  burstBubble: {
-    position: "absolute",
-    top: 25,
-    left: 28,
-    width: 40,
-    height: 40,
-    zIndex: 6,
-  },
-
   burstPress: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: T.surface,
     alignItems: "center",
     justifyContent: "center",
@@ -902,10 +1083,29 @@ const styles = themedStyles(() => ({
 
   flyer: {
     position: "absolute",
-    top: 24,
-    alignSelf: "center",
+    width: 60,
+    textAlign: "center",
     fontSize: 36,
     zIndex: 7,
+  },
+
+  wheel: {
+    position: "absolute",
+    width: WHEEL_BOX,
+    height: WHEEL_BOX,
+    zIndex: 6,
+  },
+
+  wheelBubble: {
+    position: "absolute",
+    left: WHEEL_BOX / 2 - 21,
+    top: WHEEL_BOX / 2 - 21,
+    width: 42,
+    height: 42,
+  },
+
+  burstPressed: {
+    transform: [{ scale: 0.88 }],
   },
 
   orb: {
@@ -953,6 +1153,7 @@ const styles = themedStyles(() => ({
   state: {
     flexDirection: "row",
     alignItems: "center",
+    maxWidth: "100%",
     gap: 3,
     paddingHorizontal: 9,
     paddingVertical: 3,

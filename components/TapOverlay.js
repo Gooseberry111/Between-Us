@@ -10,6 +10,7 @@ import {
 import * as Haptics from "expo-haptics";
 
 import { onTap } from "../lib/hugs";
+import { TAPS } from "../lib/taps";
 import { T, themedStyles, useTheme } from "../lib/theme";
 import { motionAllowed } from "./ui";
 
@@ -18,18 +19,14 @@ import { motionAllowed } from "./ui";
  * A LITTLE SOMETHING ARRIVING
  * ==========================================
  *
- * A kiss, "miss you", "proud of you", "thinking of you".
+ * A kiss, "miss you", a rose, goodnight: anything from the
+ * wheel around their circle (lib/taps.js).
  * The emoji rises and swells, a few small copies drift up
  * around it, the phone taps once, and it lets go. Lighter
  * than a hug, and it does not ask for an answer.
  */
 
-export const TAPS = {
-  kiss: { emoji: "😘", line: "sent you a kiss" },
-  miss: { emoji: "🥺", line: "misses you" },
-  proud: { emoji: "🌟", line: "is proud of you" },
-  thinking: { emoji: "💭", line: "is thinking of you" },
-};
+export { TAPS };
 
 const DRIFTERS = [
   { x: -90, delay: 120, size: 22 },

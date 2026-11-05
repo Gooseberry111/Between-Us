@@ -104,6 +104,8 @@ const MAP = {
   star: ["star.fill", "star-outline", "star"],
   phone: ["phone", "call-outline", "call"],
   open: ["arrow.up.right.square", "open-outline", "open"],
+  palette: ["paintpalette", "color-palette-outline", "color-palette"],
+  reply: ["arrowshape.turn.up.left", "arrow-undo-outline", "arrow-undo"],
 };
 
 /* The SF Symbol behind one of our names, for native

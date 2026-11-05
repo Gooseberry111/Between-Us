@@ -214,7 +214,16 @@ export default function TanksScreen() {
   const [celebrate, setCelebrate] = useState(false);
   const endCelebrate = useCallback(() => setCelebrate(false), []);
 
+  /* The latest match, read by the flight without restarting it. */
+  const duelRef = useRef(duel);
+  duelRef.current = duel;
+
+  const shotKey = duel
+    ? `${duel.id}:${duel.last ? duel.last.turn : "none"}`
+    : null;
+
   useEffect(() => {
+    const duel = duelRef.current;
     const last = duel?.last;
 
     if (!duel) return undefined;
@@ -253,7 +262,8 @@ export default function TanksScreen() {
         else if (last.damage > 0) tap(Haptics.ImpactFeedbackStyle.Medium);
         else tap(Haptics.ImpactFeedbackStyle.Light);
 
-        if (duel.status !== "playing" && duel.winner === "you")
+        const now = duelRef.current;
+        if (now && now.status !== "playing" && now.winner === "you")
           setCelebrate(true);
       }
     };
@@ -261,7 +271,7 @@ export default function TanksScreen() {
     frame = requestAnimationFrame(step);
 
     return () => cancelAnimationFrame(frame);
-  }, [duel]);
+  }, [shotKey]);
 
   if (connected === false) {
     return <ConnectFirst feature="Tank Duel" showBack />;

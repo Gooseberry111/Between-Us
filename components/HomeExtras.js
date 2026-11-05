@@ -9,6 +9,7 @@ import { daysUntil, myTimeZone, timeIn } from "../lib/distance";
 import { T, themedStyles, useTheme } from "../lib/theme";
 import { Button, Card, Icon, Press } from "./ui";
 import { RemotePhoto } from "./Photo";
+import { TAP_LIST } from "../lib/taps";
 
 /*
  * ==========================================
@@ -153,12 +154,7 @@ export function OnThisDay() {
   );
 }
 
-const TAP_BUTTONS = [
-  { kind: "kiss", emoji: "😘", label: "Kiss" },
-  { kind: "miss", emoji: "🥺", label: "Miss you" },
-  { kind: "proud", emoji: "🌟", label: "Proud" },
-  { kind: "thinking", emoji: "💭", label: "Thinking of you" },
-];
+const TAP_BUTTONS = TAP_LIST.slice(0, 4);
 
 export function Taps({ partnerName }) {
   useTheme();

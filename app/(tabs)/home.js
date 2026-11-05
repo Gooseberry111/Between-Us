@@ -47,6 +47,7 @@ import {
 } from "../../lib/activity";
 import { playHug, playHugAnswer, playTap } from "../../lib/hugs";
 import { openTour } from "../../lib/tour";
+import { warmPlaces } from "../../lib/places";
 import { tourSeen } from "../../components/Walkthrough";
 import { SkeletonList } from "../../components/Skeleton";
 
@@ -111,7 +112,7 @@ const MOOD_WORDS = {
   happy: "happy",
   excited: "excited",
   okay: "okay",
-  missing: "a bit lonely",
+  missing: "lonely",
   tired: "tired",
   stressed: "stressed",
   sad: "sad",
@@ -319,6 +320,16 @@ export default function HomeScreen() {
     if (tourSeen(userId)) return undefined;
 
     const timer = setTimeout(openTour, 900);
+
+    return () => clearTimeout(timer);
+  }, [userId, partner]);
+
+  /* Date spots near you, fetched quietly so Dates opens ready.
+   * Only if location is already allowed; it never asks here. */
+  useEffect(() => {
+    if (!userId || !partner) return undefined;
+
+    const timer = setTimeout(() => warmPlaces(userId), 3000);
 
     return () => clearTimeout(timer);
   }, [userId, partner]);

@@ -23,10 +23,12 @@ import { chooseAction } from "../lib/actions";
 import { getCachedData, setCachedData } from "../lib/dataCache";
 import { useIsConnected } from "../lib/connection";
 import { onLive } from "../lib/live";
+import { Location, fetchArea, knownArea, metresBetween } from "../lib/places";
 import { T, themedStyles, useTheme } from "../lib/theme";
 import {
   Button,
   Card,
+  Segmented,
   Cell,
   DateBlock,
   GlassButton,
@@ -66,15 +68,6 @@ import { SkeletonList } from "../components/Skeleton";
  *
  * Nothing is "planned" until both of you have agreed to it.
  */
-
-let Location = null;
-
-try {
-  Location = require("expo-location");
-  if (!Location?.requestForegroundPermissionsAsync) Location = null;
-} catch {
-  Location = null;
-}
 
 const TIMES = [
   { value: "10:00", label: "Morning", hint: "10am" },
@@ -248,8 +241,11 @@ export default function DatesScreen() {
   const [kinds, setKinds] = useState([]);
   const [kind, setKind] = useState(null);
   const [query, setQuery] = useState("");
-  const [places, setPlaces] = useState([]);
+  /* Every place in the area; the chips and search filter it here. */
+  const [areaPlaces, setAreaPlaces] = useState([]);
   const [placesBusy, setPlacesBusy] = useState(false);
+  /* The quick first look is in; the whole area is still coming. */
+  const [filling, setFilling] = useState(false);
   const [placesError, setPlacesError] = useState("");
   const [showCount, setShowCount] = useState(8);
   const [selected, setSelected] = useState(null);
@@ -271,6 +267,10 @@ export default function DatesScreen() {
   const [sending, setSending] = useState(false);
 
   const them = partnerName || "them";
+
+  /* Our dates (what is planned) or Find a spot (the map). */
+  const [tab, setTab] = useState("ours");
+  const tabChosen = useRef(false);
   const days = useMemo(() => nextDays(21), []);
 
   /* ---------- the plans ---------- */
@@ -355,7 +355,7 @@ export default function DatesScreen() {
 
       if (last?.coords) {
         const point = { lat: last.coords.latitude, lon: last.coords.longitude };
-        setMe(point);
+        setMe((current) => current || point);
         setCentre((current) => current || { ...point, fromMe: true });
         setLocStatus("ok");
       }
@@ -365,9 +365,16 @@ export default function DatesScreen() {
       });
       const point = { lat: now.coords.latitude, lon: now.coords.longitude };
 
-      setMe(point);
+      /* A fix a few hundred metres off is the same place: no new look. */
+      setMe((current) =>
+        metresBetween(current, point) < 400 ? current : point,
+      );
       setCentre((current) =>
-        !current || current.fromMe ? { ...point, fromMe: true } : current,
+        !current
+          ? { ...point, fromMe: true }
+          : current.fromMe && metresBetween(current, point) >= 400
+            ? { ...point, fromMe: true }
+            : current,
       );
       setLocStatus("ok");
     } catch {
@@ -381,53 +388,100 @@ export default function DatesScreen() {
 
   /* ---------- what is near ---------- */
 
-  const searchRef = useRef(0);
+  const centreRef = useRef(centre);
+  centreRef.current = centre;
 
-  const findPlaces = useCallback(async () => {
-    if (!userId || !centre) return;
+  const stillHere = (point) =>
+    centreRef.current &&
+    centreRef.current.lat === point.lat &&
+    centreRef.current.lon === point.lon;
 
-    const ticket = ++searchRef.current;
+  const showArea = useCallback((point, data) => {
+    if (!data) return;
 
-    setPlacesBusy(true);
-    setPlacesError("");
+    setAreaPlaces(data.places);
+    if (data.kinds.length) setKinds(data.kinds);
+    if (data.area && !point.label) setArea(data.area);
+  }, []);
 
-    try {
-      const params = new URLSearchParams({
-        lat: String(centre.lat),
-        lon: String(centre.lon),
-        radius: query.trim() ? "15000" : "6000",
-      });
+  /*
+   * One look per place: what this session already has shows
+   * at once; otherwise a quick look, then quietly the whole
+   * area. lib/places makes sure only one runs at a time.
+   */
+  const lookAround = useCallback(
+    async (point) => {
+      if (!userId || !point) return;
 
-      if (kind) params.set("kind", kind);
-      if (query.trim()) params.set("q", query.trim());
+      const known = knownArea(point);
 
-      const response = await apiFetch(
-        `/users/${userId}/places?${params.toString()}`,
-      );
-      const data = await response.json().catch(() => ({}));
+      setPlacesError("");
 
-      if (ticket !== searchRef.current) return;
+      if (known) {
+        showArea(point, known);
+        if (!known.partial) return;
+      } else {
+        setAreaPlaces([]);
+        setPlacesBusy(true);
+      }
 
-      if (!response.ok)
-        throw new Error(data?.error || "The map service is busy.");
+      try {
+        const quick = known || (await fetchArea(userId, point));
 
-      setPlaces(Array.isArray(data.places) ? data.places : []);
-      if (Array.isArray(data.kinds)) setKinds(data.kinds);
-      if (data.area && !centre.label) setArea(data.area);
-      setShowCount(8);
-    } catch (err) {
-      if (ticket === searchRef.current)
-        setPlacesError(err?.message || "The map service is busy.");
-    } finally {
-      if (ticket === searchRef.current) setPlacesBusy(false);
-    }
-  }, [userId, centre, kind, query]);
+        if (!stillHere(point)) return;
 
-  /* Typing settles before it searches. */
+        showArea(point, quick);
+        setPlacesBusy(false);
+
+        if (quick?.partial) {
+          setFilling(true);
+
+          const full = await fetchArea(userId, point, { full: true }).catch(
+            () => null,
+          );
+
+          if (stillHere(point)) showArea(point, full);
+        }
+      } catch (err) {
+        if (stillHere(point))
+          setPlacesError(err?.message || "The map service is busy.");
+      } finally {
+        if (stillHere(point)) {
+          setPlacesBusy(false);
+          setFilling(false);
+        }
+      }
+    },
+    [userId, showArea],
+  );
+
   useEffect(() => {
-    const timer = setTimeout(findPlaces, query ? 500 : 0);
-    return () => clearTimeout(timer);
-  }, [findPlaces, query]);
+    if (centre) lookAround(centre);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [centre?.lat, centre?.lon, lookAround]);
+
+  /* The chips and the search box, on what is already here. */
+  const places = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+
+    return areaPlaces.filter((place) => {
+      if (kind && place.kind !== kind) return false;
+      if (!needle) return true;
+
+      return (
+        place.name.toLowerCase().includes(needle) ||
+        (place.cuisine || []).some((c) => c.toLowerCase().includes(needle)) ||
+        (place.address || "").toLowerCase().includes(needle) ||
+        (kinds.find((k) => k.key === place.kind)?.label || "")
+          .toLowerCase()
+          .includes(needle)
+      );
+    });
+  }, [areaPlaces, kind, query, kinds]);
+
+  useEffect(() => {
+    setShowCount(8);
+  }, [kind, query, centre?.lat, centre?.lon]);
 
   useEffect(() => {
     if (!elsewhere || areaQuery.trim().length < 2) {
@@ -438,7 +492,8 @@ export default function DatesScreen() {
     const timer = setTimeout(async () => {
       try {
         const response = await apiFetch(
-          `/users/${userId}/geocode?q=${encodeURIComponent(areaQuery.trim())}`,
+          `/users/${userId}/geocode?q=${encodeURIComponent(areaQuery.trim())}` +
+            (me ? `&lat=${me.lat}&lon=${me.lon}` : ""),
         );
         const data = await response.json().catch(() => ({}));
         setAreaResults(Array.isArray(data.results) ? data.results : []);
@@ -448,7 +503,7 @@ export default function DatesScreen() {
     }, 450);
 
     return () => clearTimeout(timer);
-  }, [areaQuery, elsewhere, userId]);
+  }, [areaQuery, elsewhere, userId, me]);
 
   /* ---------- a place in full ---------- */
 
@@ -635,10 +690,6 @@ export default function DatesScreen() {
       ],
     });
 
-  if (connected === false) {
-    return <ConnectFirst feature="Dates" />;
-  }
-
   const goBack = () => {
     if (router.canGoBack()) router.back();
     else router.replace("/(tabs)/home");
@@ -653,6 +704,9 @@ export default function DatesScreen() {
   const planned = plans.filter((plan) => plan.status === "planned");
   const past = plans.filter((plan) => plan.status === "done").slice(0, 6);
 
+  const active = toYou.length + toThem.length + planned.length;
+  const oursLabel = active ? `Our dates · ${active}` : "Our dates";
+
   const comingRound = specialDates
     .map((item) => ({
       ...item,
@@ -663,6 +717,10 @@ export default function DatesScreen() {
     .slice(0, 3);
 
   const kindLabel = (key) => kinds.find((k) => k.key === key)?.label || "";
+
+  useEffect(() => {
+    if (!loading && !tabChosen.current) setTab(active ? "ours" : "find");
+  }, [loading, active]);
 
   /* ---------- pieces ---------- */
 
@@ -694,6 +752,10 @@ export default function DatesScreen() {
     </Card>
   );
 
+  if (connected === false) {
+    return <ConnectFirst feature="Dates" />;
+  }
+
   return (
     <>
       <Screen
@@ -703,7 +765,7 @@ export default function DatesScreen() {
             onRefresh={() => {
               setRefreshing(true);
               load();
-              findPlaces();
+              if (centre) lookAround(centre);
             }}
             tintColor={T.accent}
           />
@@ -729,388 +791,453 @@ export default function DatesScreen() {
           </View>
         ) : null}
 
-        {/* WAITING ON YOU */}
-        {toYou.length > 0 ? (
-          <View style={styles.section}>
-            <GroupHeader>{them} asked you out</GroupHeader>
+        <Segmented
+          options={[oursLabel, "Find a spot"]}
+          value={tab === "ours" ? oursLabel : "Find a spot"}
+          onChange={(label) => {
+            Haptics.selectionAsync().catch(() => {});
+            tabChosen.current = true;
+            setTab(label === "Find a spot" ? "find" : "ours");
+          }}
+          style={styles.tabs}
+        />
 
-            {toYou.map((plan) =>
-              planCard(
-                plan,
-                <View style={styles.answerRow}>
-                  <Button
-                    title="Yes, let's go"
-                    icon="heart"
-                    onPress={() => answer(plan, "accept")}
-                  />
+        {tab === "ours" ? (
+          <>
+            {/* WAITING ON YOU */}
+            {toYou.length > 0 ? (
+              <View style={styles.section}>
+                <GroupHeader>{them} asked you out</GroupHeader>
 
-                  <View style={styles.answerSmall}>
-                    <View style={styles.flex}>
+                {toYou.map((plan) =>
+                  planCard(
+                    plan,
+                    <View style={styles.answerRow}>
                       <Button
-                        title="Another time"
-                        kind="gray"
-                        size="small"
-                        onPress={() => startProposal(null, plan)}
-                      />
-                    </View>
-
-                    <View style={styles.flex}>
-                      <Button
-                        title="Not this one"
-                        kind="plain"
-                        size="small"
-                        onPress={() => answer(plan, "decline")}
-                      />
-                    </View>
-                  </View>
-                </View>,
-              ),
-            )}
-          </View>
-        ) : null}
-
-        {/* WAITING ON THEM */}
-        {toThem.length > 0 ? (
-          <View style={styles.section}>
-            <GroupHeader>Waiting for {them}</GroupHeader>
-
-            {toThem.map((plan) =>
-              planCard(
-                plan,
-                <View style={styles.waitingRow}>
-                  <ActivityIndicator size="small" color={T.accent} />
-
-                  <Text style={styles.waitingText}>
-                    Saved once {them} says yes
-                  </Text>
-
-                  <Pressable
-                    onPress={() => removePlan(plan)}
-                    hitSlop={8}
-                    accessibilityRole="button"
-                  >
-                    <Text style={styles.cancelText}>Cancel</Text>
-                  </Pressable>
-                </View>,
-              ),
-            )}
-          </View>
-        ) : null}
-
-        {/* COMING UP */}
-        {planned.length > 0 ? (
-          <View style={styles.section}>
-            <GroupHeader>Coming up</GroupHeader>
-
-            {planned.map((plan) => (
-              <Press key={plan.id} onPress={() => planActions(plan)}>
-                {planCard(
-                  plan,
-                  <View style={styles.confirmed}>
-                    <Icon name="checkCircle" size={15} color={T.green} />
-                    <Text style={styles.confirmedText}>You're both in</Text>
-                  </View>,
-                )}
-              </Press>
-            ))}
-          </View>
-        ) : null}
-
-        {/* FIND A SPOT */}
-        <View style={styles.section}>
-          <GroupHeader>Find a spot</GroupHeader>
-
-          <View style={styles.whereRow}>
-            <Icon name="pin" size={16} color={T.accent} />
-
-            <Text style={styles.whereText} numberOfLines={1}>
-              {centre
-                ? centre.label || (area ? `Near ${area}` : "Near you")
-                : locStatus === "asking"
-                  ? "Finding where you are…"
-                  : "Choose an area to look in"}
-            </Text>
-
-            <Pressable
-              onPress={() => setElsewhere((open) => !open)}
-              hitSlop={8}
-              accessibilityRole="button"
-            >
-              <Text style={styles.link}>
-                {elsewhere ? "Done" : "Somewhere else"}
-              </Text>
-            </Pressable>
-          </View>
-
-          {elsewhere ? (
-            <View style={styles.pad}>
-              <SearchField
-                value={areaQuery}
-                onChangeText={setAreaQuery}
-                placeholder="A town, an area, a street"
-                autoFocus
-              />
-
-              {me ? (
-                <Cell
-                  leading={<Icon name="navigate" size={18} color={T.accent} />}
-                  title="Back to where I am"
-                  onPress={() => {
-                    setCentre({ ...me, fromMe: true });
-                    setArea("");
-                    setElsewhere(false);
-                  }}
-                />
-              ) : null}
-
-              {areaResults.map((result) => (
-                <Cell
-                  key={`${result.lat},${result.lon}`}
-                  leading={<Icon name="pin" size={18} color={T.label2} />}
-                  title={result.name}
-                  onPress={() => {
-                    setCentre({
-                      lat: result.lat,
-                      lon: result.lon,
-                      label: `Around ${result.name.split(",")[0]}`,
-                    });
-                    setElsewhere(false);
-                    setAreaQuery("");
-                  }}
-                />
-              ))}
-            </View>
-          ) : null}
-
-          {!centre && !elsewhere ? (
-            <Card style={styles.askCard}>
-              <Text style={styles.askEmoji}>📍</Text>
-
-              <Text style={styles.askTitle}>
-                {locStatus === "unavailable"
-                  ? "Look anywhere"
-                  : "Where are you?"}
-              </Text>
-
-              <Text style={styles.askText}>
-                {locStatus === "denied"
-                  ? "Location is off for Between Us. Turn it on in Settings, or pick an area to look in."
-                  : locStatus === "unavailable"
-                    ? "Type an area to find date spots there. The latest version of the app can also use where you are."
-                    : "Allow location to see date spots around you."}
-              </Text>
-
-              <View style={styles.askButtons}>
-                {locStatus === "denied" ? (
-                  <Button
-                    title="Open Settings"
-                    kind="gray"
-                    onPress={() => Linking.openSettings().catch(() => {})}
-                  />
-                ) : null}
-
-                <Button
-                  title="Choose an area"
-                  onPress={() => setElsewhere(true)}
-                />
-              </View>
-            </Card>
-          ) : null}
-
-          {centre ? (
-            <>
-              <View style={styles.pad}>
-                <SearchField
-                  value={query}
-                  onChangeText={setQuery}
-                  placeholder="Search: sushi, cinema, a name…"
-                  busy={placesBusy && Boolean(query)}
-                />
-              </View>
-
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.chips}
-              >
-                {[{ key: null, label: "All", emoji: "✨" }, ...kinds].map(
-                  (item) => {
-                    const on = kind === item.key;
-
-                    return (
-                      <Pressable
-                        key={item.key || "all"}
-                        onPress={() => {
-                          Haptics.selectionAsync().catch(() => {});
-                          setKind(item.key);
-                        }}
-                        style={[styles.chip, on && styles.chipOn]}
-                        accessibilityRole="button"
-                        accessibilityState={{ selected: on }}
-                      >
-                        <Text style={styles.chipEmoji}>{item.emoji}</Text>
-                        <Text
-                          style={[styles.chipText, on && styles.chipTextOn]}
-                        >
-                          {item.label}
-                        </Text>
-                      </Pressable>
-                    );
-                  },
-                )}
-              </ScrollView>
-
-              {mapAvailable ? (
-                <View style={styles.pad}>
-                  <PlaceMap
-                    places={places.slice(0, 60)}
-                    me={me}
-                    centre={centre}
-                    selected={selected}
-                    onPick={(id) => {
-                      const place = places.find((p) => p.id === id);
-                      if (place) openPlace(place);
-                    }}
-                  />
-                </View>
-              ) : null}
-
-              {placesBusy && places.length === 0 ? (
-                <View style={styles.lookingRow}>
-                  <ActivityIndicator color={T.accent} />
-                  <Text style={styles.lookingText}>
-                    Looking around{area ? ` ${area}` : ""}… The first look at a
-                    new area can take up to a minute.
-                  </Text>
-                </View>
-              ) : null}
-
-              <Notice>{placesError}</Notice>
-
-              {!placesBusy && !placesError && places.length === 0 ? (
-                <Text style={styles.noneText}>
-                  {query
-                    ? `Nothing called “${query}” nearby.`
-                    : "Nothing found here yet. Try another kind, or somewhere else."}
-                </Text>
-              ) : null}
-
-              <View style={styles.placeList}>
-                {places.slice(0, showCount).map((place) => (
-                  <Press key={place.id} onPress={() => openPlace(place)}>
-                    <Card
-                      padded={false}
-                      style={[
-                        styles.placeCard,
-                        selected?.id === place.id && styles.placeCardOn,
-                      ]}
-                    >
-                      <Cover
-                        uri={place.image}
-                        kind={place.kind}
-                        emoji={place.emoji}
-                        style={styles.placeThumb}
+                        title="Yes, let's go"
+                        icon="heart"
+                        onPress={() => answer(plan, "accept")}
                       />
 
-                      <View style={styles.placeBody}>
-                        <Text style={styles.placeName} numberOfLines={1}>
-                          {place.name}
-                        </Text>
+                      <View style={styles.answerSmall}>
+                        <View style={styles.flex}>
+                          <Button
+                            title="Another time"
+                            kind="gray"
+                            size="small"
+                            onPress={() => startProposal(null, plan)}
+                          />
+                        </View>
 
-                        <Text style={styles.placeMeta} numberOfLines={1}>
-                          {[
-                            kindLabel(place.kind),
-                            place.cuisine?.[0],
-                            distanceText(place.distance_m),
-                          ]
-                            .filter(Boolean)
-                            .join(" · ")}
-                        </Text>
-
-                        {place.address ? (
-                          <Text style={styles.placeAddress} numberOfLines={1}>
-                            {place.address}
-                          </Text>
-                        ) : null}
+                        <View style={styles.flex}>
+                          <Button
+                            title="Not this one"
+                            kind="plain"
+                            size="small"
+                            onPress={() => answer(plan, "decline")}
+                          />
+                        </View>
                       </View>
+                    </View>,
+                  ),
+                )}
+              </View>
+            ) : null}
 
-                      <Icon name="chevron" size={16} color={T.label3} />
-                    </Card>
+            {/* WAITING ON THEM */}
+            {toThem.length > 0 ? (
+              <View style={styles.section}>
+                <GroupHeader>Waiting for {them}</GroupHeader>
+
+                {toThem.map((plan) =>
+                  planCard(
+                    plan,
+                    <View style={styles.waitingRow}>
+                      <ActivityIndicator size="small" color={T.accent} />
+
+                      <Text style={styles.waitingText}>
+                        Saved once {them} says yes
+                      </Text>
+
+                      <Pressable
+                        onPress={() => removePlan(plan)}
+                        hitSlop={8}
+                        accessibilityRole="button"
+                      >
+                        <Text style={styles.cancelText}>Cancel</Text>
+                      </Pressable>
+                    </View>,
+                  ),
+                )}
+              </View>
+            ) : null}
+
+            {/* COMING UP */}
+            {planned.length > 0 ? (
+              <View style={styles.section}>
+                <GroupHeader>Planned · {planned.length}</GroupHeader>
+
+                {planned.map((plan) => (
+                  <Press key={plan.id} onPress={() => planActions(plan)}>
+                    {planCard(
+                      plan,
+                      <View style={styles.confirmed}>
+                        <Icon name="checkCircle" size={15} color={T.green} />
+                        <Text style={styles.confirmedText}>You're both in</Text>
+                      </View>,
+                    )}
                   </Press>
                 ))}
               </View>
+            ) : null}
 
-              {places.length > showCount ? (
+            {/* NOTHING PLANNED YET */}
+            {!loading && active === 0 ? (
+              <View style={styles.section}>
+                <Card style={styles.askCard}>
+                  <Text style={styles.askEmoji}>🗓️</Text>
+
+                  <Text style={styles.askTitle}>No dates planned yet</Text>
+
+                  <Text style={styles.askText}>
+                    Find a spot near you and ask {them}, or suggest your own
+                    idea. Once you've both said yes, it's saved here.
+                  </Text>
+
+                  <View style={styles.askButtons}>
+                    <Button
+                      title="Your own idea"
+                      kind="gray"
+                      onPress={() => startProposal(null, null)}
+                    />
+
+                    <Button
+                      title="Find a spot"
+                      icon="map"
+                      onPress={() => {
+                        tabChosen.current = true;
+                        setTab("find");
+                      }}
+                    />
+                  </View>
+                </Card>
+              </View>
+            ) : null}
+
+            {/* COMING ROUND */}
+            {comingRound.length > 0 ? (
+              <View style={styles.section}>
+                <GroupHeader>Coming round</GroupHeader>
+
+                <Group inset={70}>
+                  {comingRound.map((item) => (
+                    <Cell
+                      key={item.id}
+                      leading={
+                        <DateBlock
+                          date={item.next_occurrence || item.event_date}
+                          tone="you"
+                        />
+                      }
+                      title={item.title}
+                      subtitle={
+                        item.days === 0
+                          ? "Today"
+                          : item.days === 1
+                            ? "Tomorrow"
+                            : `In ${item.days} days`
+                      }
+                      chevron
+                      onPress={() => router.push("/special-dates")}
+                    />
+                  ))}
+                </Group>
+              </View>
+            ) : null}
+
+            {/* YOU'VE BEEN */}
+            {past.length > 0 ? (
+              <View style={styles.section}>
+                <GroupHeader>You've been</GroupHeader>
+
+                <Group inset={16}>
+                  {past.map((plan) => (
+                    <Cell
+                      key={plan.id}
+                      title={plan.title}
+                      subtitle={[
+                        plan.place,
+                        plan.plan_date ? whenText(plan.plan_date) : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    />
+                  ))}
+                </Group>
+              </View>
+            ) : null}
+          </>
+        ) : (
+          <>
+            {/* FIND A SPOT */}
+            <View style={styles.section}>
+              <GroupHeader>Find a spot</GroupHeader>
+
+              <View style={styles.whereRow}>
+                <Icon name="pin" size={16} color={T.accent} />
+
+                <Text style={styles.whereText} numberOfLines={1}>
+                  {centre
+                    ? centre.label || (area ? `Near ${area}` : "Near you")
+                    : locStatus === "asking"
+                      ? "Finding where you are…"
+                      : "Choose an area to look in"}
+                </Text>
+
+                <Pressable
+                  onPress={() => setElsewhere((open) => !open)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.link}>
+                    {elsewhere ? "Done" : "Somewhere else"}
+                  </Text>
+                </Pressable>
+              </View>
+
+              {elsewhere ? (
                 <View style={styles.pad}>
-                  <Button
-                    title={`Show more (${places.length - showCount})`}
-                    kind="gray"
-                    onPress={() => setShowCount((n) => n + 10)}
+                  <SearchField
+                    value={areaQuery}
+                    onChangeText={setAreaQuery}
+                    placeholder="A town, an area, a street"
+                    autoFocus
                   />
+
+                  {me ? (
+                    <Cell
+                      leading={
+                        <Icon name="navigate" size={18} color={T.accent} />
+                      }
+                      title="Back to where I am"
+                      onPress={() => {
+                        setCentre({ ...me, fromMe: true });
+                        setArea("");
+                        setElsewhere(false);
+                      }}
+                    />
+                  ) : null}
+
+                  {areaResults.map((result) => (
+                    <Cell
+                      key={`${result.lat},${result.lon}`}
+                      leading={<Icon name="pin" size={18} color={T.label2} />}
+                      title={result.name}
+                      onPress={() => {
+                        setCentre({
+                          lat: result.lat,
+                          lon: result.lon,
+                          label: `Around ${result.name.split(",")[0]}`,
+                        });
+                        setElsewhere(false);
+                        setAreaQuery("");
+                      }}
+                    />
+                  ))}
                 </View>
               ) : null}
 
-              {places.length > 0 ? (
-                <Text style={styles.credit}>
-                  Places from OpenStreetMap · photos from Wikimedia Commons
-                </Text>
-              ) : null}
-            </>
-          ) : null}
-        </View>
+              {!centre && !elsewhere ? (
+                <Card style={styles.askCard}>
+                  <Text style={styles.askEmoji}>📍</Text>
 
-        {/* COMING ROUND */}
-        {comingRound.length > 0 ? (
-          <View style={styles.section}>
-            <GroupHeader>Coming round</GroupHeader>
+                  <Text style={styles.askTitle}>
+                    {locStatus === "unavailable"
+                      ? "Look anywhere"
+                      : "Where are you?"}
+                  </Text>
 
-            <Group inset={70}>
-              {comingRound.map((item) => (
-                <Cell
-                  key={item.id}
-                  leading={
-                    <DateBlock
-                      date={item.next_occurrence || item.event_date}
-                      tone="you"
+                  <Text style={styles.askText}>
+                    {locStatus === "denied"
+                      ? "Location is off for Between Us. Turn it on in Settings, or pick an area to look in."
+                      : locStatus === "unavailable"
+                        ? "Type an area to find date spots there. The latest version of the app can also use where you are."
+                        : "Allow location to see date spots around you."}
+                  </Text>
+
+                  <View style={styles.askButtons}>
+                    {locStatus === "denied" ? (
+                      <Button
+                        title="Open Settings"
+                        kind="gray"
+                        onPress={() => Linking.openSettings().catch(() => {})}
+                      />
+                    ) : null}
+
+                    <Button
+                      title="Choose an area"
+                      onPress={() => setElsewhere(true)}
                     />
-                  }
-                  title={item.title}
-                  subtitle={
-                    item.days === 0
-                      ? "Today"
-                      : item.days === 1
-                        ? "Tomorrow"
-                        : `In ${item.days} days`
-                  }
-                  chevron
-                  onPress={() => router.push("/special-dates")}
-                />
-              ))}
-            </Group>
-          </View>
-        ) : null}
+                  </View>
+                </Card>
+              ) : null}
 
-        {/* YOU'VE BEEN */}
-        {past.length > 0 ? (
-          <View style={styles.section}>
-            <GroupHeader>You've been</GroupHeader>
+              {centre ? (
+                <>
+                  <View style={styles.pad}>
+                    <SearchField
+                      value={query}
+                      onChangeText={setQuery}
+                      placeholder={`Search near ${area || "you"}: sushi, a name…`}
+                    />
+                  </View>
 
-            <Group inset={16}>
-              {past.map((plan) => (
-                <Cell
-                  key={plan.id}
-                  title={plan.title}
-                  subtitle={[
-                    plan.place,
-                    plan.plan_date ? whenText(plan.plan_date) : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
-                />
-              ))}
-            </Group>
-          </View>
-        ) : null}
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.chips}
+                  >
+                    {[{ key: null, label: "All", emoji: "✨" }, ...kinds].map(
+                      (item) => {
+                        const on = kind === item.key;
+
+                        return (
+                          <Pressable
+                            key={item.key || "all"}
+                            onPress={() => {
+                              Haptics.selectionAsync().catch(() => {});
+                              setKind(item.key);
+                            }}
+                            style={[styles.chip, on && styles.chipOn]}
+                            accessibilityRole="button"
+                            accessibilityState={{ selected: on }}
+                          >
+                            <Text style={styles.chipEmoji}>{item.emoji}</Text>
+                            <Text
+                              style={[styles.chipText, on && styles.chipTextOn]}
+                            >
+                              {item.label}
+                            </Text>
+                          </Pressable>
+                        );
+                      },
+                    )}
+                  </ScrollView>
+
+                  {mapAvailable ? (
+                    <View style={styles.pad}>
+                      <PlaceMap
+                        places={places.slice(0, 60)}
+                        me={me}
+                        centre={centre}
+                        selected={selected}
+                        onPick={(id) => {
+                          const place = places.find((p) => p.id === id);
+                          if (place) openPlace(place);
+                        }}
+                      />
+                    </View>
+                  ) : null}
+
+                  {placesBusy && places.length === 0 ? (
+                    <View style={styles.lookingRow}>
+                      <ActivityIndicator color={T.accent} />
+                      <Text style={styles.lookingText}>
+                        Finding spots near you…
+                      </Text>
+                    </View>
+                  ) : null}
+
+                  {filling && places.length > 0 ? (
+                    <View style={styles.fillingRow}>
+                      <ActivityIndicator size="small" color={T.label3} />
+                      <Text style={styles.fillingText}>
+                        Finding more around {area || "you"}…
+                      </Text>
+                    </View>
+                  ) : null}
+
+                  <Notice>{placesError}</Notice>
+
+                  {!placesBusy &&
+                  !filling &&
+                  !placesError &&
+                  places.length === 0 ? (
+                    <Text style={styles.noneText}>
+                      {query
+                        ? `Nothing called “${query}” near ${area || "you"}.`
+                        : "Nothing found here yet. Try another kind, or somewhere else."}
+                    </Text>
+                  ) : null}
+
+                  <View style={styles.placeList}>
+                    {places.slice(0, showCount).map((place) => (
+                      <Press key={place.id} onPress={() => openPlace(place)}>
+                        <Card
+                          padded={false}
+                          style={[
+                            styles.placeCard,
+                            selected?.id === place.id && styles.placeCardOn,
+                          ]}
+                        >
+                          <Cover
+                            uri={place.image}
+                            kind={place.kind}
+                            emoji={place.emoji}
+                            style={styles.placeThumb}
+                          />
+
+                          <View style={styles.placeBody}>
+                            <Text style={styles.placeName} numberOfLines={1}>
+                              {place.name}
+                            </Text>
+
+                            <Text style={styles.placeMeta} numberOfLines={1}>
+                              {[
+                                kindLabel(place.kind),
+                                place.cuisine?.[0],
+                                distanceText(place.distance_m),
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </Text>
+
+                            {place.address ? (
+                              <Text
+                                style={styles.placeAddress}
+                                numberOfLines={1}
+                              >
+                                {place.address}
+                              </Text>
+                            ) : null}
+                          </View>
+
+                          <Icon name="chevron" size={16} color={T.label3} />
+                        </Card>
+                      </Press>
+                    ))}
+                  </View>
+
+                  {places.length > showCount ? (
+                    <View style={styles.pad}>
+                      <Button
+                        title={`Show more (${places.length - showCount})`}
+                        kind="gray"
+                        onPress={() => setShowCount((n) => n + 10)}
+                      />
+                    </View>
+                  ) : null}
+
+                  {places.length > 0 ? (
+                    <Text style={styles.credit}>
+                      Places from OpenStreetMap · photos from Wikimedia Commons
+                    </Text>
+                  ) : null}
+                </>
+              ) : null}
+            </View>
+          </>
+        )}
       </Screen>
 
       {/* A PLACE IN FULL */}
@@ -1373,6 +1500,12 @@ const styles = themedStyles(() => ({
     gap: 12,
   },
 
+  tabs: {
+    marginHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 8,
+  },
+
   planCard: {
     marginHorizontal: 16,
     overflow: "hidden",
@@ -1543,6 +1676,19 @@ const styles = themedStyles(() => ({
     fontSize: 14,
     lineHeight: 19,
     color: T.label2,
+  },
+
+  fillingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 20,
+    marginTop: -4,
+  },
+
+  fillingText: {
+    fontSize: 13,
+    color: T.label3,
   },
 
   noneText: {

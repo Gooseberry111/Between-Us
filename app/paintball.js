@@ -679,11 +679,14 @@ const styles = themedStyles(() => ({
 
   spots: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
+    gap: 4,
   },
 
+  /* Shares the row, so all five fit on a narrow phone too. */
   spot: {
-    width: SPOT,
+    flex: 1,
+    maxWidth: SPOT,
     height: SPOT + 18,
     borderRadius: 16,
     backgroundColor: "rgba(255,255,255,0.12)",
