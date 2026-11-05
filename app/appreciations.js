@@ -18,6 +18,7 @@ import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 
 import { apiFetch } from "../lib/api";
+import { onLive } from "../lib/live";
 import { chooseAction } from "../lib/actions";
 import { getCachedData, setCachedData } from "../lib/dataCache";
 import { useIsConnected } from "../lib/connection";
@@ -86,6 +87,8 @@ export default function AppreciationsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [sending, setSending] = useState(false);
   const [draft, setDraft] = useState("");
+  /* The note you are answering, quoted above yours. */
+  const [replyTo, setReplyTo] = useState(null);
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
@@ -121,6 +124,15 @@ export default function AppreciationsScreen() {
     load();
   }, [load]);
 
+  /* A note arriving while you are here shows straight away. */
+  useEffect(
+    () =>
+      onLive((type) => {
+        if (type === "appreciation") load();
+      }),
+    [load],
+  );
+
   const send = async () => {
     const message = draft.trim();
 
@@ -132,7 +144,7 @@ export default function AppreciationsScreen() {
       const response = await apiFetch(`/users/${userId}/appreciations`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message, reply_to: replyTo?.id || null }),
       });
 
       const json = await response.json();
@@ -142,6 +154,7 @@ export default function AppreciationsScreen() {
       }
 
       setDraft("");
+      setReplyTo(null);
 
       const list = Array.isArray(json?.appreciations) ? json.appreciations : [];
 
@@ -163,12 +176,18 @@ export default function AppreciationsScreen() {
     try {
       const response = await apiFetch(`/users/${userId}/appreciations`, {
         method: "POST",
-        body: JSON.stringify({ audio_id: audioId, audio_seconds: seconds }),
+        body: JSON.stringify({
+          audio_id: audioId,
+          audio_seconds: seconds,
+          reply_to: replyTo?.id || null,
+        }),
       });
 
       const json = await response.json();
 
       if (!response.ok) throw new Error(json?.error || "Unable to send that.");
+
+      setReplyTo(null);
 
       const list = Array.isArray(json?.appreciations) ? json.appreciations : [];
 
@@ -241,6 +260,8 @@ export default function AppreciationsScreen() {
       onSendVoice={sendVoice}
       userId={userId}
       onRemove={remove}
+      replyTo={replyTo}
+      onReply={setReplyTo}
       onRefresh={() => {
         setRefreshing(true);
         load();
@@ -251,6 +272,11 @@ export default function AppreciationsScreen() {
       }}
     />
   );
+}
+
+/* Their first name, from any note of theirs. */
+function partnerFirst(notes) {
+  return notes.find((note) => !note.mine)?.from_first_name || "Them";
 }
 
 function NotesThread({
@@ -265,13 +291,30 @@ function NotesThread({
   onSendVoice,
   userId,
   onRemove,
+  replyTo,
+  onReply,
   onRefresh,
   onBack,
 }) {
   useTheme();
 
   const scroller = useRef(null);
+  const input = useRef(null);
   const [recording, setRecording] = useState(false);
+
+  /* Where each note sits, so a quote can take you to it. */
+  const positions = useRef({});
+  const [flash, setFlash] = useState(null);
+
+  const goTo = (id) => {
+    const y = positions.current[id];
+
+    if (y === undefined) return;
+
+    scroller.current?.scrollTo({ y: Math.max(0, y - 80), animated: true });
+    setFlash(id);
+    setTimeout(() => setFlash(null), 1400);
+  };
 
   /* Oldest at the top, like any conversation. */
   const thread = [...notes].sort(
@@ -293,15 +336,27 @@ function NotesThread({
     rows.push({ type: "note", key: note.id, label, note });
   });
 
-  const hold = (note) => {
-    if (!note.mine) return;
+  const reply = (note) => {
+    onReply(note);
+    setTimeout(() => input.current?.focus(), 150);
+  };
 
+  const hold = (note) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
 
     chooseAction({
-      title: "Your note",
+      title: note.mine ? "Your note" : "Their note",
       options: [
-        { label: "Delete", destructive: true, onPress: () => onRemove(note) },
+        { label: "Reply", onPress: () => reply(note) },
+        ...(note.mine
+          ? [
+              {
+                label: "Delete",
+                destructive: true,
+                onPress: () => onRemove(note),
+              },
+            ]
+          : []),
       ],
     });
   };
@@ -389,6 +444,9 @@ function NotesThread({
                   key={row.key}
                   onLongPress={() => hold(row.note)}
                   delayLongPress={350}
+                  onLayout={(event) => {
+                    positions.current[row.note.id] = event.nativeEvent.layout.y;
+                  }}
                   style={[
                     styles.bubbleRow,
                     row.note.mine ? styles.rowMine : styles.rowTheirs,
@@ -398,8 +456,43 @@ function NotesThread({
                     style={[
                       styles.bubble,
                       row.note.mine ? styles.bubbleMine : styles.bubbleTheirs,
+                      flash === row.note.id && styles.bubbleFlash,
                     ]}
                   >
+                    {/* The note this answers: tap it to see it. */}
+                    {row.note.reply ? (
+                      <Pressable
+                        onPress={() => goTo(row.note.reply.id)}
+                        style={[
+                          styles.quote,
+                          row.note.mine && styles.quoteMine,
+                        ]}
+                        accessibilityRole="button"
+                        accessibilityLabel="Show the note this answers"
+                      >
+                        <Text
+                          style={[
+                            styles.quoteWho,
+                            row.note.mine && styles.quoteTextMine,
+                          ]}
+                        >
+                          {row.note.reply.mine ? "You" : partnerFirst(notes)}
+                        </Text>
+
+                        <Text
+                          style={[
+                            styles.quoteText,
+                            row.note.mine && styles.quoteTextMine,
+                          ]}
+                          numberOfLines={2}
+                        >
+                          {row.note.reply.voice
+                            ? "🎙 Voice note"
+                            : row.note.reply.message}
+                        </Text>
+                      </Pressable>
+                    ) : null}
+
                     {row.note.audio_id ? (
                       <VoicePlayer
                         url={row.note.audio_url}
@@ -427,12 +520,38 @@ function NotesThread({
           )}
         </ScrollView>
 
+        {replyTo ? (
+          <View style={styles.replyBar}>
+            <View style={styles.replyAccent} />
+
+            <View style={styles.replyText}>
+              <Text style={styles.quoteWho}>
+                Replying to {replyTo.mine ? "yourself" : partnerFirst(notes)}
+              </Text>
+
+              <Text style={styles.quoteText} numberOfLines={1}>
+                {replyTo.audio_id ? "🎙 Voice note" : replyTo.message}
+              </Text>
+            </View>
+
+            <Pressable
+              onPress={() => onReply(null)}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Stop replying"
+            >
+              <Icon name="close" size={16} color={T.label2} />
+            </Pressable>
+          </View>
+        ) : null}
+
         <View style={styles.composer}>
           {!recording ? (
             <TextInput
+              ref={input}
               value={draft}
               onChangeText={onDraft}
-              placeholder="Say thank you…"
+              placeholder={replyTo ? "Write your reply…" : "Say thank you…"}
               placeholderTextColor={T.label3}
               style={styles.input}
               multiline
@@ -477,6 +596,65 @@ function NotesThread({
 }
 
 const styles = themedStyles(() => ({
+  bubbleFlash: {
+    borderWidth: 2,
+    borderColor: T.secondary,
+  },
+
+  quote: {
+    borderLeftWidth: 3,
+    borderLeftColor: T.accent,
+    backgroundColor: T.fill4,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    marginBottom: 6,
+  },
+
+  quoteMine: {
+    borderLeftColor: "rgba(255,255,255,0.85)",
+    backgroundColor: "rgba(255,255,255,0.16)",
+  },
+
+  quoteWho: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: T.accent,
+  },
+
+  quoteText: {
+    fontSize: 13,
+    lineHeight: 17,
+    color: T.label2,
+  },
+
+  quoteTextMine: {
+    color: "rgba(255,255,255,0.88)",
+  },
+
+  replyBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginHorizontal: 12,
+    marginBottom: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 14,
+    backgroundColor: T.surface,
+  },
+
+  replyAccent: {
+    width: 3,
+    alignSelf: "stretch",
+    borderRadius: 2,
+    backgroundColor: T.accent,
+  },
+
+  replyText: {
+    flex: 1,
+  },
+
   screen: {
     flex: 1,
     backgroundColor: T.appBackground,

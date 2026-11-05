@@ -3,6 +3,7 @@ import {
   Alert,
   Animated,
   Easing,
+  Pressable,
   RefreshControl,
   StyleSheet,
   Text,
@@ -116,6 +117,50 @@ export default function LettersScreen() {
   /* Reading one. */
   const [reading, setReading] = useState(null);
   const unseal = useState(() => new Animated.Value(1))[0];
+  const pop = useState(() => new Animated.Value(1))[0];
+
+  /* A heart for a letter they wrote you; they hear about it. */
+  const toggleLike = async () => {
+    if (!reading || reading.mine) return;
+
+    const liked = !reading.liked;
+    const update = (list) =>
+      list.map((item) => (item.id === reading.id ? { ...item, liked } : item));
+
+    setReading({ ...reading, liked });
+    setInbox(update);
+
+    if (liked) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
+        () => {},
+      );
+      pop.setValue(0.6);
+      Animated.spring(pop, {
+        toValue: 1,
+        friction: 3,
+        tension: 140,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Haptics.selectionAsync().catch(() => {});
+    }
+
+    try {
+      const response = await apiFetch(
+        `/users/${userId}/letters/${reading.id}/like`,
+        { method: "POST", body: JSON.stringify({ liked }) },
+      );
+
+      if (!response.ok) throw new Error();
+    } catch {
+      setReading((current) => current && { ...current, liked: !liked });
+      setInbox((list) =>
+        list.map((item) =>
+          item.id === reading.id ? { ...item, liked: !liked } : item,
+        ),
+      );
+    }
+  };
 
   const load = useCallback(async () => {
     if (!isLoaded || !isSignedIn || !userId) {
@@ -552,6 +597,38 @@ export default function LettersScreen() {
               </Text>
             </Animated.View>
 
+            {!reading.mine && reading.opened ? (
+              <Pressable
+                onPress={toggleLike}
+                style={[styles.like, reading.liked && styles.likeOn]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: Boolean(reading.liked) }}
+              >
+                <Animated.View style={{ transform: [{ scale: pop }] }}>
+                  <Icon
+                    name={reading.liked ? "heart" : "heartOutline"}
+                    size={22}
+                    color={reading.liked ? "#FFFFFF" : T.you}
+                    filled={reading.liked}
+                  />
+                </Animated.View>
+
+                <Text
+                  style={[styles.likeText, reading.liked && styles.likeTextOn]}
+                >
+                  {reading.liked ? "You loved this letter" : "Love this letter"}
+                </Text>
+              </Pressable>
+            ) : null}
+
+            {reading.mine && reading.liked ? (
+              <View style={styles.likedNote}>
+                <Icon name="heart" size={16} color={T.you} filled />
+
+                <Text style={styles.likedNoteText}>They loved this letter</Text>
+              </View>
+            ) : null}
+
             {reading.mine && !reading.opened ? (
               <Button
                 title="Delete Letter"
@@ -567,6 +644,45 @@ export default function LettersScreen() {
 }
 
 const styles = themedStyles(() => ({
+  like: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    alignSelf: "center",
+    paddingHorizontal: 20,
+    minHeight: 46,
+    borderRadius: 23,
+    borderWidth: 1.5,
+    borderColor: T.you,
+  },
+
+  likeOn: {
+    backgroundColor: T.you,
+  },
+
+  likeText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: T.you,
+  },
+
+  likeTextOn: {
+    color: "#FFFFFF",
+  },
+
+  likedNote: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+
+  likedNoteText: {
+    fontSize: 14,
+    color: T.label2,
+  },
+
   loading: {
     paddingHorizontal: 16,
   },

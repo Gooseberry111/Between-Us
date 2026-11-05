@@ -36,10 +36,12 @@ import ProgressBar from "../components/onboarding/ProgressBar";
  * TRIVIA
  * ==========================================
  *
- * How well do you know them? One question at a time,
- * answers as a list you pick from, the right one shown
- * in green once you have checked, and a ring for the
- * score at the end. They hear you played.
+ * How well do you know them? Each round opens with a few
+ * quick ones about you -- what they will be asked next
+ * time -- then the quiz: one question at a time, the right
+ * answer in green once you have checked, a ring for the
+ * score. Questions never repeat until you have seen them
+ * all, and the pool grows every time either of you plays.
  */
 
 export default function TriviaScreen() {
@@ -55,6 +57,8 @@ export default function TriviaScreen() {
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [answerResult, setAnswerResult] = useState(null);
   const [score, setScore] = useState(0);
+  /* How many of the round are the quiz (the rest are about you). */
+  const [quizCount, setQuizCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [finished, setFinished] = useState(false);
@@ -89,6 +93,7 @@ export default function TriviaScreen() {
       setPartnerName(data?.partner?.first_name?.trim() || "your person");
 
       setQuestions(Array.isArray(data?.questions) ? data.questions : []);
+      setQuizCount(Number(data?.total_questions) || 0);
     } catch (err) {
       setError(err?.message || "Unable to load today's trivia.");
     } finally {
@@ -123,7 +128,7 @@ export default function TriviaScreen() {
       },
       body: JSON.stringify({
         score,
-        total_questions: questions.length,
+        total_questions: quizCount,
       }),
     })
       .then((response) => response.json())
@@ -132,12 +137,41 @@ export default function TriviaScreen() {
         clearCachedData(`trivia-history:${userId}`);
       })
       .catch((err) => console.log("TRIVIA COMPLETE ERROR:", err));
-  }, [finished, score, questions.length, userId]);
+  }, [finished, score, quizCount, userId]);
 
   const currentQuestion = questions[currentIndex];
 
   const submitAnswer = async () => {
     if (!currentQuestion || !selectedAnswer || submitting || answerResult) {
+      return;
+    }
+
+    /* About you: saved for their next round, nothing to mark. */
+    if (currentQuestion.self) {
+      try {
+        setSubmitting(true);
+        setError("");
+
+        const response = await apiFetch(`/users/${userId}/trivia/about`, {
+          method: "POST",
+          body: JSON.stringify({
+            question_id: currentQuestion.id,
+            answer: selectedAnswer,
+          }),
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) throw new Error(data?.error || "That didn't save.");
+
+        Haptics.selectionAsync().catch(() => {});
+        setAnswerResult({ saved: true });
+      } catch (err) {
+        setError(err?.message || "That didn't save.");
+      } finally {
+        setSubmitting(false);
+      }
+
       return;
     }
 
@@ -224,8 +258,23 @@ export default function TriviaScreen() {
     );
   }
 
+  if (finished && quizCount === 0) {
+    return (
+      <AuthScreen
+        centred
+        footer={<Button title="Done" onPress={goBack} />}
+        onBack={goBack}
+      >
+        <AuthHeader
+          title="Saved for their next round"
+          subtitle={`${partnerName} will be asked about what you just said. Once they answer some about themselves, you'll have questions too.`}
+        />
+      </AuthScreen>
+    );
+  }
+
   if (finished) {
-    const total = questions.length || 1;
+    const total = quizCount || 1;
 
     return (
       <AuthScreen
@@ -314,7 +363,9 @@ export default function TriviaScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.head}>
-          <Text style={styles.kicker}>About {partnerName}</Text>
+          <Text style={styles.kicker}>
+            {currentQuestion.self ? "First, about you" : `About ${partnerName}`}
+          </Text>
 
           <Text style={styles.question}>{currentQuestion.question}</Text>
         </View>
@@ -325,7 +376,10 @@ export default function TriviaScreen() {
             const right =
               Boolean(answerResult) && answerResult.correct_answer === option;
             const wrong =
-              Boolean(answerResult) && chosen && !answerResult.correct;
+              Boolean(answerResult) &&
+              !answerResult.saved &&
+              chosen &&
+              !answerResult.correct;
 
             return (
               <Cell
@@ -372,7 +426,11 @@ export default function TriviaScreen() {
           })}
         </Group>
 
-        {answerResult ? (
+        {answerResult?.saved ? (
+          <Notice tone="info">
+            Saved. {partnerName} will be asked this in their next round.
+          </Notice>
+        ) : answerResult ? (
           <Notice tone={answerResult.correct ? "info" : "error"}>
             {answerResult.correct
               ? "Right. You know them well."
@@ -386,7 +444,7 @@ export default function TriviaScreen() {
       <View style={styles.footer}>
         {!answerResult ? (
           <Button
-            title="Check"
+            title={currentQuestion.self ? "Save" : "Check"}
             onPress={submitAnswer}
             busy={submitting}
             disabled={!selectedAnswer}

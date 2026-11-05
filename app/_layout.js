@@ -8,7 +8,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
-import { Platform, StyleSheet, Text, View } from "react-native";
+import { AppState, Platform, StyleSheet, Text, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { RETURNING_USER_KEY } from "../lib/auth";
 import { T, useTheme } from "../lib/theme";
@@ -25,7 +25,10 @@ import { menuBlurTarget } from "../lib/menu";
 import { CropHost } from "../components/Cropper";
 import { useFollowSystem } from "../lib/appearance";
 import AppLock from "../components/AppLock";
-import { playHug, playTap } from "../lib/hugs";
+import { playHug, playHugAnswer, playTap } from "../lib/hugs";
+import { announce } from "../lib/live";
+import HugAnswerOverlay from "../components/HugAnswerOverlay";
+import Walkthrough from "../components/Walkthrough";
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
@@ -42,8 +45,10 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
  * NOTIFICATION BEHAVIOUR
  * ==========================================
  *
- * This controls how notifications behave while
- * the app is open.
+ * While you are in the app, nothing pops up: the screen
+ * you are on refreshes instead (lib/live), and hugs play
+ * their own animation. Banners only show when the app is
+ * in the background or closed.
  */
 /*
  * Called once the app is running rather than while its code
@@ -53,12 +58,16 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 function configureNotifications() {
   try {
     Notifications.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowBanner: true,
-        shouldShowList: true,
-        shouldPlaySound: true,
-        shouldSetBadge: true,
-      }),
+      handleNotification: async () => {
+        const open = AppState.currentState === "active";
+
+        return {
+          shouldShowBanner: !open,
+          shouldShowList: !open,
+          shouldPlaySound: !open,
+          shouldSetBadge: true,
+        };
+      },
     });
   } catch (error) {
     console.log("NOTIFICATION SETUP FAILED:", error?.message);
@@ -518,6 +527,20 @@ export default function RootLayout() {
 
       if (data?.type === "hug") playHug({ from: data.from });
       if (data?.type === "tap") playTap({ kind: data.tap, from: data.from });
+      if (data?.type === "hug_declined") {
+        playHugAnswer({ kind: "declined", from: data.from });
+      }
+      if (data?.type === "hug_accepted") {
+        playHugAnswer({ kind: "accepted", from: data.from });
+      }
+    };
+
+    /* Arriving while open: the screen showing it refreshes. */
+    const arrived = (notification) => {
+      const data = notification?.request?.content?.data || {};
+
+      play(notification);
+      if (data.type) announce(data.type, data);
     };
 
     /* Tapping "your move" opens the board. */
@@ -529,13 +552,19 @@ export default function RootLayout() {
       if (data?.type === "game_turn" || data?.type === "game_over") {
         router.push("/game");
       }
+
+      if (data?.type === "duel_turn" || data?.type === "duel_over") {
+        router.push(data.kind === "tanks" ? "/tanks" : "/paintball");
+      }
+
+      if (String(data?.type || "").startsWith("date_")) router.push("/dates");
     };
 
     let received = null;
     let opened = null;
 
     try {
-      received = Notifications.addNotificationReceivedListener(play);
+      received = Notifications.addNotificationReceivedListener(arrived);
       opened = Notifications.addNotificationResponseReceivedListener(open);
     } catch (error) {
       console.log("HUG LISTENER FAILED:", error?.message);
@@ -576,6 +605,8 @@ export default function RootLayout() {
           <OfflineBanner />
           <HugOverlay />
           <TapOverlay />
+          <HugAnswerOverlay />
+          <Walkthrough />
           <SideMenu />
           <CropHost />
           <AppLock />

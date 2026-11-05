@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
+  AppState,
   Easing,
   Pressable,
   StyleSheet,
@@ -13,6 +14,7 @@ import { useAuth } from "@clerk/expo";
 import { useFocusEffect, useRouter } from "expo-router";
 
 import { apiFetch } from "../lib/api";
+import { onLive } from "../lib/live";
 import { getCachedData, setCachedData } from "../lib/dataCache";
 import { useIsConnected } from "../lib/connection";
 import { useMyName } from "../lib/useMyName";
@@ -48,7 +50,7 @@ import ConnectFirst from "../components/ConnectFirst";
 const ROWS = 6;
 const COLUMNS = 7;
 const GAP = 6;
-const WAIT_MS = 4000;
+const WAIT_MS = 2000;
 
 function emptyBoard() {
   return Array.from({ length: ROWS }, () => Array(COLUMNS).fill(null));
@@ -175,24 +177,46 @@ export default function GameScreen() {
     busyRef.current = busy;
   }, [busy]);
 
+  /*
+   * Live while you are looking at it: a quick check every
+   * couple of seconds (slower while it is your move, in case
+   * they start a rematch), straight away when their move's
+   * push lands, and again when you come back to the app.
+   */
+  const loadRef = useRef(load);
+  loadRef.current = load;
+
   useFocusEffect(
     useCallback(() => {
-      load();
+      loadRef.current();
+
+      let ticks = 0;
 
       const timer = setInterval(() => {
-        const current = shownGame.current;
+        ticks += 1;
 
-        if (
-          !busyRef.current &&
-          current?.status === "playing" &&
-          current?.turn === "them"
-        ) {
-          load();
-        }
+        const current = shownGame.current;
+        const waiting =
+          !current || current.status !== "playing" || current.turn === "them";
+
+        if (busyRef.current || AppState.currentState !== "active") return;
+        if (waiting || ticks % 3 === 0) loadRef.current();
       }, WAIT_MS);
 
-      return () => clearInterval(timer);
-    }, [load]),
+      const live = onLive((type) => {
+        if (type === "game_turn" || type === "game_over") loadRef.current();
+      });
+
+      const state = AppState.addEventListener("change", (next) => {
+        if (next === "active") loadRef.current();
+      });
+
+      return () => {
+        clearInterval(timer);
+        live();
+        state.remove();
+      };
+    }, []),
   );
 
   /* The drop: from above the board to its row. */

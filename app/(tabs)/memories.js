@@ -114,6 +114,19 @@ export default function TimelineScreen() {
   const [filter, setFilter] = useState("All");
 
   const [sheetOpen, setSheetOpen] = useState(false);
+  /* What + adds follows the filter you are on. */
+  const [addKind, setAddKind] = useState("memory");
+
+  const openAdd = () => {
+    setAddKind(
+      filter === "Date nights"
+        ? "date"
+        : filter === "Special days"
+          ? "special"
+          : "memory",
+    );
+    setSheetOpen(true);
+  };
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState("");
   const [note, setNote] = useState("");
@@ -147,7 +160,10 @@ export default function TimelineScreen() {
       const memories = (Array.isArray(memoriesData) ? memoriesData : []).map(
         (item) => ({
           id: `memory-${item.id}`,
-          kind: "Memories",
+          kind: item.kind === "date" ? "Date nights" : "Memories",
+          source: "memory",
+          memoryId: item.id,
+          mine: Boolean(item.mine),
           title: item.title,
           note: item.description,
           date: item.memory_date,
@@ -161,6 +177,7 @@ export default function TimelineScreen() {
         .map((plan) => ({
           id: `date-${plan.id}`,
           kind: "Date nights",
+          source: "plan",
           title: plan.title,
           note: plan.place ? `Date night · ${plan.place}` : "A date night",
           date: plan.plan_date,
@@ -219,6 +236,40 @@ export default function TimelineScreen() {
     }
   };
 
+  const deleteMemory = (entry) => {
+    Alert.alert("Delete this?", "It goes for both of you.", [
+      { text: "Keep it", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            const response = await apiFetch(
+              `/users/${userId}/memories/${entry.memoryId}`,
+              { method: "DELETE" },
+            );
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+              throw new Error(data?.error || "That did not delete.");
+            }
+
+            setViewing(null);
+            setEntries((current) =>
+              current.filter((item) => item.id !== entry.id),
+            );
+            load();
+          } catch (err) {
+            Alert.alert(
+              "We could not delete it",
+              err?.message || "Please try again.",
+            );
+          }
+        },
+      },
+    ]);
+  };
+
   const closeSheet = () => {
     setSheetOpen(false);
     setTitle("");
@@ -231,25 +282,44 @@ export default function TimelineScreen() {
   const saveMemory = async () => {
     if (!title.trim() || saving || uploading) return;
 
+    if (addKind === "special" && !/^\d{4}-\d{2}-\d{2}$/.test(when.trim())) {
+      Alert.alert("When is it?", "Add the date as YYYY-MM-DD.");
+      return;
+    }
+
     try {
       setSaving(true);
 
-      const response = await apiFetch(`/users/${userId}/memories`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          clerk_id: userId,
-          title: title.trim(),
-          description: note.trim() || null,
-          memory_date: when.trim() || new Date().toISOString().slice(0, 10),
-          photo_id: photoId,
-        }),
-      });
+      /* A special day is kept with the others that come round
+       * every year; a date night is a memory marked as one. */
+      const response =
+        addKind === "special"
+          ? await apiFetch(`/users/${userId}/special-dates`, {
+              method: "POST",
+              body: JSON.stringify({
+                clerk_id: userId,
+                title: title.trim(),
+                event_date: when.trim(),
+              }),
+            })
+          : await apiFetch(`/users/${userId}/memories`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                clerk_id: userId,
+                title: title.trim(),
+                description: note.trim() || null,
+                memory_date:
+                  when.trim() || new Date().toISOString().slice(0, 10),
+                photo_id: photoId,
+                kind: addKind === "date" ? "date" : "memory",
+              }),
+            });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data?.error || "Unable to save this memory.");
+        throw new Error(data?.error || "Unable to save that.");
       }
 
       setTitle("");
@@ -300,11 +370,7 @@ export default function TimelineScreen() {
         }
       >
         <NavBar>
-          <GlassButton
-            icon="add"
-            label="Add a memory"
-            onPress={() => setSheetOpen(true)}
-          />
+          <GlassButton icon="add" label="Add a memory" onPress={openAdd} />
         </NavBar>
 
         <LargeTitle>Timeline</LargeTitle>
@@ -334,13 +400,13 @@ export default function TimelineScreen() {
               label: prompt,
               onPress: () => {
                 setTitle(prompt);
-                setSheetOpen(true);
+                openAdd();
               },
             }))}
             action={{
               title: "Add a Memory",
               icon: "add",
-              onPress: () => setSheetOpen(true),
+              onPress: openAdd,
             }}
           />
         ) : (
@@ -354,7 +420,7 @@ export default function TimelineScreen() {
                   onPress={() =>
                     entry.kind === "Special days"
                       ? router.push("/special-dates")
-                      : entry.kind === "Date nights"
+                      : entry.source === "plan"
                         ? router.push("/dates")
                         : setViewing(entry)
                   }
@@ -401,7 +467,7 @@ export default function TimelineScreen() {
                         ) : null}
                       </View>
 
-                      {entry.kind === "Memories" ? (
+                      {entry.source === "memory" ? (
                         <Icon name="chevron" size={16} color={T.label3} />
                       ) : null}
                     </View>
@@ -417,7 +483,7 @@ export default function TimelineScreen() {
 
       <Sheet
         visible={Boolean(viewing)}
-        title="Memory"
+        title={viewing?.kind === "Date nights" ? "Date Night" : "Memory"}
         onCancel={() => setViewing(null)}
       >
         {viewing ? (
@@ -454,6 +520,15 @@ export default function TimelineScreen() {
                 </Text>
               ) : null}
             </View>
+
+            {viewing.mine ? (
+              <Button
+                title="Delete"
+                icon="trash"
+                kind="destructive"
+                onPress={() => deleteMemory(viewing)}
+              />
+            ) : null}
           </>
         ) : null}
       </Sheet>
@@ -462,7 +537,13 @@ export default function TimelineScreen() {
 
       <Sheet
         visible={sheetOpen}
-        title="New Memory"
+        title={
+          addKind === "special"
+            ? "New Special Day"
+            : addKind === "date"
+              ? "New Date Night"
+              : "New Memory"
+        }
         onCancel={closeSheet}
         onSave={saveMemory}
         saveDisabled={!title.trim() || saving || uploading}
@@ -471,7 +552,7 @@ export default function TimelineScreen() {
         )}
       >
         {/* The photo first, as in the prototype. */}
-        {photosAvailable ? (
+        {photosAvailable && addKind !== "special" ? (
           <Press
             onPress={choosePhoto}
             scaleTo={0.98}
@@ -509,35 +590,59 @@ export default function TimelineScreen() {
           <TextInput
             value={title}
             onChangeText={setTitle}
-            placeholder="What happened?"
+            placeholder={
+              addKind === "special"
+                ? "Whose birthday, which anniversary?"
+                : addKind === "date"
+                  ? "Where did you go?"
+                  : "What happened?"
+            }
             placeholderTextColor={T.label3}
             style={styles.field}
           />
 
-          <View style={styles.fieldLine} />
+          {addKind !== "special" ? (
+            <>
+              <View style={styles.fieldLine} />
 
-          <TextInput
-            value={note}
-            onChangeText={setNote}
-            placeholder="Say a little more (optional)"
-            placeholderTextColor={T.label3}
-            style={[styles.field, styles.fieldTall]}
-            multiline
-            textAlignVertical="top"
-          />
+              <TextInput
+                value={note}
+                onChangeText={setNote}
+                placeholder={
+                  addKind === "date"
+                    ? "How was it? (optional)"
+                    : "Say a little more (optional)"
+                }
+                placeholderTextColor={T.label3}
+                style={[styles.field, styles.fieldTall]}
+                multiline
+                textAlignVertical="top"
+              />
+            </>
+          ) : null}
 
           <View style={styles.fieldLine} />
 
           <DateInput
             value={when}
             onChangeText={setWhen}
-            placeholder="When? YYYY-MM-DD (optional)"
+            placeholder={
+              addKind === "special"
+                ? "The date, YYYY-MM-DD"
+                : "When? YYYY-MM-DD (optional)"
+            }
             style={styles.field}
           />
         </Card>
 
         <Button
-          title="Save Memory"
+          title={
+            addKind === "special"
+              ? "Save Special Day"
+              : addKind === "date"
+                ? "Save Date Night"
+                : "Save Memory"
+          }
           onPress={saveMemory}
           busy={saving}
           disabled={!title.trim() || uploading}

@@ -87,7 +87,9 @@ export default function BondHero({
   streak,
   monthsLine,
   mood,
+  moodLabel,
   partnerMood,
+  partnerMoodLabel,
   partnerOnline,
   onHug,
   onPickMood,
@@ -440,26 +442,20 @@ export default function BondHero({
 
           <Text style={styles.personName}>You</Text>
 
-          <Animated.View
-            style={[
-              styles.state,
-              youAnswered ? styles.stateDone : styles.stateTurn,
-              !youAnswered && animate ? { opacity: breathe } : null,
-            ]}
+          {/* How you are, in a word -- tap to change it. */}
+          <Pressable
+            onPress={onPickMood}
+            hitSlop={6}
+            accessibilityRole="button"
+            style={[styles.state, styles.stateTurn]}
           >
-            {youAnswered ? (
-              <Ionicons name="checkmark" size={12} color="#1E8E3E" />
-            ) : null}
-
             <Text
-              style={[
-                styles.stateText,
-                { color: youAnswered ? "#1E8E3E" : T.youText },
-              ]}
+              style={[styles.stateText, { color: T.youText }]}
+              numberOfLines={1}
             >
-              {youAnswered ? "Answered tonight" : "Your turn tonight"}
+              {moodLabel ? `Feeling ${moodLabel}` : "How are you feeling?"}
             </Text>
-          </Animated.View>
+          </Pressable>
         </View>
 
         {/* THE THREAD */}
@@ -598,33 +594,28 @@ export default function BondHero({
             {partnerName}
           </Text>
 
-          <View
-            style={[
-              styles.state,
-              partnerAnswered ? styles.stateDone : styles.stateWaiting,
-            ]}
-          >
-            {partnerAnswered ? (
-              <Ionicons name="checkmark" size={12} color="#1E8E3E" />
-            ) : null}
-
-            <Text
-              style={[
-                styles.stateText,
-                { color: partnerAnswered ? "#1E8E3E" : T.label2 },
-              ]}
-            >
-              {partnerAnswered ? "Answered tonight" : "Not answered yet"}
-            </Text>
-          </View>
+          {partnerMoodLabel || partnerOnline || onSendTap ? (
+            <View style={[styles.state, styles.stateWaiting]}>
+              <Text
+                style={[styles.stateText, { color: T.label2 }]}
+                numberOfLines={1}
+              >
+                {partnerMoodLabel
+                  ? `Feeling ${partnerMoodLabel}`
+                  : partnerOnline
+                    ? "Here now"
+                    : "Tap for a little something"}
+              </Text>
+            </View>
+          ) : null}
         </View>
       </View>
 
-      <Text style={[styles.caption, sent && styles.captionSent]}>
-        {sent
-          ? `Hug sent. ${partnerName} just felt it.`
-          : `Hold the heart to send ${partnerName} a hug`}
-      </Text>
+      {sent ? (
+        <Text style={[styles.caption, styles.captionSent]}>
+          Hug sent. {partnerName} just felt it.
+        </Text>
+      ) : null}
 
       {streak > 0 || monthsLine ? (
         <View style={styles.chips}>

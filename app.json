@@ -62,6 +62,12 @@
           "microphonePermission": "Between Us uses the microphone to record voice notes for your partner."
         }
       ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Between Us uses your location to suggest date spots near you."
+        }
+      ],
       "expo-status-bar",
       "expo-font"
     ],

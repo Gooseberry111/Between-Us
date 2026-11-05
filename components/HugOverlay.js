@@ -25,9 +25,9 @@ import { Button, Icon, motionAllowed } from "./ui";
  * other, a heart swells between them, and the phone gives
  * a slow heartbeat. Then the choice is theirs:
  *
- *   Hug Back   sends one straight back
- *   Not Now    tells the sender, gently, they need a
- *              little space -- no reason asked for
+ *   Accept     lets them know it landed -- their phone
+ *              bursts into little hearts
+ *   Reject     their phone shows a heart breaking in two
  *
  * Tapping anywhere else just closes it.
  *
@@ -133,10 +133,10 @@ export default function HugOverlay() {
 
   /* Answer, show a line saying so, then let go. */
   const answer = (kind) => {
-    const path = kind === "back" ? "hug" : "hug/decline";
+    const path = kind === "accept" ? "hug/accept" : "hug/decline";
 
     Haptics.impactAsync(
-      kind === "back"
+      kind === "accept"
         ? Haptics.ImpactFeedbackStyle.Medium
         : Haptics.ImpactFeedbackStyle.Light,
     ).catch(() => {});
@@ -149,9 +149,9 @@ export default function HugOverlay() {
     }
 
     setReply(
-      kind === "back"
-        ? `Hug sent back to ${hug.from}`
-        : `${hug.from} will know you need a little space`,
+      kind === "accept"
+        ? `${hug.from} will know you felt it`
+        : `${hug.from} will see their hug was rejected`,
     );
 
     setTimeout(close, REPLY_MS);
@@ -220,13 +220,13 @@ export default function HugOverlay() {
         ) : (
           <View style={styles.choices}>
             <Button
-              title="Hug Back"
+              title="Accept Hug"
               icon="heart"
-              onPress={() => answer("back")}
+              onPress={() => answer("accept")}
             />
 
             <Button
-              title="Not Now"
+              title="Reject Hug"
               kind="plain"
               onPress={() => answer("decline")}
             />

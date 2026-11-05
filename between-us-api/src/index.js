@@ -1,6 +1,9 @@
 import { DEEP as DEEP_QUESTIONS, LIGHT as LIGHT_QUESTIONS, US as US_QUESTIONS } from './questions.js';
 import { neon } from '@neondatabase/serverless';
 import { LOVE_CHALLENGES, MORE_LIKELY, THIS_OR_THAT } from './play.js';
+import { ABOUT_ME } from './about.js';
+import { DUEL_KINDS, newPaintball, newTanks, paintballMove, paintballView, tanksMove, tanksView } from './duels.js';
+import { PLACE_KINDS, areaName, geocode, nearbyPlaces, placePhotos } from './places.js';
 
 /*
  * ==========================================
@@ -658,6 +661,29 @@ function daysUntilNext(dateValue, today = new Date()) {
 }
 
 /* The couple a signed-in caller belongs to, with names. */
+/* "Fri 14 Nov, 7:30pm" for a date and an optional "19:30". */
+function whenText(isoDate, time) {
+	const day = new Date(`${isoDate}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+
+	if (!time) return day;
+
+	const [h, m] = time.split(':').map(Number);
+	const hour = h % 12 || 12;
+
+	return `${day}, ${hour}${m ? `:${String(m).padStart(2, '0')}` : ''}${h < 12 ? 'am' : 'pm'}`;
+}
+
+const shuffleList = (items) => {
+	const out = [...items];
+
+	for (let i = out.length - 1; i > 0; i--) {
+		const j = Math.floor(Math.random() * (i + 1));
+		[out[i], out[j]] = [out[j], out[i]];
+	}
+
+	return out;
+};
+
 async function coupleFor(sql, clerkId) {
 	const me = (
 		await sql`
@@ -1145,6 +1171,69 @@ async function ensureSchema(sql) {
 
 	/* The optional features each person has switched on. */
 	await sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS features JSONB`;
+
+	/* The newer tables: if one of these ever fails, only its
+	 * feature is affected, never the rest of the app. */
+	try {
+		/* Trivia that grows: what each of you said about yourself,
+		 * and which questions you have already been asked. */
+		await sql`
+			CREATE TABLE IF NOT EXISTS about_me (
+				user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+				question_id TEXT NOT NULL,
+				answer TEXT NOT NULL,
+				answered_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+				PRIMARY KEY (user_id, question_id)
+			)
+		`;
+
+		await sql`
+			CREATE TABLE IF NOT EXISTS trivia_asked (
+				user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+				question_id TEXT NOT NULL,
+				asked_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+				PRIMARY KEY (user_id, question_id)
+			)
+		`;
+
+		await sql`ALTER TABLE appreciations ADD COLUMN IF NOT EXISTS reply_to UUID`;
+		await sql`ALTER TABLE letters ADD COLUMN IF NOT EXISTS liked_at TIMESTAMPTZ`;
+		await sql`ALTER TABLE memories ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'memory'`;
+
+		/* A date suggested at a real place, waiting on the other
+		 * person to say yes. */
+		await sql`ALTER TABLE date_plans ADD COLUMN IF NOT EXISTS plan_time TEXT`;
+		await sql`ALTER TABLE date_plans ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION`;
+		await sql`ALTER TABLE date_plans ADD COLUMN IF NOT EXISTS lon DOUBLE PRECISION`;
+		await sql`ALTER TABLE date_plans ADD COLUMN IF NOT EXISTS address TEXT`;
+		await sql`ALTER TABLE date_plans ADD COLUMN IF NOT EXISTS photo_url TEXT`;
+		await sql`ALTER TABLE date_plans ADD COLUMN IF NOT EXISTS place_kind TEXT`;
+		await sql`ALTER TABLE date_plans ADD COLUMN IF NOT EXISTS awaiting UUID`;
+
+		await sql`
+			CREATE TABLE IF NOT EXISTS duels (
+				id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+				connection_id UUID NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
+				kind TEXT NOT NULL,
+				player_a UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+				player_b UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+				state JSONB NOT NULL,
+				turn UUID,
+				status TEXT NOT NULL DEFAULT 'playing',
+				winner UUID,
+				version INTEGER NOT NULL DEFAULT 0,
+				created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+				updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+			)
+		`;
+
+		await sql`
+			CREATE INDEX IF NOT EXISTS duels_connection_idx
+				ON duels (connection_id, kind, created_at DESC)
+		`;
+	} catch (err) {
+		console.error('NEWER SCHEMA FAILED:', err?.message);
+	}
 
 	schemaReady = true;
 }
@@ -3909,7 +3998,8 @@ VALUES (
       title,
       description,
       memory_date,
-      photo_id
+      photo_id,
+      kind
     )
     VALUES (
       ${userId},
@@ -3918,9 +4008,11 @@ VALUES (
       ${String(title).trim()},
       ${description ? String(description).trim() : null},
       ${memory_date || new Date().toISOString().slice(0, 10)},
-      ${photoId}
+      ${photoId},
+      ${body?.kind === 'date' ? 'date' : 'memory'}
     )
     RETURNING
+      kind,
       id,
       user_one,
       user_two,
@@ -4373,6 +4465,7 @@ VALUES (
       description,
       memory_date,
       photo_id,
+      kind,
       created_at,
       updated_at
     FROM memories
@@ -4392,6 +4485,7 @@ VALUES (
 					await Promise.all(
 						memories.map(async (memory) => ({
 							...memory,
+							mine: memory.created_by === userId,
 							photo_url: await signedMediaPath(env, memory.photo_id),
 						})),
 					),
@@ -5139,6 +5233,480 @@ VALUES (
 			/*
 			 * GET TRIVIA QUESTIONS
 			 */
+
+			/*
+			 * ==========================================
+			 * TRIVIA THAT GROWS
+			 * ==========================================
+			 *
+			 * GET  /users/:clerkId/trivia          a round: a few questions about
+			 *                                      you (self), then the quiz
+			 * POST /users/:clerkId/trivia/about    { question_id: "self:x", answer }
+			 * POST /users/:clerkId/trivia/answer   about:x ids are checked here;
+			 *                                      profile ids fall through below
+			 *
+			 * The quiz draws from their profile and from everything
+			 * they have said about themselves, never asking you the
+			 * same thing twice until you have seen the rest.
+			 */
+			const triviaRoundMatch = url.pathname.match(/^\/users\/([^/]+)\/trivia$/);
+			const triviaAboutMatch = url.pathname.match(/^\/users\/([^/]+)\/trivia\/about$/);
+			const triviaCheckMatch = url.pathname.match(/^\/users\/([^/]+)\/trivia\/answer$/);
+
+			if ((triviaRoundMatch && request.method === 'GET') || (triviaAboutMatch && request.method === 'POST')) {
+				await ensureSchema(sql);
+
+				const couple = await coupleFor(sql, (triviaRoundMatch || triviaAboutMatch)[1]);
+
+				if (couple.error) return couple.error;
+
+				const { me, partner } = couple;
+				const partnerName = partner.first_name?.trim() || 'your partner';
+
+				if (triviaAboutMatch) {
+					const body = await request.json().catch(() => ({}));
+					const id = String(body?.question_id || '').replace(/^self:/, '');
+					const question = ABOUT_ME.find((item) => item.id === id);
+					const answer = String(body?.answer || '');
+
+					if (!question || !question.options.includes(answer)) {
+						return Response.json({ error: 'Pick one of the answers.' }, { status: 400 });
+					}
+
+					await sql`
+            INSERT INTO about_me (user_id, question_id, answer)
+            VALUES (${me.id}, ${id}, ${answer})
+            ON CONFLICT (user_id, question_id)
+            DO UPDATE SET answer = EXCLUDED.answer, answered_at = NOW()
+          `;
+
+					return Response.json({ saved: true });
+				}
+
+				const profile = (
+					await sql`
+            SELECT
+              pr.favorite_food, pr.favorite_snack, pr.favorite_drink, pr.favorite_color,
+              pr.movie_genre, pr.music_genre, pr.communication_frequency, pr.affection_style,
+              pr.love_languages, ri.personality_type, ri.conflict_style, ri.focus_areas
+            FROM users u
+            LEFT JOIN preferences pr ON pr.user_id = u.id
+            LEFT JOIN relationship_insights ri ON ri.user_id = u.id
+            WHERE u.id = ${partner.id}
+            LIMIT 1
+          `
+				)[0] || {};
+
+				const first = (value) => (Array.isArray(value) ? value[0] : value);
+				const PROFILE = [
+					['favorite_food', `What is ${partnerName}'s favorite food?`, ['Rice', 'Pizza', 'Pasta', 'Chicken', 'Fries', 'Burger']],
+					['favorite_snack', `What is ${partnerName}'s favorite snack?`, ['Chips', 'Biscuits', 'Chocolate', 'Popcorn', 'Cookies', 'Cake']],
+					['favorite_drink', `What is ${partnerName}'s favorite drink?`, ['Coca-Cola', 'Water', 'Juice', 'Tea', 'Coffee', 'Lemonade']],
+					['favorite_color', `What is ${partnerName}'s favorite color?`, ['Blue', 'White', 'Red', 'Green', 'Purple', 'Pink', 'Yellow']],
+					['movie_genre', `What type of movies does ${partnerName} enjoy most?`, ['Action', 'Comedy', 'Drama', 'Romance', 'Thriller', 'Horror']],
+					['music_genre', `What type of music does ${partnerName} enjoy most?`, ['Afrobeats', 'Gospel', 'R&B', 'Pop', 'Hip-Hop', 'Jazz', 'Rock']],
+					['communication_frequency', `How does ${partnerName} prefer to communicate?`, ['Text', 'Phone calls', 'In person', 'Video calls', 'Voice notes']],
+					['affection_style', `How does ${partnerName} usually show affection?`, ['Words', 'Actions', 'Physical affection', 'Quality time', 'Thoughtful gifts']],
+					['love_languages', `Which of these is one of ${partnerName}'s love languages?`, ['Quality Time', 'Receiving Gifts', 'Acts of Service', 'Words of Affirmation', 'Physical Touch']],
+					['personality_type', `What best describes ${partnerName}'s personality?`, ['Extrovert', 'Ambivert', 'Introvert', 'Reserved', 'Outgoing']],
+					['conflict_style', `When there is conflict, what does ${partnerName} prefer?`, ['Need time to think', 'Need reassurance', 'Talk immediately', 'Take some space']],
+					['focus_areas', `Which of these is something ${partnerName} wants Between Us to help with?`, ['Date Ideas', 'Gift Ideas', 'Better Communication', 'More Quality Time']],
+				];
+
+				/* The ids the older answer check already knows. */
+				const LEGACY = { love_languages: 'love_language', focus_areas: 'focus_area' };
+
+				const pool = PROFILE.filter(([key]) => first(profile[key])).map(([key, question, decoys]) => ({
+					id: LEGACY[key] || key,
+					question,
+					options: buildTriviaOptions(first(profile[key]), decoys),
+				}));
+
+				const theirs = await sql`SELECT question_id, answer FROM about_me WHERE user_id = ${partner.id}`;
+
+				for (const row of theirs) {
+					const item = ABOUT_ME.find((q) => q.id === row.question_id);
+					if (!item) continue;
+					pool.push({ id: `about:${item.id}`, question: item.them.replace('{name}', partnerName), options: shuffleList(item.options) });
+				}
+
+				/* Never asked first, then the longest ago. */
+				const asked = new Map((await sql`SELECT question_id, asked_at FROM trivia_asked WHERE user_id = ${me.id}`).map((r) => [r.question_id, new Date(r.asked_at).getTime()]));
+				const ranked = shuffleList(pool).sort((a, b) => (asked.get(a.id) || 0) - (asked.get(b.id) || 0));
+				const quiz = ranked.slice(0, 5);
+
+				for (const item of quiz) {
+					await sql`
+            INSERT INTO trivia_asked (user_id, question_id) VALUES (${me.id}, ${item.id})
+            ON CONFLICT (user_id, question_id) DO UPDATE SET asked_at = NOW()
+          `;
+				}
+
+				/* A few about you first, so their quiz keeps growing too. */
+				const answeredByMe = new Set((await sql`SELECT question_id FROM about_me WHERE user_id = ${me.id}`).map((r) => r.question_id));
+				const aboutYou = shuffleList(ABOUT_ME.filter((item) => !answeredByMe.has(item.id)))
+					.slice(0, 3)
+					.map((item) => ({ id: `self:${item.id}`, question: item.self, options: item.options, self: true }));
+
+				const questions = [...aboutYou, ...quiz].map((item, index) => ({ ...item, question_number: index + 1 }));
+
+				return Response.json({
+					partner: { first_name: partnerName },
+					total_questions: quiz.length,
+					about_count: aboutYou.length,
+					still_to_learn: Math.max(0, ABOUT_ME.length - theirs.length),
+					questions,
+				});
+			}
+
+			if (triviaCheckMatch && request.method === 'POST') {
+				const peek = await request.clone().json().catch(() => ({}));
+
+				if (String(peek?.question_id || '').startsWith('about:')) {
+					await ensureSchema(sql);
+
+					const couple = await coupleFor(sql, triviaCheckMatch[1]);
+
+					if (couple.error) return couple.error;
+
+					const row = (
+						await sql`
+              SELECT answer FROM about_me
+              WHERE user_id = ${couple.partner.id} AND question_id = ${peek.question_id.slice(6)}
+              LIMIT 1
+            `
+					)[0];
+
+					if (!row) return Response.json({ error: 'The answer for this question is unavailable.' }, { status: 400 });
+
+					return Response.json({
+						correct: String(peek.answer || '').trim().toLowerCase() === row.answer.trim().toLowerCase(),
+						correct_answer: row.answer,
+					});
+				}
+			}
+
+			/*
+			 * ==========================================
+			 * ACCEPTING A HUG
+			 * ==========================================
+			 *
+			 * POST /users/:clerkId/hug/accept
+			 */
+			const hugAcceptMatch = url.pathname.match(/^\/users\/([^/]+)\/hug\/accept$/);
+
+			if (hugAcceptMatch && request.method === 'POST') {
+				await ensureSchema(sql);
+
+				const couple = await coupleFor(sql, hugAcceptMatch[1]);
+
+				if (couple.error) return couple.error;
+
+				const { me, connection, partner, myName } = couple;
+				const window = Math.floor(Date.now() / 60000);
+
+				await notifyUser(sql, {
+					userId: partner.id,
+					pushToken: partner.push_token,
+					preferences: partner.notification_preferences,
+					type: 'hug_accepted',
+					title: `${myName} accepted your hug 🤗`,
+					message: 'They felt it.',
+					dedupeKey: `hug-accepted:${me.id}:${window}`,
+					data: { from: myName },
+				});
+
+				await recordActivity(sql, {
+					connectionId: connection.id,
+					actorId: me.id,
+					kind: 'hug_accepted',
+					title: 'Accepted your hug',
+					dedupeKey: `hug-accepted:${me.id}:${window}`,
+				});
+
+				return Response.json({ accepted: true });
+			}
+
+			/*
+			 * ==========================================
+			 * LIKING A LETTER
+			 * ==========================================
+			 *
+			 * POST /users/:clerkId/letters/:id/like   { liked }
+			 */
+			const letterLikeMatch = url.pathname.match(/^\/users\/([^/]+)\/letters\/([0-9a-f-]{36})\/like$/);
+
+			if (letterLikeMatch && request.method === 'POST') {
+				await ensureSchema(sql);
+
+				const couple = await coupleFor(sql, letterLikeMatch[1]);
+
+				if (couple.error) return couple.error;
+
+				const { me, connection, partner, myName } = couple;
+				const body = await request.json().catch(() => ({}));
+				const liked = body?.liked !== false;
+
+				const letter = (
+					await sql`
+            SELECT * FROM letters WHERE id = ${letterLikeMatch[2]} AND connection_id = ${connection.id} LIMIT 1
+          `
+				)[0];
+
+				if (!letter || letter.to_user !== me.id || !letter.opened_at) {
+					return Response.json({ error: 'Only a letter you have opened can be liked.' }, { status: 403 });
+				}
+
+				await sql`UPDATE letters SET liked_at = ${liked ? new Date().toISOString() : null} WHERE id = ${letter.id}`;
+
+				if (liked && !letter.liked_at) {
+					await notifyUser(sql, {
+						userId: partner.id,
+						pushToken: partner.push_token,
+						preferences: partner.notification_preferences,
+						type: 'letter_liked',
+						title: `${myName} loved your letter ❤️`,
+						message: `"${letter.title}"`,
+						dedupeKey: `letter-liked:${letter.id}`,
+					});
+				}
+
+				return Response.json({ liked });
+			}
+
+			/*
+			 * ==========================================
+			 * PLACES
+			 * ==========================================
+			 *
+			 * GET /users/:clerkId/places?lat=&lon=&kind=&q=&radius=
+			 * GET /users/:clerkId/places/photos?lat=&lon=&image=
+			 * GET /users/:clerkId/geocode?q=
+			 */
+			const placesMatch = url.pathname.match(/^\/users\/([^/]+)\/places$/);
+			const placePhotosMatch = url.pathname.match(/^\/users\/([^/]+)\/places\/photos$/);
+			const geocodeMatch = url.pathname.match(/^\/users\/([^/]+)\/geocode$/);
+
+			if ((placesMatch || placePhotosMatch || geocodeMatch) && request.method === 'GET') {
+				const lat = Number(url.searchParams.get('lat'));
+				const lon = Number(url.searchParams.get('lon'));
+				const okPoint = Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180;
+
+				try {
+					if (geocodeMatch) {
+						const q = String(url.searchParams.get('q') || '').trim();
+						if (q.length < 2) return Response.json({ results: [] });
+						return Response.json(await geocode(env, q.slice(0, 80)));
+					}
+
+					if (!okPoint) return Response.json({ error: 'A location is needed.' }, { status: 400 });
+
+					if (placePhotosMatch) {
+						const image = url.searchParams.get('image');
+						return Response.json(await placePhotos(env, { lat, lon, image: /^https:\/\//.test(image || '') ? image : null }));
+					}
+
+					const [found, where] = await Promise.all([
+						nearbyPlaces(env, {
+							lat,
+							lon,
+							kind: url.searchParams.get('kind') || null,
+							q: String(url.searchParams.get('q') || '').slice(0, 60) || null,
+							radius: Number(url.searchParams.get('radius')) || null,
+						}),
+						areaName(env, lat, lon).catch(() => ({ name: null })),
+					]);
+
+					return Response.json({
+						...found,
+						area: where?.name || null,
+						kinds: Object.entries(PLACE_KINDS).map(([key, value]) => ({ key, label: value.label, emoji: value.emoji })),
+					});
+				} catch (err) {
+					return Response.json({ error: err?.message || 'The map service is busy. Try again in a moment.' }, { status: 503 });
+				}
+			}
+
+			/*
+			 * ==========================================
+			 * DUELS
+			 * ==========================================
+			 *
+			 * GET  /users/:clerkId/duels/:kind              the latest, and the score
+			 * POST /users/:clerkId/duels/:kind              a new match
+			 * POST /users/:clerkId/duels/:kind/:id/move     your move
+			 */
+			const duelMatch = url.pathname.match(/^\/users\/([^/]+)\/duels\/([a-z]+)$/);
+			const duelMoveMatch = url.pathname.match(/^\/users\/([^/]+)\/duels\/([a-z]+)\/([0-9a-f-]{36})\/move$/);
+
+			if ((duelMatch && (request.method === 'GET' || request.method === 'POST')) || (duelMoveMatch && request.method === 'POST')) {
+				await ensureSchema(sql);
+
+				const match = duelMatch || duelMoveMatch;
+				const kind = match[2];
+
+				if (!DUEL_KINDS.includes(kind)) return Response.json({ error: 'No such game.' }, { status: 404 });
+
+				const couple = await coupleFor(sql, match[1]);
+
+				if (couple.error) return couple.error;
+
+				const { me, connection, partner, myName } = couple;
+				const NAMES = { paintball: 'Paintball Standoff', tanks: 'Tank Duel' };
+
+				const view = (duel) => {
+					if (!duel) return null;
+
+					const side = duel.player_a === me.id ? 'a' : 'b';
+
+					return {
+						id: duel.id,
+						kind: duel.kind,
+						status: duel.status,
+						version: duel.version,
+						turn: duel.status === 'playing' && duel.turn ? (duel.turn === me.id ? 'you' : 'them') : null,
+						winner: duel.winner ? (duel.winner === me.id ? 'you' : 'them') : null,
+						you_started: duel.player_a === me.id,
+						updated_at: duel.updated_at,
+						...(duel.kind === 'paintball' ? paintballView(duel.state, side) : tanksView(duel.state, side)),
+					};
+				};
+
+				const score = async () => {
+					const rows = await sql`
+            SELECT winner, status FROM duels
+            WHERE connection_id = ${connection.id} AND kind = ${kind} AND status <> 'playing'
+          `;
+
+					return {
+						you: rows.filter((r) => r.winner === me.id).length,
+						them: rows.filter((r) => r.winner === partner.id).length,
+						draws: rows.filter((r) => r.status === 'draw').length,
+					};
+				};
+
+				const latest = async () =>
+					(
+						await sql`
+              SELECT * FROM duels WHERE connection_id = ${connection.id} AND kind = ${kind}
+              ORDER BY created_at DESC LIMIT 1
+            `
+					)[0] || null;
+
+				const tell = (type, title, message, key) =>
+					notifyUser(sql, {
+						userId: partner.id,
+						pushToken: partner.push_token,
+						preferences: partner.notification_preferences,
+						type,
+						title,
+						message,
+						dedupeKey: key,
+						data: { kind },
+					});
+
+				if (duelMatch && request.method === 'GET') {
+					return Response.json({ duel: view(await latest()), score: await score() });
+				}
+
+				if (duelMatch) {
+					const last = await latest();
+
+					if (last && last.status === 'playing') {
+						return Response.json({ duel: view(last), score: await score() });
+					}
+
+					const starter = last ? (last.player_a === me.id ? partner.id : me.id) : me.id;
+					const other = starter === me.id ? partner.id : me.id;
+					const state = kind === 'paintball' ? newPaintball() : newTanks();
+
+					const created = (
+						await sql`
+              INSERT INTO duels (connection_id, kind, player_a, player_b, state, turn)
+              VALUES (${connection.id}, ${kind}, ${starter}, ${other}, ${JSON.stringify(state)}::jsonb, ${kind === 'tanks' ? starter : null})
+              RETURNING *
+            `
+					)[0];
+
+					await tell(
+						'duel_turn',
+						`${myName} challenged you to ${NAMES[kind]} ⚔️`,
+						kind === 'tanks' ? (starter === partner.id ? 'You fire first.' : `${myName} fires first.`) : 'Pick your cover.',
+						`duel-start:${created.id}`,
+					);
+
+					return Response.json({ duel: view(created), score: await score() }, { status: 201 });
+				}
+
+				/* A move. */
+				const duel = (
+					await sql`
+            SELECT * FROM duels WHERE id = ${duelMoveMatch[3]} AND connection_id = ${connection.id} LIMIT 1
+          `
+				)[0];
+
+				if (!duel) return Response.json({ error: 'That match is not here any more.' }, { status: 404 });
+				if (duel.status !== 'playing') return Response.json({ error: 'That match is over.', duel: view(duel) }, { status: 409 });
+
+				const side = duel.player_a === me.id ? 'a' : 'b';
+
+				if (kind === 'tanks' && duel.turn !== me.id) {
+					return Response.json({ error: 'Hold fire, it is their turn.', duel: view(duel) }, { status: 409 });
+				}
+
+				const body = await request.json().catch(() => ({}));
+				const result = kind === 'paintball' ? paintballMove(duel.state, side, body) : tanksMove(duel.state, side, body);
+
+				if (result.error) return Response.json({ error: result.error, duel: view(duel) }, { status: 400 });
+
+				const winnerId = result.over ? (result.winner ? (result.winner === 'a' ? duel.player_a : duel.player_b) : null) : null;
+				const status = result.over ? (winnerId ? 'won' : 'draw') : 'playing';
+				const nextTurn = kind === 'tanks' && !result.over ? partner.id : null;
+
+				const updated = (
+					await sql`
+            UPDATE duels
+            SET state = ${JSON.stringify(result.state)}::jsonb,
+                status = ${status},
+                winner = ${winnerId},
+                turn = ${nextTurn},
+                version = version + 1,
+                updated_at = NOW()
+            WHERE id = ${duel.id} AND version = ${duel.version}
+            RETURNING *
+          `
+				)[0];
+
+				if (!updated) {
+					return Response.json({ error: 'Things moved on. Have another look.', duel: view(await latest()) }, { status: 409 });
+				}
+
+				if (result.over) {
+					await tell(
+						'duel_over',
+						winnerId === me.id ? `${myName} won ${NAMES[kind]}` : winnerId ? `You won ${NAMES[kind]}! 🏆` : `${NAMES[kind]}: a draw`,
+						'Rematch?',
+						`duel-over:${duel.id}`,
+					);
+
+					await recordActivity(sql, {
+						connectionId: connection.id,
+						actorId: me.id,
+						kind: 'game',
+						title: winnerId === me.id ? `Won a round of ${NAMES[kind]}` : winnerId ? `Lost a round of ${NAMES[kind]}` : `Drew at ${NAMES[kind]}`,
+						targetId: duel.id,
+						dedupeKey: `duel-end:${duel.id}`,
+					});
+				} else if (kind === 'tanks') {
+					await tell('duel_turn', `Incoming! Your shot, against ${myName}`, `${result.state.last.damage ? `They hit you for ${result.state.last.damage}.` : 'They missed.'} Fire back.`, `duel:${duel.id}:${updated.version}`);
+				} else if (result.resolved) {
+					await tell('duel_turn', `Round ${result.state.round - 1} done — ${myName} is waiting`, 'Pick your next cover.', `duel:${duel.id}:${updated.version}`);
+				} else {
+					await tell('duel_turn', `${myName} has locked in 🎯`, 'Your move in Paintball Standoff.', `duel:${duel.id}:${updated.version}`);
+				}
+
+				return Response.json({ duel: view(updated), score: await score() });
+			}
 
 			const triviaMatch = url.pathname.match(/^\/users\/([^/]+)\/trivia$/);
 
@@ -7076,12 +7644,17 @@ VALUES (
 						return Response.json({ error: 'message is required' }, { status: 400 });
 					}
 
+					/* Answering one of theirs (or your own): it must be in this couple. */
+					const replyTo = /^[0-9a-f-]{36}$/.test(String(body?.reply_to || ''))
+						? (await sql`SELECT id FROM appreciations WHERE id = ${body.reply_to} AND connection_id = ${connection.id} LIMIT 1`)[0]?.id || null
+						: null;
+
 					await sql`
             INSERT INTO appreciations (
-              connection_id, from_user_id, to_user_id, message, audio_id, audio_seconds
+              connection_id, from_user_id, to_user_id, message, audio_id, audio_seconds, reply_to
             )
             VALUES (
-              ${connection.id}, ${userId}, ${partnerId}, ${message}, ${audioId}, ${audioSeconds}
+              ${connection.id}, ${userId}, ${partnerId}, ${message}, ${audioId}, ${audioSeconds}, ${replyTo}
             )
           `;
 
@@ -7124,9 +7697,14 @@ VALUES (
             a.audio_id,
             a.audio_seconds,
             a.created_at,
+            a.reply_to,
+            r.message AS reply_message,
+            r.from_user_id AS reply_from,
+            r.audio_id AS reply_audio,
             p.first_name AS from_first_name
           FROM appreciations a
           LEFT JOIN profiles p ON p.user_id = a.from_user_id
+          LEFT JOIN appreciations r ON r.id = a.reply_to
           WHERE a.connection_id = ${connection.id}
           ORDER BY a.created_at DESC
           LIMIT 50
@@ -7137,6 +7715,14 @@ VALUES (
 						notes.map(async (row) => ({
 							...row,
 							mine: row.from_user_id === userId,
+							reply: row.reply_to
+								? {
+										id: row.reply_to,
+										message: row.reply_message || 'A note that was deleted',
+										mine: row.reply_from === userId,
+										voice: Boolean(row.reply_audio),
+									}
+								: null,
 							audio_url: await signedMediaPath(env, row.audio_id, 'm4a'),
 						})),
 					),
@@ -7349,10 +7935,15 @@ VALUES (
 					}
 
 					const planDate = body?.plan_date ? toIsoDate(body.plan_date) : null;
+					const planTime = /^([01]\d|2[0-3]):[0-5]\d$/.test(String(body?.plan_time || '')) ? body.plan_time : null;
+					const num = (value) => (Number.isFinite(Number(value)) && value !== null && value !== '' ? Number(value) : null);
+					const photoUrl = /^https:\/\//.test(String(body?.photo_url || '')) ? String(body.photo_url).slice(0, 600) : null;
 
+					/* Every date now starts as a suggestion the other one says yes to. */
 					const created = await sql`
             INSERT INTO date_plans (
-              connection_id, created_by, title, place, notes, plan_date
+              connection_id, created_by, title, place, notes, plan_date,
+              plan_time, lat, lon, address, photo_url, place_kind, status, awaiting
             )
             VALUES (
               ${connection.id},
@@ -7360,9 +7951,17 @@ VALUES (
               ${title},
               ${String(body?.place || '').trim() || null},
               ${String(body?.notes || '').trim() || null},
-              ${planDate}
+              ${planDate},
+              ${planTime},
+              ${num(body?.lat)},
+              ${num(body?.lon)},
+              ${String(body?.address || '').trim().slice(0, 200) || null},
+              ${photoUrl},
+              ${PLACE_KINDS[body?.place_kind] ? body.place_kind : null},
+              'proposed',
+              ${partnerId}
             )
-            RETURNING id, title, place, notes, plan_date, status, created_by, created_at
+            RETURNING id, title, place, notes, plan_date, plan_time, status, created_by, created_at
           `;
 
 					const planner = await sql`
@@ -7379,17 +7978,18 @@ VALUES (
 						userId: partnerId,
 						pushToken: partnerRow[0]?.push_token,
 						preferences: partnerRow[0]?.notification_preferences,
-						type: 'date_idea',
-						title: 'A date is being planned',
-						message: `${plannerName} is planning ${title}.`,
+						type: 'date_proposed',
+						title: `${plannerName} wants to take you out 💕`,
+						message: `${title}${planDate ? ` · ${whenText(planDate, planTime)}` : ''}. Say yes, or pick another time.`,
 						dedupeKey: `date-plan-${created[0].id}`,
+						data: { planId: created[0].id },
 					});
 
 					await recordActivity(sql, {
 						connectionId: connection.id,
 						actorId: userId,
 						kind: 'date',
-						title: `Planned a date: ${title}`,
+						title: `Suggested a date: ${title}`,
 						detail: created[0].place,
 						targetId: created[0].id,
 						dedupeKey: `date:${created[0].id}`,
@@ -7417,8 +8017,74 @@ VALUES (
 
 					const body = await request.json();
 
-					const status = ['planned', 'done', 'cancelled'].includes(body?.status) ? body.status : null;
+					/* Answering a suggestion: yes, another time, or no. */
+					if (['accept', 'decline', 'reschedule'].includes(body?.action)) {
+						const plan = (await sql`SELECT * FROM date_plans WHERE id = ${planId} AND connection_id = ${connection.id} LIMIT 1`)[0];
 
+						if (!plan) return Response.json({ error: 'Date not found' }, { status: 404 });
+						if (plan.status !== 'proposed' || plan.awaiting !== userId) {
+							return Response.json({ error: 'That one is not waiting on you.' }, { status: 409 });
+						}
+
+						const meRow = (await sql`SELECT first_name, nickname FROM profiles WHERE user_id = ${userId} LIMIT 1`)[0];
+						const myName = meRow?.nickname?.trim() || meRow?.first_name?.trim() || 'Your partner';
+						const other = (await sql`SELECT push_token, notification_preferences FROM users WHERE id = ${partnerId} LIMIT 1`)[0];
+
+						let next;
+						let note;
+
+						if (body.action === 'accept') {
+							next = (
+								await sql`UPDATE date_plans SET status = 'planned', awaiting = NULL, updated_at = NOW() WHERE id = ${planId} RETURNING *`
+							)[0];
+							note = {
+								type: 'date_confirmed',
+								title: `${myName} said yes! 🎉`,
+								message: `${plan.title}${plan.plan_date ? ` · ${whenText(toIsoDate(plan.plan_date), plan.plan_time)}` : ''} is on.`,
+							};
+						} else if (body.action === 'decline') {
+							next = (
+								await sql`UPDATE date_plans SET status = 'declined', awaiting = NULL, updated_at = NOW() WHERE id = ${planId} RETURNING *`
+							)[0];
+							note = {
+								type: 'date_declined',
+								title: `${myName} passed on ${plan.title}`,
+								message: body?.reason ? String(body.reason).slice(0, 140) : 'Maybe somewhere else? Have another look together.',
+							};
+						} else {
+							const newDate = body?.plan_date ? toIsoDate(body.plan_date) : null;
+							const newTime = /^([01]\d|2[0-3]):[0-5]\d$/.test(String(body?.plan_time || '')) ? body.plan_time : null;
+
+							if (!newDate) return Response.json({ error: 'Pick another day.' }, { status: 400 });
+
+							next = (
+								await sql`
+                  UPDATE date_plans
+                  SET plan_date = ${newDate}, plan_time = ${newTime}, awaiting = ${partnerId}, updated_at = NOW()
+                  WHERE id = ${planId}
+                  RETURNING *
+                `
+							)[0];
+							note = {
+								type: 'date_proposed',
+								title: `${myName} suggested another time`,
+								message: `${plan.title} · ${whenText(newDate, newTime)}. Does that work?`,
+							};
+						}
+
+						await notifyUser(sql, {
+							userId: partnerId,
+							pushToken: other?.push_token,
+							preferences: other?.notification_preferences,
+							...note,
+							dedupeKey: `date-answer:${planId}:${body.action}:${Date.now()}`,
+							data: { planId },
+						});
+
+						return Response.json({ plan: { ...next, plan_date: next.plan_date ? toIsoDate(next.plan_date) : null } });
+					}
+
+					const status = ['planned', 'done', 'cancelled'].includes(body?.status) ? body.status : null;
 					if (!status) {
 						return Response.json({ error: 'status must be planned, done or cancelled' }, { status: 400 });
 					}
@@ -7445,6 +8111,13 @@ VALUES (
             d.place,
             d.notes,
             d.plan_date,
+            d.plan_time,
+            d.lat,
+            d.lon,
+            d.address,
+            d.photo_url,
+            d.place_kind,
+            d.awaiting,
             d.status,
             d.created_by,
             d.created_at,
@@ -7454,7 +8127,7 @@ VALUES (
           LEFT JOIN profiles p ON p.user_id = d.created_by
           WHERE d.connection_id = ${connection.id}
           ORDER BY
-            CASE WHEN d.status = 'planned' THEN 0 ELSE 1 END,
+            CASE WHEN d.status = 'proposed' THEN 0 WHEN d.status = 'planned' THEN 1 ELSE 2 END,
             d.plan_date ASC NULLS LAST,
             d.created_at DESC
           LIMIT 60
@@ -7465,6 +8138,8 @@ VALUES (
 						...row,
 						plan_date: row.plan_date ? toIsoDate(row.plan_date) : null,
 						mine: row.created_by === userId,
+						awaiting_you: row.status === 'proposed' && row.awaiting === userId,
+						awaiting: undefined,
 						planner_name: row.planner_nickname?.trim() || row.planner_first_name?.trim() || 'Someone',
 					})),
 				});
@@ -8206,6 +8881,7 @@ VALUES (
 						opened_at: letter.opened_at,
 						created_at: letter.created_at,
 						mine,
+						liked: Boolean(letter.liked_at),
 						body: mine || opened ? letter.body : null,
 					};
 				};
@@ -8878,17 +9554,18 @@ VALUES (
 					pushToken: sender?.push_token,
 					preferences: sender?.notification_preferences,
 					type: 'hug_declined',
-					title: `${myName} needs a little space right now`,
-					message: 'They saw your hug. Give it a moment.',
+					title: `${myName} rejected your hug 💔`,
+					message: 'They saw it. Maybe later.',
 					dedupeKey: `hug-declined:${me.id}:${window}`,
+					data: { from: myName },
 				});
 
 				await recordActivity(sql, {
 					connectionId: connection.id,
 					actorId: me.id,
 					kind: 'hug_declined',
-					title: 'Needs a little space right now',
-					detail: 'They saw your hug',
+					title: 'Rejected your hug',
+					detail: 'They saw it. Maybe later.',
 					dedupeKey: `hug-declined:${me.id}:${window}`,
 				});
 

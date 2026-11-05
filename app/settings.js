@@ -10,6 +10,7 @@ import { clearCachedData } from "../lib/dataCache";
 import { RETURNING_USER_KEY } from "../lib/auth";
 import { lockAvailable, lockEnabled, setLockEnabled } from "../lib/appLock";
 import { savedAppearance, setAppearance } from "../lib/appearance";
+import { openTour } from "../lib/tour";
 import { T, useTheme } from "../lib/theme";
 import {
   Cell,
@@ -222,6 +223,20 @@ export default function SettingsScreen() {
         <GroupFooter>
           System follows your phone, switching as it does.
         </GroupFooter>
+      </View>
+
+      {/* THE TOUR */}
+
+      <View style={styles.section}>
+        <Group inset={52}>
+          <Cell
+            leading={icon("sparkles")}
+            title="Show the app tour"
+            subtitle="A quick look at everything Between Us does"
+            chevron
+            onPress={openTour}
+          />
+        </Group>
       </View>
 
       {/* PRIVACY */}

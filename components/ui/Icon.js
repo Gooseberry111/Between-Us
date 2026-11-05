@@ -97,6 +97,13 @@ const MAP = {
   hands: ["hands.sparkles", "hand-left-outline", "hand-left"],
   plane: ["airplane", "airplane-outline", "airplane"],
   leaf: ["leaf", "leaf-outline", "leaf"],
+  map: ["map", "map-outline", "map"],
+  shield: ["shield.fill", "shield-outline", "shield"],
+  bolt: ["bolt.fill", "flash-outline", "flash"],
+  navigate: ["location.north.fill", "navigate-outline", "navigate"],
+  star: ["star.fill", "star-outline", "star"],
+  phone: ["phone", "call-outline", "call"],
+  open: ["arrow.up.right.square", "open-outline", "open"],
 };
 
 /* The SF Symbol behind one of our names, for native

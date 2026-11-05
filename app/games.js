@@ -24,12 +24,32 @@ import ConnectFirst from "../components/ConnectFirst";
  *
  * Everything the two of you can play, in one place.
  *
+ *   battle               Paintball Standoff, Tank Duel
  *   against each other   Four in a Row, turn by turn
  *   how alike are you    This or That, Who's More Likely To
  *   how well you know    trivia about each other
  */
 
 const GAMES = [
+  {
+    section: "Battle",
+    items: [
+      {
+        icon: "target",
+        tint: "you",
+        title: "Paintball Standoff",
+        text: "Hide, aim, fire. Both shots land at once",
+        route: "/paintball",
+      },
+      {
+        icon: "bolt",
+        tint: "orange",
+        title: "Tank Duel",
+        text: "Angle, power, wind. Blast them off the hill",
+        route: "/tanks",
+      },
+    ],
+  },
   {
     section: "Against each other",
     items: [

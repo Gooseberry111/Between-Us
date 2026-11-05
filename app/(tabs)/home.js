@@ -45,7 +45,9 @@ import {
   loadActivity,
   updateActivity,
 } from "../../lib/activity";
-import { playHug, playTap } from "../../lib/hugs";
+import { playHug, playHugAnswer, playTap } from "../../lib/hugs";
+import { openTour } from "../../lib/tour";
+import { tourSeen } from "../../components/Walkthrough";
 import { SkeletonList } from "../../components/Skeleton";
 
 /*
@@ -102,6 +104,21 @@ const MOODS = [
     line: "Angry. Take a breath; Repair is there when you're ready.",
   },
 ];
+
+/* A mood, in a word, for under each circle. */
+const MOOD_WORDS = {
+  glowing: "glowing",
+  happy: "happy",
+  excited: "excited",
+  okay: "okay",
+  missing: "a bit lonely",
+  tired: "tired",
+  stressed: "stressed",
+  sad: "sad",
+  distant: "distant",
+  hurt: "hurt",
+  angry: "angry",
+};
 
 const ACTIONS = [
   { icon: "mail", label: "Note", route: "/appreciations" },
@@ -291,6 +308,21 @@ export default function HomeScreen() {
     connection?.other_first_name?.trim() ||
     "Your person";
 
+  /* Freshly linked: the tour, once. */
+  const tourAsked = useRef(false);
+
+  useEffect(() => {
+    if (tourAsked.current || !userId || !partner) return undefined;
+
+    tourAsked.current = true;
+
+    if (tourSeen(userId)) return undefined;
+
+    const timer = setTimeout(openTour, 900);
+
+    return () => clearTimeout(timer);
+  }, [userId, partner]);
+
   /* A hug they sent while you were away plays when you
    * arrive, once, and is then marked seen. */
   const playedHugs = useRef(new Set());
@@ -298,7 +330,7 @@ export default function HomeScreen() {
   useEffect(() => {
     const fresh = activity.filter(
       (item) =>
-        (item.kind === "hug" || item.kind === "tap") &&
+        ["hug", "tap", "hug_declined", "hug_accepted"].includes(item.kind) &&
         !item.read &&
         !playedHugs.current.has(item.id),
     );
@@ -310,11 +342,18 @@ export default function HomeScreen() {
       updateActivity(userId, item.id, { read: true }).catch(() => {});
     });
 
-    /* A hug outranks a tap; the newest of each plays. */
+    /* A hug outranks an answer to yours, which outranks a
+     * tap; the newest of each plays. */
     const hug = fresh.find((item) => item.kind === "hug");
+    const answer = fresh.find((item) => item.kind.startsWith("hug_"));
 
     if (hug) playHug({ from: partnerName });
-    else playTap({ kind: fresh[0].detail, from: partnerName });
+    else if (answer) {
+      playHugAnswer({
+        kind: answer.kind === "hug_declined" ? "declined" : "accepted",
+        from: partnerName,
+      });
+    } else playTap({ kind: fresh[0].detail, from: partnerName });
 
     setActivity((current) =>
       current.map((item) =>
@@ -529,7 +568,9 @@ export default function HomeScreen() {
         partnerAnswered={partnerAnswered}
         streak={Number(daily?.streak || 0)}
         mood={MOODS.find((item) => item.key === mood)?.emoji}
+        moodLabel={MOOD_WORDS[mood]}
         partnerMood={partnerMood?.emoji}
+        partnerMoodLabel={MOOD_WORDS[partnerMood?.key || partnerMood?.mood]}
         onHug={sendHug}
         onSendTap={features.enabled("taps") ? sendTap : undefined}
         onPickMood={() => setMoodSheet(true)}
@@ -544,6 +585,24 @@ export default function HomeScreen() {
       {features.enabled("distance") ? (
         <Distance partnerName={partnerName} />
       ) : null}
+
+      {/* QUICK ACTIONS -- right above tonight's questions, in reach. */}
+
+      <View style={styles.actions}>
+        {ACTIONS.map((action) => (
+          <Press
+            key={action.label}
+            onPress={() => router.push(action.route)}
+            outerStyle={styles.actionWrap}
+          >
+            <View style={styles.action}>
+              <Icon name={action.icon} size={24} color={T.accent} filled />
+
+              <Text style={styles.actionLabel}>{action.label}</Text>
+            </View>
+          </Press>
+        ))}
+      </View>
 
       {/* TONIGHT'S QUESTION */}
 
@@ -640,24 +699,6 @@ export default function HomeScreen() {
       <OnThisDay />
 
       {features.enabled("challenge") ? <Challenge /> : null}
-
-      {/* QUICK ACTIONS */}
-
-      <View style={styles.actions}>
-        {ACTIONS.map((action) => (
-          <Press
-            key={action.label}
-            onPress={() => router.push(action.route)}
-            outerStyle={styles.actionWrap}
-          >
-            <View style={styles.action}>
-              <Icon name={action.icon} size={24} color={T.accent} filled />
-
-              <Text style={styles.actionLabel}>{action.label}</Text>
-            </View>
-          </Press>
-        ))}
-      </View>
 
       {finishProfile}
 
