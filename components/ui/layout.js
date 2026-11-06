@@ -97,6 +97,7 @@ export function Press({
 export function Screen({
   children,
   scroll = true,
+  scrollEnabled = true,
   refreshControl,
   bottom = 32,
   keyboard,
@@ -120,6 +121,7 @@ export function Screen({
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={[styles.content, { paddingBottom: bottom }]}
       refreshControl={refreshControl}
+      scrollEnabled={scrollEnabled}
     >
       {children}
     </KeyboardScroll>

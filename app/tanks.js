@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   PanResponder,
-  Pressable,
   ScrollView,
   Text,
   View,
@@ -14,6 +13,7 @@ import Svg, {
   Defs,
   G,
   LinearGradient as SvgGradient,
+  Line,
   Path,
   Polyline,
   Rect,
@@ -75,91 +75,6 @@ function aimGuide(duel, angle, power) {
   return points;
 }
 
-/* A slider of our own: drag along it, or tap a point. */
-function Slider({ label, value, min, max, unit, onChange }) {
-  useTheme();
-
-  const [width, setWidth] = useState(1);
-  const widthRef = useRef(1);
-  const changeRef = useRef(onChange);
-  changeRef.current = onChange;
-
-  const pick = (x) => {
-    const ratio = Math.max(0, Math.min(1, x / widthRef.current));
-    const next = Math.round(min + ratio * (max - min));
-    changeRef.current(next);
-  };
-
-  const responder = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: () => true,
-        onPanResponderTerminationRequest: () => false,
-        onPanResponderGrant: (event) => pick(event.nativeEvent.locationX),
-        onPanResponderMove: (event) => pick(event.nativeEvent.locationX),
-      }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [min, max],
-  );
-
-  const ratio = (value - min) / (max - min);
-  const nudge = (by) => {
-    Haptics.selectionAsync().catch(() => {});
-    onChange(Math.max(min, Math.min(max, value + by)));
-  };
-
-  return (
-    <View style={styles.slider}>
-      <View style={styles.sliderTop}>
-        <Text style={styles.sliderLabel}>{label}</Text>
-        <Text style={styles.sliderValue}>
-          {value}
-          {unit}
-        </Text>
-      </View>
-
-      <View style={styles.sliderRow}>
-        <Pressable
-          onPress={() => nudge(-1)}
-          style={styles.nudge}
-          hitSlop={6}
-          accessibilityLabel={`Less ${label}`}
-        >
-          <Text style={styles.nudgeText}>−</Text>
-        </Pressable>
-
-        <View
-          style={styles.track}
-          onLayout={(event) => {
-            widthRef.current = event.nativeEvent.layout.width;
-            setWidth(event.nativeEvent.layout.width);
-          }}
-          {...responder.panHandlers}
-        >
-          <View style={styles.rail} />
-          <View
-            style={[styles.trackFill, { width: Math.max(0, ratio * width) }]}
-          />
-          <View
-            pointerEvents="none"
-            style={[styles.thumb, { left: ratio * width - 13 }]}
-          />
-        </View>
-
-        <Pressable
-          onPress={() => nudge(1)}
-          style={styles.nudge}
-          hitSlop={6}
-          accessibilityLabel={`More ${label}`}
-        >
-          <Text style={styles.nudgeText}>+</Text>
-        </Pressable>
-      </View>
-    </View>
-  );
-}
-
 function Tank({ x, y, facing, angle, colour, scaleX, scaleY }) {
   const rad = (angle * Math.PI) / 180;
   const cx = x * scaleX;
@@ -206,6 +121,64 @@ export default function TanksScreen() {
 
   const [angle, setAngle] = useState(45);
   const [power, setPower] = useState(65);
+
+  /*
+   * Aim like a slingshot: press anywhere on the field and
+   * pull back. The band stretches from your tank, the shot
+   * goes the other way, and the further you pull the harder
+   * it flies. Letting go keeps the aim; Fire! fires.
+   */
+  const [pull, setPull] = useState(null);
+  const aimLive = useRef({ can: false, facing: 1, reach: 150 });
+  const lastPowerTick = useRef(0);
+
+  const stretch = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => aimLive.current.can,
+        onMoveShouldSetPanResponder: () => aimLive.current.can,
+        /* While you are stretching, the page never takes the finger. */
+        onPanResponderTerminationRequest: () => false,
+        onShouldBlockNativeResponder: () => true,
+        onPanResponderGrant: () => {
+          setPull({ dx: 0, dy: 0 });
+          Haptics.selectionAsync().catch(() => {});
+        },
+        onPanResponderMove: (_, g) => {
+          const { facing, reach } = aimLive.current;
+          const length = Math.hypot(g.dx, g.dy);
+          const scale = length > reach ? reach / length : 1;
+
+          setPull({ dx: g.dx * scale, dy: g.dy * scale });
+
+          if (length < 8) return;
+
+          /* Pull down and back, aim up and forward. */
+          const forward = -g.dx * facing;
+          const up = g.dy;
+          const degrees = (Math.atan2(up, forward) * 180) / Math.PI;
+          const nextAngle = Math.round(Math.max(5, Math.min(85, degrees)));
+          const nextPower = Math.round(
+            Math.max(
+              10,
+              Math.min(100, (Math.min(length, reach) / reach) * 100),
+            ),
+          );
+
+          setAngle(nextAngle);
+          setPower(nextPower);
+
+          const tick = Math.floor(nextPower / 10);
+          if (tick !== lastPowerTick.current) {
+            lastPowerTick.current = tick;
+            Haptics.selectionAsync().catch(() => {});
+          }
+        },
+        onPanResponderRelease: () => setPull(null),
+        onPanResponderTerminate: () => setPull(null),
+      }),
+    [],
+  );
 
   /* The shot in the air, 0 → 1, and the one last shown. */
   const [flight, setFlight] = useState(1);
@@ -320,6 +293,17 @@ export default function TanksScreen() {
 
   const guide = duel && yourTurn && !flying ? aimGuide(duel, angle, power) : [];
 
+  aimLive.current = {
+    can: Boolean(yourTurn && !flying && !busy),
+    facing: duel?.tank?.you?.facing || 1,
+    reach: W * 0.42,
+  };
+
+  /* Where the band starts: your tank's turret, on screen. */
+  const turret = duel
+    ? { x: sx(duel.tank.you.x), y: sy(duel.tank.you.y) - 9 }
+    : null;
+
   const hpBar = (value, colour) => (
     <View style={styles.hpTrack}>
       <View
@@ -362,6 +346,7 @@ export default function TanksScreen() {
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        scrollEnabled={!pull}
       >
         {loading && !duel ? (
           <ActivityIndicator color={T.accent} style={{ marginTop: 60 }} />
@@ -370,9 +355,10 @@ export default function TanksScreen() {
             <Text style={styles.introEmoji}>💥</Text>
             <Text style={styles.introTitle}>Aim over the hill</Text>
             <Text style={styles.introText}>
-              Your tank on one side, theirs on the other. Take turns setting the
-              angle and the power, mind the wind, and fire. A direct hit does 40
-              damage; close calls do less. First tank to 0 loses.
+              Your tank on one side, theirs on the other. Take turns: pull back
+              from your tank like a slingshot to aim, mind the wind, and fire. A
+              direct hit does 40 damage; close calls do less. First tank to 0
+              loses.
             </Text>
             <Button
               title={`Challenge ${partnerName}`}
@@ -398,7 +384,7 @@ export default function TanksScreen() {
             </View>
 
             {/* THE FIELD */}
-            <View style={styles.field}>
+            <View style={styles.field} {...stretch.panHandlers}>
               <Svg width={W} height={H}>
                 <Defs>
                   <SvgGradient id="sky" x1="0" y1="0" x2="0" y2="1">
@@ -442,6 +428,42 @@ export default function TanksScreen() {
                   scaleX={scaleX}
                   scaleY={scaleY}
                 />
+
+                {yourTurn && !flying && turret && !pull ? (
+                  <Circle
+                    cx={turret.x}
+                    cy={turret.y}
+                    r={22}
+                    fill="none"
+                    stroke="#FFFFFF"
+                    strokeWidth={1.5}
+                    strokeDasharray="3 4"
+                    opacity={0.7}
+                  />
+                ) : null}
+
+                {pull && turret ? (
+                  <G>
+                    <Line
+                      x1={turret.x}
+                      y1={turret.y}
+                      x2={turret.x + pull.dx}
+                      y2={turret.y + pull.dy}
+                      stroke={T.you}
+                      strokeWidth={3}
+                      strokeLinecap="round"
+                      opacity={0.9}
+                    />
+                    <Circle
+                      cx={turret.x + pull.dx}
+                      cy={turret.y + pull.dy}
+                      r={9}
+                      fill={T.you}
+                      stroke="#FFFFFF"
+                      strokeWidth={2}
+                    />
+                  </G>
+                ) : null}
 
                 {guide.length > 1 ? (
                   <Polyline
@@ -539,22 +561,23 @@ export default function TanksScreen() {
 
             {yourTurn && !flying ? (
               <View style={styles.controls}>
-                <Slider
-                  label="Angle"
-                  value={angle}
-                  min={5}
-                  max={85}
-                  unit="°"
-                  onChange={setAngle}
-                />
-                <Slider
-                  label="Power"
-                  value={power}
-                  min={10}
-                  max={100}
-                  unit=""
-                  onChange={setPower}
-                />
+                <Text style={styles.aimHint}>
+                  {pull
+                    ? "Let go to keep this aim"
+                    : "Press the field and pull back to aim"}
+                </Text>
+
+                <View style={styles.aimRow}>
+                  <View style={styles.aimStat}>
+                    <Text style={styles.aimLabel}>Angle</Text>
+                    <Text style={styles.aimValue}>{angle}°</Text>
+                  </View>
+
+                  <View style={styles.aimStat}>
+                    <Text style={styles.aimLabel}>Power</Text>
+                    <Text style={styles.aimValue}>{power}</Text>
+                  </View>
+                </View>
               </View>
             ) : null}
 
@@ -734,92 +757,42 @@ const styles = themedStyles(() => ({
   },
 
   controls: {
-    gap: 14,
+    gap: 10,
     padding: 16,
     borderRadius: 20,
     backgroundColor: T.surface,
   },
 
-  slider: {
-    gap: 8,
+  aimHint: {
+    fontSize: 14,
+    color: T.label2,
+    textAlign: "center",
   },
 
-  sliderTop: {
+  aimRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-  },
-
-  sliderLabel: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: T.label,
-  },
-
-  sliderValue: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: T.accent,
-    fontVariant: ["tabular-nums"],
-  },
-
-  sliderRow: {
-    flexDirection: "row",
-    alignItems: "center",
     gap: 12,
   },
 
-  nudge: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: T.fill3,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  nudgeText: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: T.label,
-    marginTop: -2,
-  },
-
-  track: {
+  aimStat: {
     flex: 1,
-    height: 30,
-    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 8,
+    borderRadius: 14,
+    backgroundColor: T.fill4,
   },
 
-  rail: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: T.fill3,
+  aimLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: T.label2,
   },
 
-  trackFill: {
-    position: "absolute",
-    left: 0,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: T.accent,
-  },
-
-  thumb: {
-    position: "absolute",
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 2,
-    borderColor: T.accent,
-    shadowColor: "#000000",
-    shadowOpacity: 0.18,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+  aimValue: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: T.you,
+    fontVariant: ["tabular-nums"],
   },
 
   footer: {

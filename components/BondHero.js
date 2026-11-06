@@ -97,30 +97,46 @@ export default function BondHero({
   partnerMoodLabel,
   partnerOnline,
   onHug,
-  onPickMood,
+  moods,
+  moodKey,
+  onChooseMood,
   onSendTap,
+  onWheel,
 }) {
   useTheme();
 
   const [sent, setSent] = useState(false);
   const [animate, setAnimate] = useState(true);
 
-  /* The wheel of little somethings, and where their circle is. */
-  const [wheelOpen, setWheelOpen] = useState(false);
+  /* Which wheel is out ("you", "them" or none), and where
+   * each circle is on the card. */
+  const [wheel, setWheel] = useState(null);
   const [rowAt, setRowAt] = useState(null);
+  const [youAt, setYouAt] = useState(null);
   const [themAt, setThemAt] = useState(null);
 
-  const closeWheel = useCallback(() => setWheelOpen(false), []);
+  const closeWheel = useCallback(() => setWheel(null), []);
 
-  const toggleWheel = () => {
+  const toggleWheel = (which) => {
     Haptics.selectionAsync().catch(() => {});
-    setWheelOpen((current) => !current);
+    setWheel((current) => (current === which ? null : which));
   };
 
-  const themCentre =
-    rowAt && themAt
-      ? { x: rowAt.x + themAt.x + 48, y: rowAt.y + themAt.y + 45 }
-      : null;
+  /* Home stops scrolling while a wheel is out. */
+  const wheelRef = useRef(onWheel);
+  wheelRef.current = onWheel;
+
+  useEffect(() => {
+    wheelRef.current?.(Boolean(wheel));
+  }, [wheel]);
+
+  const centreOf = (at) =>
+    rowAt && at ? { x: rowAt.x + at.x + 48, y: rowAt.y + at.y + 45 } : null;
+
+  const moodItems = useMemo(
+    () => (moods || []).map((item) => ({ ...item })),
+    [moods],
+  );
 
   const hold = useRef(new Animated.Value(0)).current;
   const hug = useRef(new Animated.Value(0)).current;
@@ -408,8 +424,11 @@ export default function BondHero({
       </Text>
 
       <View style={styles.row} onLayout={(e) => setRowAt(e.nativeEvent.layout)}>
-        {/* YOU */}
-        <View style={styles.person}>
+        {/* YOU -- tap your circle for the wheel of moods. */}
+        <View
+          style={styles.person}
+          onLayout={(e) => setYouAt(e.nativeEvent.layout)}
+        >
           <View style={styles.orb}>
             <Animated.View
               style={[
@@ -446,27 +465,30 @@ export default function BondHero({
               </Text>
             </View>
 
-            {/* Tap it to pick how you are feeling. */}
-            <Pressable
-              onPress={onPickMood}
-              hitSlop={10}
-              style={styles.moodBadge}
-              accessibilityRole="button"
-              accessibilityLabel={mood ? "Change your mood" : "Add a mood"}
-            >
+            {/* The whole circle opens the mood wheel. */}
+            {onChooseMood ? (
+              <Pressable
+                onPress={() => toggleWheel("you")}
+                style={styles.youTarget}
+                accessibilityRole="button"
+                accessibilityLabel={mood ? "Change your mood" : "Add a mood"}
+              />
+            ) : null}
+
+            <View style={styles.moodBadge} pointerEvents="none">
               {mood ? (
                 <Text style={styles.moodEmoji}>{mood}</Text>
               ) : (
                 <Ionicons name="add" size={15} color={T.youText} />
               )}
-            </Pressable>
+            </View>
           </View>
 
           <Text style={styles.personName}>You</Text>
 
           {/* How you are, in a word -- tap to change it. */}
           <Pressable
-            onPress={onPickMood}
+            onPress={() => toggleWheel("you")}
             hitSlop={6}
             accessibilityRole="button"
             style={[styles.state, styles.stateTurn]}
@@ -477,7 +499,11 @@ export default function BondHero({
               adjustsFontSizeToFit
               minimumFontScale={0.8}
             >
-              {moodLabel ? capital(moodLabel) : "Your mood"}
+              {wheel === "you"
+                ? "Spin for more"
+                : moodLabel
+                  ? capital(moodLabel)
+                  : "Your mood"}
             </Text>
           </Pressable>
         </View>
@@ -576,7 +602,7 @@ export default function BondHero({
         >
           {onSendTap ? (
             <Pressable
-              onPress={toggleWheel}
+              onPress={() => toggleWheel("them")}
               style={styles.burstTarget}
               accessibilityRole="button"
               accessibilityLabel={`Send ${partnerName} a little something`}
@@ -634,7 +660,7 @@ export default function BondHero({
                 adjustsFontSizeToFit
                 minimumFontScale={0.8}
               >
-                {wheelOpen
+                {wheel === "them"
                   ? "Spin for more"
                   : partnerMoodLabel
                     ? capital(partnerMoodLabel)
@@ -673,12 +699,30 @@ export default function BondHero({
         </View>
       ) : null}
 
+      {onChooseMood && moodItems.length ? (
+        <Wheel
+          items={moodItems}
+          mirror
+          open={wheel === "you"}
+          centre={centreOf(youAt)}
+          chosen={moodKey}
+          describe={(item) =>
+            moodKey === item.key
+              ? `Feeling ${item.label}: tap to clear it`
+              : `Feeling ${item.label}`
+          }
+          onPick={(item) => onChooseMood(item.key)}
+          onClose={closeWheel}
+        />
+      ) : null}
+
       {onSendTap ? (
-        <TapWheel
-          open={wheelOpen}
-          centre={themCentre}
-          name={partnerName}
-          onSend={onSendTap}
+        <Wheel
+          items={TAP_ITEMS}
+          open={wheel === "them"}
+          centre={centreOf(themAt)}
+          describe={(item) => `Send ${partnerName}: ${item.label}`}
+          onPick={(item) => onSendTap(item.kind)}
           onClose={closeWheel}
         />
       ) : null}
@@ -687,35 +731,39 @@ export default function BondHero({
 }
 
 /*
- * The little somethings, on a wheel around their circle.
- * Tap the circle: the wheel springs out in an arc. Drag
- * along it to spin through everything there is to send
- * (lib/taps.js); it settles on the nearest, with a tick
- * you can feel. Tap one: it flies up off the circle and is
- * sent. Tap anywhere else on the wheel to fold it away.
+ * A wheel around one of the circles. Tap the circle: the
+ * wheel springs out in an arc. Drag along it to spin
+ * through everything on it; it settles on the nearest, with
+ * a tick you can feel. Tap one: it flies up off the circle.
+ * Tap anywhere else on the wheel to fold it away.
  *
- * Their circle sits near the right edge, so the arc runs
+ *   their circle   the little somethings (lib/taps.js)
+ *   your circle    how you are feeling
+ *
+ * Their circle sits near the right edge, so its arc runs
  * from their left, round the top, towards the middle of
- * the card. The wheel is drawn over the whole card rather
- * than inside the circle's own box, because Android does
- * not pass on touches outside a view's edges.
+ * the card; yours is the mirror of it. The wheel is drawn
+ * over the whole card rather than inside the circle's own
+ * box, because Android does not pass on touches outside a
+ * view's edges. While one is open, Home stops scrolling, so
+ * a spin is never taken for a pull to refresh.
  */
 const WHEEL_R = 82;
-const WHEEL_START = 190; /* degrees: just left of the circle */
+const WHEEL_START = 190; /* degrees: just left of their circle */
 const WHEEL_STEP = 33;
 const WHEEL_SHOWN = 4;
-const WHEEL_MAX = TAP_LIST.length - WHEEL_SHOWN;
 const WHEEL_BOX = (WHEEL_R + 30) * 2;
 /* Finger travel along the arc for one step of the wheel. */
 const WHEEL_PX = 62;
 
-const toXY = (slot) => {
+const toXY = (slot, mirror) => {
   const rad = ((WHEEL_START - slot * WHEEL_STEP) * Math.PI) / 180;
-  return { x: WHEEL_R * Math.cos(rad), y: -WHEEL_R * Math.sin(rad) };
+  const x = WHEEL_R * Math.cos(rad);
+  return { x: mirror ? -x : x, y: -WHEEL_R * Math.sin(rad) };
 };
 
 /* Where bubble `index` sits, for every turn of the wheel. */
-function wheelPath(index) {
+function wheelPath(index, mirror) {
   const input = [];
   const x = [];
   const y = [];
@@ -724,7 +772,7 @@ function wheelPath(index) {
 
   for (let turn = index - WHEEL_SHOWN - 2; turn <= index + 2; turn += 0.25) {
     const slot = index - turn;
-    const at = toXY(slot);
+    const at = toXY(slot, mirror);
     const out =
       slot < -0.5
         ? -0.5 - slot
@@ -742,20 +790,25 @@ function wheelPath(index) {
   return { input, x, y, fade, size };
 }
 
-const WHEEL_PATHS = TAP_LIST.map((_, index) => wheelPath(index));
-
 /* The faint track the bubbles ride on. */
-function arcPath() {
-  const from = toXY(-0.45);
-  const to = toXY(WHEEL_SHOWN - 0.55);
+function arcPath(mirror) {
+  const from = toXY(-0.45, mirror);
+  const to = toXY(WHEEL_SHOWN - 0.55, mirror);
   const c = WHEEL_BOX / 2;
 
-  return `M${c + from.x},${c + from.y} A${WHEEL_R},${WHEEL_R} 0 0 1 ${c + to.x},${c + to.y}`;
+  return `M${c + from.x},${c + from.y} A${WHEEL_R},${WHEEL_R} 0 0 ${mirror ? 0 : 1} ${c + to.x},${c + to.y}`;
 }
 
-const WHEEL_ARC = arcPath();
-
-function TapWheel({ open, centre, name, onSend, onClose }) {
+function Wheel({
+  items,
+  mirror = false,
+  open,
+  centre,
+  chosen,
+  describe,
+  onPick,
+  onClose,
+}) {
   useTheme();
 
   const [flying, setFlying] = useState(null);
@@ -768,6 +821,17 @@ function TapWheel({ open, centre, name, onSend, onClose }) {
   const turnStart = useRef(0);
   const lastTick = useRef(0);
   const moved = useRef(false);
+
+  const most = Math.max(0, items.length - WHEEL_SHOWN);
+  const paths = useMemo(
+    () => items.map((_, index) => wheelPath(index, mirror)),
+    [items, mirror],
+  );
+  const arc = useMemo(() => arcPath(mirror), [mirror]);
+
+  /* Along the arc, away from the start: up and towards the
+   * middle of the card, whichever side the circle is on. */
+  const along = (dx, dy) => (mirror ? -dx : dx) - dy;
 
   useEffect(() => {
     const id = turn.addListener(({ value }) => {
@@ -787,7 +851,7 @@ function TapWheel({ open, centre, name, onSend, onClose }) {
   }, [open, spread]);
 
   const settle = (target) => {
-    const to = Math.max(0, Math.min(WHEEL_MAX, Math.round(target)));
+    const to = Math.max(0, Math.min(most, Math.round(target)));
 
     Animated.spring(turn, {
       toValue: to,
@@ -805,6 +869,9 @@ function TapWheel({ open, centre, name, onSend, onClose }) {
         /* A drag that starts on a bubble spins the wheel instead. */
         onMoveShouldSetPanResponderCapture: (_, g) =>
           Math.abs(g.dx) > 6 || Math.abs(g.dy) > 6,
+        /* Once spinning, the page never takes the finger back. */
+        onPanResponderTerminationRequest: () => false,
+        onShouldBlockNativeResponder: () => true,
         onPanResponderGrant: () => {
           moved.current = false;
           turn.stopAnimation((value) => {
@@ -815,18 +882,16 @@ function TapWheel({ open, centre, name, onSend, onClose }) {
         onPanResponderMove: (_, g) => {
           if (Math.abs(g.dx) > 6 || Math.abs(g.dy) > 6) moved.current = true;
 
-          /* Along the arc, from their left round to the top,
-           * is up and to the right: dx goes up, dy goes down. */
-          let next = turnStart.current - (g.dx - g.dy) / WHEEL_PX;
+          let next = turnStart.current - along(g.dx, g.dy) / WHEEL_PX;
 
           if (next < 0) next *= 0.35;
-          if (next > WHEEL_MAX) next = WHEEL_MAX + (next - WHEEL_MAX) * 0.35;
+          if (next > most) next = most + (next - most) * 0.35;
 
           turn.setValue(next);
 
           const tick = Math.round(next);
 
-          if (tick !== lastTick.current && tick >= 0 && tick <= WHEEL_MAX) {
+          if (tick !== lastTick.current && tick >= 0 && tick <= most) {
             lastTick.current = tick;
             Haptics.selectionAsync().catch(() => {});
           }
@@ -837,17 +902,18 @@ function TapWheel({ open, centre, name, onSend, onClose }) {
             return;
           }
 
-          settle(turnNow.current - ((g.vx - g.vy) * 220) / WHEEL_PX);
+          settle(turnNow.current - (along(g.vx, g.vy) * 220) / WHEEL_PX);
         },
         onPanResponderTerminate: () => settle(turnNow.current),
       }),
-    [turn, onClose],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [turn, onClose, most, mirror],
   );
 
-  const send = (item) => {
+  const pick = (item) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
 
-    onSend(item.kind);
+    onPick(item);
     onClose();
     setFlying(item);
 
@@ -886,9 +952,9 @@ function TapWheel({ open, centre, name, onSend, onClose }) {
         >
           <Svg width={WHEEL_BOX} height={WHEEL_BOX}>
             <Path
-              d={WHEEL_ARC}
+              d={arc}
               fill="none"
-              stroke={T.accent}
+              stroke={mirror ? T.you : T.accent}
               strokeOpacity={0.22}
               strokeWidth={50}
               strokeLinecap="round"
@@ -896,9 +962,9 @@ function TapWheel({ open, centre, name, onSend, onClose }) {
           </Svg>
         </Animated.View>
 
-        {TAP_LIST.map((item, index) => {
-          const path = WHEEL_PATHS[index];
-          const along = (output) =>
+        {items.map((item, index) => {
+          const path = paths[index];
+          const follow = (output) =>
             turn.interpolate({
               inputRange: path.input,
               outputRange: output,
@@ -907,26 +973,28 @@ function TapWheel({ open, centre, name, onSend, onClose }) {
 
           return (
             <Animated.View
-              key={item.kind}
+              key={item.key}
               style={[
                 styles.wheelBubble,
                 {
-                  opacity: Animated.multiply(spread, along(path.fade)),
+                  opacity: Animated.multiply(spread, follow(path.fade)),
                   transform: [
-                    { translateX: Animated.multiply(spread, along(path.x)) },
-                    { translateY: Animated.multiply(spread, along(path.y)) },
-                    { scale: Animated.multiply(grow, along(path.size)) },
+                    { translateX: Animated.multiply(spread, follow(path.x)) },
+                    { translateY: Animated.multiply(spread, follow(path.y)) },
+                    { scale: Animated.multiply(grow, follow(path.size)) },
                   ],
                 },
               ]}
             >
               <Pressable
-                onPress={() => send(item)}
+                onPress={() => pick(item)}
                 hitSlop={4}
                 accessibilityRole="button"
-                accessibilityLabel={`Send ${name}: ${item.label}`}
+                accessibilityLabel={describe(item)}
+                accessibilityState={{ selected: chosen === item.key }}
                 style={({ pressed }) => [
                   styles.burstPress,
+                  chosen === item.key && styles.burstChosen,
                   pressed && styles.burstPressed,
                 ]}
               >
@@ -972,6 +1040,9 @@ function TapWheel({ open, centre, name, onSend, onClose }) {
     </>
   );
 }
+
+/* The little somethings, keyed for the wheel. */
+const TAP_ITEMS = TAP_LIST.map((tap) => ({ ...tap, key: tap.kind }));
 
 const styles = themedStyles(() => ({
   wrap: {
@@ -1053,6 +1124,11 @@ const styles = themedStyles(() => ({
   },
 
   /* The burst sits over their 90pt circle, centred on it. */
+  youTarget: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 45,
+  },
+
   burstTarget: {
     position: "absolute",
     top: 0,
@@ -1102,6 +1178,11 @@ const styles = themedStyles(() => ({
     top: WHEEL_BOX / 2 - 21,
     width: 42,
     height: 42,
+  },
+
+  burstChosen: {
+    borderWidth: 2.5,
+    borderColor: T.you,
   },
 
   burstPressed: {

@@ -1,11 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { RefreshControl, Text, View } from "react-native";
 import { useAuth } from "@clerk/expo";
 import { useFocusEffect, useRouter } from "expo-router";
 
@@ -28,7 +22,6 @@ import {
   Press,
   Screen,
   SectionHeader,
-  Sheet,
 } from "../../components/ui";
 import ActivityRow from "../../components/ActivityRow";
 import BondHero from "../../components/BondHero";
@@ -121,6 +114,13 @@ const MOOD_WORDS = {
   angry: "angry",
 };
 
+/* The moods, as the wheel on your circle shows them. */
+const MOOD_WHEEL = MOODS.map((item) => ({
+  key: item.key,
+  emoji: item.emoji,
+  label: MOOD_WORDS[item.key],
+}));
+
 const ACTIONS = [
   { icon: "mail", label: "Note", route: "/appreciations" },
   { icon: "calendar", label: "Date", route: "/dates" },
@@ -167,7 +167,8 @@ export default function HomeScreen() {
    * circle in the hero; yours goes in their feed. */
   const [mood, setMood] = useState(cached?.mood ?? null);
   const [partnerMood, setPartnerMood] = useState(cached?.partnerMood ?? null);
-  const [moodSheet, setMoodSheet] = useState(false);
+  /* A wheel is out on Home: the page holds still for the spin. */
+  const [wheelOut, setWheelOut] = useState(false);
 
   const loadHome = useCallback(async () => {
     if (!isLoaded || !isSignedIn || !userId) {
@@ -530,13 +531,6 @@ export default function HomeScreen() {
   const partnerAnswered = tonight.some((item) => item.partner_answered);
   const hoursLeft = Math.max(1, 24 - new Date().getHours());
 
-  const moodLine = mood
-    ? MOODS.find((item) => item.key === mood)?.line.replace(
-        "{name}",
-        partnerName,
-      )
-    : `Your pick shows on your avatar above. Only ${partnerName} sees it.`;
-
   const comingUp = [
     ...plans
       .filter((plan) => plan.status === "planned")
@@ -558,7 +552,10 @@ export default function HomeScreen() {
   ].slice(0, 3);
 
   return (
-    <Screen refreshControl={refresh}>
+    <Screen
+      refreshControl={wheelOut ? undefined : refresh}
+      scrollEnabled={!wheelOut}
+    >
       <NavBar
         left={<GlassButton icon="menu" label="Menu" onPress={openMenu} />}
         centre={<Text style={styles.dateline}>{dateLine()}</Text>}
@@ -584,7 +581,10 @@ export default function HomeScreen() {
         partnerMoodLabel={MOOD_WORDS[partnerMood?.key || partnerMood?.mood]}
         onHug={sendHug}
         onSendTap={features.enabled("taps") ? sendTap : undefined}
-        onPickMood={() => setMoodSheet(true)}
+        moods={MOOD_WHEEL}
+        moodKey={mood}
+        onChooseMood={(key) => chooseMood(mood === key ? null : key)}
+        onWheel={setWheelOut}
       />
 
       {/* A LETTER WAITING */}
@@ -678,33 +678,6 @@ export default function HomeScreen() {
         />
       </Card>
 
-      {/* MOOD */}
-
-      <Card>
-        <Text style={styles.moodTitle}>How are you feeling about us?</Text>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.moodScroll}
-          contentContainerStyle={styles.moodRow}
-        >
-          {MOODS.map((item) => (
-            <Press
-              key={item.key}
-              scaleTo={0.9}
-              onPress={() => chooseMood(mood === item.key ? null : item.key)}
-            >
-              <View style={[styles.mood, mood === item.key && styles.moodOn]}>
-                <Text style={styles.moodFace}>{item.emoji}</Text>
-              </View>
-            </Press>
-          ))}
-        </ScrollView>
-
-        <Text style={styles.moodLine}>{moodLine}</Text>
-      </Card>
-
       {/* ON THIS DAY, AND THIS WEEK'S CHALLENGE */}
 
       <OnThisDay />
@@ -752,47 +725,6 @@ export default function HomeScreen() {
           }}
         />
       )}
-
-      {/* HOW YOU'RE FEELING */}
-
-      <Sheet
-        visible={moodSheet}
-        title="How are you?"
-        onCancel={() => setMoodSheet(false)}
-        onSave={() => setMoodSheet(false)}
-        saveLabel="Done"
-        subtitle={`It shows on your avatar. Only ${partnerName} sees it.`}
-      >
-        <Group inset={16}>
-          {MOODS.map((item) => (
-            <Cell
-              key={item.key}
-              leading={<Text style={styles.sheetFace}>{item.emoji}</Text>}
-              title={item.line.replace("{name}", partnerName).split(".")[0]}
-              trailing={
-                mood === item.key ? (
-                  <Icon name="check" size={18} color={T.accent} />
-                ) : null
-              }
-              onPress={() => {
-                chooseMood(item.key);
-                setMoodSheet(false);
-              }}
-            />
-          ))}
-        </Group>
-
-        {mood ? (
-          <Button
-            title="Clear it"
-            kind="plain"
-            onPress={() => {
-              chooseMood(null);
-              setMoodSheet(false);
-            }}
-          />
-        ) : null}
-      </Sheet>
 
       {/* FROM THEM: what they did, newest first. Tap to open
           it, heart it to tell them. */}
@@ -892,49 +824,7 @@ const styles = themedStyles(() => ({
     marginTop: 12,
   },
 
-  moodTitle: {
-    fontSize: 17,
-    fontWeight: "600",
-    letterSpacing: -0.34,
-    color: T.label,
-  },
-
   /* Runs to the card's edges so the row scrolls under them. */
-  moodScroll: {
-    marginHorizontal: -16,
-    marginTop: 12,
-  },
-
-  moodRow: {
-    paddingHorizontal: 16,
-    gap: 10,
-  },
-
-  mood: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: T.fill4,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  moodOn: {
-    backgroundColor: T.accentTint,
-    borderWidth: 2,
-    borderColor: T.accent,
-  },
-
-  moodFace: {
-    fontSize: 25,
-  },
-
-  moodLine: {
-    fontSize: 13,
-    lineHeight: 18,
-    color: T.label2,
-    marginTop: 12,
-  },
 
   actions: {
     flexDirection: "row",
@@ -982,9 +872,5 @@ const styles = themedStyles(() => ({
   cal: {
     width: 40,
     alignItems: "center",
-  },
-
-  sheetFace: {
-    fontSize: 26,
   },
 }));

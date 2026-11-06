@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Animated,
+  Keyboard,
   KeyboardAvoidingView,
   PanResponder,
   Platform,
@@ -104,7 +104,29 @@ export default function AppreciationsScreen() {
   const [notes, setNotes] = useState(cached || []);
   const [loading, setLoading] = useState(!cached);
   const [refreshing, setRefreshing] = useState(false);
-  const [sending, setSending] = useState(false);
+
+  /*
+   * What the server has, and what you have sent that it has
+   * not confirmed yet (or that failed). A note shows the
+   * moment you send it, marked "Sending…", and the keyboard
+   * goes away at once; it is swapped for the real one when
+   * the server answers, or marked "Not sent" to try again.
+   */
+  const fromServer = useRef(cached || []);
+  const outbox = useRef(new Map());
+
+  const show = useCallback(() => {
+    setNotes([...fromServer.current, ...outbox.current.values()]);
+  }, []);
+
+  const keep = useCallback(
+    (list) => {
+      fromServer.current = list;
+      if (cacheKey) setCachedData(cacheKey, list);
+      show();
+    },
+    [cacheKey, show],
+  );
   const [draft, setDraft] = useState("");
   /* The note you are answering, quoted above yours. */
   const [replyTo, setReplyTo] = useState(null);
@@ -126,18 +148,14 @@ export default function AppreciationsScreen() {
         throw new Error(json?.error || "Unable to load appreciations.");
       }
 
-      const list = Array.isArray(json?.appreciations) ? json.appreciations : [];
-
-      setNotes(list);
-
-      if (cacheKey) setCachedData(cacheKey, list);
+      keep(Array.isArray(json?.appreciations) ? json.appreciations : []);
     } catch (err) {
       setError(err?.message || "Unable to load appreciations.");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [isLoaded, isSignedIn, userId, cacheKey]);
+  }, [isLoaded, isSignedIn, userId, keep]);
 
   useEffect(() => {
     load();
@@ -152,42 +170,59 @@ export default function AppreciationsScreen() {
     [load],
   );
 
-  const send = async () => {
-    const message = draft.trim();
-
-    if (!message || sending || !userId) return;
+  const deliver = async (note) => {
+    outbox.current.set(note.id, { ...note, pending: true, failed: false });
+    show();
 
     try {
-      setSending(true);
-
       const response = await apiFetch(`/users/${userId}/appreciations`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, reply_to: replyTo?.id || null }),
+        body: JSON.stringify({
+          message: note.message,
+          reply_to: note.reply?.id || null,
+        }),
       });
 
-      const json = await response.json();
+      const json = await response.json().catch(() => ({}));
 
       if (!response.ok) {
         throw new Error(json?.error || "Unable to send that.");
       }
 
-      setDraft("");
-      setReplyTo(null);
-
-      const list = Array.isArray(json?.appreciations) ? json.appreciations : [];
-
-      setNotes(list);
-
-      if (cacheKey) setCachedData(cacheKey, list);
-    } catch (err) {
-      Alert.alert(
-        "Something went wrong",
-        err?.message || "Unable to send that.",
-      );
-    } finally {
-      setSending(false);
+      outbox.current.delete(note.id);
+      keep(Array.isArray(json?.appreciations) ? json.appreciations : []);
+    } catch {
+      outbox.current.set(note.id, { ...note, pending: false, failed: true });
+      show();
     }
+  };
+
+  const send = () => {
+    const message = draft.trim();
+
+    if (!message || !userId) return;
+
+    /* Straight back to the thread; it sends behind you. */
+    Keyboard.dismiss();
+    setDraft("");
+    setReplyTo(null);
+
+    deliver({
+      id: `local-${Date.now()}`,
+      local: true,
+      mine: true,
+      message,
+      created_at: new Date().toISOString(),
+      reply: replyTo
+        ? {
+            id: replyTo.id,
+            message: replyTo.message,
+            mine: replyTo.mine,
+            voice: Boolean(replyTo.audio_id),
+          }
+        : null,
+    });
   };
 
   /* A voice note, already uploaded by the recorder. */
@@ -208,11 +243,7 @@ export default function AppreciationsScreen() {
 
       setReplyTo(null);
 
-      const list = Array.isArray(json?.appreciations) ? json.appreciations : [];
-
-      setNotes(list);
-
-      if (cacheKey) setCachedData(cacheKey, list);
+      keep(Array.isArray(json?.appreciations) ? json.appreciations : []);
     } catch (err) {
       Alert.alert(
         "Something went wrong",
@@ -238,9 +269,9 @@ export default function AppreciationsScreen() {
       refreshing={refreshing}
       error={error}
       draft={draft}
-      sending={sending}
       onDraft={setDraft}
       onSend={send}
+      onRetry={deliver}
       onSendVoice={sendVoice}
       userId={userId}
       replyTo={replyTo}
@@ -360,10 +391,11 @@ function Wallpaper({ look, photoId, userId }) {
 
 /* ---------- one bubble ---------- */
 
-function BubbleFace({ mine, colour, last, flash, children }) {
+function BubbleFace({ mine, colour, last, flash, faded, children }) {
   useTheme();
 
   const shape = [
+    faded && styles.bubbleFaded,
     styles.bubble,
     mine ? styles.bubbleMine : styles.bubbleTheirs,
     !last && (mine ? styles.bubbleMineJoined : styles.bubbleTheirsJoined),
@@ -490,9 +522,9 @@ function NotesThread({
   refreshing,
   error,
   draft,
-  sending,
   onDraft,
   onSend,
+  onRetry,
   onSendVoice,
   userId,
   replyTo,
@@ -696,7 +728,12 @@ function NotesThread({
                   }}
                   style={[styles.noteRow, row.first && styles.noteRowFirst]}
                 >
-                  <SwipeToReply onReply={() => reply(note)}>
+                  <SwipeToReply
+                    onReply={() => {
+                      /* Not on the server yet, so nothing to answer. */
+                      if (!note.local) reply(note);
+                    }}
+                  >
                     <View
                       style={[
                         styles.bubbleRow,
@@ -706,8 +743,9 @@ function NotesThread({
                       <BubbleFace
                         mine={note.mine}
                         colour={colour}
-                        last={row.last}
+                        last={row.last || note.local}
                         flash={flash === note.id}
+                        faded={note.pending || note.failed}
                       >
                         {/* The note this answers: tap it to see it. */}
                         {note.reply ? (
@@ -757,7 +795,29 @@ function NotesThread({
                         )}
                       </BubbleFace>
 
-                      {row.last ? (
+                      {note.failed ? (
+                        <Pressable
+                          onPress={() => onRetry(note)}
+                          hitSlop={8}
+                          accessibilityRole="button"
+                          accessibilityLabel="Not sent. Try again"
+                        >
+                          <Text style={[styles.stamp, styles.stampFailed]}>
+                            Not sent · Tap to try again
+                          </Text>
+                        </Pressable>
+                      ) : note.pending ? (
+                        <Text
+                          style={[
+                            styles.stamp,
+                            styles.stampMine,
+                            onWall && styles.stampOnWall,
+                            overDark && styles.stampOnDark,
+                          ]}
+                        >
+                          Sending…
+                        </Text>
+                      ) : row.last ? (
                         <Text
                           style={[
                             styles.stamp,
@@ -829,26 +889,20 @@ function NotesThread({
           {recording ? null : (
             <Pressable
               onPress={onSend}
-              disabled={!draft.trim() || sending}
+              disabled={!draft.trim()}
               accessibilityRole="button"
               accessibilityLabel="Send"
               hitSlop={8}
             >
               <LinearGradient
                 colors={
-                  !draft.trim() || sending
-                    ? [T.label3, T.label3]
-                    : mineColour.colors
+                  !draft.trim() ? [T.label3, T.label3] : mineColour.colors
                 }
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.send}
               >
-                {sending ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Icon name="arrowUp" size={16} color="#FFFFFF" />
-                )}
+                <Icon name="arrowUp" size={16} color="#FFFFFF" />
               </LinearGradient>
             </Pressable>
           )}
@@ -1355,6 +1409,16 @@ const styles = themedStyles(() => ({
     color: T.label3,
     marginTop: 3,
     marginBottom: 2,
+  },
+
+  stampFailed: {
+    color: T.red,
+    fontWeight: "600",
+    marginRight: 6,
+  },
+
+  bubbleFaded: {
+    opacity: 0.6,
   },
 
   stampMine: {

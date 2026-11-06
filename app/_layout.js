@@ -460,6 +460,11 @@ function AuthGuard() {
         name="repair"
         options={{ presentation: "modal", gestureEnabled: true }}
       />
+      {/* Swiping is part of these screens (a bubble to reply, a
+          tank to aim), so iOS's swipe-back would steal it. They
+          go back with their Back button. */}
+      <Stack.Screen name="appreciations" options={{ gestureEnabled: false }} />
+      <Stack.Screen name="tanks" options={{ gestureEnabled: false }} />
     </Stack>
   );
 }
