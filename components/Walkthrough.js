@@ -39,7 +39,7 @@ const PAGES = [
     emoji: "🫶",
     sky: ["#3A1F2E", "#7A2E4C", "#D9577A"],
     title: "Your two circles",
-    text: 'Home starts with the two of you. Hold the heart between your circles to send a hug, and they can accept it or not. Tap their circle for a kiss, a "miss you" and more.',
+    text: 'Home starts with the two of you. Hold the heart between your circles to send a hug, and they can accept it or not. Tap their circle and spin the wheel for a kiss, a rose, "miss you" and more.',
   },
   {
     emoji: "🌙",
@@ -51,7 +51,7 @@ const PAGES = [
     emoji: "😊",
     sky: ["#2A2016", "#6B4A1F", "#C9973F"],
     title: "How you're feeling",
-    text: "Tap the little badge on your circle to share your mood. They see it on their phone, so they know when to go gently.",
+    text: "Tap your own circle and spin the wheel to share your mood. They see it on their phone, so they know when to go gently.",
   },
   {
     emoji: "📸",
@@ -63,13 +63,13 @@ const PAGES = [
     emoji: "📍",
     sky: ["#13253A", "#1F4E6B", "#3E8E9C"],
     title: "Dates, near you",
-    text: "Dates finds places around you on a map. Pick one, choose a time and send it. It's saved as soon as they say yes.",
+    text: "Dates finds places around you on a map. Pick one, choose a time and send it. Once they say yes, it's kept under Our dates.",
   },
   {
     emoji: "💌",
     sky: ["#3A1F2E", "#6E2E52", "#B5507A"],
     title: "Notes and letters",
-    text: "Leave notes and voice notes, and reply to any one of them. Letters stay sealed until the day you choose.",
+    text: "Leave notes and voice notes, and swipe one to reply to it. Make the thread yours with your own colours and wallpaper. Letters stay sealed until the day you choose.",
   },
   {
     emoji: "🎮",

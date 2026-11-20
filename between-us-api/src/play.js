@@ -131,6 +131,19 @@ export const THIS_OR_THAT = [
 	['Memories in photos', 'Memories in words'],
 	['Same side of the bed', 'Switch it up'],
 	['Hot day', 'Cool evening'],
+	['Hugs', 'Kisses'],
+	['Night club', 'Bar'],
+	['Morning shift', 'Night Shift'],
+	['Android', 'Apple'],
+	['Electric cars', 'Gasoline cars'],
+	['Instagram', 'TikTok'],
+	['PDA', 'Private affection'],
+	['Spooning', 'Face-to-face cuddles'],
+	['Forehead kisses', 'Neck kisses'],
+	['Comedy', 'Horror'],
+	['Truth', 'Dare'],
+	['Shower together', 'Bath separately'],
+	['Slow dancing', 'Singing together'],
 ];
 
 /*

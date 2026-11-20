@@ -415,8 +415,13 @@ export default function HomeScreen() {
       .catch(() => setMood(before));
   };
 
+  /* Always the same control, only switched off while a wheel
+   * is out: taking it away would rebuild the whole page on
+   * Android (it wraps the scroll view there) and fold the
+   * wheel straight back up. */
   const refresh = (
     <RefreshControl
+      enabled={!wheelOut}
       refreshing={refreshing}
       onRefresh={() => {
         setRefreshing(true);
@@ -552,10 +557,7 @@ export default function HomeScreen() {
   ].slice(0, 3);
 
   return (
-    <Screen
-      refreshControl={wheelOut ? undefined : refresh}
-      scrollEnabled={!wheelOut}
-    >
+    <Screen refreshControl={refresh} scrollEnabled={!wheelOut}>
       <NavBar
         left={<GlassButton icon="menu" label="Menu" onPress={openMenu} />}
         centre={<Text style={styles.dateline}>{dateLine()}</Text>}

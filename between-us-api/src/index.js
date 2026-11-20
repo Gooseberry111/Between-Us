@@ -1181,6 +1181,8 @@ async function ensureSchema(sql) {
 	/* Long distance: where each of you is, and when you next meet. */
 	step(sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS timezone TEXT`);
 	step(sql`ALTER TABLE connections ADD COLUMN IF NOT EXISTS next_meet DATE`);
+	/* When a link last changed: unlinking and linking again set it. */
+	step(sql`ALTER TABLE connections ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ`);
 
 	/* The optional features each person has switched on. */
 	step(sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS features JSONB`);
@@ -1240,6 +1242,34 @@ async function ensureSchema(sql) {
 
 	try {
 		await sql.transaction(steps);
+
+		/*
+		 * The connections table is older than this file. If it
+		 * came with a rule on status that leaves out 'ended'
+		 * (which unlinking writes), that rule is lifted; the app
+		 * itself only ever writes pending, accepted, rejected
+		 * and ended. On its own, so it can never hold up the rest.
+		 */
+		try {
+			await sql`
+				DO $$
+				DECLARE rule record;
+				BEGIN
+					FOR rule IN
+						SELECT conname FROM pg_constraint
+						WHERE conrelid = 'connections'::regclass
+							AND contype = 'c'
+							AND pg_get_constraintdef(oid) ILIKE '%status%'
+							AND pg_get_constraintdef(oid) NOT ILIKE '%ended%'
+					LOOP
+						EXECUTE format('ALTER TABLE connections DROP CONSTRAINT %I', rule.conname);
+					END LOOP;
+				END $$
+			`;
+		} catch (err) {
+			console.error('SCHEMA (connection status rule) FAILED:', err?.message);
+		}
+
 		schemaReady = true;
 	} catch (err) {
 		/* Tried again in a minute; the app carries on meanwhile. */
@@ -3703,6 +3733,8 @@ VALUES (
 			const unlinkMatch = url.pathname.match(/^\/users\/([^/]+)\/connection$/);
 
 			if (unlinkMatch && request.method === 'DELETE') {
+				await ensureSchema(sql);
+
 				const clerkId = unlinkMatch[1];
 
 				const userResult = await sql`
@@ -3713,64 +3745,26 @@ VALUES (
         `;
 
 				if (userResult.length === 0) {
-					return Response.json(
-						{
-							error: 'User not found',
-						},
-						{ status: 404 },
-					);
+					return Response.json({ error: 'User not found' }, { status: 404 });
 				}
 
 				const userId = userResult[0].id;
 
 				const connectionResult = await sql`
-          SELECT
-            id,
-            user_one,
-            user_two
+          SELECT id, user_one, user_two
           FROM connections
-          WHERE
-            (user_one = ${userId} OR user_two = ${userId})
+          WHERE (user_one = ${userId} OR user_two = ${userId})
             AND status = 'accepted'
           LIMIT 1
         `;
 
+				/* Already apart (say, the other one unlinked first): done. */
 				if (connectionResult.length === 0) {
-					return Response.json(
-						{
-							error: 'No active connection found',
-						},
-						{ status: 404 },
-					);
+					return Response.json({ message: 'Not linked to anyone' });
 				}
 
 				const connection = connectionResult[0];
-
 				const partnerId = connection.user_one === userId ? connection.user_two : connection.user_one;
-
-				const userProfile = await sql`
-          SELECT first_name
-          FROM profiles
-          WHERE user_id = ${userId}
-          LIMIT 1
-        `;
-
-				const userName = userProfile[0]?.first_name || 'Your partner';
-
-				await sql`
-          INSERT INTO notifications (
-            user_id,
-            type,
-            title,
-            message
-          )
-          VALUES (
-            ${partnerId},
-            'connection_unlinked',
-            'Connection ended',
-            ${`${userName} has ended your connection on Between Us.`}
-          )
-        `;
 
 				/*
 				 * Nothing is deleted. The link is marked ended, which
@@ -3780,17 +3774,41 @@ VALUES (
 				 * still attached. A different person means a
 				 * different row, so that starts empty.
 				 */
-				await sql`
-          UPDATE connections
-          SET status = 'ended', updated_at = NOW()
-          WHERE id = ${connection.id}
+				try {
+					await sql`
+            UPDATE connections
+            SET status = 'ended', updated_at = NOW()
+            WHERE id = ${connection.id}
+          `;
+				} catch (err) {
+					console.error('UNLINK FAILED:', connection.id, err?.message);
+
+					return Response.json({ error: 'Unlinking did not go through. Please try again in a moment.' }, { status: 500 });
+				}
+
+				/* Only once it has really ended is the other one told. */
+				const userProfile = await sql`
+          SELECT first_name, nickname FROM profiles WHERE user_id = ${userId} LIMIT 1
         `;
+				const userName = userProfile[0]?.first_name || 'Your partner';
+
+				try {
+					await sql`
+            INSERT INTO notifications (user_id, type, title, message)
+            VALUES (
+              ${partnerId},
+              'connection_unlinked',
+              'Connection ended',
+              ${`${userName} has ended your connection on Between Us.`}
+            )
+          `;
+				} catch (err) {
+					console.error('UNLINK NOTICE FAILED:', err?.message);
+				}
 
 				console.log('CONNECTION ENDED, HISTORY KEPT:', connection.id);
 
-				return Response.json({
-					message: 'Connection ended successfully',
-				});
+				return Response.json({ message: 'Connection ended successfully' });
 			}
 			/*
 			 * ==========================================
