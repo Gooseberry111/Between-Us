@@ -438,11 +438,16 @@ export default function ZombiesScreen() {
                 You each face the same horde, whenever you like. Highest score
                 wins.
               </Text>
+              {/* Full width of the card: in a centred column a
+                  stretching native button has no width to stop at. */}
               <Button
                 title={`Challenge ${partnerName}`}
                 onPress={challenge}
                 busy={busy}
+                style={styles.introButton}
               />
+
+              <Notice>{error}</Notice>
             </View>
           ) : (
             <>
@@ -696,6 +701,11 @@ const styles = themedStyles(() => ({
     alignItems: "center",
     gap: 14,
     paddingTop: 40,
+  },
+
+  introButton: {
+    alignSelf: "stretch",
+    marginHorizontal: 0,
   },
 
   introEmoji: {

@@ -360,11 +360,16 @@ export default function TanksScreen() {
               direct hit does 40 damage; close calls do less. First tank to 0
               loses.
             </Text>
+            {/* Full width of the card: in a centred column a
+                stretching native button has no width to stop at. */}
             <Button
               title={`Challenge ${partnerName}`}
               onPress={challenge}
               busy={busy}
+              style={styles.introButton}
             />
+
+            <Notice>{error}</Notice>
           </View>
         ) : (
           <>
@@ -667,6 +672,11 @@ const styles = themedStyles(() => ({
     alignItems: "center",
     gap: 12,
     paddingTop: 30,
+  },
+
+  introButton: {
+    alignSelf: "stretch",
+    marginHorizontal: 0,
   },
 
   introEmoji: {
