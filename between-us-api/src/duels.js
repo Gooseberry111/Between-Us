@@ -32,36 +32,49 @@ export const ZOMBIES = {
 
 /*
  * The wave: when each zombie appears (ms), where across the
- * arena (0-1), how fast and what kind. Slow at first, a
- * swarm by the end, a brute every twelve seconds or so.
+ * arena (0-1), how fast and what kind. It gets properly hard:
+ * as the run goes on they come closer together (about 1 s
+ * apart at first, a quarter of a second by the end), walk
+ * faster (up to about 2.4 times their starting pace), more
+ * of them are runners, and in the second half they start
+ * arriving in pairs. A brute every ten seconds or so.
  */
 function waveFor(seed) {
 	const rand = random(seed);
 	const wave = [];
-	let t = 1200;
-	let nextBrute = 11000;
+	let t = 900;
+	let nextBrute = 9000;
 
-	while (t < RUSH_MS - 2500) {
-		const progress = t / RUSH_MS;
-		let kind = rand() < 0.15 + progress * 0.25 ? 'runner' : 'walker';
-
-		if (t >= nextBrute) {
-			kind = 'brute';
-			nextBrute += 11000 + Math.round(rand() * 3000);
-		}
-
+	const add = (time, kind, progress) => {
 		const [slow, fast] = ZOMBIES[kind].speed;
+		const pace = 1 + progress * 1.4;
 
 		wave.push({
 			id: wave.length,
-			t: Math.round(t),
+			t: Math.round(time),
 			x: Math.round((0.08 + rand() * 0.84) * 1000) / 1000,
-			speed: Math.round((slow + rand() * (fast - slow)) * 1000) / 1000,
+			speed: Math.round((slow + rand() * (fast - slow)) * pace * 1000) / 1000,
 			kind,
 		});
+	};
 
-		/* From about 1.2 s apart down to about 0.45 s. */
-		t += 1200 - progress * 750 + (rand() - 0.5) * 300;
+	while (t < RUSH_MS - 1500) {
+		const progress = t / RUSH_MS;
+		let kind = rand() < 0.2 + progress * 0.4 ? 'runner' : 'walker';
+
+		if (t >= nextBrute) {
+			kind = 'brute';
+			nextBrute += 9000 + Math.round(rand() * 2500);
+		}
+
+		add(t, kind, progress);
+
+		/* The second half: sometimes two at once. */
+		if (progress > 0.5 && kind !== 'brute' && rand() < (progress - 0.5) * 0.9) {
+			add(t + 120, rand() < 0.5 ? 'runner' : 'walker', progress);
+		}
+
+		t += Math.max(250, 1000 - progress * 800 + (rand() - 0.5) * 250);
 	}
 
 	return wave;
