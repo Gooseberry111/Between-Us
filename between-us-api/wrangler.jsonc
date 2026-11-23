@@ -28,6 +28,11 @@
 			"id": "e0a10338101c40b490d78eae28efff26"
 		}
 	],
+	/* Workers AI writes the games' questions (src/generate.js). Free
+	 * within the daily allowance; past it calls fail, nothing is billed. */
+	"ai": {
+		"binding": "AI",
+	},
 	"vars": {
 		"CLERK_ISSUER": "https://working-ladybug-79.clerk.accounts.dev",
 	},

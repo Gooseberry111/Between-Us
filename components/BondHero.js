@@ -429,8 +429,18 @@ export default function BondHero({
           style={styles.person}
           onLayout={(e) => setYouAt(e.nativeEvent.layout)}
         >
-          <View style={styles.orb}>
+          {/* The whole circle is the button: on Android the raised
+              initial would otherwise sit above a tap target laid
+              over it and swallow the tap. */}
+          <Pressable
+            style={styles.orb}
+            onPress={() => toggleWheel("you")}
+            disabled={!onChooseMood}
+            accessibilityRole="button"
+            accessibilityLabel={mood ? "Change your mood" : "Add a mood"}
+          >
             <Animated.View
+              pointerEvents="none"
               style={[
                 StyleSheet.absoluteFill,
                 {
@@ -459,21 +469,11 @@ export default function BondHero({
               </Svg>
             </Animated.View>
 
-            <View style={[styles.av, styles.avYou]}>
+            <View style={[styles.av, styles.avYou]} pointerEvents="none">
               <Text style={[styles.avText, { color: T.youText }]}>
                 {(youName || "?").charAt(0).toUpperCase()}
               </Text>
             </View>
-
-            {/* The whole circle opens the mood wheel. */}
-            {onChooseMood ? (
-              <Pressable
-                onPress={() => toggleWheel("you")}
-                style={styles.youTarget}
-                accessibilityRole="button"
-                accessibilityLabel={mood ? "Change your mood" : "Add a mood"}
-              />
-            ) : null}
 
             <View style={styles.moodBadge} pointerEvents="none">
               {mood ? (
@@ -482,7 +482,7 @@ export default function BondHero({
                 <Ionicons name="add" size={15} color={T.youText} />
               )}
             </View>
-          </View>
+          </Pressable>
 
           <Text style={styles.personName}>You</Text>
 
@@ -1124,10 +1124,6 @@ const styles = themedStyles(() => ({
   },
 
   /* The burst sits over their 90pt circle, centred on it. */
-  youTarget: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 45,
-  },
 
   burstTarget: {
     position: "absolute",

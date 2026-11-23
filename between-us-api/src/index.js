@@ -2,6 +2,7 @@ import { DEEP as DEEP_QUESTIONS, LIGHT as LIGHT_QUESTIONS, US as US_QUESTIONS } 
 import { neon } from '@neondatabase/serverless';
 import { LOVE_CHALLENGES, MORE_LIKELY, THIS_OR_THAT } from './play.js';
 import { ABOUT_ME } from './about.js';
+import { GENERATED_KINDS, bankOf, topUp } from './generate.js';
 import { DUEL_KINDS, newPaintball, newTanks, paintballMove, paintballView, tanksMove, tanksView } from './duels.js';
 import { PLACE_KINDS, areaName, geocode, nearbyPlaces, placePhotos } from './places.js';
 
@@ -764,14 +765,54 @@ const ROUND_KINDS = {
 	this_or_that: {
 		name: 'This or That',
 		key: (item) => `${item.a}|${item.b}`,
-		items: (used) => pickFresh(THIS_OR_THAT, used, ([a, b]) => `${a}|${b}`).map(([a, b]) => ({ a, b })),
+		fixed: () => THIS_OR_THAT.map(([a, b]) => ({ a, b })),
+		shape: (item) => ({ a: item.a, b: item.b }),
 	},
 	likely: {
 		name: "Who's More Likely To",
 		key: (item) => item.text,
-		items: (used) => pickFresh(MORE_LIKELY, used, (text) => text).map((text) => ({ text })),
+		fixed: () => MORE_LIKELY.map((text) => ({ text })),
+		shape: (item) => ({ text: item.text }),
 	},
 };
+
+/*
+ * Ten prompts for a new round. Written ones this couple has
+ * not seen come first; when fewer than ten are left the next
+ * batch is written while you wait (up to 15 s), and when the
+ * bank runs lowish one is written in the background. The
+ * hand-written list fills any gap, so a round always starts.
+ */
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function roundItems(sql, env, ctx, kind, used) {
+	const spec = ROUND_KINDS[kind];
+	const fixed = spec.fixed();
+	const unseen = (list) => list.filter((item) => !used.has(spec.key(item)));
+
+	let bank = await bankOf(sql, kind);
+	let fresh = unseen(bank);
+
+	if (fresh.length < 30) {
+		const job = topUp(env, sql, kind, [...bank, ...fixed]);
+		ctx?.waitUntil?.(job);
+
+		if (fresh.length < 10) {
+			await Promise.race([job, sleep(15000)]);
+			bank = await bankOf(sql, kind);
+			fresh = unseen(bank);
+		}
+	}
+
+	const picked = pickTen(fresh).map(spec.shape);
+
+	if (picked.length < 10) {
+		const taken = new Set(picked.map(spec.key));
+		picked.push(...pickFresh(fixed, used, spec.key).filter((item) => !taken.has(spec.key(item))).slice(0, 10 - picked.length));
+	}
+
+	return picked;
+}
 
 /* A round as one player sees it. Their answers are "mine". */
 function roundFor(round, viewerId) {
@@ -1187,6 +1228,18 @@ async function ensureSchema(sql) {
 	/* The optional features each person has switched on. */
 	step(sql`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS features JSONB`);
 
+	/* Questions the games write for themselves (src/generate.js). */
+	step(sql`
+		CREATE TABLE IF NOT EXISTS question_bank (
+			id TEXT PRIMARY KEY,
+			kind TEXT NOT NULL,
+			norm TEXT NOT NULL,
+			payload JSONB NOT NULL,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+		)
+	`);
+	step(sql`CREATE UNIQUE INDEX IF NOT EXISTS question_bank_norm_idx ON question_bank (kind, norm)`);
+
 	/* The newer tables and columns. */
 	step(sql`
 		CREATE TABLE IF NOT EXISTS about_me (
@@ -1539,6 +1592,35 @@ export default {
 		const today = new Date();
 		const todayIso = today.toISOString().slice(0, 10);
 		const weekKey = isoWeekKey(today);
+
+		/*
+		 * Stock the question bank. While a game has fewer than
+		 * 150 written questions, a batch an hour; after that one
+		 * every six hours, up to 1,500. Well inside the free AI
+		 * allowance, so the games can still write on demand.
+		 */
+		ctx.waitUntil(
+			(async () => {
+				try {
+					await ensureSchema(sql);
+
+					const counts = new Map(
+						(await sql`SELECT kind, COUNT(*)::int AS n FROM question_bank GROUP BY kind`).map((row) => [row.kind, row.n]),
+					);
+
+					for (const kind of GENERATED_KINDS) {
+						const have = counts.get(kind) || 0;
+
+						if (have >= 1500 || (have >= 150 && today.getUTCHours() % 6 !== 0)) continue;
+
+						const fixed = kind === 'about' ? ABOUT_ME : ROUND_KINDS[kind].fixed();
+						await topUp(env, sql, kind, [...(await bankOf(sql, kind)), ...fixed]);
+					}
+				} catch (err) {
+					console.error('QUESTION BANK TOP-UP FAILED:', err?.message);
+				}
+			})(),
+		);
 
 		try {
 			/*
@@ -2133,7 +2215,7 @@ export default {
 		}
 	},
 
-	async fetch(request, env) {
+	async fetch(request, env, ctx) {
 		try {
 			const sql = neon(env.DATABASE_URL);
 			const url = new URL(request.url);
@@ -5295,10 +5377,15 @@ VALUES (
 				const { me, partner } = couple;
 				const partnerName = partner.first_name?.trim() || 'your partner';
 
+				/* Hand-written and generated "about you" questions, by id. */
+				const written = await bankOf(sql, 'about');
+				const aboutAll = [...written, ...ABOUT_ME];
+				const aboutById = new Map(aboutAll.map((item) => [item.id, item]));
+
 				if (triviaAboutMatch) {
 					const body = await request.json().catch(() => ({}));
 					const id = String(body?.question_id || '').replace(/^self:/, '');
-					const question = ABOUT_ME.find((item) => item.id === id);
+					const question = aboutById.get(id);
 					const answer = String(body?.answer || '');
 
 					if (!question || !question.options.includes(answer)) {
@@ -5357,7 +5444,7 @@ VALUES (
 				const theirs = await sql`SELECT question_id, answer FROM about_me WHERE user_id = ${partner.id}`;
 
 				for (const row of theirs) {
-					const item = ABOUT_ME.find((q) => q.id === row.question_id);
+					const item = aboutById.get(row.question_id);
 					if (!item) continue;
 					pool.push({ id: `about:${item.id}`, question: item.them.replace('{name}', partnerName), options: shuffleList(item.options) });
 				}
@@ -5376,7 +5463,12 @@ VALUES (
 
 				/* A few about you first, so their quiz keeps growing too. */
 				const answeredByMe = new Set((await sql`SELECT question_id FROM about_me WHERE user_id = ${me.id}`).map((r) => r.question_id));
-				const aboutYou = shuffleList(ABOUT_ME.filter((item) => !answeredByMe.has(item.id)))
+				const newWritten = written.filter((item) => !answeredByMe.has(item.id));
+
+				/* Running low on new ones for you: the next batch is written behind this. */
+				if (newWritten.length < 12) ctx?.waitUntil?.(topUp(env, sql, 'about', aboutAll));
+
+				const aboutYou = [...shuffleList(newWritten), ...shuffleList(ABOUT_ME.filter((item) => !answeredByMe.has(item.id)))]
 					.slice(0, 3)
 					.map((item) => ({ id: `self:${item.id}`, question: item.self, options: item.options, self: true }));
 
@@ -5386,7 +5478,7 @@ VALUES (
 					partner: { first_name: partnerName },
 					total_questions: quiz.length,
 					about_count: aboutYou.length,
-					still_to_learn: Math.max(0, ABOUT_ME.length - theirs.length),
+					still_to_learn: Math.max(0, aboutAll.length - theirs.length),
 					questions,
 				});
 			}
@@ -8655,7 +8747,7 @@ VALUES (
 					const created = (
 						await sql`
               INSERT INTO rounds (connection_id, kind, items, player_a, player_b)
-              VALUES (${connection.id}, ${kind}, ${JSON.stringify(ROUND_KINDS[kind].items(used))}::jsonb, ${me.id}, ${partner.id})
+              VALUES (${connection.id}, ${kind}, ${JSON.stringify(await roundItems(sql, env, ctx, kind, used))}::jsonb, ${me.id}, ${partner.id})
               RETURNING *
             `
 					)[0];
