@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   Platform,
@@ -19,7 +19,7 @@ import {
   getCachedData,
   setCachedData,
 } from "../../lib/dataCache";
-import { connectionCacheKey } from "../../lib/connection";
+import { confirmLink, connectionCacheKey } from "../../lib/connection";
 import { RETURNING_USER_KEY } from "../../lib/auth";
 import { T, themedStyles, useTheme } from "../../lib/theme";
 import { openMenu } from "../../lib/menu";
@@ -93,6 +93,8 @@ export default function ProfileScreen() {
   const [profile, setProfile] = useState(cached?.profile ?? null);
   const [partner, setPartner] = useState(cached?.partner ?? null);
   const [connection, setConnection] = useState(cached?.connection ?? null);
+  const linkRef = useRef(connection);
+  linkRef.current = connection;
   const [prefs, setPrefs] = useState(cached?.prefs ?? {});
   const [loading, setLoading] = useState(!cached);
   const [refreshing, setRefreshing] = useState(false);
@@ -108,7 +110,7 @@ export default function ProfileScreen() {
       const [profileResponse, connectionResponse, partnerData, prefsData] =
         await Promise.all([
           apiFetch(`/users/${userId}/profile`),
-          apiFetch(`/users/${userId}/connections`),
+          confirmLink(userId, Boolean(linkRef.current)),
           apiFetch(`/users/${userId}/partner`)
             .then((r) => (r.ok ? r.json() : null))
             .catch(() => null),
@@ -118,18 +120,15 @@ export default function ProfileScreen() {
         ]);
 
       const profileData = await profileResponse.json();
-      const connectionData = await connectionResponse.json();
 
       setProfile(profileData?.profile || null);
-      setPartner(partnerData?.partner || null);
+      /* A failed request keeps what was there. */
+      if (partnerData) setPartner(partnerData.partner || null);
       setPrefs(prefsData?.preferences || {});
 
-      const connections = Array.isArray(connectionData) ? connectionData : [];
-
-      setConnection(
-        connections.find((item) => item.status?.toLowerCase() === "accepted") ||
-          null,
-      );
+      if (connectionResponse !== undefined) {
+        setConnection(connectionResponse || null);
+      }
     } catch (err) {
       console.log("PROFILE LOAD ERROR:", err);
     } finally {

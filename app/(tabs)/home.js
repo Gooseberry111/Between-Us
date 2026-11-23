@@ -4,6 +4,7 @@ import { useAuth } from "@clerk/expo";
 import { useFocusEffect, useRouter } from "expo-router";
 
 import { apiFetch } from "../../lib/api";
+import { confirmLink } from "../../lib/connection";
 import { getCachedData, setCachedData } from "../../lib/dataCache";
 import { TOTAL_QUESTIONS, countAnswered } from "../../lib/profileProgress";
 import { T, themedStyles, useTheme } from "../../lib/theme";
@@ -149,6 +150,8 @@ export default function HomeScreen() {
   const [profile, setProfile] = useState(cached?.profile ?? null);
   const [partner, setPartner] = useState(cached?.partner ?? null);
   const [connection, setConnection] = useState(cached?.connection ?? null);
+  const linkRef = useRef(connection);
+  linkRef.current = connection;
   const [daily, setDaily] = useState(cached?.daily ?? null);
   const [reminders, setReminders] = useState(cached?.reminders ?? []);
   const [plans, setPlans] = useState(cached?.plans ?? []);
@@ -186,7 +189,7 @@ export default function HomeScreen() {
         activityData,
       ] = await Promise.all([
         apiFetch(`/users/${userId}/profile`),
-        apiFetch(`/users/${userId}/connections`),
+        confirmLink(userId, Boolean(linkRef.current)),
         apiFetch(`/users/${userId}/reminders`)
           .then((r) => (r.ok ? r.json() : null))
           .catch(() => null),
@@ -200,7 +203,6 @@ export default function HomeScreen() {
       ]);
 
       const profileData = await profileResponse.json();
-      const connectionData = await connectionResponse.json();
 
       setProfile(profileData?.profile || null);
 
@@ -219,11 +221,9 @@ export default function HomeScreen() {
       setHasUnread(notifications.some((item) => item.is_read === false));
       if (activityData) setActivity(activityData.items);
 
-      const connections = Array.isArray(connectionData) ? connectionData : [];
-
-      const accepted = connections.find(
-        (item) => item.status?.toLowerCase() === "accepted",
-      );
+      /* Could not tell (a failed request): keep the link we had. */
+      const accepted =
+        connectionResponse === undefined ? linkRef.current : connectionResponse;
 
       setConnection(accepted || null);
 
