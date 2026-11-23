@@ -748,13 +748,13 @@ export default function BondHero({
  * view's edges. While one is open, Home stops scrolling, so
  * a spin is never taken for a pull to refresh.
  */
-const WHEEL_R = 82;
+const WHEEL_R = 70;
 const WHEEL_START = 190; /* degrees: just left of their circle */
 const WHEEL_STEP = 33;
 const WHEEL_SHOWN = 4;
 const WHEEL_BOX = (WHEEL_R + 30) * 2;
 /* Finger travel along the arc for one step of the wheel. */
-const WHEEL_PX = 62;
+const WHEEL_PX = 52;
 
 const toXY = (slot, mirror) => {
   const rad = ((WHEEL_START - slot * WHEEL_STEP) * Math.PI) / 180;
@@ -956,7 +956,7 @@ function Wheel({
               fill="none"
               stroke={mirror ? T.you : T.accent}
               strokeOpacity={0.22}
-              strokeWidth={50}
+              strokeWidth={38}
               strokeLinecap="round"
             />
           </Svg>
@@ -1136,9 +1136,9 @@ const styles = themedStyles(() => ({
   },
 
   burstPress: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: T.surface,
     alignItems: "center",
     justifyContent: "center",
@@ -1150,7 +1150,7 @@ const styles = themedStyles(() => ({
   },
 
   burstEmoji: {
-    fontSize: 20,
+    fontSize: 16,
   },
 
   flyer: {
@@ -1170,14 +1170,14 @@ const styles = themedStyles(() => ({
 
   wheelBubble: {
     position: "absolute",
-    left: WHEEL_BOX / 2 - 21,
-    top: WHEEL_BOX / 2 - 21,
-    width: 42,
-    height: 42,
+    left: WHEEL_BOX / 2 - 17,
+    top: WHEEL_BOX / 2 - 17,
+    width: 34,
+    height: 34,
   },
 
   burstChosen: {
-    borderWidth: 2.5,
+    borderWidth: 2,
     borderColor: T.you,
   },
 
