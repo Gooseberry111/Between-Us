@@ -465,6 +465,7 @@ function AuthGuard() {
           go back with their Back button. */}
       <Stack.Screen name="appreciations" options={{ gestureEnabled: false }} />
       <Stack.Screen name="tanks" options={{ gestureEnabled: false }} />
+      <Stack.Screen name="zombies" options={{ gestureEnabled: false }} />
     </Stack>
   );
 }
@@ -559,7 +560,7 @@ export default function RootLayout() {
       }
 
       if (data?.type === "duel_turn" || data?.type === "duel_over") {
-        router.push(data.kind === "tanks" ? "/tanks" : "/paintball");
+        router.push(data.kind === "tanks" ? "/tanks" : "/zombies");
       }
 
       if (String(data?.type || "").startsWith("date_")) router.push("/dates");

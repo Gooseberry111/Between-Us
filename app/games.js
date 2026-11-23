@@ -24,7 +24,7 @@ import ConnectFirst from "../components/ConnectFirst";
  *
  * Everything the two of you can play, in one place.
  *
- *   battle               Paintball Standoff, Tank Duel
+ *   battle               Zombie Rush, Tank Duel
  *   against each other   Four in a Row, turn by turn
  *   how alike are you    This or That, Who's More Likely To
  *   how well you know    trivia about each other
@@ -37,9 +37,9 @@ const GAMES = [
       {
         icon: "target",
         tint: "you",
-        title: "Paintball Standoff",
-        text: "Hide, aim, fire. Both shots land at once",
-        route: "/paintball",
+        title: "Zombie Rush",
+        text: "Tap the horde before it reaches you. Beat their score",
+        route: "/zombies",
       },
       {
         icon: "bolt",

@@ -6,120 +6,113 @@
  * The two head-to-head games. Every rule lives here, on the
  * server, so both phones always agree on what happened.
  *
- *   paintball   Standoff. Each round both of you secretly pick
- *               where to hide and where to fire, then both
- *               shots land at once. Three lives each. You can't
- *               hide in the same spot twice running, and once a
- *               match you get a paint grenade (splashes the
- *               spots either side) and a shield (stops one hit).
+ *   zombies     Zombie Rush. The server writes one wave of
+ *               zombies; you each play it once, whenever you
+ *               like, tapping them before they reach you. Three
+ *               hearts, 45 seconds. Higher score wins.
  *
  *   tanks       Tank Duel. Take turns: set the angle and the
  *               power, mind the wind, and lob a shell over the
  *               hills. Closer hits hurt more. First to 0 loses.
  */
 
-export const DUEL_KINDS = ['paintball', 'tanks'];
+export const DUEL_KINDS = ['zombies', 'tanks'];
 
-/* ---------- PAINTBALL ---------- */
+/* ---------- ZOMBIE RUSH ---------- */
 
-export const COVER = ['Crates', 'Bunker', 'Tree', 'Wall', 'Barrel'];
-const LIVES = 3;
+const RUSH_MS = 45000;
+const HEARTS = 3;
 
-export function newPaintball() {
+/* What each kind is: hits to drop it, points, speed (arena heights per second). */
+export const ZOMBIES = {
+	walker: { hp: 1, points: 10, speed: [0.15, 0.21] },
+	runner: { hp: 1, points: 15, speed: [0.28, 0.36] },
+	brute: { hp: 3, points: 50, speed: [0.09, 0.11] },
+};
+
+/*
+ * The wave: when each zombie appears (ms), where across the
+ * arena (0-1), how fast and what kind. Slow at first, a
+ * swarm by the end, a brute every twelve seconds or so.
+ */
+function waveFor(seed) {
+	const rand = random(seed);
+	const wave = [];
+	let t = 1200;
+	let nextBrute = 11000;
+
+	while (t < RUSH_MS - 2500) {
+		const progress = t / RUSH_MS;
+		let kind = rand() < 0.15 + progress * 0.25 ? 'runner' : 'walker';
+
+		if (t >= nextBrute) {
+			kind = 'brute';
+			nextBrute += 11000 + Math.round(rand() * 3000);
+		}
+
+		const [slow, fast] = ZOMBIES[kind].speed;
+
+		wave.push({
+			id: wave.length,
+			t: Math.round(t),
+			x: Math.round((0.08 + rand() * 0.84) * 1000) / 1000,
+			speed: Math.round((slow + rand() * (fast - slow)) * 1000) / 1000,
+			kind,
+		});
+
+		/* From about 1.2 s apart down to about 0.45 s. */
+		t += 1200 - progress * 750 + (rand() - 0.5) * 300;
+	}
+
+	return wave;
+}
+
+export function newZombies() {
+	const seed = Math.floor(Math.random() * 1e9);
+
 	return {
-		round: 1,
-		lives: { a: LIVES, b: LIVES },
-		gear: { a: { grenade: 1, shield: 1 }, b: { grenade: 1, shield: 1 } },
-		lastHide: { a: null, b: null },
-		pending: { a: null, b: null },
-		history: [],
+		seed,
+		wave: waveFor(seed),
+		scores: { a: null, b: null },
+		kills: { a: null, b: null },
 	};
 }
 
-const validSpot = (value) => Number.isInteger(value) && value >= 0 && value < COVER.length;
+/* Returns { state, error, over, winner } */
+export function zombiesMove(state, side, move) {
+	if (state.scores[side] !== null) return { error: 'You have had your run. Waiting on them.' };
 
-/* Returns { state, error, resolved, over, winner } */
-export function paintballMove(state, side, move) {
-	const hide = Number(move?.hide);
-	const shoot = Number(move?.shoot);
-	const gear = move?.gear === 'grenade' || move?.gear === 'shield' ? move.gear : null;
+	const score = Number(move?.score);
+	const kills = Number(move?.kills);
+	const most = state.wave.reduce((sum, z) => sum + ZOMBIES[z.kind].points, 0);
 
-	if (!validSpot(hide) || !validSpot(shoot)) return { error: 'Pick where to hide and where to fire.' };
-	if (state.pending[side]) return { error: 'You have already locked in this round.' };
-	if (state.lastHide[side] === hide) return { error: `You hid behind the ${COVER[hide]} last round. Move!` };
-	if (gear && !(state.gear[side][gear] > 0)) return { error: `No ${gear} left.` };
+	if (!Number.isInteger(score) || score < 0 || score > most || score % 5 !== 0) return { error: 'That score does not add up.' };
+	if (!Number.isInteger(kills) || kills < 0 || kills > state.wave.length) return { error: 'That score does not add up.' };
 
 	const next = structuredClone(state);
-	next.pending[side] = { hide, shoot, gear };
+	next.scores[side] = score;
+	next.kills[side] = kills;
 
-	if (!next.pending.a || !next.pending.b) return { state: next, resolved: false };
-
-	/* Both locked in: fire. */
-	const a = next.pending.a;
-	const b = next.pending.b;
-
-	const reaches = (shot) => (shot.gear === 'grenade' ? [shot.shoot - 1, shot.shoot, shot.shoot + 1] : [shot.shoot]);
-
-	const hitB = reaches(a).includes(b.hide);
-	const hitA = reaches(b).includes(a.hide);
-	const blockedA = hitA && a.gear === 'shield';
-	const blockedB = hitB && b.gear === 'shield';
-
-	if (hitA && !blockedA) next.lives.a -= 1;
-	if (hitB && !blockedB) next.lives.b -= 1;
-
-	for (const [key, shot] of [
-		['a', a],
-		['b', b],
-	]) {
-		if (shot.gear) next.gear[key][shot.gear] -= 1;
-		next.lastHide[key] = shot.hide;
-	}
-
-	next.history.push({
-		round: next.round,
-		a,
-		b,
-		hit: { a: hitA && !blockedA, b: hitB && !blockedB },
-		blocked: { a: blockedA, b: blockedB },
-	});
-
-	next.pending = { a: null, b: null };
-	next.round += 1;
-
-	const aOut = next.lives.a <= 0;
-	const bOut = next.lives.b <= 0;
-	const over = aOut || bOut;
+	const over = next.scores.a !== null && next.scores.b !== null;
 
 	return {
 		state: next,
-		resolved: true,
 		over,
-		winner: over ? (aOut && bOut ? null : aOut ? 'b' : 'a') : null,
+		winner: over ? (next.scores.a === next.scores.b ? null : next.scores.a > next.scores.b ? 'a' : 'b') : null,
 	};
 }
 
-export function paintballView(state, side) {
+export function zombiesView(state, side) {
 	const other = side === 'a' ? 'b' : 'a';
-	const flip = (entry) =>
-		entry && {
-			round: entry.round,
-			you: entry[side],
-			them: entry[other],
-			hit: { you: entry.hit[side], them: entry.hit[other] },
-			blocked: { you: entry.blocked[side], them: entry.blocked[other] },
-		};
 
 	return {
-		cover: COVER,
-		round: state.round,
-		lives: { you: state.lives[side], them: state.lives[other] },
-		gear: { you: state.gear[side], them: state.gear[other] },
-		last_hide: state.lastHide[side],
-		your_pick: state.pending[side],
-		you_locked: Boolean(state.pending[side]),
-		them_locked: Boolean(state.pending[other]),
-		history: state.history.map(flip),
+		wave: state.wave,
+		duration: RUSH_MS,
+		hearts: HEARTS,
+		kinds: ZOMBIES,
+		played: { you: state.scores[side] !== null, them: state.scores[other] !== null },
+		scores: { you: state.scores[side], them: state.scores[other] },
+		kills: { you: state.kills[side], them: state.kills[other] },
 	};
 }
 

@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Pressable,
   RefreshControl,
   StyleSheet,
   Text,
@@ -41,6 +42,7 @@ import {
   pickPhoto,
   uploadPhoto,
 } from "../../components/Photo";
+import PhotoViewer from "../../components/PhotoViewer";
 
 /*
  * ==========================================
@@ -135,6 +137,8 @@ export default function TimelineScreen() {
 
   /* The memory open in full, from tapping its card. */
   const [viewing, setViewing] = useState(null);
+  /* The open memory's photo, full screen. */
+  const [fullPhoto, setFullPhoto] = useState(null);
   const [localUri, setLocalUri] = useState(null);
   const [uploading, setUploading] = useState(false);
 
@@ -484,19 +488,39 @@ export default function TimelineScreen() {
       <Sheet
         visible={Boolean(viewing)}
         title={viewing?.kind === "Date nights" ? "Date Night" : "Memory"}
-        onCancel={() => setViewing(null)}
+        onCancel={() => {
+          setFullPhoto(null);
+          setViewing(null);
+        }}
       >
         {viewing ? (
           <>
             {viewing.photoId ? (
-              <View style={styles.fullPhotoWrap}>
+              <Pressable
+                onPress={() =>
+                  setFullPhoto({
+                    id: viewing.photoId,
+                    url: viewing.photoUrl,
+                    caption: viewing.title,
+                  })
+                }
+                style={styles.fullPhotoWrap}
+                accessibilityRole="button"
+                accessibilityLabel="See the whole photo"
+              >
                 <RemotePhoto
                   id={viewing.photoId}
                   url={viewing.photoUrl}
                   style={styles.fullPhoto}
                 />
-              </View>
+
+                <View style={styles.expand} pointerEvents="none">
+                  <Icon name="open" size={14} color="#FFFFFF" />
+                </View>
+              </Pressable>
             ) : null}
+
+            <PhotoViewer photo={fullPhoto} onClose={() => setFullPhoto(null)} />
 
             <View style={styles.full}>
               <Text style={styles.fullTitle}>{viewing.title}</Text>
@@ -716,6 +740,18 @@ const styles = themedStyles(() => ({
   fullPhoto: {
     width: "100%",
     aspectRatio: 4 / 3,
+  },
+
+  expand: {
+    position: "absolute",
+    right: 10,
+    bottom: 10,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   full: {

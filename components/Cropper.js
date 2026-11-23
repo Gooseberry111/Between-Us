@@ -10,7 +10,10 @@ import {
   Text,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  initialWindowMetrics,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 
 import { T, themedStyles, useTheme } from "../lib/theme";
@@ -111,7 +114,17 @@ function ratioLabel([w, h]) {
 function CropView({ job, onFinish }) {
   useTheme();
 
-  const insets = useSafeAreaInsets();
+  /*
+   * Opened over a sheet, the sheet reports no top inset, but
+   * this covers the whole screen: without the phone's own
+   * insets the Done button sat under the notch, out of reach.
+   */
+  const sheetInsets = useSafeAreaInsets();
+  const phone = initialWindowMetrics?.insets;
+  const insets = {
+    top: Math.max(sheetInsets.top, phone?.top ?? 0),
+    bottom: Math.max(sheetInsets.bottom, phone?.bottom ?? 0),
+  };
   const { photo } = job;
 
   const shapes = useMemo(() => {
@@ -441,6 +454,21 @@ function CropView({ job, onFinish }) {
               );
             })}
           </View>
+
+          {/* The way on, big and where a thumb is. */}
+          <Pressable
+            onPress={done}
+            disabled={busy}
+            style={({ pressed }) => [styles.use, pressed && styles.usePressed]}
+            accessibilityRole="button"
+            accessibilityLabel="Use this photo"
+          >
+            {busy ? (
+              <ActivityIndicator color="#1A1A1A" />
+            ) : (
+              <Text style={styles.useText}>Use photo</Text>
+            )}
+          </Pressable>
         </View>
       </View>
     </Modal>
@@ -514,6 +542,26 @@ const styles = themedStyles(() => ({
     alignItems: "center",
     gap: 14,
     paddingTop: 14,
+  },
+
+  use: {
+    alignSelf: "stretch",
+    marginHorizontal: 20,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: T.gold,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  usePressed: {
+    opacity: 0.8,
+  },
+
+  useText: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#1A1A1A",
   },
 
   hint: {

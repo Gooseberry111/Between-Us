@@ -3,7 +3,7 @@ import { neon } from '@neondatabase/serverless';
 import { LOVE_CHALLENGES, MORE_LIKELY, THIS_OR_THAT } from './play.js';
 import { ABOUT_ME } from './about.js';
 import { GENERATED_KINDS, bankOf, topUp } from './generate.js';
-import { DUEL_KINDS, newPaintball, newTanks, paintballMove, paintballView, tanksMove, tanksView } from './duels.js';
+import { DUEL_KINDS, newTanks, newZombies, tanksMove, tanksView, zombiesMove, zombiesView } from './duels.js';
 import { PLACE_KINDS, areaName, geocode, nearbyPlaces, placePhotos } from './places.js';
 
 /*
@@ -5678,7 +5678,7 @@ VALUES (
 				if (couple.error) return couple.error;
 
 				const { me, connection, partner, myName } = couple;
-				const NAMES = { paintball: 'Paintball Standoff', tanks: 'Tank Duel' };
+				const NAMES = { zombies: 'Zombie Rush', tanks: 'Tank Duel' };
 
 				const view = (duel) => {
 					if (!duel) return null;
@@ -5694,7 +5694,7 @@ VALUES (
 						winner: duel.winner ? (duel.winner === me.id ? 'you' : 'them') : null,
 						you_started: duel.player_a === me.id,
 						updated_at: duel.updated_at,
-						...(duel.kind === 'paintball' ? paintballView(duel.state, side) : tanksView(duel.state, side)),
+						...(duel.kind === 'zombies' ? zombiesView(duel.state, side) : tanksView(duel.state, side)),
 					};
 				};
 
@@ -5744,7 +5744,7 @@ VALUES (
 
 					const starter = last ? (last.player_a === me.id ? partner.id : me.id) : me.id;
 					const other = starter === me.id ? partner.id : me.id;
-					const state = kind === 'paintball' ? newPaintball() : newTanks();
+					const state = kind === 'zombies' ? newZombies() : newTanks();
 
 					const created = (
 						await sql`
@@ -5757,7 +5757,7 @@ VALUES (
 					await tell(
 						'duel_turn',
 						`${myName} challenged you to ${NAMES[kind]} ⚔️`,
-						kind === 'tanks' ? (starter === partner.id ? 'You fire first.' : `${myName} fires first.`) : 'Pick your cover.',
+						kind === 'tanks' ? (starter === partner.id ? 'You fire first.' : `${myName} fires first.`) : 'Same horde for both of you. Highest score wins.',
 						`duel-start:${created.id}`,
 					);
 
@@ -5781,7 +5781,7 @@ VALUES (
 				}
 
 				const body = await request.json().catch(() => ({}));
-				const result = kind === 'paintball' ? paintballMove(duel.state, side, body) : tanksMove(duel.state, side, body);
+				const result = kind === 'zombies' ? zombiesMove(duel.state, side, body) : tanksMove(duel.state, side, body);
 
 				if (result.error) return Response.json({ error: result.error, duel: view(duel) }, { status: 400 });
 
@@ -5825,10 +5825,13 @@ VALUES (
 					});
 				} else if (kind === 'tanks') {
 					await tell('duel_turn', `Incoming! Your shot, against ${myName}`, `${result.state.last.damage ? `They hit you for ${result.state.last.damage}.` : 'They missed.'} Fire back.`, `duel:${duel.id}:${updated.version}`);
-				} else if (result.resolved) {
-					await tell('duel_turn', `Round ${result.state.round - 1} done — ${myName} is waiting`, 'Pick your next cover.', `duel:${duel.id}:${updated.version}`);
 				} else {
-					await tell('duel_turn', `${myName} has locked in 🎯`, 'Your move in Paintball Standoff.', `duel:${duel.id}:${updated.version}`);
+					await tell(
+						'duel_turn',
+						`${myName} scored ${body.score} in Zombie Rush 🧟`,
+						'Survive the same horde and beat it.',
+						`duel:${duel.id}:${updated.version}`,
+					);
 				}
 
 				return Response.json({ duel: view(updated), score: await score() });

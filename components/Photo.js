@@ -98,7 +98,8 @@ export function uploadPhoto(userId, base64) {
 /*
  * A photo from the media store, or one just picked and
  * still on the phone (`localUri`), which shows at once
- * while the upload finishes.
+ * while the upload finishes. `fit="contain"` shows all of
+ * it rather than filling the box.
  *
  * Reading one back needs the session token. If it is not
  * ready yet the photo waits for it, and a failed load is
@@ -108,7 +109,7 @@ export function uploadPhoto(userId, base64) {
 const TOKEN_TRIES = 5;
 const LOAD_TRIES = 2;
 
-export function RemotePhoto({ id, url, localUri, style }) {
+export function RemotePhoto({ id, url, localUri, style, fit = "cover" }) {
   useTheme();
 
   const [headers, setHeaders] = useState(null);
@@ -150,9 +151,7 @@ export function RemotePhoto({ id, url, localUri, style }) {
   }, [id, localUri, attempt, signed]);
 
   if (localUri) {
-    return (
-      <Image source={{ uri: localUri }} style={style} resizeMode="cover" />
-    );
+    return <Image source={{ uri: localUri }} style={style} resizeMode={fit} />;
   }
 
   /* Signed: a plain image request, nothing for the loader to drop. */
@@ -161,7 +160,7 @@ export function RemotePhoto({ id, url, localUri, style }) {
       <Image
         source={{ uri: `${API_URL}${url}` }}
         style={style}
-        resizeMode="cover"
+        resizeMode={fit}
         onError={() => setSignedFailed(true)}
       />
     );
@@ -194,7 +193,7 @@ export function RemotePhoto({ id, url, localUri, style }) {
       /* The attempt is in the address so a retry is a fresh request. */
       source={{ uri: `${API_URL}/media/${id}?v=${attempt}`, headers }}
       style={style}
-      resizeMode="cover"
+      resizeMode={fit}
       onError={() => {
         if (attempt < LOAD_TRIES) {
           setHeaders(null);

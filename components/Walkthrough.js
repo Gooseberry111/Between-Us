@@ -75,7 +75,7 @@ const PAGES = [
     emoji: "🎮",
     sky: ["#1D2B1A", "#3E5E33", "#7A9A3E"],
     title: "Play together",
-    text: "Paintball Standoff, Tank Duel, Four in a Row, trivia, This or That and more. You'll hear when it's your turn.",
+    text: "Zombie Rush, Tank Duel, Four in a Row, trivia, This or That and more. You'll hear when it's your turn.",
   },
   {
     emoji: "✨",
