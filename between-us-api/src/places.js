@@ -452,7 +452,14 @@ const PHOTON_TAGS = {
 	drinks: ['amenity:bar', 'amenity:pub', 'amenity:nightclub'],
 	outdoors: ['leisure:park', 'leisure:garden', 'tourism:viewpoint', 'natural:beach'],
 	culture: ['tourism:museum', 'tourism:gallery', 'amenity:theatre', 'amenity:arts_centre'],
-	fun: ['leisure:bowling_alley', 'leisure:amusement_arcade', 'leisure:escape_game', 'tourism:zoo', 'tourism:theme_park', 'tourism:aquarium'],
+	fun: [
+		'leisure:bowling_alley',
+		'leisure:amusement_arcade',
+		'leisure:escape_game',
+		'tourism:zoo',
+		'tourism:theme_park',
+		'tourism:aquarium',
+	],
 	movies: ['amenity:cinema'],
 };
 
@@ -704,4 +711,142 @@ export async function areaName(env, lat, lon) {
 
 		return { name: a.suburb || a.neighbourhood || a.town || a.city_district || a.city || a.county || null };
 	});
+}
+
+/*
+ * ==========================================
+ * ACROSS YOUR STATE
+ * ==========================================
+ *
+ * The state (or region) you are in, and its edges, so a
+ * search can cover all of it rather than the few km around
+ * you. Kept for a month per ~10 km.
+ */
+export async function stateOf(env, lat, lon) {
+	const key = `state:v1:${round(lat, 1)}:${round(lon, 1)}`;
+
+	return cached(env, key, DAY * 30, async () => {
+		const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&zoom=5&lat=${lat}&lon=${lon}`, {
+			headers: { 'User-Agent': AGENT },
+		});
+
+		if (!response.ok) return { name: null, bbox: null };
+
+		const data = await response.json();
+		const a = data.address || {};
+		/* Nominatim: [south, north, west, east] as strings. */
+		const box = Array.isArray(data.boundingbox) ? data.boundingbox.map(Number) : null;
+
+		return {
+			name: a.state || a.region || a.province || a.county || null,
+			country: a.country_code || null,
+			bbox: box && box.every(Number.isFinite) ? { south: box[0], north: box[1], west: box[2], east: box[3] } : null,
+		};
+	});
+}
+
+/* Things you could go to, not roads, towns or buildings. */
+const SEARCHABLE = new Set(['amenity', 'leisure', 'tourism', 'shop', 'natural', 'historic', 'club', 'craft']);
+
+/* Words people type for a kind of place, as the map's own tags. */
+const SEARCH_WORDS = [
+	[/\b(restaurant|food|eat|dinner|lunch|suya|grill|buka)\b/i, 'amenity:restaurant'],
+	[/\b(cafe|café|coffee|brunch|breakfast)\b/i, 'amenity:cafe'],
+	[/\b(ice ?cream|gelato|dessert)\b/i, 'amenity:ice_cream'],
+	[/\b(bar|lounge|drinks|cocktail)\b/i, 'amenity:bar'],
+	[/\b(pub)\b/i, 'amenity:pub'],
+	[/\b(club|nightclub|night club)\b/i, 'amenity:nightclub'],
+	[/\b(cinema|movies?|film)\b/i, 'amenity:cinema'],
+	[/\b(park|garden)\b/i, 'leisure:park'],
+	[/\b(beach)\b/i, 'natural:beach'],
+	[/\b(museum|gallery|art)\b/i, 'tourism:museum'],
+	[/\b(bowling)\b/i, 'leisure:bowling_alley'],
+	[/\b(zoo)\b/i, 'tourism:zoo'],
+	[/\b(hotel|resort|staycation)\b/i, 'tourism:hotel'],
+	[/\b(spa)\b/i, 'leisure:spa'],
+];
+
+function placeFromPhoton(feature, lat, lon) {
+	const p = feature.properties || {};
+	const [pLon, pLat] = feature.geometry?.coordinates || [];
+
+	if (!p.name || pLat === undefined || !SEARCHABLE.has(p.osm_key)) return null;
+
+	const kind = kindOf({ [p.osm_key]: p.osm_value });
+	const street = [p.housenumber, p.street].filter(Boolean).join(' ');
+
+	return {
+		id: `${OSM_TYPE[p.osm_type] || 'node'}/${p.osm_id}`,
+		name: p.name,
+		kind,
+		emoji: PLACE_KINDS[kind].emoji,
+		lat: round(pLat, 6),
+		lon: round(pLon, 6),
+		distance_m: Number.isFinite(lat) && Number.isFinite(lon) ? distanceM(lat, lon, pLat, pLon) : null,
+		address: [street, p.district || p.locality, p.city].filter(Boolean).join(', ') || null,
+		hours: null,
+		website: null,
+		phone: null,
+		cuisine: [],
+		image: null,
+	};
+}
+
+/*
+ * A typed search across your whole state: names ("Nok",
+ * "Terra Kulture") and kinds ("sushi", "cinema", "beach").
+ * Photon answers in a couple of seconds; kept for a day.
+ */
+export async function searchPlaces(env, { q, lat, lon }) {
+	const where = Number.isFinite(lat) && Number.isFinite(lon) ? await stateOf(env, lat, lon).catch(() => null) : null;
+	const box = where?.bbox;
+	const key = `search:v1:${where?.name || 'anywhere'}:${q.toLowerCase().slice(0, 60)}`;
+
+	const found = await cached(env, key, DAY, async () => {
+		const near = where && Number.isFinite(lat) ? `&lat=${lat}&lon=${lon}` : '';
+		const inBox = box ? `&bbox=${box.west},${box.south},${box.east},${box.north}` : '';
+		const base = `https://photon.komoot.io/api/?limit=40&lang=en${near}${inBox}`;
+
+		const tags = SEARCH_WORDS.filter(([pattern]) => pattern.test(q)).map(([, tag]) => tag);
+		const asks = [`${base}&q=${encodeURIComponent(q)}`];
+
+		/* A kind of place: also every place of that kind, whatever its name. */
+		for (const tag of tags)
+			asks.push(`${base}&q=${encodeURIComponent(tag.split(':')[1].replace('_', ' '))}&osm_tag=${encodeURIComponent(tag)}`);
+
+		const lists = await Promise.all(
+			asks.map(async (url) => {
+				try {
+					const response = await fetch(url, { headers: { 'User-Agent': AGENT }, signal: AbortSignal.timeout(15000) });
+					return response.ok ? (await response.json()).features || [] : [];
+				} catch {
+					return [];
+				}
+			}),
+		);
+
+		/* One of each: the same id, or the same name within about 300 m. */
+		const seen = new Set();
+		const places = lists
+			.flat()
+			.map((feature) => placeFromPhoton(feature))
+			.filter((place) => {
+				if (!place) return false;
+				const near = `${place.name.toLowerCase()}:${Math.round(place.lat * 300)}:${Math.round(place.lon * 300)}`;
+				if (seen.has(place.id) || seen.has(near)) return false;
+				seen.add(place.id);
+				seen.add(near);
+				return true;
+			});
+
+		return { places };
+	});
+
+	/* Distance from wherever you are now, nearest first among equals. */
+	const places = (found?.places || []).map((place) => ({
+		...place,
+		distance_m: Number.isFinite(lat) && Number.isFinite(lon) ? distanceM(lat, lon, place.lat, place.lon) : null,
+	}));
+
+	return { places: places.slice(0, 40), state: where?.name || null };
 }

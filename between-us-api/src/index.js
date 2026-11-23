@@ -4,7 +4,7 @@ import { LOVE_CHALLENGES, MORE_LIKELY, THIS_OR_THAT } from './play.js';
 import { ABOUT_ME } from './about.js';
 import { GENERATED_KINDS, bankOf, topUp } from './generate.js';
 import { DUEL_KINDS, newTanks, newZombies, tanksMove, tanksView, zombiesMove, zombiesView } from './duels.js';
-import { PLACE_KINDS, areaName, geocode, nearbyPlaces, placePhotos } from './places.js';
+import { PLACE_KINDS, areaName, geocode, nearbyPlaces, placePhotos, searchPlaces, stateOf } from './places.js';
 
 /*
  * ==========================================
@@ -5605,13 +5605,15 @@ VALUES (
 			 *
 			 * GET /users/:clerkId/places?lat=&lon=&kind=&q=&radius=&all=1&full=1
 			 * GET /users/:clerkId/places/photos?lat=&lon=&image=
+			 * GET /users/:clerkId/places/search?q=&lat=&lon=     across your state
 			 * GET /users/:clerkId/geocode?q=&lat=&lon=     (near you first)
 			 */
 			const placesMatch = url.pathname.match(/^\/users\/([^/]+)\/places$/);
 			const placePhotosMatch = url.pathname.match(/^\/users\/([^/]+)\/places\/photos$/);
+			const placeSearchMatch = url.pathname.match(/^\/users\/([^/]+)\/places\/search$/);
 			const geocodeMatch = url.pathname.match(/^\/users\/([^/]+)\/geocode$/);
 
-			if ((placesMatch || placePhotosMatch || geocodeMatch) && request.method === 'GET') {
+			if ((placesMatch || placePhotosMatch || placeSearchMatch || geocodeMatch) && request.method === 'GET') {
 				const lat = Number(url.searchParams.get('lat'));
 				const lon = Number(url.searchParams.get('lon'));
 				const okPoint = Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180;
@@ -5623,6 +5625,13 @@ VALUES (
 						return Response.json(await geocode(env, q.slice(0, 80), okPoint ? { lat, lon } : null));
 					}
 
+					/* A typed search across your state (or anywhere, without a location). */
+					if (placeSearchMatch) {
+						const q = String(url.searchParams.get('q') || '').trim().slice(0, 60);
+						if (q.length < 2) return Response.json({ places: [], state: null });
+						return Response.json(await searchPlaces(env, { q, lat: okPoint ? lat : NaN, lon: okPoint ? lon : NaN }));
+					}
+
 					if (!okPoint) return Response.json({ error: 'A location is needed.' }, { status: 400 });
 
 					if (placePhotosMatch) {
@@ -5630,7 +5639,7 @@ VALUES (
 						return Response.json(await placePhotos(env, { lat, lon, image: /^https:\/\//.test(image || '') ? image : null }));
 					}
 
-					const [found, where] = await Promise.all([
+					const [found, where, state] = await Promise.all([
 						nearbyPlaces(env, {
 							lat,
 							lon,
@@ -5641,11 +5650,13 @@ VALUES (
 							all: url.searchParams.get('all') === '1',
 						}),
 						areaName(env, lat, lon).catch(() => ({ name: null })),
+						stateOf(env, lat, lon).catch(() => ({ name: null })),
 					]);
 
 					return Response.json({
 						...found,
 						area: where?.name || null,
+						state: state?.name || null,
 						kinds: Object.entries(PLACE_KINDS).map(([key, value]) => ({ key, label: value.label, emoji: value.emoji })),
 					});
 				} catch (err) {

@@ -251,9 +251,10 @@ export default function DatesScreen() {
   const [selected, setSelected] = useState(null);
 
   /* Looking somewhere else. */
-  const [elsewhere, setElsewhere] = useState(false);
-  const [areaQuery, setAreaQuery] = useState("");
-  const [areaResults, setAreaResults] = useState([]);
+  /* Searching the whole state: what came back, and whether it is coming. */
+  const [stateName, setStateName] = useState("");
+  const [found, setFound] = useState([]);
+  const [searching, setSearching] = useState(false);
 
   /* A place in full, and asking them. */
   const [viewing, setViewing] = useState(null);
@@ -268,7 +269,7 @@ export default function DatesScreen() {
 
   const them = partnerName || "them";
 
-  /* Our dates (what is planned) or Find a spot (the map). */
+  /* Our dates (what is planned) or Find a place (search and ideas). */
   const [tab, setTab] = useState("ours");
   const tabChosen = useRef(false);
   const days = useMemo(() => nextDays(21), []);
@@ -402,6 +403,7 @@ export default function DatesScreen() {
     setAreaPlaces(data.places);
     if (data.kinds.length) setKinds(data.kinds);
     if (data.area && !point.label) setArea(data.area);
+    if (data.state) setStateName(data.state);
   }, []);
 
   /*
@@ -460,50 +462,59 @@ export default function DatesScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [centre?.lat, centre?.lon, lookAround]);
 
-  /* The chips and the search box, on what is already here. */
-  const places = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-
-    return areaPlaces.filter((place) => {
-      if (kind && place.kind !== kind) return false;
-      if (!needle) return true;
-
-      return (
-        place.name.toLowerCase().includes(needle) ||
-        (place.cuisine || []).some((c) => c.toLowerCase().includes(needle)) ||
-        (place.address || "").toLowerCase().includes(needle) ||
-        (kinds.find((k) => k.key === place.kind)?.label || "")
-          .toLowerCase()
-          .includes(needle)
-      );
-    });
-  }, [areaPlaces, kind, query, kinds]);
+  /* Ideas near you, by the chip you picked. Typing searches the state instead. */
+  const places = useMemo(
+    () => areaPlaces.filter((place) => !kind || place.kind === kind),
+    [areaPlaces, kind],
+  );
 
   useEffect(() => {
     setShowCount(8);
   }, [kind, query, centre?.lat, centre?.lon]);
 
+  /* Typing searches your whole state, once you pause. */
+  const searchTicket = useRef(0);
+
   useEffect(() => {
-    if (!elsewhere || areaQuery.trim().length < 2) {
-      setAreaResults([]);
+    const q = query.trim();
+
+    if (q.length < 2 || !userId) {
+      setFound([]);
+      setSearching(false);
       return undefined;
     }
 
+    const ticket = ++searchTicket.current;
+    setSearching(true);
+
     const timer = setTimeout(async () => {
+      const point = me || centre;
+      const params = new URLSearchParams({ q });
+
+      if (point) {
+        params.set("lat", String(point.lat));
+        params.set("lon", String(point.lon));
+      }
+
       try {
         const response = await apiFetch(
-          `/users/${userId}/geocode?q=${encodeURIComponent(areaQuery.trim())}` +
-            (me ? `&lat=${me.lat}&lon=${me.lon}` : ""),
+          `/users/${userId}/places/search?${params.toString()}`,
         );
         const data = await response.json().catch(() => ({}));
-        setAreaResults(Array.isArray(data.results) ? data.results : []);
+
+        if (ticket !== searchTicket.current) return;
+
+        setFound(Array.isArray(data.places) ? data.places : []);
+        if (data.state) setStateName(data.state);
       } catch {
-        setAreaResults([]);
+        if (ticket === searchTicket.current) setFound([]);
+      } finally {
+        if (ticket === searchTicket.current) setSearching(false);
       }
-    }, 450);
+    }, 400);
 
     return () => clearTimeout(timer);
-  }, [areaQuery, elsewhere, userId, me]);
+  }, [query, userId, me, centre]);
 
   /* ---------- a place in full ---------- */
 
@@ -718,6 +729,65 @@ export default function DatesScreen() {
 
   const kindLabel = (key) => kinds.find((k) => k.key === key)?.label || "";
 
+  /* While searching: matches in the area already here, then the rest of the state. */
+  const needle = query.trim().toLowerCase();
+  const nearMatches =
+    needle.length >= 2
+      ? areaPlaces.filter(
+          (place) =>
+            place.name.toLowerCase().includes(needle) ||
+            (place.cuisine || []).some((c) =>
+              c.toLowerCase().includes(needle),
+            ) ||
+            kindLabel(place.kind).toLowerCase().includes(needle),
+        )
+      : [];
+  const nearIds = new Set(nearMatches.map((place) => place.id));
+  const farMatches = found.filter((place) => !nearIds.has(place.id));
+
+  const placeRow = (place) => (
+    <Press key={place.id} onPress={() => openPlace(place)}>
+      <Card
+        padded={false}
+        style={[
+          styles.placeCard,
+          selected?.id === place.id && styles.placeCardOn,
+        ]}
+      >
+        <Cover
+          uri={place.image}
+          kind={place.kind}
+          emoji={place.emoji}
+          style={styles.placeThumb}
+        />
+
+        <View style={styles.placeBody}>
+          <Text style={styles.placeName} numberOfLines={1}>
+            {place.name}
+          </Text>
+
+          <Text style={styles.placeMeta} numberOfLines={1}>
+            {[
+              kindLabel(place.kind),
+              place.cuisine?.[0],
+              distanceText(place.distance_m),
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </Text>
+
+          {place.address ? (
+            <Text style={styles.placeAddress} numberOfLines={1}>
+              {place.address}
+            </Text>
+          ) : null}
+        </View>
+
+        <Icon name="chevron" size={16} color={T.label3} />
+      </Card>
+    </Press>
+  );
+
   useEffect(() => {
     if (!loading && !tabChosen.current) setTab(active ? "ours" : "find");
   }, [loading, active]);
@@ -792,12 +862,12 @@ export default function DatesScreen() {
         ) : null}
 
         <Segmented
-          options={[oursLabel, "Find a spot"]}
-          value={tab === "ours" ? oursLabel : "Find a spot"}
+          options={[oursLabel, "Find a place"]}
+          value={tab === "ours" ? oursLabel : "Find a place"}
           onChange={(label) => {
             Haptics.selectionAsync().catch(() => {});
             tabChosen.current = true;
-            setTab(label === "Find a spot" ? "find" : "ours");
+            setTab(label === "Find a place" ? "find" : "ours");
           }}
           style={styles.tabs}
         />
@@ -900,8 +970,8 @@ export default function DatesScreen() {
                   <Text style={styles.askTitle}>No dates planned yet</Text>
 
                   <Text style={styles.askText}>
-                    Find a spot near you and ask {them}, or suggest your own
-                    idea. Once you've both said yes, it's saved here.
+                    Find a place and ask {them}, or suggest your own idea. Once
+                    you've both said yes, it's saved here.
                   </Text>
 
                   <View style={styles.askButtons}>
@@ -912,7 +982,7 @@ export default function DatesScreen() {
                     />
 
                     <Button
-                      title="Find a spot"
+                      title="Find a place"
                       icon="map"
                       onPress={() => {
                         tabChosen.current = true;
@@ -979,262 +1049,216 @@ export default function DatesScreen() {
           </>
         ) : (
           <>
-            {/* FIND A SPOT */}
+            {/* FIND A PLACE */}
             <View style={styles.section}>
-              <GroupHeader>Find a spot</GroupHeader>
-
-              <View style={styles.whereRow}>
-                <Icon name="pin" size={16} color={T.accent} />
-
-                <Text style={styles.whereText} numberOfLines={1}>
-                  {centre
-                    ? centre.label || (area ? `Near ${area}` : "Near you")
-                    : locStatus === "asking"
-                      ? "Finding where you are…"
-                      : "Choose an area to look in"}
-                </Text>
-
-                <Pressable
-                  onPress={() => setElsewhere((open) => !open)}
-                  hitSlop={8}
-                  accessibilityRole="button"
-                >
-                  <Text style={styles.link}>
-                    {elsewhere ? "Done" : "Somewhere else"}
-                  </Text>
-                </Pressable>
+              {/* How it works, in three steps. */}
+              <View style={styles.steps}>
+                {[
+                  ["1", "Find a place"],
+                  ["2", `Ask ${them}`],
+                  ["3", "It's saved when they say yes"],
+                ].map(([n, text]) => (
+                  <View key={n} style={styles.step}>
+                    <View style={styles.stepDot}>
+                      <Text style={styles.stepNumber}>{n}</Text>
+                    </View>
+                    <Text style={styles.stepText} numberOfLines={2}>
+                      {text}
+                    </Text>
+                  </View>
+                ))}
               </View>
 
-              {elsewhere ? (
-                <View style={styles.pad}>
-                  <SearchField
-                    value={areaQuery}
-                    onChangeText={setAreaQuery}
-                    placeholder="A town, an area, a street"
-                    autoFocus
-                  />
+              {/* One search, the whole state. */}
+              <View style={styles.pad}>
+                <SearchField
+                  value={query}
+                  onChangeText={setQuery}
+                  placeholder={`Search places in ${stateName || "your state"}`}
+                  busy={searching}
+                />
+                <Text style={styles.searchHint}>
+                  A name, or a kind of place: cinema, beach, restaurant, park…
+                </Text>
+              </View>
 
-                  {me ? (
-                    <Cell
-                      leading={
-                        <Icon name="navigate" size={18} color={T.accent} />
-                      }
-                      title="Back to where I am"
-                      onPress={() => {
-                        setCentre({ ...me, fromMe: true });
-                        setArea("");
-                        setElsewhere(false);
-                      }}
-                    />
-                  ) : null}
-
-                  {areaResults.map((result) => (
-                    <Cell
-                      key={`${result.lat},${result.lon}`}
-                      leading={<Icon name="pin" size={18} color={T.label2} />}
-                      title={result.name}
-                      onPress={() => {
-                        setCentre({
-                          lat: result.lat,
-                          lon: result.lon,
-                          label: `Around ${result.name.split(",")[0]}`,
-                        });
-                        setElsewhere(false);
-                        setAreaQuery("");
-                      }}
-                    />
-                  ))}
-                </View>
-              ) : null}
-
-              {!centre && !elsewhere ? (
-                <Card style={styles.askCard}>
-                  <Text style={styles.askEmoji}>📍</Text>
-
-                  <Text style={styles.askTitle}>
-                    {locStatus === "unavailable"
-                      ? "Look anywhere"
-                      : "Where are you?"}
-                  </Text>
-
-                  <Text style={styles.askText}>
-                    {locStatus === "denied"
-                      ? "Location is off for Between Us. Turn it on in Settings, or pick an area to look in."
-                      : locStatus === "unavailable"
-                        ? "Type an area to find date spots there. The latest version of the app can also use where you are."
-                        : "Allow location to see date spots around you."}
-                  </Text>
-
-                  <View style={styles.askButtons}>
-                    {locStatus === "denied" ? (
-                      <Button
-                        title="Open Settings"
-                        kind="gray"
-                        onPress={() => Linking.openSettings().catch(() => {})}
-                      />
-                    ) : null}
-
-                    <Button
-                      title="Choose an area"
-                      onPress={() => setElsewhere(true)}
-                    />
-                  </View>
-                </Card>
-              ) : null}
-
-              {centre ? (
+              {query.trim().length >= 2 ? (
                 <>
-                  <View style={styles.pad}>
-                    <SearchField
-                      value={query}
-                      onChangeText={setQuery}
-                      placeholder={`Search near ${area || "you"}: sushi, a name…`}
-                    />
-                  </View>
-
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.chips}
-                  >
-                    {[{ key: null, label: "All", emoji: "✨" }, ...kinds].map(
-                      (item) => {
-                        const on = kind === item.key;
-
-                        return (
-                          <Pressable
-                            key={item.key || "all"}
-                            onPress={() => {
-                              Haptics.selectionAsync().catch(() => {});
-                              setKind(item.key);
-                            }}
-                            style={[styles.chip, on && styles.chipOn]}
-                            accessibilityRole="button"
-                            accessibilityState={{ selected: on }}
-                          >
-                            <Text style={styles.chipEmoji}>{item.emoji}</Text>
-                            <Text
-                              style={[styles.chipText, on && styles.chipTextOn]}
-                            >
-                              {item.label}
-                            </Text>
-                          </Pressable>
-                        );
-                      },
-                    )}
-                  </ScrollView>
-
-                  {mapAvailable ? (
-                    <View style={styles.pad}>
-                      <PlaceMap
-                        places={places.slice(0, 60)}
-                        me={me}
-                        centre={centre}
-                        selected={selected}
-                        onPick={(id) => {
-                          const place = places.find((p) => p.id === id);
-                          if (place) openPlace(place);
-                        }}
-                      />
-                    </View>
+                  {nearMatches.length > 0 ? (
+                    <>
+                      <GroupHeader>Near you</GroupHeader>
+                      <View style={styles.placeList}>
+                        {nearMatches.slice(0, 5).map(placeRow)}
+                      </View>
+                    </>
                   ) : null}
 
-                  {placesBusy && places.length === 0 ? (
+                  <GroupHeader>
+                    {stateName ? `Across ${stateName}` : "Further away"}
+                  </GroupHeader>
+
+                  {searching && farMatches.length === 0 ? (
                     <View style={styles.lookingRow}>
                       <ActivityIndicator color={T.accent} />
-                      <Text style={styles.lookingText}>
-                        Finding spots near you…
-                      </Text>
+                      <Text style={styles.lookingText}>Searching…</Text>
                     </View>
-                  ) : null}
-
-                  {filling && places.length > 0 ? (
-                    <View style={styles.fillingRow}>
-                      <ActivityIndicator size="small" color={T.label3} />
-                      <Text style={styles.fillingText}>
-                        Finding more around {area || "you"}…
-                      </Text>
-                    </View>
-                  ) : null}
-
-                  <Notice>{placesError}</Notice>
-
-                  {!placesBusy &&
-                  !filling &&
-                  !placesError &&
-                  places.length === 0 ? (
-                    <Text style={styles.noneText}>
-                      {query
-                        ? `Nothing called “${query}” near ${area || "you"}.`
-                        : "Nothing found here yet. Try another kind, or somewhere else."}
-                    </Text>
                   ) : null}
 
                   <View style={styles.placeList}>
-                    {places.slice(0, showCount).map((place) => (
-                      <Press key={place.id} onPress={() => openPlace(place)}>
-                        <Card
-                          padded={false}
-                          style={[
-                            styles.placeCard,
-                            selected?.id === place.id && styles.placeCardOn,
-                          ]}
-                        >
-                          <Cover
-                            uri={place.image}
-                            kind={place.kind}
-                            emoji={place.emoji}
-                            style={styles.placeThumb}
-                          />
-
-                          <View style={styles.placeBody}>
-                            <Text style={styles.placeName} numberOfLines={1}>
-                              {place.name}
-                            </Text>
-
-                            <Text style={styles.placeMeta} numberOfLines={1}>
-                              {[
-                                kindLabel(place.kind),
-                                place.cuisine?.[0],
-                                distanceText(place.distance_m),
-                              ]
-                                .filter(Boolean)
-                                .join(" · ")}
-                            </Text>
-
-                            {place.address ? (
-                              <Text
-                                style={styles.placeAddress}
-                                numberOfLines={1}
-                              >
-                                {place.address}
-                              </Text>
-                            ) : null}
-                          </View>
-
-                          <Icon name="chevron" size={16} color={T.label3} />
-                        </Card>
-                      </Press>
-                    ))}
+                    {farMatches.map(placeRow)}
                   </View>
 
-                  {places.length > showCount ? (
-                    <View style={styles.pad}>
-                      <Button
-                        title={`Show more (${places.length - showCount})`}
-                        kind="gray"
-                        onPress={() => setShowCount((n) => n + 10)}
-                      />
-                    </View>
-                  ) : null}
-
-                  {places.length > 0 ? (
-                    <Text style={styles.credit}>
-                      Places from OpenStreetMap · photos from Wikimedia Commons
+                  {!searching &&
+                  farMatches.length === 0 &&
+                  nearMatches.length === 0 ? (
+                    <Text style={styles.noneText}>
+                      Nothing called “{query.trim()}”
+                      {stateName ? ` in ${stateName}` : ""}. Try another word,
+                      like “cinema” or “beach”.
                     </Text>
                   ) : null}
                 </>
-              ) : null}
+              ) : (
+                <>
+                  {/* Ideas near you, when you are not searching. */}
+                  <GroupHeader>
+                    {area ? `Ideas near ${area}` : "Ideas near you"}
+                  </GroupHeader>
+
+                  {!centre ? (
+                    <Card style={styles.askCard}>
+                      <Text style={styles.askEmoji}>📍</Text>
+
+                      <Text style={styles.askText}>
+                        {locStatus === "asking"
+                          ? "Finding where you are…"
+                          : locStatus === "denied"
+                            ? "Turn on location for Between Us to see ideas near you. You can still search above."
+                            : "Allow location to see ideas near you. You can still search above."}
+                      </Text>
+
+                      {locStatus !== "asking" ? (
+                        <View style={styles.askButtons}>
+                          <Button
+                            title={
+                              locStatus === "denied"
+                                ? "Open Settings"
+                                : "Use my location"
+                            }
+                            kind="gray"
+                            onPress={() =>
+                              locStatus === "denied"
+                                ? Linking.openSettings().catch(() => {})
+                                : locate()
+                            }
+                          />
+                        </View>
+                      ) : null}
+                    </Card>
+                  ) : (
+                    <>
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.chips}
+                      >
+                        {[
+                          { key: null, label: "All", emoji: "✨" },
+                          ...kinds,
+                        ].map((item) => {
+                          const on = kind === item.key;
+
+                          return (
+                            <Pressable
+                              key={item.key || "all"}
+                              onPress={() => {
+                                Haptics.selectionAsync().catch(() => {});
+                                setKind(item.key);
+                              }}
+                              style={[styles.chip, on && styles.chipOn]}
+                              accessibilityRole="button"
+                              accessibilityState={{ selected: on }}
+                            >
+                              <Text style={styles.chipEmoji}>{item.emoji}</Text>
+                              <Text
+                                style={[
+                                  styles.chipText,
+                                  on && styles.chipTextOn,
+                                ]}
+                              >
+                                {item.label}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </ScrollView>
+
+                      {mapAvailable ? (
+                        <View style={styles.pad}>
+                          <PlaceMap
+                            places={places.slice(0, 60)}
+                            me={me}
+                            centre={centre}
+                            selected={selected}
+                            onPick={(id) => {
+                              const place = places.find((p) => p.id === id);
+                              if (place) openPlace(place);
+                            }}
+                          />
+                        </View>
+                      ) : null}
+
+                      {placesBusy && places.length === 0 ? (
+                        <View style={styles.lookingRow}>
+                          <ActivityIndicator color={T.accent} />
+                          <Text style={styles.lookingText}>
+                            Finding spots near you…
+                          </Text>
+                        </View>
+                      ) : null}
+
+                      {filling && places.length > 0 ? (
+                        <View style={styles.fillingRow}>
+                          <ActivityIndicator size="small" color={T.label3} />
+                          <Text style={styles.fillingText}>
+                            Finding more around {area || "you"}…
+                          </Text>
+                        </View>
+                      ) : null}
+
+                      <Notice>{placesError}</Notice>
+
+                      {!placesBusy &&
+                      !filling &&
+                      !placesError &&
+                      places.length === 0 ? (
+                        <Text style={styles.noneText}>
+                          Nothing of that kind close by. Try another, or search
+                          above.
+                        </Text>
+                      ) : null}
+
+                      <View style={styles.placeList}>
+                        {places.slice(0, showCount).map(placeRow)}
+                      </View>
+
+                      {places.length > showCount ? (
+                        <View style={styles.pad}>
+                          <Button
+                            title={`Show more (${places.length - showCount})`}
+                            kind="gray"
+                            onPress={() => setShowCount((n) => n + 10)}
+                          />
+                        </View>
+                      ) : null}
+                    </>
+                  )}
+                </>
+              )}
+
+              <Text style={styles.credit}>
+                Places from OpenStreetMap · photos from Wikimedia Commons
+              </Text>
             </View>
           </>
         )}
@@ -1676,6 +1700,51 @@ const styles = themedStyles(() => ({
     fontSize: 14,
     lineHeight: 19,
     color: T.label2,
+  },
+
+  steps: {
+    flexDirection: "row",
+    marginHorizontal: 16,
+    padding: 12,
+    gap: 8,
+    borderRadius: 18,
+    backgroundColor: T.surface,
+  },
+
+  step: {
+    flex: 1,
+    alignItems: "center",
+    gap: 6,
+  },
+
+  stepDot: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: T.accent,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  stepNumber: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+
+  stepText: {
+    fontSize: 12,
+    lineHeight: 15,
+    fontWeight: "600",
+    color: T.label,
+    textAlign: "center",
+  },
+
+  searchHint: {
+    fontSize: 13,
+    color: T.label2,
+    marginTop: 6,
+    marginLeft: 4,
   },
 
   fillingRow: {
