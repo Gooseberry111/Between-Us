@@ -26,6 +26,7 @@ import {
 } from "../../components/ui";
 import ActivityRow from "../../components/ActivityRow";
 import BondHero from "../../components/BondHero";
+import Frost from "../../components/Frost";
 import {
   Challenge,
   Distance,
@@ -769,7 +770,9 @@ export default function HomeScreen() {
             onPress={closeWheel}
             style={[styles.wheelShade, { top: 0, height: heroAt.y }]}
             accessibilityLabel="Close"
-          />
+          >
+            <Frost />
+          </Pressable>
           <Pressable
             onPress={closeWheel}
             style={[
@@ -777,7 +780,9 @@ export default function HomeScreen() {
               { top: heroAt.y + heroAt.height, bottom: 0 },
             ]}
             accessibilityLabel="Close"
-          />
+          >
+            <Frost />
+          </Pressable>
         </>
       ) : null}
     </Screen>
@@ -789,8 +794,7 @@ const styles = themedStyles(() => ({
     position: "absolute",
     left: 0,
     right: 0,
-    backgroundColor: T.appBackground,
-    opacity: 0.85,
+    overflow: "hidden",
   },
 
   loading: {

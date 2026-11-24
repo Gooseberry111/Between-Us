@@ -22,6 +22,7 @@ import Svg, {
 } from "react-native-svg";
 
 import { TAP_LIST } from "../lib/taps";
+import Frost from "./Frost";
 import { T, themedStyles, useTheme } from "../lib/theme";
 import { motionAllowed } from "./ui";
 
@@ -135,9 +136,6 @@ export default function BondHero({
   useEffect(() => {
     setWheel(null);
   }, [closeKey]);
-
-  /* While a wheel is out, everything else on the card steps back. */
-  const back = wheel ? styles.backdrop : null;
 
   const centreOf = (at) =>
     rowAt && at ? { x: rowAt.x + at.x + 48, y: rowAt.y + at.y + 45 } : null;
@@ -374,7 +372,7 @@ export default function BondHero({
         at 22% of the colour and fading to nothing by 70% of
         its radius -- yours on the left, theirs on the right.
       */}
-      <View style={[styles.glow, back]} pointerEvents="none">
+      <View style={styles.glow} pointerEvents="none">
         <Svg width="100%" height="100%">
           <Defs>
             <RadialGradient
@@ -411,10 +409,10 @@ export default function BondHero({
 
       {days ? (
         <>
-          <Text style={[styles.dayLabel, back]}>Day</Text>
+          <Text style={styles.dayLabel}>Day</Text>
 
           <Text
-            style={[styles.dayCount, back]}
+            style={styles.dayCount}
             numberOfLines={1}
             adjustsFontSizeToFit
             minimumFontScale={0.6}
@@ -425,7 +423,7 @@ export default function BondHero({
       ) : null}
 
       <Text
-        style={[styles.names, !days && styles.namesAlone, back]}
+        style={[styles.names, !days && styles.namesAlone]}
         numberOfLines={1}
       >
         {days ? "of " : ""}
@@ -435,7 +433,7 @@ export default function BondHero({
       <View style={styles.row} onLayout={(e) => setRowAt(e.nativeEvent.layout)}>
         {/* YOU -- tap your circle for the wheel of moods. */}
         <View
-          style={[styles.person, wheel === "them" && back]}
+          style={styles.person}
           onLayout={(e) => setYouAt(e.nativeEvent.layout)}
         >
           {/* The whole circle is the button: on Android the raised
@@ -518,7 +516,7 @@ export default function BondHero({
         </View>
 
         {/* THE THREAD */}
-        <View style={[styles.thread, back]}>
+        <View style={styles.thread}>
           <View style={styles.wire} pointerEvents="none">
             <Svg width="100%" height="60" viewBox="0 0 170 60">
               <Defs>
@@ -606,7 +604,7 @@ export default function BondHero({
 
         {/* THEM -- tap their circle for a burst of little somethings. */}
         <View
-          style={[styles.person, wheel === "you" && back]}
+          style={styles.person}
           onLayout={(e) => setThemAt(e.nativeEvent.layout)}
         >
           {onSendTap ? (
@@ -689,7 +687,7 @@ export default function BondHero({
       ) : null}
 
       {streak > 0 || monthsLine ? (
-        <View style={[styles.chips, back]}>
+        <View style={styles.chips}>
           {streak > 0 ? (
             <View style={styles.chip}>
               <Ionicons name="flame" size={15} color={T.orange} />
@@ -708,12 +706,16 @@ export default function BondHero({
         </View>
       ) : null}
 
+      {/* While a wheel is out, the card sits behind frosted glass;
+          a tap on the glass puts the wheel away. */}
       {wheel ? (
         <Pressable
-          style={StyleSheet.absoluteFill}
+          style={[StyleSheet.absoluteFill, styles.frostPane]}
           onPress={closeWheel}
           accessibilityLabel="Close"
-        />
+        >
+          <Frost />
+        </Pressable>
       ) : null}
 
       {onChooseMood && moodItems.length ? (
@@ -730,6 +732,7 @@ export default function BondHero({
           }
           onPick={(item) => onChooseMood(item.key)}
           onClose={closeWheel}
+          focus={{ letter: youName, mine: true, badge: mood }}
         />
       ) : null}
 
@@ -741,6 +744,7 @@ export default function BondHero({
           describe={(item) => `Send ${partnerName}: ${item.label}`}
           onPick={(item) => onSendTap(item.kind)}
           onClose={closeWheel}
+          focus={{ letter: partnerName, mine: false, badge: partnerMood }}
         />
       ) : null}
     </View>
@@ -826,6 +830,7 @@ function Wheel({
   describe,
   onPick,
   onClose,
+  focus,
 }) {
   useTheme();
 
@@ -969,25 +974,57 @@ function Wheel({
           style={[StyleSheet.absoluteFill, { opacity: spread }]}
         >
           <Svg width={WHEEL_BOX} height={WHEEL_BOX}>
-            {/* A solid pill, edged in the circle's colour, so the
-                bubbles read clearly over whatever is beneath. */}
+            {/* A band of clear glass, edged in the circle's colour. */}
             <Path
               d={arc}
               fill="none"
               stroke={mirror ? T.you : T.accent}
-              strokeOpacity={0.45}
+              strokeOpacity={0.5}
               strokeWidth={44}
               strokeLinecap="round"
             />
             <Path
               d={arc}
               fill="none"
-              stroke={T.appBackground}
+              stroke="#FFFFFF"
+              strokeOpacity={T.dark ? 0.16 : 0.55}
               strokeWidth={40}
               strokeLinecap="round"
             />
           </Svg>
         </Animated.View>
+
+        {/* The circle itself, sharp above the glass. */}
+        {focus ? (
+          <Animated.View
+            pointerEvents="none"
+            style={[styles.focus, { opacity: spread }]}
+          >
+            <View
+              style={[
+                styles.focusRing,
+                { borderColor: focus.mine ? T.you : T.accent },
+              ]}
+            />
+            <View
+              style={[styles.av, focus.mine ? styles.avYou : styles.avThem]}
+            >
+              <Text
+                style={[
+                  styles.avText,
+                  { color: focus.mine ? T.youText : T.accentText },
+                ]}
+              >
+                {(focus.letter || "?").charAt(0).toUpperCase()}
+              </Text>
+            </View>
+            {focus.badge ? (
+              <View style={styles.moodBadge}>
+                <Text style={styles.moodEmoji}>{focus.badge}</Text>
+              </View>
+            ) : null}
+          </Animated.View>
+        ) : null}
 
         {items.map((item, index) => {
           const path = paths[index];
@@ -1188,8 +1225,25 @@ const styles = themedStyles(() => ({
     zIndex: 7,
   },
 
-  backdrop: {
-    opacity: 0.15,
+  frostPane: {
+    zIndex: 5,
+    overflow: "hidden",
+  },
+
+  focus: {
+    position: "absolute",
+    left: WHEEL_BOX / 2 - 45,
+    top: WHEEL_BOX / 2 - 45,
+    width: 90,
+    height: 90,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  focusRing: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 45,
+    borderWidth: 3,
   },
 
   wheel: {
