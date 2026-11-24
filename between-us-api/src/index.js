@@ -814,6 +814,19 @@ async function roundItems(sql, env, ctx, kind, used) {
 	return picked;
 }
 
+/*
+ * Whether two answers agree. Either game: "both" with "both"
+ * and "neither" with "neither". Who's More Likely To: "me"
+ * from one and "you" from the other name the same person.
+ * This or That: the same side.
+ */
+function agreed(kind, mine, theirs) {
+	if (!mine || !theirs) return false;
+	if (mine === 'both' || mine === 'neither') return mine === theirs;
+	if (kind === 'likely') return (mine === 'me' && theirs === 'you') || (mine === 'you' && theirs === 'me');
+	return mine === theirs;
+}
+
 /* A round as one player sees it. Their answers are "mine". */
 function roundFor(round, viewerId) {
 	if (!round) return null;
@@ -826,14 +839,7 @@ function roundFor(round, viewerId) {
 	let matches = null;
 
 	if (both) {
-		matches = round.items.filter((_, index) => {
-			if (round.kind === 'likely') {
-				/* "me" from one and "you" from the other is agreement. */
-				return mine[index] && theirs[index] && mine[index] !== theirs[index];
-			}
-
-			return mine[index] === theirs[index];
-		}).length;
+		matches = round.items.filter((_, index) => agreed(round.kind, mine[index], theirs[index])).length;
 	}
 
 	return {
@@ -8780,7 +8786,7 @@ VALUES (
 				}
 
 				const body = await request.json().catch(() => ({}));
-				const allowed = round.kind === 'likely' ? ['me', 'you'] : ['a', 'b'];
+				const allowed = round.kind === 'likely' ? ['me', 'you', 'both', 'neither'] : ['a', 'b', 'both', 'neither'];
 				const answers = Array.isArray(body?.answers) ? body.answers : [];
 
 				if (answers.length !== round.items.length || !answers.every((answer) => allowed.includes(answer))) {

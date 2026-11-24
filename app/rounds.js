@@ -257,6 +257,34 @@ export default function RoundsScreen() {
           </>
         )}
 
+        {/* When it really is both, or neither: there, but smaller,
+            so the choice above stays the game. */}
+        <View style={styles.extras}>
+          {(kind === "likely"
+            ? [
+                ["both", "Both of us"],
+                ["neither", "Neither of us"],
+              ]
+            : [
+                ["both", "Both"],
+                ["neither", "Neither"],
+              ]
+          ).map(([value, label]) => (
+            <Pressable
+              key={value}
+              onPress={() => pick(value)}
+              disabled={busy}
+              style={({ pressed }) => [
+                styles.extra,
+                pressed && styles.optionPressed,
+              ]}
+              accessibilityRole="button"
+            >
+              <Text style={styles.extraText}>{label}</Text>
+            </Pressable>
+          ))}
+        </View>
+
         <Notice>{error}</Notice>
       </Screen>
     );
@@ -319,18 +347,25 @@ export default function RoundsScreen() {
                     const mine = round.mine[index];
                     const theirs = round.theirs[index];
 
-                    const matched =
-                      kind === "likely" ? mine !== theirs : mine === theirs;
+                    const matched = agreed(kind, mine, theirs);
 
                     const label =
                       kind === "likely" ? item.text : `${item.a} or ${item.b}`;
 
                     const show = (value, own) =>
-                      kind === "likely"
-                        ? (value === "me") === own
-                          ? "You"
-                          : them
-                        : item[value];
+                      value === "both"
+                        ? kind === "likely"
+                          ? "Both of us"
+                          : "Both"
+                        : value === "neither"
+                          ? kind === "likely"
+                            ? "Neither of us"
+                            : "Neither"
+                          : kind === "likely"
+                            ? (value === "me") === own
+                              ? "You"
+                              : them
+                            : item[value];
 
                     return (
                       <View key={index} style={styles.answerRow}>
@@ -413,7 +448,45 @@ export default function RoundsScreen() {
   );
 }
 
+/*
+ * Whether two answers agree, as the server counts it: the
+ * same "both" or "neither"; in Who's More Likely To, "me"
+ * from one and "you" from the other (the same person); in
+ * This or That, the same side.
+ */
+function agreed(kind, mine, theirs) {
+  if (!mine || !theirs) return false;
+  if (mine === "both" || mine === "neither") return mine === theirs;
+  if (kind === "likely") {
+    return (
+      (mine === "me" && theirs === "you") || (mine === "you" && theirs === "me")
+    );
+  }
+  return mine === theirs;
+}
+
 const styles = themedStyles(() => ({
+  extras: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 10,
+    paddingHorizontal: 16,
+    marginTop: 14,
+  },
+
+  extra: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: T.fill3,
+  },
+
+  extraText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: T.label,
+  },
+
   progress: {
     paddingHorizontal: 20,
     gap: 8,

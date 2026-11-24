@@ -36,7 +36,11 @@ import Celebration from "../components/Celebration";
  */
 
 const FACE = { walker: "🧟", runner: "🧟‍♀️", brute: "🧌" };
-const SIZE = { walker: 40, runner: 36, brute: 58 };
+const SIZE = { walker: 40, runner: 36, brute: 58, human: 38 };
+/* People caught up in it: leave them alone and they reach safety. */
+const PEOPLE = ["🙋‍♀️", "🧍‍♂️", "🙋‍♂️", "🧍‍♀️"];
+const faceOf = (z) =>
+  z.kind === "human" ? PEOPLE[z.id % PEOPLE.length] : FACE[z.kind];
 const TICK_MS = 33;
 
 const tap = (style) => Haptics.impactAsync(style).catch(() => {});
@@ -123,11 +127,26 @@ export default function ZombiesScreen() {
       current.next += 1;
     }
 
-    /* Everyone shuffles forward; anyone at the barricade costs a heart. */
+    /* Everyone shuffles forward. A zombie at the barricade costs a
+     * heart; a person who gets there is saved. */
     current.alive = current.alive.filter((z) => {
       z.y = ((elapsed - z.t) / 1000) * z.speed;
 
       if (z.y < 1) return true;
+
+      if (z.kind === "human") {
+        current.score += current.kinds.human.saved;
+        current.splats.push({
+          id: `${z.id}-saved`,
+          x: z.x,
+          y: 0.92,
+          label: `Saved +${current.kinds.human.saved}`,
+          face: "🛡️",
+          tone: "saved",
+          at: Date.now(),
+        });
+        return false;
+      }
 
       current.hearts -= 1;
       current.hurtAt = Date.now();
@@ -159,6 +178,28 @@ export default function ZombiesScreen() {
 
     if (!z) return;
 
+    /* A person: never tap them. It costs a heart. */
+    if (z.kind === "human") {
+      current.alive = current.alive.filter((item) => item.id !== id);
+      current.hearts -= 1;
+      current.hurtAt = Date.now();
+      current.splats.push({
+        id: `${id}-ouch`,
+        x: z.x,
+        y: z.y,
+        label: "Ouch! −1 ❤️",
+        face: "😵",
+        tone: "ouch",
+        at: Date.now(),
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(
+        () => {},
+      );
+      if (current.hearts <= 0) finishRef.current("hearts");
+      setFrame((n) => n + 1);
+      return;
+    }
+
     z.hp -= 1;
 
     if (z.hp > 0) {
@@ -175,7 +216,9 @@ export default function ZombiesScreen() {
       id: `${id}-${Date.now()}`,
       x: z.x,
       y: z.y,
-      points: current.kinds[z.kind].points,
+      label: `+${current.kinds[z.kind].points}`,
+      face: "💥",
+      tone: "hit",
       at: Date.now(),
     });
     tap(
@@ -318,7 +361,11 @@ export default function ZombiesScreen() {
                   },
                 ]}
                 accessibilityRole="button"
-                accessibilityLabel={`Zombie, ${z.kind}`}
+                accessibilityLabel={
+                  z.kind === "human"
+                    ? "A person: leave them"
+                    : `Zombie, ${z.kind}`
+                }
               >
                 <Text
                   style={{
@@ -327,7 +374,7 @@ export default function ZombiesScreen() {
                     transform: [{ scale: flinch ? 0.9 : 1 }],
                   }}
                 >
-                  {FACE[z.kind]}
+                  {faceOf(z)}
                 </Text>
 
                 {z.kind === "brute" ? (
@@ -354,14 +401,22 @@ export default function ZombiesScreen() {
                 style={[
                   styles.splat,
                   {
-                    left: s.x * arenaW - 24,
+                    left: Math.min(arenaW - 96, Math.max(0, s.x * arenaW - 48)),
                     top: s.y * (arenaH - 40) - age * 30,
                     opacity: 1 - age,
                   },
                 ]}
               >
-                <Text style={styles.splatBoom}>💥</Text>
-                <Text style={styles.splatPoints}>+{s.points}</Text>
+                <Text style={styles.splatBoom}>{s.face}</Text>
+                <Text
+                  style={[
+                    styles.splatPoints,
+                    s.tone === "ouch" && styles.splatOuch,
+                    s.tone === "saved" && styles.splatSaved,
+                  ]}
+                >
+                  {s.label}
+                </Text>
               </View>
             );
           })}
@@ -435,6 +490,10 @@ export default function ZombiesScreen() {
                 brutes 🧌 take three. Three hearts, 45 seconds.
               </Text>
               <Text style={styles.introText}>
+                But people 🙋‍♀️ are running through too. Don't tap them: that
+                costs a heart. Let them reach the wall and they're saved, +5.
+              </Text>
+              <Text style={styles.introText}>
                 You each face the same horde, whenever you like. Highest score
                 wins.
               </Text>
@@ -477,8 +536,9 @@ export default function ZombiesScreen() {
                       : "Your run"}
                   </Text>
                   <Text style={styles.readyText}>
-                    Tap the zombies before they reach the wall. One go only, 45
-                    seconds, three hearts. Ready when you are.
+                    Tap the zombies before they reach the wall, and leave the
+                    people 🙋‍♀️ alone: tapping one costs a heart. One go only, 45
+                    seconds, three hearts.
                   </Text>
                 </View>
               ) : (
@@ -650,7 +710,7 @@ const styles = themedStyles(() => ({
 
   splat: {
     position: "absolute",
-    width: 48,
+    width: 96,
     alignItems: "center",
   },
 
@@ -662,6 +722,14 @@ const styles = themedStyles(() => ({
     fontSize: 13,
     fontWeight: "800",
     color: "#FFD54A",
+  },
+
+  splatOuch: {
+    color: "#FF6B6B",
+  },
+
+  splatSaved: {
+    color: "#7CE38B",
   },
 
   barricade: {

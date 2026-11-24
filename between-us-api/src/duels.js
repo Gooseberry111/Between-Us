@@ -8,8 +8,9 @@
  *
  *   zombies     Zombie Rush. The server writes one wave of
  *               zombies; you each play it once, whenever you
- *               like, tapping them before they reach you. Three
- *               hearts, 45 seconds. Higher score wins.
+ *               like, tapping them before they reach you, and
+ *               leaving alone the people walking among them.
+ *               Three hearts, 45 seconds. Higher score wins.
  *
  *   tanks       Tank Duel. Take turns: set the angle and the
  *               power, mind the wind, and lob a shell over the
@@ -28,6 +29,8 @@ export const ZOMBIES = {
 	walker: { hp: 1, points: 10, speed: [0.15, 0.21] },
 	runner: { hp: 1, points: 15, speed: [0.28, 0.36] },
 	brute: { hp: 3, points: 50, speed: [0.09, 0.11] },
+	/* Not a zombie: tapping one costs a heart; one who reaches the wall is saved. */
+	human: { hp: 1, points: 0, saved: 5, speed: [0.14, 0.2] },
 };
 
 /*
@@ -62,6 +65,9 @@ function waveFor(seed) {
 		const progress = t / RUSH_MS;
 		let kind = rand() < 0.2 + progress * 0.4 ? 'runner' : 'walker';
 
+		/* From a few seconds in, people to leave alone: more as it goes. */
+		if (progress > 0.08 && rand() < 0.1 + progress * 0.14) kind = 'human';
+
 		if (t >= nextBrute) {
 			kind = 'brute';
 			nextBrute += 9000 + Math.round(rand() * 2500);
@@ -69,9 +75,10 @@ function waveFor(seed) {
 
 		add(t, kind, progress);
 
-		/* The second half: sometimes two at once. */
+		/* The second half: sometimes two at once, now and then a person among them. */
 		if (progress > 0.5 && kind !== 'brute' && rand() < (progress - 0.5) * 0.9) {
-			add(t + 120, rand() < 0.5 ? 'runner' : 'walker', progress);
+			const r = rand();
+			add(t + 120, r < 0.25 ? 'human' : r < 0.6 ? 'runner' : 'walker', progress);
 		}
 
 		t += Math.max(250, 1000 - progress * 800 + (rand() - 0.5) * 250);
@@ -97,10 +104,13 @@ export function zombiesMove(state, side, move) {
 
 	const score = Number(move?.score);
 	const kills = Number(move?.kills);
-	const most = state.wave.reduce((sum, z) => sum + ZOMBIES[z.kind].points, 0);
+	/* Every zombie dropped and every person saved. */
+	const most = state.wave.reduce((sum, z) => sum + (z.kind === 'human' ? ZOMBIES.human.saved : ZOMBIES[z.kind].points), 0);
 
 	if (!Number.isInteger(score) || score < 0 || score > most || score % 5 !== 0) return { error: 'That score does not add up.' };
-	if (!Number.isInteger(kills) || kills < 0 || kills > state.wave.length) return { error: 'That score does not add up.' };
+	const zombies = state.wave.filter((z) => z.kind !== 'human').length;
+
+	if (!Number.isInteger(kills) || kills < 0 || kills > zombies) return { error: 'That score does not add up.' };
 
 	const next = structuredClone(state);
 	next.scores[side] = score;
