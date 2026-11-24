@@ -102,6 +102,7 @@ export default function BondHero({
   onChooseMood,
   onSendTap,
   onWheel,
+  closeKey,
 }) {
   useTheme();
 
@@ -129,6 +130,14 @@ export default function BondHero({
   useEffect(() => {
     wheelRef.current?.(Boolean(wheel));
   }, [wheel]);
+
+  /* A tap on the faded page behind closes it. */
+  useEffect(() => {
+    setWheel(null);
+  }, [closeKey]);
+
+  /* While a wheel is out, everything else on the card steps back. */
+  const back = wheel ? styles.backdrop : null;
 
   const centreOf = (at) =>
     rowAt && at ? { x: rowAt.x + at.x + 48, y: rowAt.y + at.y + 45 } : null;
@@ -365,7 +374,7 @@ export default function BondHero({
         at 22% of the colour and fading to nothing by 70% of
         its radius -- yours on the left, theirs on the right.
       */}
-      <View style={styles.glow} pointerEvents="none">
+      <View style={[styles.glow, back]} pointerEvents="none">
         <Svg width="100%" height="100%">
           <Defs>
             <RadialGradient
@@ -402,10 +411,10 @@ export default function BondHero({
 
       {days ? (
         <>
-          <Text style={styles.dayLabel}>Day</Text>
+          <Text style={[styles.dayLabel, back]}>Day</Text>
 
           <Text
-            style={styles.dayCount}
+            style={[styles.dayCount, back]}
             numberOfLines={1}
             adjustsFontSizeToFit
             minimumFontScale={0.6}
@@ -416,7 +425,7 @@ export default function BondHero({
       ) : null}
 
       <Text
-        style={[styles.names, !days && styles.namesAlone]}
+        style={[styles.names, !days && styles.namesAlone, back]}
         numberOfLines={1}
       >
         {days ? "of " : ""}
@@ -426,7 +435,7 @@ export default function BondHero({
       <View style={styles.row} onLayout={(e) => setRowAt(e.nativeEvent.layout)}>
         {/* YOU -- tap your circle for the wheel of moods. */}
         <View
-          style={styles.person}
+          style={[styles.person, wheel === "them" && back]}
           onLayout={(e) => setYouAt(e.nativeEvent.layout)}
         >
           {/* The whole circle is the button: on Android the raised
@@ -509,7 +518,7 @@ export default function BondHero({
         </View>
 
         {/* THE THREAD */}
-        <View style={styles.thread}>
+        <View style={[styles.thread, back]}>
           <View style={styles.wire} pointerEvents="none">
             <Svg width="100%" height="60" viewBox="0 0 170 60">
               <Defs>
@@ -597,7 +606,7 @@ export default function BondHero({
 
         {/* THEM -- tap their circle for a burst of little somethings. */}
         <View
-          style={styles.person}
+          style={[styles.person, wheel === "you" && back]}
           onLayout={(e) => setThemAt(e.nativeEvent.layout)}
         >
           {onSendTap ? (
@@ -680,7 +689,7 @@ export default function BondHero({
       ) : null}
 
       {streak > 0 || monthsLine ? (
-        <View style={styles.chips}>
+        <View style={[styles.chips, back]}>
           {streak > 0 ? (
             <View style={styles.chip}>
               <Ionicons name="flame" size={15} color={T.orange} />
@@ -697,6 +706,14 @@ export default function BondHero({
             </View>
           ) : null}
         </View>
+      ) : null}
+
+      {wheel ? (
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={closeWheel}
+          accessibilityLabel="Close"
+        />
       ) : null}
 
       {onChooseMood && moodItems.length ? (
@@ -783,8 +800,9 @@ function wheelPath(index, mirror) {
     input.push(turn);
     x.push(at.x);
     y.push(at.y);
-    fade.push(Math.max(0, 1 - out * 1.6));
-    size.push(Math.max(0.55, 1 - out * 0.6));
+    /* Gone before they reach the end of the track. */
+    fade.push(Math.max(0, 1 - out * 3));
+    size.push(Math.max(0.6, 1 - out * 0.8));
   }
 
   return { input, x, y, fade, size };
@@ -792,8 +810,8 @@ function wheelPath(index, mirror) {
 
 /* The faint track the bubbles ride on. */
 function arcPath(mirror) {
-  const from = toXY(-0.45, mirror);
-  const to = toXY(WHEEL_SHOWN - 0.55, mirror);
+  const from = toXY(-0.75, mirror);
+  const to = toXY(WHEEL_SHOWN - 0.25, mirror);
   const c = WHEEL_BOX / 2;
 
   return `M${c + from.x},${c + from.y} A${WHEEL_R},${WHEEL_R} 0 0 ${mirror ? 0 : 1} ${c + to.x},${c + to.y}`;
@@ -951,12 +969,21 @@ function Wheel({
           style={[StyleSheet.absoluteFill, { opacity: spread }]}
         >
           <Svg width={WHEEL_BOX} height={WHEEL_BOX}>
+            {/* A solid pill, edged in the circle's colour, so the
+                bubbles read clearly over whatever is beneath. */}
             <Path
               d={arc}
               fill="none"
               stroke={mirror ? T.you : T.accent}
-              strokeOpacity={0.22}
-              strokeWidth={38}
+              strokeOpacity={0.45}
+              strokeWidth={44}
+              strokeLinecap="round"
+            />
+            <Path
+              d={arc}
+              fill="none"
+              stroke={T.appBackground}
+              strokeWidth={40}
               strokeLinecap="round"
             />
           </Svg>
@@ -1159,6 +1186,10 @@ const styles = themedStyles(() => ({
     textAlign: "center",
     fontSize: 36,
     zIndex: 7,
+  },
+
+  backdrop: {
+    opacity: 0.15,
   },
 
   wheel: {

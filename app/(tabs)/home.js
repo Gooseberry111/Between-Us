@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { RefreshControl, Text, View } from "react-native";
+import { Pressable, RefreshControl, Text, View } from "react-native";
 import { useAuth } from "@clerk/expo";
 import { useFocusEffect, useRouter } from "expo-router";
 
@@ -172,6 +172,10 @@ export default function HomeScreen() {
   const [partnerMood, setPartnerMood] = useState(cached?.partnerMood ?? null);
   /* A wheel is out on Home: the page holds still for the spin. */
   const [wheelOut, setWheelOut] = useState(false);
+  /* Where the card sits, so the rest of the page can fade behind a wheel. */
+  const [heroAt, setHeroAt] = useState(null);
+  const [wheelClose, setWheelClose] = useState(0);
+  const closeWheel = () => setWheelClose((n) => n + 1);
 
   const loadHome = useCallback(async () => {
     if (!isLoaded || !isSignedIn || !userId) {
@@ -570,24 +574,27 @@ export default function HomeScreen() {
         />
       </NavBar>
 
-      <BondHero
-        youName={youName}
-        partnerName={partnerName}
-        days={days}
-        youAnswered={youAnswered}
-        partnerAnswered={partnerAnswered}
-        streak={Number(daily?.streak || 0)}
-        mood={MOODS.find((item) => item.key === mood)?.emoji}
-        moodLabel={MOOD_WORDS[mood]}
-        partnerMood={partnerMood?.emoji}
-        partnerMoodLabel={MOOD_WORDS[partnerMood?.key || partnerMood?.mood]}
-        onHug={sendHug}
-        onSendTap={features.enabled("taps") ? sendTap : undefined}
-        moods={MOOD_WHEEL}
-        moodKey={mood}
-        onChooseMood={(key) => chooseMood(mood === key ? null : key)}
-        onWheel={setWheelOut}
-      />
+      <View onLayout={(e) => setHeroAt(e.nativeEvent.layout)}>
+        <BondHero
+          youName={youName}
+          partnerName={partnerName}
+          days={days}
+          youAnswered={youAnswered}
+          partnerAnswered={partnerAnswered}
+          streak={Number(daily?.streak || 0)}
+          mood={MOODS.find((item) => item.key === mood)?.emoji}
+          moodLabel={MOOD_WORDS[mood]}
+          partnerMood={partnerMood?.emoji}
+          partnerMoodLabel={MOOD_WORDS[partnerMood?.key || partnerMood?.mood]}
+          onHug={sendHug}
+          onSendTap={features.enabled("taps") ? sendTap : undefined}
+          moods={MOOD_WHEEL}
+          moodKey={mood}
+          onChooseMood={(key) => chooseMood(mood === key ? null : key)}
+          onWheel={setWheelOut}
+          closeKey={wheelClose}
+        />
+      </View>
 
       {/* A LETTER WAITING */}
 
@@ -753,11 +760,39 @@ export default function HomeScreen() {
           </Group>
         </>
       ) : null}
+
+      {/* A wheel is out: the page above and below the card fades
+          back, and a tap anywhere on it puts the wheel away. */}
+      {wheelOut && heroAt ? (
+        <>
+          <Pressable
+            onPress={closeWheel}
+            style={[styles.wheelShade, { top: 0, height: heroAt.y }]}
+            accessibilityLabel="Close"
+          />
+          <Pressable
+            onPress={closeWheel}
+            style={[
+              styles.wheelShade,
+              { top: heroAt.y + heroAt.height, bottom: 0 },
+            ]}
+            accessibilityLabel="Close"
+          />
+        </>
+      ) : null}
     </Screen>
   );
 }
 
 const styles = themedStyles(() => ({
+  wheelShade: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    backgroundColor: T.appBackground,
+    opacity: 0.85,
+  },
+
   loading: {
     paddingTop: 20,
   },
